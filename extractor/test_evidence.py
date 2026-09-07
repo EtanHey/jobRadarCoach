@@ -100,6 +100,9 @@ def test_remote_polarity_rejects_quotes_that_omit_source_negation(
 
 @pytest.mark.parametrize("quote", [
     "This is a remote position.",
+    "We do not offer office parking, but remote work is available.",
+    "We cannot provide parking and remote work is available.",
+    "We do not offer parking while remote work is available.",
     "Remote work is available.",
     "Remote work is available, but office parking is not available.",
     "Remote work is available and office parking is unavailable.",
