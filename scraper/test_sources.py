@@ -2122,11 +2122,12 @@ def test_ats_postings_are_filtered_by_title_synonyms_and_israel_location() -> No
     ] == ["1", "4", "5"]
 
 
-def test_ats_geography_uses_profile_aliases_and_explicit_remote() -> None:
+@pytest.mark.parametrize("remote_geography", ["Remote", " Remote ", "remote"])
+def test_ats_geography_uses_profile_aliases_and_explicit_remote(remote_geography) -> None:
     harvest = load_harvest()
     searches = [
         {"keywords": "Software Engineer", "location": "Portugal", "recency": "r43200"},
-        {"keywords": "Software Engineer", "location": "Remote", "recency": "r43200"},
+        {"keywords": "Software Engineer", "location": remote_geography, "recency": "r43200"},
     ]
     aliases = {"Portugal": ["Lisbon", "Porto"]}
     postings = [
