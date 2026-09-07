@@ -119,3 +119,10 @@ def test_remote_polarity_preserves_explicit_positive_evidence(quote: str) -> Non
 
     with pytest.raises(BrainValidationError, match="remote value conflicts"):
         validate_facts(remote_only_facts(False, quote), quote)
+
+
+def test_explicit_workable_onsite_token_preserves_remote_polarity() -> None:
+    quote = "Workplace:** on_site"
+    validate_facts(remote_only_facts(False, quote), quote)
+    with pytest.raises(BrainValidationError, match="remote value conflicts"):
+        validate_facts(remote_only_facts(True, quote), quote)

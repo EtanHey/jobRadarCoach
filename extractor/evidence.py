@@ -15,7 +15,7 @@ _REMOTE_DENIAL_ACTION = r"(?:offer|allow|permit|support|provide|accommodate|appr
 _REMOTE_CLAUSE_TEXT = r"(?:(?!\b(?:and|but|while|whereas|however)\b)[^,.!?;\n])"
 _REMOTE_WORD_RE = re.compile(_REMOTE_WORD, re.IGNORECASE)
 _REMOTE_ONSITE_RE = re.compile(
-    r"\b(?:on[ -]?site|office[ -]based)\b",
+    r"\b(?:on[ _-]?site|office[ -]based)\b",
     re.IGNORECASE,
 )
 _REMOTE_NEGATED_BEFORE_RE = re.compile(
