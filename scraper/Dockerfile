@@ -6,8 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # 2. Working directory inside the box; every later path is relative to it
 WORKDIR /app
 
-# 3. Install the runtime DB driver, then copy only the portable scraper.
-RUN python -m pip install --no-cache-dir "psycopg[binary]==3.3.5"
+# 3. Install the bounded runtime dependencies, then copy only the portable scraper.
+RUN python -m pip install --no-cache-dir "psycopg[binary]==3.3.5" "jsonschema==4.26.0"
 
 COPY scraper/ /app/scraper/
 
