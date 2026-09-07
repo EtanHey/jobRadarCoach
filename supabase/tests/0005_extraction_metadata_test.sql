@@ -3,7 +3,7 @@ begin;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(24);
+select plan(25);
 
 create function pg_temp.throws_sqlstate(command text, expected_state text)
 returns boolean language plpgsql as $$
@@ -78,6 +78,10 @@ select ok(pg_temp.throws_sqlstate(
 select ok(pg_temp.throws_sqlstate(
   $$update posting_extractions set facts = '{"location":{},"remote":{},"seniority":{},"stack":{},"salary":{}}'$$,
   '23514'), 'each extraction field retains its container type');
+
+select ok(pg_temp.throws_sqlstate(
+  $$update posting_extractions set facts = '{"location":{},"remote":{},"seniority":{},"stack":[],"salary":{}}'$$,
+  '23514'), 'scalar facts require value and evidence_quote keys');
 
 select ok(has_table_privilege('anon', 'public.posting_extractions', 'select'), 'anon can read extraction metadata');
 select ok(not has_table_privilege('anon', 'public.posting_extractions', 'insert'), 'anon cannot insert extraction metadata');
