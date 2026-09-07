@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
+from uuid import uuid4
 
 import pytest
 
@@ -9,14 +11,23 @@ from scraper import database
 
 
 psycopg = pytest.importorskip("psycopg")
+from test_support.postgres import DatabaseUnavailable, migrated_database  # noqa: E402
+
+MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
+
+
+@pytest.fixture(scope="module")
+def migrated_database_url():
+    try:
+        with migrated_database(MIGRATIONS, through=6) as url:
+            yield url
+    except DatabaseUnavailable as error:
+        pytest.skip(str(error))
 
 
 @pytest.fixture
-def connection():
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        pytest.skip("DATABASE_URL is required for real profile DB tests")
-    connection = psycopg.connect(database_url)
+def connection(migrated_database_url):
+    connection = psycopg.connect(migrated_database_url)
     connection.execute("select 1")  # Enclose helper transactions in a rollback boundary.
     try:
         yield connection
@@ -264,3 +275,50 @@ def test_first_insert_falls_back_to_posting_url_for_apply_url(connection) -> Non
     assert connection.execute(
         "select apply_url from public.postings where id = %s", (posting_id,)
     ).fetchone() == ("https://example.test/fallback",)
+
+
+def test_posting_disposition_marks_only_first_observation_inserted(connection) -> None:
+    external_id = f"cheap-gate-repeat-{uuid4()}"
+    posting = {
+        "source": "test", "id": external_id, "url": "https://example.test/repeat",
+        "title": "Software Engineer", "company": "Example",
+    }
+
+    first = database.persist_postings_with_disposition(
+        connection, [posting], "2026-09-08T10:00:00Z"
+    )
+    repeated = database.persist_postings_with_disposition(
+        connection, [posting], "2026-09-08T11:00:00Z"
+    )
+
+    assert first["observed_posting_ids"] == repeated["observed_posting_ids"]
+    assert first["inserted_posting_ids"] == first["observed_posting_ids"]
+    assert repeated["inserted_posting_ids"] == []
+
+
+def test_concurrent_same_identity_is_counted_new_once(migrated_database_url) -> None:
+    external_id = f"cheap-gate-race-{uuid4()}"
+    posting = {
+        "source": "test", "id": external_id, "url": "https://example.test/race",
+        "title": "Software Engineer", "company": "Example",
+    }
+    barrier = Barrier(2)
+
+    def persist_once():
+        with psycopg.connect(migrated_database_url, autocommit=True) as worker_connection:
+            barrier.wait()
+            return database.persist_postings_with_disposition(
+                worker_connection, [posting], "2026-09-08T12:00:00Z"
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _index: persist_once(), range(2)))
+        assert sum(len(result["inserted_posting_ids"]) for result in results) == 1
+        assert len({result["observed_posting_ids"][0] for result in results}) == 1
+    finally:
+        with psycopg.connect(migrated_database_url, autocommit=True) as cleanup:
+            cleanup.execute(
+                "delete from public.postings where source = 'test' and external_id = %s",
+                (external_id,),
+            )
