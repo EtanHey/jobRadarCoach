@@ -22,6 +22,7 @@ LOGGER = logging.getLogger("coach.jobfeed.luna")
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 DEFAULT_PROFILE_PATH = REPO_ROOT / "profile.yaml"
+LUNA_MODEL = "gpt-5.6-luna"
 LUNA_REASONING_EFFORT = "xhigh"
 SUPPORTED_CODEX_CLI_VERSION = "codex-cli 0.153.4"
 CODEX_DISABLED_FEATURES = (
@@ -500,6 +501,8 @@ def _codex_exec_command(
     workspace: Path,
     schema_path: Path,
     output_path: Path,
+    model: str = LUNA_MODEL,
+    reasoning_effort: str = LUNA_REASONING_EFFORT,
     config_overrides: tuple[str, ...] = (),
 ) -> list[str]:
     return [
@@ -514,9 +517,9 @@ def _codex_exec_command(
             for argument in ("--disable", feature)
         ),
         "-m",
-        "gpt-5.6-luna",
+        model,
         "-c",
-        f'model_reasoning_effort="{LUNA_REASONING_EFFORT}"',
+        f'model_reasoning_effort="{reasoning_effort}"',
         "-c",
         "project_doc_max_bytes=0",
         "-c",
