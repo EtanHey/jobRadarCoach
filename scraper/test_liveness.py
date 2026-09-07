@@ -308,6 +308,8 @@ def test_refresh_recent_liveness_updates_only_rolling_top_20(tmp_path: Path) -> 
     lines = path.read_text().splitlines()
     updated = [json.loads(line) for line in lines if line != "malformed-json"]
     assert counts == {"alive": 20, "dead": 0, "unknown": 0}
-    assert next(row for row in updated if row["id"] == "24")["alive"] is True
-    assert "alive" not in next(row for row in updated if row["id"] == "0")
+    # Missing fixture row 24 must fail the test loudly.
+    assert next(row for row in updated if row["id"] == "24")["alive"] is True  # skipcq: PTC-W0063
+    # Missing fixture row 0 must fail the test loudly.
+    assert "alive" not in next(row for row in updated if row["id"] == "0")  # skipcq: PTC-W0063
     assert lines[-1] == "malformed-json"

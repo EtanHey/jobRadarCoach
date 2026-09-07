@@ -4,11 +4,12 @@
 import importlib.util
 import inspect
 import json
+import re
 import socket
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -98,6 +99,10 @@ def test_greenhouse_adapter_parses_real_board_fixture() -> None:
     assert postings[0]["posted_ago"] == "2026-05-28 10:59 UTC"
     assert_uniform_posting(postings[0], "greenhouse")
 
+    for posting in postings:
+        assert re.search(r"<[a-zA-Z/][^>]*>", str(posting["jd_text"])) is None
+        assert "class=" not in str(posting["jd_text"])
+
 
 def test_lever_adapter_parses_real_board_fixture() -> None:
     module = load_source("lever")
@@ -180,7 +185,8 @@ def test_unparseable_timestamp_keeps_the_board_row_without_display_metadata(
     )
 
     assert [posting["id"] for posting in postings] == expected_ids
-    bad = next(posting for posting in postings if posting["posted_ago"] == "")
+    # A missing malformed-timestamp fixture row must fail the test loudly.
+    bad = next(posting for posting in postings if posting["posted_ago"] == "")  # skipcq: PTC-W0063
     assert bad["posted_ago"] == ""
 
 
@@ -193,7 +199,8 @@ def test_workable_adapter_fetches_real_markdown_board_and_jd_fixture() -> None:
         FIXTURES / "workable-myteam-job-99FDF530F1-2026-08-11.md"
     ).read_text(encoding="utf-8")
     header = "\n".join(board.splitlines()[:6])
-    target_row = next(line for line in board.splitlines() if "99FDF530F1" in line)
+    # A missing named fixture row must fail the test loudly.
+    target_row = next(line for line in board.splitlines() if "99FDF530F1" in line)  # skipcq: PTC-W0063
     one_job_board = f"{header}\n{target_row}\n"
     requested: list[str] = []
 
@@ -217,6 +224,264 @@ def test_workable_adapter_fetches_real_markdown_board_and_jd_fixture() -> None:
         "https://apply.workable.com/myteam/jobs/view/99FDF530F1.md",
     ]
     assert_uniform_posting(postings[0], "workable")
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (None, "Comeet board request failed"),
+        ("<html>no positions marker</html>", "Comeet board omitted COMPANY_POSITIONS_DATA"),
+    ],
+)
+def test_comeet_distinguishes_request_failure_from_missing_marker(
+    body: str | None,
+    message: str,
+) -> None:
+    module = load_source("comeet")
+
+    with pytest.raises(RuntimeError, match=message):
+        module.fetch(
+            {"slug": "acme", "company_uid": "CA.001"},
+            fetcher=lambda _url: body,
+            before_request=lambda: None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("source", "query", "body", "expected_id", "tenant"),
+    [
+        (
+            "comeet",
+            {"slug": "acme", "company_uid": "CA.001"},
+            "<script>COMPANY_POSITIONS_DATA = "
+            + json.dumps([{"name": "Broken"}, {"uid": "good", "name": "Good"}])
+            + "; POSITION_DATA = {};</script>",
+            "comeet:CA.001:good",
+            "CA.001",
+        ),
+        (
+            "greenhouse",
+            {"board": "acme"},
+            json.dumps({"jobs": [{"title": "Broken"}, {"id": 7, "title": "Good"}]}),
+            "greenhouse:acme:7",
+            "acme",
+        ),
+        (
+            "lever",
+            {"account": "acme"},
+            json.dumps([{"text": "Broken"}, {"id": "good", "text": "Good"}]),
+            "lever:acme:good",
+            "acme",
+        ),
+    ],
+)
+def test_missing_adapter_identity_skips_only_bad_row_and_logs_tenant(
+    source: str,
+    query: dict[str, str],
+    body: str,
+    expected_id: str,
+    tenant: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    module = load_source(source)
+
+    with caplog.at_level("INFO"):
+        postings = module.fetch(
+            query,
+            fetcher=lambda _url: body,
+            before_request=lambda: None,
+        )
+
+    assert [posting["id"] for posting in postings] == [expected_id]
+    assert tenant in caplog.text
+
+
+def _adapter_body_with_records(source: str, records: list[object]) -> str:
+    if source == "comeet":
+        return (
+            "<script>COMPANY_POSITIONS_DATA = "
+            + json.dumps(records)
+            + "; POSITION_DATA = {};</script>"
+        )
+    if source == "greenhouse":
+        return json.dumps({"jobs": records})
+    return json.dumps(records)
+
+
+@pytest.mark.parametrize("source", ["comeet", "greenhouse", "lever"])
+@pytest.mark.parametrize("bad_record", [None, "oops", [1, 2]])
+def test_non_object_adapter_record_skips_only_bad_row_and_logs_tenant(
+    source: str,
+    bad_record: object,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    queries = {
+        "comeet": {"slug": "acme", "company_uid": "CA.001"},
+        "greenhouse": {"board": "acme"},
+        "lever": {"account": "acme"},
+    }
+    identifiers = {
+        "comeet": ("uid", "comeet:CA.001:", "CA.001"),
+        "greenhouse": ("id", "greenhouse:acme:", "acme"),
+        "lever": ("id", "lever:acme:", "acme"),
+    }
+    key, prefix, tenant = identifiers[source]
+    records = [
+        {key: "good-1", "name": "Good 1", "title": "Good 1", "text": "Good 1"},
+        bad_record,
+        {key: "good-2", "name": "Good 2", "title": "Good 2", "text": "Good 2"},
+    ]
+
+    with caplog.at_level("INFO"):
+        postings = load_source(source).fetch(
+            queries[source],
+            fetcher=lambda _url: _adapter_body_with_records(source, records),
+            before_request=lambda: None,
+        )
+
+    assert [posting["id"] for posting in postings] == [
+        f"{prefix}good-1",
+        f"{prefix}good-2",
+    ]
+    assert tenant.casefold() in caplog.text.casefold()
+
+
+@pytest.mark.parametrize(
+    ("source", "record", "field"),
+    [
+        ("greenhouse", {"id": 1, "location": "Remote"}, "location"),
+        ("lever", {"id": "1", "categories": "Engineering"}, "location"),
+        ("lever", {"id": "1", "lists": ["oops"]}, "jd_text"),
+        ("lever", {"id": "1", "lists": "oops"}, "jd_text"),
+        ("comeet", {"uid": "1", "custom_fields": []}, "jd_text"),
+        ("comeet", {"uid": "1", "custom_fields": {"details": ["oops"]}}, "jd_text"),
+        ("comeet", {"uid": "1", "custom_fields": {"details": "oops"}}, "jd_text"),
+    ],
+)
+def test_malformed_nested_adapter_metadata_degrades_to_empty_field(
+    source: str,
+    record: dict[str, object],
+    field: str,
+) -> None:
+    queries = {
+        "comeet": {"slug": "acme", "company_uid": "CA.001"},
+        "greenhouse": {"board": "acme"},
+        "lever": {"account": "acme"},
+    }
+
+    postings = load_source(source).fetch(
+        queries[source],
+        fetcher=lambda _url: _adapter_body_with_records(source, [record]),
+        before_request=lambda: None,
+    )
+
+    assert len(postings) == 1
+    assert postings[0][field] == ""
+
+
+@pytest.mark.parametrize(
+    "source,payload",
+    [
+        ("greenhouse", {"jobs": "not-a-list"}),
+        ("lever", {"id": "not-a-list"}),
+        ("greenhouse", []),
+        ("greenhouse", [{"id": 1}]),
+        ("greenhouse", "oops"),
+        ("greenhouse", None),
+        ("greenhouse", 42),
+    ],
+)
+def test_non_list_adapter_container_returns_empty(
+    source: str, payload: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level("INFO")
+    queries = {
+        "greenhouse": {"board": "acme"},
+        "lever": {"account": "acme"},
+    }
+    postings = load_source(source).fetch(
+        queries[source],
+        fetcher=lambda _url: json.dumps(payload),
+        before_request=lambda: None,
+    )
+
+    assert postings == []
+    assert "acme" in caplog.text
+
+
+def test_harvest_sources_preserves_poisoned_tenant_valid_siblings() -> None:
+    harvest = load_harvest()
+    payloads = {
+        "poisoned": _adapter_body_with_records(
+            "greenhouse",
+            [{"id": 1, "title": "Good A"}, None, {"id": 2, "title": "Good B"}],
+        ),
+        "clean": _adapter_body_with_records(
+            "greenhouse", [{"id": 3, "title": "Clean A"}]
+        ),
+    }
+
+    postings, warnings = harvest.harvest_sources(
+        {
+            "greenhouse": [
+                {"board": "poisoned", "source_tenant": "poisoned"},
+                {"board": "clean", "source_tenant": "clean"},
+            ]
+        },
+        {"greenhouse"},
+        fetcher=lambda url: payloads["poisoned" if "poisoned" in url else "clean"],
+        before_request=lambda: None,
+    )
+
+    assert [posting["title"] for posting in postings] == ["Good A", "Good B", "Clean A"]
+    assert [posting["source_tenant"] for posting in postings] == [
+        "poisoned",
+        "poisoned",
+        "clean",
+    ]
+    assert warnings == 0
+
+
+def test_lever_null_location_stays_empty_in_fields_and_raw_text() -> None:
+    module = load_source("lever")
+    body = json.dumps(
+        [{"id": "good", "text": "Engineer", "categories": {"location": None}}]
+    )
+
+    posting = module.fetch(
+        {"account": "acme", "company": "Acme"},
+        fetcher=lambda _url: body,
+        before_request=lambda: None,
+    )[0]
+
+    assert posting["location"] == ""
+    assert "None" not in posting["raw_text"]
+
+
+@pytest.mark.parametrize("invalid_date", ["—", "", "2026-02-30"])
+def test_workable_invalid_posted_dates_are_empty_and_valid_dates_parse(
+    invalid_date: str,
+) -> None:
+    module = load_source("workable")
+    board = "\n".join(
+        [
+            f"| Broken | Dept | Remote | Full-time | — | {invalid_date} | [View](https://apply.workable.com/acme/jobs/view/BAD1.md) |",
+            "| Good | Dept | Remote | Full-time | — | 2026-02-28 | [View](https://apply.workable.com/acme/jobs/view/GOOD1.md) |",
+        ]
+    )
+
+    postings = module.fetch(
+        {"account": "acme"},
+        fetcher=lambda url: "detail" if "/view/" in url else board,
+        before_request=lambda: None,
+    )
+
+    assert postings[0]["posted_at"] == postings[0]["posted_ago"] == ""
+    assert postings[1]["posted_ago"] == "2026-02-28"
+    assert all(
+        not posting["posted_at"] or datetime.fromisoformat(str(posting["posted_at"]).replace("Z", "+00:00"))
+        for posting in postings
+    )
 
 
 def test_ats_filter_api_has_no_dead_harvested_at_parameter() -> None:
@@ -648,10 +913,12 @@ def test_default_network_helpers_reject_unsafe_target_before_open(
         def __exit__(self, *_args: object) -> None:
             return None
 
-        def geturl(self) -> str:
+        # Instance method intentionally matches the urllib response protocol.
+        def geturl(self) -> str:  # skipcq: PYL-R0201
             return url
 
-        def read(self) -> bytes:
+        # Instance method intentionally matches the urllib response protocol.
+        def read(self) -> bytes:  # skipcq: PYL-R0201
             return b""
 
     def fake_open(request, **_kwargs: object):
@@ -783,7 +1050,8 @@ def test_unsafe_corpus_row_isolated_without_url_or_token_leak(
         def __exit__(self, *_args: object) -> None:
             return None
 
-        def geturl(self) -> str:
+        # Instance method intentionally matches the urllib response protocol.
+        def geturl(self) -> str:  # skipcq: PYL-R0201
             return "file:///dev/null?TOP-SECRET-TOKEN"
 
     monkeypatch.setattr(
@@ -1226,7 +1494,7 @@ def test_registry_dry_run_lists_each_status_without_secret_values(tmp_path: Path
 
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(REGISTRY_MODULE_PATH),
             "--dry-run",
             "--registry",
@@ -1277,7 +1545,7 @@ def test_registry_dry_run_treats_disabled_only_as_healthy(tmp_path: Path) -> Non
 
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(REGISTRY_MODULE_PATH),
             "--dry-run",
             "--registry",
@@ -1433,10 +1701,12 @@ def test_default_network_helpers_never_expand_remaining_timeout(monkeypatch) -> 
         def __exit__(self, *_args: object) -> None:
             return None
 
-        def geturl(self) -> str:
+        # Instance method intentionally matches the urllib response protocol.
+        def geturl(self) -> str:  # skipcq: PYL-R0201
             return "https://example.test/final"
 
-        def read(self) -> bytes:
+        # Instance method intentionally matches the urllib response protocol.
+        def read(self) -> bytes:  # skipcq: PYL-R0201
             return b"{}"
 
     def fake_open(_url: str, timeout: float):
