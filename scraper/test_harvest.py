@@ -2365,7 +2365,7 @@ def test_main_degrades_when_annotator_module_cannot_load(
     harvest = load_harvest_module()
     captured: dict[str, object] = {}
 
-    def broken_loader():
+    def broken_loader(_profile=None):
         raise SyntaxError("simulated broken annotator module")
 
     def fake_pipeline(**kwargs):
@@ -2377,6 +2377,7 @@ def test_main_degrades_when_annotator_module_cannot_load(
 
     result = harvest.main(
         [
+            "--jsonl",
             "--date",
             "2026-08-10",
             "--max-pages",
@@ -2391,6 +2392,117 @@ def test_main_degrades_when_annotator_module_cannot_load(
     assert captured["annotator"]({"id": "example"}) is None
     assert "dashboard_writer" not in captured
     assert "dashboard_publisher" not in captured
+
+
+def test_main_db_runtime_uses_snapshot_without_seed_or_prior_reads(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    harvest = load_harvest_module()
+    snapshot = {
+        "search.terms": ["Software Engineer"],
+        "candidate.open_to.geographies": ["Portugal"],
+        "search.recency": "r43200",
+        "candidate.fit_terms": ["react"],
+        "search.location_terms": {"Portugal": ["Lisbon"]},
+    }
+    projection = {"candidate": {"positioning": "public"}}
+    captured: dict[str, object] = {}
+
+    class ConnectionContext:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    class Psycopg:
+        @staticmethod
+        def connect(url):
+            captured["database_url"] = url
+            captured["connection_count"] = int(captured.get("connection_count", 0)) + 1
+            return ConnectionContext()
+
+    class Database:
+        @staticmethod
+        def load_or_seed_profile(_connection, profile_path, config_path):
+            captured["seed_paths"] = (profile_path, config_path)
+            return snapshot
+
+        @staticmethod
+        def searches_from_profile(value):
+            assert value is snapshot
+            return [{"keywords": "Software Engineer", "location": "Portugal", "recency": "r43200"}]
+
+        @staticmethod
+        def annotation_profile(value):
+            assert value is snapshot
+            return projection
+
+        @staticmethod
+        def persist_postings(_connection, postings, observed_at):
+            captured["postings"] = postings
+            captured["observed_at"] = observed_at
+            return ["durable-id"] * len(postings)
+
+    def forbidden_read(*_args, **_kwargs):
+        pytest.fail("completed DB runtime read a seed or JSONL history file")
+
+    (tmp_path / "2026-09-07.jsonl").write_text(
+        '{"id":"repeat-id"}\n', encoding="utf-8"
+    )
+    monkeypatch.setenv("DATABASE_URL", "postgresql://runtime.example/db")
+    monkeypatch.setitem(sys.modules, "psycopg", Psycopg)
+    monkeypatch.setattr(harvest, "load_database_module", lambda: Database)
+    monkeypatch.setattr(harvest, "load_searches", forbidden_read)
+    monkeypatch.setattr(harvest, "load_profile_contract", forbidden_read)
+    monkeypatch.setattr(harvest, "load_source_queries", forbidden_read)
+    monkeypatch.setattr(harvest, "load_prior_ids", forbidden_read)
+    monkeypatch.setattr(harvest, "load_jsonl_ids", forbidden_read)
+    monkeypatch.setattr(harvest, "load_seen_secondary_keys", forbidden_read)
+    monkeypatch.setattr(
+        harvest,
+        "harvest_search",
+        lambda *_args, **_kwargs: ([{
+            "id": "repeat-id", "title": "Software Engineer", "company": "Example",
+            "location": "Lisbon", "url": "https://example.test/repeat-id",
+        }], 0),
+    )
+    monkeypatch.setattr(harvest, "load_full_jd_fetcher", lambda: forbidden_read)
+    monkeypatch.setattr(harvest, "load_liveness_checker", lambda: lambda row: row)
+
+    def load_annotator(profile):
+        captured["annotation_profile"] = profile
+        return lambda _posting: None
+
+    monkeypatch.setattr(harvest, "load_luna_annotator", load_annotator)
+
+    result = harvest.main([
+        "--date", "2026-09-07", "--max-pages", "1", "--jd-fetch-cap", "0",
+        "--output-dir", str(tmp_path), "--profile", str(tmp_path / "missing-profile"),
+        "--config", str(tmp_path / "missing-searches"),
+    ])
+
+    assert result == 0
+    assert captured["database_url"] == "postgresql://runtime.example/db"
+    assert captured["connection_count"] == 2
+    assert captured["annotation_profile"] is projection
+    assert [posting["id"] for posting in captured["postings"]] == ["repeat-id"]
+    summary = json.loads(capsys.readouterr().out)
+    assert "new_count" not in summary
+    assert summary["observed_count"] == 1
+    assert summary["observed_published_count"] == 1
+
+
+def test_main_db_runtime_fails_closed_without_database_url(monkeypatch) -> None:
+    harvest = load_harvest_module()
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setattr(
+        harvest,
+        "run_pipeline",
+        lambda **_kwargs: pytest.fail("missing DATABASE_URL reached pipeline"),
+    )
+
+    assert harvest.main(["--date", "2026-09-07"]) == 1
 
 
 def test_append_postings_persists_explicit_source_provenance(tmp_path: Path) -> None:

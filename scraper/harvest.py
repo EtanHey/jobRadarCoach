@@ -8,6 +8,7 @@ import html
 import importlib.util
 import json
 import logging
+import os
 import random
 import re
 import sys
@@ -1863,14 +1864,28 @@ def persist_annotations(path: Path, postings: list[dict[str, object]]) -> None:
 
 
 
-def load_luna_annotator() -> Callable[[dict[str, object]], dict[str, object] | None]:
+def load_luna_annotator(
+    profile: dict[str, object] | None = None,
+) -> Callable[[dict[str, object]], dict[str, object] | None]:
     path = SCRIPT_DIR / "annotate.py"
     spec = importlib.util.spec_from_file_location("coach_jobfeed_annotate", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Unable to load Luna annotator: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.annotate
+    if profile is None:
+        return module.annotate
+    return lambda posting: module.annotate(posting, profile=profile)
+
+
+def load_database_module():
+    path = SCRIPT_DIR / "database.py"
+    spec = importlib.util.spec_from_file_location("coach_jobfeed_database", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load database helpers: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def load_liveness_checker() -> Callable[[dict[str, object]], dict[str, object]]:
@@ -1966,6 +1981,8 @@ def run_pipeline(  # skipcq: PY-R1000
     jd_sleep: Callable[[float], None] = time.sleep,
     jd_fetch_cap: int = 40,
     liveness_checker: Callable[[dict[str, object]], dict[str, object]] | None = None,
+    profile_snapshot: dict[str, object] | None = None,
+    posting_writer: Callable[[list[dict[str, object]], str], list[str]] | None = None,
 ) -> dict[str, object]:
     if jd_fetch_cap < 0:
         raise ValueError("jd_fetch_cap must be non-negative")
@@ -1974,15 +1991,39 @@ def run_pipeline(  # skipcq: PY-R1000
     unsupported_sources = enabled_sources.difference(SOURCE_ORDER[1:])
     if unsupported_sources:
         raise ValueError(f"Unsupported sources: {sorted(unsupported_sources)}")
-    searches = apply_recency_override(load_searches(config_path), recency_override)
+    database_mode = profile_snapshot is not None or posting_writer is not None
+    if profile_snapshot is None and posting_writer is not None:
+        raise ValueError("DB persistence requires one complete profile snapshot")
+    if profile_snapshot is not None and posting_writer is None:
+        raise ValueError("DB profile mode requires a posting writer")
+    if database_mode:
+        database = load_database_module()
+        searches = apply_recency_override(
+            database.searches_from_profile(profile_snapshot), recency_override
+        )
+        raw_fit_terms = profile_snapshot.get("candidate.fit_terms", [])
+        raw_location_terms = profile_snapshot.get("search.location_terms", {})
+        if not isinstance(raw_fit_terms, list) or not isinstance(raw_location_terms, dict):
+            raise ValueError("DB profile has invalid fit or geography fields")
+        fit_terms = {
+            term for term in raw_fit_terms if isinstance(term, str) and term.strip()
+        }
+        location_terms = raw_location_terms
+    else:
+        searches = apply_recency_override(load_searches(config_path), recency_override)
+        profile = load_profile_contract(profile_path)
+        fit_terms = profile["fit_terms"]
+        assert isinstance(fit_terms, set)
+        location_terms = {}
     source_config_warnings: list[str] = []
     if enabled_sources:
         try:
             # Retain warning-only validation for callers carrying the retired
             # inline config; dispatch is authoritative from the registry below.
-            load_source_queries(
-                config_path, warning_sink=source_config_warnings.append
-            )
+            if not database_mode:
+                load_source_queries(
+                    config_path, warning_sink=source_config_warnings.append
+                )
             source_queries = load_registry_source_queries()
         except Exception as error:
             source_queries = {}
@@ -1992,10 +2033,6 @@ def run_pipeline(  # skipcq: PY-R1000
             )
     else:
         source_queries = {}
-    profile = load_profile_contract(profile_path)
-    fit_terms = profile["fit_terms"]
-    assert isinstance(fit_terms, set)
-
     harvested: list[dict[str, object]] = []
     warning_count = len(source_config_warnings)
     for search in searches:
@@ -2014,22 +2051,29 @@ def run_pipeline(  # skipcq: PY-R1000
         enabled_sources,
         fetcher=fetcher,
         before_request=before_request,
-        posting_filter=lambda posting: _source_posting_matches(posting, searches),
+        posting_filter=lambda posting: _source_posting_matches(
+            posting, searches, location_terms
+        ),
         fetch_counts=source_fetch_counts,
     )
-    source_postings = filter_source_postings(source_postings, searches)
+    source_postings = filter_source_postings(
+        source_postings, searches, location_terms
+    )
     source_match_counts = count_postings_by_source(source_postings, enabled_sources)
     harvested.extend(source_postings)
     warning_count += source_warnings + count_missing_source_jds(source_postings)
 
     unique = dedupe_postings(harvested, set())
-    known_ids = load_prior_ids(output_dir, current_date=date_string)
-    known_ids.update(load_jsonl_ids(output_dir / f"{date_string}.jsonl"))
-    fresh = dedupe_postings(
-        unique,
-        known_ids,
-        load_seen_secondary_keys(output_dir / f"{date_string}.jsonl"),
-    )
+    if database_mode:
+        fresh = unique
+    else:
+        known_ids = load_prior_ids(output_dir, current_date=date_string)
+        known_ids.update(load_jsonl_ids(output_dir / f"{date_string}.jsonl"))
+        fresh = dedupe_postings(
+            unique,
+            known_ids,
+            load_seen_secondary_keys(output_dir / f"{date_string}.jsonl"),
+        )
     if liveness_checker is not None:
         fresh = apply_liveness_checks(fresh, liveness_checker)
     live_fresh = [posting for posting in fresh if posting.get("alive") is not False]
@@ -2064,24 +2108,30 @@ def run_pipeline(  # skipcq: PY-R1000
     source_counts = count_postings_by_source(scored_all, enabled_sources)
     liveness_counts = _liveness_counts(scored_all)
 
-    output_path = append_postings(output_dir, date_string, scored_all)
+    output_path = None
     recent_liveness_counts = None
-    if liveness_checker is not None:
+    if database_mode:
+        assert posting_writer is not None
+        posting_writer(scored_all, harvested_at)
+    else:
+        output_path = append_postings(output_dir, date_string, scored_all)
+    if liveness_checker is not None and not database_mode:
         recent_liveness_counts = refresh_recent_liveness(
             output_dir, date_string, liveness_checker
         )
     skipped_seen = len(unique) - len(fresh)
-    write_summary(
-        output_dir,
-        date_string,
-        scored,
-        harvested_count=len(harvested),
-        skipped_seen=skipped_seen,
-        warning_count=warning_count,
-        source_counts=source_counts if enabled_sources else None,
-        liveness_counts=liveness_counts if liveness_checker is not None else None,
-        jd_fetch_degraded=jd_fetch_degraded,
-    )
+    if not database_mode:
+        write_summary(
+            output_dir,
+            date_string,
+            scored,
+            harvested_count=len(harvested),
+            skipped_seen=skipped_seen,
+            warning_count=warning_count,
+            source_counts=source_counts if enabled_sources else None,
+            liveness_counts=liveness_counts if liveness_checker is not None else None,
+            jd_fetch_degraded=jd_fetch_degraded,
+        )
     annotated = scored
     annotation_count = 0
     annotation_unavailable_count = 0
@@ -2101,31 +2151,34 @@ def run_pipeline(  # skipcq: PY-R1000
             clock=clock,
         )
         annotation_seconds = round(clock() - annotation_started, 3)
-        try:
-            persist_annotations(output_path, annotated)
-            write_summary(
-                output_dir,
-                date_string,
-                annotated,
-                harvested_count=len(harvested),
-                skipped_seen=skipped_seen,
-                warning_count=warning_count,
-                source_counts=source_counts if enabled_sources else None,
-                liveness_counts=liveness_counts if liveness_checker is not None else None,
-                jd_fetch_degraded=jd_fetch_degraded,
-            )
-        except (OSError, ValueError) as error:
-            LOGGER.warning(
-                "Keeping deterministic feed after Luna persistence failure: %s", error
-            )
-            annotated = scored
-            annotation_unavailable_count = annotation_count
-            annotation_invalid_count = 0
+        if output_path is not None:
+            try:
+                persist_annotations(output_path, annotated)
+                write_summary(
+                    output_dir,
+                    date_string,
+                    annotated,
+                    harvested_count=len(harvested),
+                    skipped_seen=skipped_seen,
+                    warning_count=warning_count,
+                    source_counts=source_counts if enabled_sources else None,
+                    liveness_counts=(
+                        liveness_counts if liveness_checker is not None else None
+                    ),
+                    jd_fetch_degraded=jd_fetch_degraded,
+                )
+            except (OSError, ValueError) as error:
+                LOGGER.warning(
+                    "Keeping deterministic feed after Luna persistence failure: %s", error
+                )
+                annotated = scored
+                annotation_unavailable_count = annotation_count
+                annotation_invalid_count = 0
 
     result: dict[str, object] = {
         "harvested_count": len(harvested),
-        "new_count": len(scored_all),
-        "new_published_count": len(scored),
+        ("observed_count" if database_mode else "new_count"): len(scored_all),
+        ("observed_published_count" if database_mode else "new_published_count"): len(scored),
         "jd_fetched_count": sum(posting.get("jd_fetched") is True for posting in scored),
         "jd_fetch_attempted": jd_fetch_attempted,
         "jd_fetch_failed": jd_fetch_failed,
@@ -2152,7 +2205,17 @@ def run_pipeline(  # skipcq: PY-R1000
 
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Harvest recent LinkedIn guest job cards into a local JSONL feed."
+        description="Harvest recent public job postings into Postgres."
+    )
+    parser.add_argument(
+        "--jsonl",
+        action="store_true",
+        help="Use the legacy local JSONL output instead of Postgres",
+    )
+    parser.add_argument(
+        "--no-annotate",
+        action="store_true",
+        help="Skip optional Luna annotation for this bounded run",
     )
     parser.add_argument("--max-pages", type=int, default=5, help="Page cap per search (default: 5)")
     parser.add_argument(
@@ -2212,38 +2275,89 @@ def main(argv: list[str] | None = None) -> int:
         date_string = jerusalem_now.date().isoformat()
     harvested_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
+    def unavailable_annotator(_posting: dict[str, object]) -> None:
+        return None
+
     try:
-        try:
-            annotator = load_luna_annotator()
-        except Exception as error:
-            LOGGER.warning("Luna annotator unavailable at startup: %s", error)
+        profile_snapshot = None
+        posting_writer = None
+        if args.jsonl:
+            annotation_profile = None
+        else:
+            database_url = os.environ.get("DATABASE_URL", "").strip()
+            if not database_url:
+                raise ValueError("DATABASE_URL is required unless --jsonl is explicit")
+            import psycopg
 
-            def unavailable_annotator(_posting: dict[str, object]) -> None:
-                return None
+            database = load_database_module()
+            with psycopg.connect(database_url) as connection:
+                profile_snapshot = database.load_or_seed_profile(
+                    connection, args.profile, args.config
+                )
+                annotation_profile = database.annotation_profile(profile_snapshot)
 
-            annotator = unavailable_annotator
-        result = run_pipeline(
-            config_path=args.config,
-            profile_path=args.profile,
-            output_dir=args.output_dir,
-            date_string=date_string,
-            harvested_at=harvested_at,
-            max_pages=args.max_pages,
-            fetcher=fetch_html,
-            before_request=RequestPacer(),
-            recency_override=args.recency,
-            annotator=annotator,
-            enabled_sources=enabled_sources,
-            jd_fetcher=load_full_jd_fetcher(),
-            jd_fetch_cap=args.jd_fetch_cap,
-            liveness_checker=load_liveness_checker(),
+            def write_posting_batch(postings, observed_at):
+                with psycopg.connect(database_url) as write_connection:
+                    return database.persist_postings(
+                        write_connection, postings, observed_at
+                    )
+
+            posting_writer = write_posting_batch
+
+        result = _run_main_pipeline(
+            args,
+            date_string,
+            harvested_at,
+            enabled_sources,
+            annotation_profile,
+            profile_snapshot,
+            posting_writer,
+            unavailable_annotator,
         )
-    except (OSError, ValueError) as error:
+    except Exception as error:
         LOGGER.error("Job-feed configuration/output failure: %s", error)
         return 1
 
     print(json.dumps(result, sort_keys=True))
     return 0
+
+
+def _run_main_pipeline(
+    args: argparse.Namespace,
+    date_string: str,
+    harvested_at: str,
+    enabled_sources: set[str],
+    annotation_profile: dict[str, object] | None,
+    profile_snapshot: dict[str, object] | None,
+    posting_writer: Callable[[list[dict[str, object]], str], list[str]] | None,
+    unavailable_annotator: Callable[[dict[str, object]], None],
+) -> dict[str, object]:
+    if args.no_annotate:
+        annotator = None
+    else:
+        try:
+            annotator = load_luna_annotator(annotation_profile)
+        except Exception as error:
+            LOGGER.warning("Luna annotator unavailable at startup: %s", error)
+            annotator = unavailable_annotator
+    return run_pipeline(
+        config_path=args.config,
+        profile_path=args.profile,
+        output_dir=args.output_dir,
+        date_string=date_string,
+        harvested_at=harvested_at,
+        max_pages=args.max_pages,
+        fetcher=fetch_html,
+        before_request=RequestPacer(),
+        recency_override=args.recency,
+        annotator=annotator,
+        enabled_sources=enabled_sources,
+        jd_fetcher=load_full_jd_fetcher(),
+        jd_fetch_cap=args.jd_fetch_cap,
+        liveness_checker=load_liveness_checker(),
+        profile_snapshot=profile_snapshot,
+        posting_writer=posting_writer,
+    )
 
 
 if __name__ == "__main__":
