@@ -6,7 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # 2. Working directory inside the box; every later path is relative to it
 WORKDIR /app
 
-# 3. Copy only the portable scraper. A user's profile is mounted at runtime.
+# 3. Install the runtime DB driver, then copy only the portable scraper.
+RUN python -m pip install --no-cache-dir "psycopg[binary]==3.3.5"
+
 COPY scraper/ /app/scraper/
 
 # 4. Don't run as root: make a user, hand it the folder, switch to it
