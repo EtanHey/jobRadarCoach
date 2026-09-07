@@ -296,6 +296,152 @@ def test_missing_adapter_identity_skips_only_bad_row_and_logs_tenant(
     assert tenant in caplog.text
 
 
+def _adapter_body_with_records(source: str, records: list[object]) -> str:
+    if source == "comeet":
+        return (
+            "<script>COMPANY_POSITIONS_DATA = "
+            + json.dumps(records)
+            + "; POSITION_DATA = {};</script>"
+        )
+    if source == "greenhouse":
+        return json.dumps({"jobs": records})
+    return json.dumps(records)
+
+
+@pytest.mark.parametrize("source", ["comeet", "greenhouse", "lever"])
+@pytest.mark.parametrize("bad_record", [None, "oops", [1, 2]])
+def test_non_object_adapter_record_skips_only_bad_row_and_logs_tenant(
+    source: str,
+    bad_record: object,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    queries = {
+        "comeet": {"slug": "acme", "company_uid": "CA.001"},
+        "greenhouse": {"board": "acme"},
+        "lever": {"account": "acme"},
+    }
+    identifiers = {
+        "comeet": ("uid", "comeet:CA.001:", "CA.001"),
+        "greenhouse": ("id", "greenhouse:acme:", "acme"),
+        "lever": ("id", "lever:acme:", "acme"),
+    }
+    key, prefix, tenant = identifiers[source]
+    records = [
+        {key: "good-1", "name": "Good 1", "title": "Good 1", "text": "Good 1"},
+        bad_record,
+        {key: "good-2", "name": "Good 2", "title": "Good 2", "text": "Good 2"},
+    ]
+
+    with caplog.at_level("INFO"):
+        postings = load_source(source).fetch(
+            queries[source],
+            fetcher=lambda _url: _adapter_body_with_records(source, records),
+            before_request=lambda: None,
+        )
+
+    assert [posting["id"] for posting in postings] == [
+        f"{prefix}good-1",
+        f"{prefix}good-2",
+    ]
+    assert tenant.casefold() in caplog.text.casefold()
+
+
+@pytest.mark.parametrize(
+    ("source", "record", "field"),
+    [
+        ("greenhouse", {"id": 1, "location": "Remote"}, "location"),
+        ("lever", {"id": "1", "categories": "Engineering"}, "location"),
+        ("lever", {"id": "1", "lists": ["oops"]}, "jd_text"),
+        ("lever", {"id": "1", "lists": "oops"}, "jd_text"),
+        ("comeet", {"uid": "1", "custom_fields": []}, "jd_text"),
+        ("comeet", {"uid": "1", "custom_fields": {"details": ["oops"]}}, "jd_text"),
+        ("comeet", {"uid": "1", "custom_fields": {"details": "oops"}}, "jd_text"),
+    ],
+)
+def test_malformed_nested_adapter_metadata_degrades_to_empty_field(
+    source: str,
+    record: dict[str, object],
+    field: str,
+) -> None:
+    queries = {
+        "comeet": {"slug": "acme", "company_uid": "CA.001"},
+        "greenhouse": {"board": "acme"},
+        "lever": {"account": "acme"},
+    }
+
+    postings = load_source(source).fetch(
+        queries[source],
+        fetcher=lambda _url: _adapter_body_with_records(source, [record]),
+        before_request=lambda: None,
+    )
+
+    assert len(postings) == 1
+    assert postings[0][field] == ""
+
+
+@pytest.mark.parametrize(
+    "source,payload",
+    [
+        ("greenhouse", {"jobs": "not-a-list"}),
+        ("lever", {"id": "not-a-list"}),
+        ("greenhouse", []),
+        ("greenhouse", [{"id": 1}]),
+        ("greenhouse", "oops"),
+        ("greenhouse", None),
+        ("greenhouse", 42),
+    ],
+)
+def test_non_list_adapter_container_returns_empty(
+    source: str, payload: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level("INFO")
+    queries = {
+        "greenhouse": {"board": "acme"},
+        "lever": {"account": "acme"},
+    }
+    postings = load_source(source).fetch(
+        queries[source],
+        fetcher=lambda _url: json.dumps(payload),
+        before_request=lambda: None,
+    )
+
+    assert postings == []
+    assert "acme" in caplog.text
+
+
+def test_harvest_sources_preserves_poisoned_tenant_valid_siblings() -> None:
+    harvest = load_harvest()
+    payloads = {
+        "poisoned": _adapter_body_with_records(
+            "greenhouse",
+            [{"id": 1, "title": "Good A"}, None, {"id": 2, "title": "Good B"}],
+        ),
+        "clean": _adapter_body_with_records(
+            "greenhouse", [{"id": 3, "title": "Clean A"}]
+        ),
+    }
+
+    postings, warnings = harvest.harvest_sources(
+        {
+            "greenhouse": [
+                {"board": "poisoned", "source_tenant": "poisoned"},
+                {"board": "clean", "source_tenant": "clean"},
+            ]
+        },
+        {"greenhouse"},
+        fetcher=lambda url: payloads["poisoned" if "poisoned" in url else "clean"],
+        before_request=lambda: None,
+    )
+
+    assert [posting["title"] for posting in postings] == ["Good A", "Good B", "Clean A"]
+    assert [posting["source_tenant"] for posting in postings] == [
+        "poisoned",
+        "poisoned",
+        "clean",
+    ]
+    assert warnings == 0
+
+
 def test_lever_null_location_stays_empty_in_fields_and_raw_text() -> None:
     module = load_source("lever")
     body = json.dumps(
