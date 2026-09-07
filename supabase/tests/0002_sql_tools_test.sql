@@ -77,9 +77,18 @@ insert into postings (id, source, external_id, url, title, company, posted_at) v
   ('00000000-0000-0000-0000-000000002004', 'lane2b', 'old', 'https://example.test/old', 'Old', 'Example', '2026-01-01 11:00Z'),
   ('00000000-0000-0000-0000-000000002005', 'lane2b', 'undated', 'https://example.test/undated', 'Undated', 'Example', null),
   ('00000000-0000-0000-0000-000000002006', 'lane2b', 'seen', 'https://example.test/seen', 'Seen', 'Example', '2026-01-01 17:00Z');
-insert into posting_scores (posting_id, score, brain) values
-  ('00000000-0000-0000-0000-000000002001', 90, 'test'),
-  ('00000000-0000-0000-0000-000000002002', 20, 'test');
+insert into posting_scores (
+  posting_id, score, reasons, labels, brain, model, scorer_version,
+  posting_sha256, profile_sha256, history_sha256, score_payload
+) values
+  ('00000000-0000-0000-0000-000000002001', 90, '[]',
+   '{"role_type":null,"seniority_match":"unknown","remote_ok":"unknown","red_flag_count":0}',
+   'test', 'test-model', 'test-1', repeat('a',64), repeat('b',64), repeat('c',64),
+   '{"employer_type":"unknown","seniority_real":null,"fit_score":90,"fit_tier":"strong","recommendation":"review","reasons":[],"fit_line":"fixture","fit_line_evidence_ids":[],"luna_status":"ok"}'),
+  ('00000000-0000-0000-0000-000000002002', 20, '[]',
+   '{"role_type":null,"seniority_match":"unknown","remote_ok":"unknown","red_flag_count":0}',
+   'test', 'test-model', 'test-1', repeat('d',64), repeat('e',64), repeat('f',64),
+   '{"employer_type":"unknown","seniority_real":null,"fit_score":20,"fit_tier":"weak","recommendation":"review","reasons":[],"fit_line":"fixture","fit_line_evidence_ids":[],"luna_status":"ok"}');
 insert into posting_status (posting_id, status) values
   ('00000000-0000-0000-0000-000000002002', 'new'),
   ('00000000-0000-0000-0000-000000002006', 'seen');

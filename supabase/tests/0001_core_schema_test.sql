@@ -72,14 +72,23 @@ select ok(pg_temp.throws_sqlstate(
   '23514'), 'last_seen_at cannot precede first_seen_at');
 
 select lives_ok(
-  $$insert into posting_scores (posting_id, score, brain)
-    values ('00000000-0000-0000-0000-000000000001', 0, 'test')$$,
+  $$insert into posting_scores (
+      posting_id, score, reasons, labels, brain, model, scorer_version,
+      posting_sha256, profile_sha256, history_sha256, score_payload
+    ) values (
+      '00000000-0000-0000-0000-000000000001', 0, '[]',
+      '{"role_type":null,"seniority_match":"unknown","remote_ok":"unknown","red_flag_count":0}',
+      'test', 'test-model', 'test-1', repeat('a',64), repeat('b',64), repeat('c',64),
+      '{"employer_type":"unknown","seniority_real":null,"fit_score":0,"fit_tier":"weak","recommendation":"review","reasons":[],"fit_line":"fixture","fit_line_evidence_ids":[],"luna_status":"ok"}'
+    )$$,
   'score lower boundary is accepted');
 select ok(pg_temp.throws_sqlstate(
   $$update posting_scores set brain = E'\t\n'
     where posting_id = '00000000-0000-0000-0000-000000000001'$$,
   '23514'), 'score brain rejects tab/newline-only text');
-update posting_scores set score = 100 where posting_id = '00000000-0000-0000-0000-000000000001';
+update posting_scores set score = 100,
+  score_payload = jsonb_set(score_payload, '{fit_score}', '100')
+  where posting_id = '00000000-0000-0000-0000-000000000001';
 select is((select score from posting_scores where posting_id = '00000000-0000-0000-0000-000000000001'), 100::smallint, 'score upper boundary is accepted');
 select ok(pg_temp.throws_sqlstate(
   $$update posting_scores set score = -1 where posting_id = '00000000-0000-0000-0000-000000000001'$$,
