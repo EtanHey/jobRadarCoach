@@ -1249,7 +1249,7 @@ def _location_matches(
     location_terms: dict[str, object],
 ) -> bool:
     location = _normalized_identity(posting.get("location", ""))
-    if geography.casefold() == "remote":
+    if geography.strip().casefold() == "remote":
         return posting.get("remote") is True or "remote" in location.split()
     aliases = location_terms.get(geography, [])
     terms = [geography]
