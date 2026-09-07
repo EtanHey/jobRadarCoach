@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import math
 import os
@@ -47,41 +47,96 @@ class BrainResponseError(BrainError): ...
 class BrainValidationError(BrainResponseError): ...
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class BrainRequest:
     prompt: str
-    output_schema: dict[str, object]
+    _output_schema_json: str = field(repr=False)
 
-    def __post_init__(self) -> None:
-        if not isinstance(self.prompt, str) or not self.prompt.strip():
+    def __init__(self, prompt: str, output_schema: dict[str, object]) -> None:
+        if not isinstance(prompt, str) or not prompt.strip():
             raise BrainConfigurationError("brain prompt must be a nonblank string")
-        if len(self.prompt.encode("utf-8")) > MAX_PROMPT_BYTES:
+        if len(prompt.encode("utf-8")) > MAX_PROMPT_BYTES:
             raise BrainConfigurationError("brain prompt exceeds the byte limit")
-        try:
-            encoded_schema = json.dumps(
-                self.output_schema, ensure_ascii=False, allow_nan=False, separators=(",", ":")
-            ).encode("utf-8")
-        except (TypeError, ValueError) as error:
-            raise BrainConfigurationError("output schema must be JSON serializable") from error
-        if len(encoded_schema) > MAX_SCHEMA_BYTES:
+        encoded_schema, owned_schema = _owned_json(
+            output_schema,
+            BrainConfigurationError,
+            "output schema must be JSON serializable",
+        )
+        if len(encoded_schema.encode("utf-8")) > MAX_SCHEMA_BYTES:
             raise BrainConfigurationError("output schema exceeds the byte limit")
+        if not isinstance(owned_schema, dict):
+            raise BrainConfigurationError("output schema must be a JSON object")
         try:
-            Draft202012Validator.check_schema(self.output_schema)
+            Draft202012Validator.check_schema(owned_schema)
         except SchemaError as error:
             raise BrainConfigurationError("output schema is invalid") from error
-        _check_schema_boundaries(self.output_schema)
+        _check_schema_boundaries(owned_schema)
         if (
-            self.output_schema.get("type") != "object"
-            or self.output_schema.get("additionalProperties") is not False
+            owned_schema.get("type") != "object"
+            or owned_schema.get("additionalProperties") is not False
         ):
             raise BrainConfigurationError("output schema must be a closed object")
+        object.__setattr__(self, "prompt", prompt)
+        object.__setattr__(self, "_output_schema_json", encoded_schema)
+
+    @property
+    def output_schema(self) -> dict[str, object]:
+        schema = json.loads(self._output_schema_json)
+        assert isinstance(schema, dict)
+        return schema
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, init=False)
 class BrainResult:
-    data: dict[str, object]
+    _data_json: str = field(repr=False)
     brain: str
     model: str
+
+    def __init__(
+        self,
+        data: dict[str, object],
+        brain: str,
+        model: str,
+        *,
+        request: BrainRequest,
+    ) -> None:
+        if not isinstance(request, BrainRequest):
+            raise BrainConfigurationError("brain result requires its validated request")
+        if not isinstance(brain, str) or brain not in SUPPORTED_BRAINS:
+            raise UnsupportedBrainError("brain result provider is unsupported")
+        if not isinstance(model, str) or not model.strip():
+            raise BrainConfigurationError("brain result model must be a nonblank string")
+        encoded_data, owned_data = _owned_json(
+            data,
+            BrainValidationError,
+            "brain result must be finite JSON",
+        )
+        if not isinstance(owned_data, dict):
+            raise BrainValidationError("brain result must be a JSON object")
+        _validate(owned_data, request.output_schema)
+        object.__setattr__(self, "_data_json", encoded_data)
+        object.__setattr__(self, "brain", brain)
+        object.__setattr__(self, "model", model)
+
+    @property
+    def data(self) -> dict[str, object]:
+        value = json.loads(self._data_json)
+        assert isinstance(value, dict)
+        return value
+
+
+def _owned_json(
+    value: object,
+    error_type: type[BrainError],
+    message: str,
+) -> tuple[str, object]:
+    try:
+        encoded = json.dumps(
+            value, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+        return encoded, json.loads(encoded)
+    except (TypeError, ValueError) as error:
+        raise error_type(message) from error
 
 
 def _check_schema_boundaries(schema: object, path: str = "$") -> None:
