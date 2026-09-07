@@ -26,9 +26,11 @@ export function JobBoard() {
   const [revision, setRevision] = useState(0);
   const [connection, setConnection] = useState("Connecting live updates…");
   const selectedRef = useRef(selected);
+  const detailVersion = useRef(0);
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const reload = useCallback(() => { setLoading(true); setError(""); setRevision((value) => value + 1); }, []);
   function selectJob(id: string | null) {
+    detailVersion.current += 1;
     selectedRef.current = id;
     setSelected(id); setDetail(null); setDetailError(""); setRejecting(false); setReason("");
   }
@@ -44,11 +46,12 @@ export function JobBoard() {
       detailRequest?.abort();
       const id = selectedRef.current;
       if (!id) return;
+      const version = ++detailVersion.current;
       const controller = new AbortController();
       detailRequest = controller;
       request(`/api/jobs/${id}`, { signal: controller.signal }).then((body) => {
-        if (!controller.signal.aborted && selectedRef.current === id) { setDetail(JobDetailResponseSchema.parse(body).job); setDetailError(""); }
-      }).catch(() => { if (!controller.signal.aborted && selectedRef.current === id) setDetailError("Could not refresh this job. Close and reopen to retry."); });
+        if (!controller.signal.aborted && selectedRef.current === id && detailVersion.current === version) { setDetail(JobDetailResponseSchema.parse(body).job); setDetailError(""); }
+      }).catch(() => { if (!controller.signal.aborted && selectedRef.current === id && detailVersion.current === version) setDetailError("Could not refresh this job. Close and reopen to retry."); });
     }
     function queueRefresh() { clearTimeout(timer); timer = setTimeout(refresh, 150); }
     events.addEventListener("ready", () => { setConnection("Live updates connected"); queueRefresh(); });
@@ -68,6 +71,7 @@ export function JobBoard() {
 
   useEffect(() => {
     if (!selected) return undefined;
+    const version = ++detailVersion.current;
     const controller = new AbortController();
     async function open() {
       try {
@@ -77,9 +81,10 @@ export function JobBoard() {
           method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "seen" }), signal: controller.signal,
         }));
         if (controller.signal.aborted) return;
-        setDetail({ ...job, status: status.status, status_reason: status.reason }); reload();
+        if (detailVersion.current === version) setDetail({ ...job, status: status.status, status_reason: status.reason });
+        reload();
       } catch (cause) {
-        if (!controller.signal.aborted) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
+        if (!controller.signal.aborted && detailVersion.current === version) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
       }
     }
     open();
