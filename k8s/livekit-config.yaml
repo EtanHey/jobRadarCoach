@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livekit-config
+  namespace: job-radar-coach
+data:
+  livekit.yaml: |
+    port: 7880
+    rtc:
+      tcp_port: 7881
+      port_range_start: 50000
+      port_range_end: 50100
+      use_external_ip: false
+    logging:
+      level: info
