@@ -5,7 +5,7 @@ import { makeGetJob } from "../app/api/jobs/[id]/route";
 import { makePatchStatus } from "../app/api/jobs/[id]/status/route";
 import { GET as getJobs, makeGetJobs } from "../app/api/jobs/route";
 import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
-import { ProfilePatchSchema, type JobDetail, type JobSummary } from "../lib/contracts";
+import { type JobDetail, type JobSummary } from "../lib/contracts";
 import type { ApiStore } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
@@ -37,20 +37,6 @@ const detail: JobDetail = {
   scored_at: null,
 };
 
-function store(overrides: Partial<ApiStore> = {}): ApiStore {
-  return {
-    listJobs: async () => [summary],
-    getJob: async () => detail,
-    setStatus: async (input) => ({
-      status: input.status,
-      reason: input.status === "rejected" ? input.reason : null,
-    }),
-    getProfile: async () => profile,
-    updateProfile: async () => profile,
-    ...overrides,
-  };
-}
-
 const profile = {
   "candidate.roles_wanted": ["Engineer"],
   "candidate.stacks": ["TypeScript"],
@@ -62,6 +48,21 @@ const profile = {
   "candidate.preferences.free_text": null,
   "runtime.brain": "codex" as const,
 };
+
+function store(overrides: Partial<ApiStore> = {}): ApiStore {
+  return {
+    listJobs: () => Promise.resolve([summary]),
+    getJob: () => Promise.resolve(detail),
+    setStatus: (input) => Promise.resolve({
+      status: input.status,
+      reason: input.status === "rejected" ? input.reason : null,
+    }),
+    getProfile: () => Promise.resolve(profile),
+    updateProfile: () => Promise.resolve(profile),
+    ...overrides,
+  };
+}
+
 
 function mutation(path: string, body: unknown, headers: HeadersInit = {}): Request {
   return new Request(`http://localhost${path}`, {
@@ -75,9 +76,9 @@ test("job list exposes a bounded nullable unscored contract without raw JD", asy
   let received: unknown;
   const response = await makeGetJobs(
     store({
-      listJobs: async (query) => {
+      listJobs: (query) => {
         received = query;
-        return [summary];
+        return Promise.resolve([summary]);
       },
     }),
   )(new Request("http://localhost/api/jobs?filter=all&limit=250"));
@@ -91,7 +92,7 @@ test("job list exposes a bounded nullable unscored contract without raw JD", asy
 
 test("frozen status filters are direct values rather than a second status parameter", async () => {
   let received: unknown;
-  const handler = makeGetJobs(store({ listJobs: async (query) => { received = query; return []; } }));
+  const handler = makeGetJobs(store({ listJobs: (query) => { received = query; return Promise.resolve([]); } }));
   assert.equal((await handler(new Request("http://localhost/api/jobs?filter=seen"))).status, 200);
   assert.deepEqual(received, { filter: "seen", limit: 50 });
   assert.equal(
@@ -102,7 +103,7 @@ test("frozen status filters are direct values rather than a second status parame
 
 test("invalid and reasonless rejected statuses fail before the store", async () => {
   let calls = 0;
-  const handler = makePatchStatus(store({ setStatus: async () => { calls += 1; throw new Error(); } }));
+  const handler = makePatchStatus(store({ setStatus: () => { calls += 1; return Promise.reject(new Error()); } }));
   for (const body of [{ status: "deleted" }, { status: "rejected", reason: "  " }]) {
     const response = await handler(mutation(`/api/jobs/${ID}/status`, body), {
       params: Promise.resolve({ id: ID }),
@@ -144,8 +145,8 @@ test("profile input rejects unsupported brains and private fields", async () => 
     400,
   );
   assert.equal(
-    ProfilePatchSchema.safeParse({ field: "candidate.connectors", value: ["private"] }).success,
-    false,
+    (await handler(mutation("/api/profile", { field: "candidate.connectors", value: ["private"] }))).status,
+    400,
   );
 });
 
@@ -168,7 +169,7 @@ test("successful detail/status/profile responses honor their public shapes", asy
 
 test("detail GET is read-only and seen is an explicit status mutation", async () => {
   let statusCalls = 0;
-  const readonly = store({ setStatus: async () => { statusCalls += 1; return { status: "seen", reason: null }; } });
+  const readonly = store({ setStatus: () => { statusCalls += 1; return Promise.resolve({ status: "seen", reason: null }); } });
   await makeGetJob(readonly)(new Request(`http://localhost/api/jobs/${ID}`), {
     params: Promise.resolve({ id: ID }),
   });
@@ -176,7 +177,7 @@ test("detail GET is read-only and seen is an explicit status mutation", async ()
 
   let received: unknown;
   const response = await makePatchStatus(store({
-    setStatus: async (input) => { received = input; return { status: "saved", reason: null }; },
+    setStatus: (input) => { received = input; return Promise.resolve({ status: "saved", reason: null }); },
   }))(mutation(`/api/jobs/${ID}/status`, { status: "seen" }), {
     params: Promise.resolve({ id: ID }),
   });
@@ -186,7 +187,7 @@ test("detail GET is read-only and seen is an explicit status mutation", async ()
 
 test("non-http external URLs fail the output boundary", async () => {
   const response = await makeGetJobs(store({
-    listJobs: async () => [{ ...summary, url: "javascript:alert(1)" }],
+    listJobs: () => Promise.resolve([{ ...summary, url: "data:text/plain,not-http" }]),
   }))(new Request("http://localhost/api/jobs"));
   assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: "Database returned an invalid response." });
@@ -194,7 +195,7 @@ test("non-http external URLs fail the output boundary", async () => {
 
 test("unexpected failures never expose database internals", async () => {
   const response = await makeGetJobs(
-    store({ listJobs: async () => { throw new Error("password=secret relation posting_scores"); } }),
+    store({ listJobs: () => Promise.reject(new Error("password=secret relation posting_scores")) }),
   )(new Request("http://localhost/api/jobs"));
   assert.equal(response.status, 500);
   const text = await response.text();
