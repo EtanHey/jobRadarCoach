@@ -105,7 +105,12 @@ async function readProfile(db: SupabaseClient): Promise<Profile> {
   const entries = checked(ProfileEntriesSchema, await data(
     db.from("profile").select("field,value").in("field", fields).order("field"),
   ));
-  return checked(ProfileSchema, Object.fromEntries(entries.map((entry) => [entry.field, entry.value])));
+  return checked(ProfileSchema, {
+    "candidate.roles_wanted": [], "candidate.stacks": [], "candidate.seniority": [],
+    "candidate.open_to.geographies": [], "candidate.remote": null, "candidate.salary_floor": null,
+    "candidate.red_flag_words": [], "candidate.preferences.free_text": null, "runtime.brain": "ollama",
+    ...Object.fromEntries(entries.map((entry) => [entry.field, entry.value])),
+  });
 }
 
 export function getApiStore(): ApiStore {
@@ -125,6 +130,12 @@ export function getApiStore(): ApiStore {
     async setStatus(input) {
       const db = client();
       if (input.status === "seen") {
+        const seeded = await db.from("posting_status").upsert(
+          { posting_id: input.posting_id, status: "seen", reason: null },
+          { onConflict: "posting_id", ignoreDuplicates: true },
+        );
+        if (seeded.error?.code === "23503") throw new HttpError(404, "Job not found.");
+        if (seeded.error) throw new HttpError(503, "Database request failed.");
         const changed = await data(db.from("posting_status").update({ status: "seen", reason: null })
           .eq("posting_id", input.posting_id).eq("status", "new").select("status,reason").maybeSingle());
         if (changed !== null) return checked(StatusResultSchema, changed);
@@ -140,7 +151,7 @@ export function getApiStore(): ApiStore {
       const row = checked(statusRowSchema, value);
       return { status: row.status, reason: row.reason };
     },
-    async getProfile() {
+    getProfile() {
       return readProfile(client());
     },
     async updateProfile(input) {

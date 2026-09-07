@@ -5,8 +5,7 @@ import { mutationJson, output, safely } from "../../../lib/http";
 import { getApiStore, type ApiStore } from "../../../lib/server";
 
 export function makeGetProfile(store: ApiStore) {
-  return (request: Request) => safely(async () => {
-    void request;
+  return (_request: Request) => safely(async () => {
     return output(ProfileResponseSchema, { profile: await store.getProfile() });
   });
 }
