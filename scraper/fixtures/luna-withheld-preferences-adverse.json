@@ -1,0 +1,58 @@
+{
+  "source": "sanitized lane-4a public fixture response after mechanical structural repairs",
+  "posting_evidence_id": "posting:4459009700",
+  "allowed_evidence_ids": [
+    "application-history:33333333-3333-3333-3333-333333333333",
+    "posting:4459009700",
+    "profile:open-to",
+    "profile:preferences",
+    "profile:tenure",
+    "synthetic-project"
+  ],
+  "response": {
+    "employer_type": "direct",
+    "seniority_real": null,
+    "fit_score": 65,
+    "fit_tier": "good",
+    "recommendation": "referral",
+    "reasons": [
+      {
+        "factor": "employer_type",
+        "basis": "posting",
+        "assessment": "unknown",
+        "evidence_ids": ["posting:4459009700"],
+        "detail": "The employer type is unknown, making it hard to gauge the fit."
+      },
+      {
+        "factor": "product_role_match",
+        "basis": "comparison",
+        "assessment": "mixed",
+        "evidence_ids": ["profile:preferences", "posting:4459009700"],
+        "detail": "The candidate prefers full-stack roles, but the posting emphasizes backend services. However, their TypeScript and Node.js skills align well with the requirements."
+      },
+      {
+        "factor": "stack_domain_evidence",
+        "basis": "comparison",
+        "assessment": "mixed",
+        "evidence_ids": ["synthetic-project", "posting:4459009700"],
+        "detail": "The candidate has experience with TypeScript and React, but the posting requires backend services expertise. Their background in product shipping is relevant."
+      },
+      {
+        "factor": "seniority_gap",
+        "basis": "comparison",
+        "assessment": "mixed",
+        "evidence_ids": ["profile:tenure", "posting:4459009700"],
+        "detail": "The candidate has 4 years of experience, which aligns with the posting's requirements. However, their previous role was as a frontend engineer."
+      },
+      {
+        "factor": "preferences",
+        "basis": "comparison",
+        "assessment": "mixed",
+        "evidence_ids": ["posting:4459009700", "profile:preferences"],
+        "detail": "The posting requires strong TypeScript and Node.js skills, which the candidate has."
+      }
+    ],
+    "fit_line": "Good fit — relevant stack and domain experience, but some mismatch in seniority and role focus.",
+    "fit_line_evidence_ids": ["posting:4459009700", "synthetic-project"]
+  }
+}

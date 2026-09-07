@@ -156,6 +156,14 @@ PROFILE_EVIDENCE_IDS = {
     "profile:open-to",
     "profile:preferences",
 }
+WITHHELD_PROFILE_EVIDENCE_IDS = {
+    "profile:open-to",
+    "profile:preferences",
+}
+WITHHELD_ABSTENTION_DETAIL = (
+    "Preferences and open-to information are withheld; "
+    "no candidate fact or fit effect is assessed."
+)
 HUMAN_RECOMMENDATIONS = {
     "apply": "apply",
     "applied": "apply",
@@ -424,7 +432,9 @@ def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str
             "Reason basis is exact: employer_type uses posting; every other factor uses comparison.",
             "A posting-basis reason may describe only the posting and must cite only the posting evidence ID.",
             "A comparison-basis reason must cite at least one candidate profile evidence ID as well as the posting evidence ID.",
-            "Use profile:tenure only for stated tenure. profile:open-to and profile:preferences may support only an explicit withheld/unknown abstention, never a positive or negative claim.",
+            "Use profile:tenure only for stated tenure. profile:open-to and profile:preferences may support only an explicit withheld/unknown abstention in the preferences reason, never a positive or negative claim.",
+            f'When either withheld evidence ID is cited, assessment must be unknown, cite no professional evidence, and detail must be exactly: "{WITHHELD_ABSTENTION_DETAIL}"',
+            "Never cite withheld evidence IDs in fit_line.",
             "Do not repeat a global never-claim in fit_line or reason detail. Do not make a claim forbidden for evidence cited by that reason or fit line.",
             "Only brainlayer, voicelayer, or cmuxlayer evidence may support an MCP claim; voice-agent-tool-calling is not MCP evidence.",
             "Never invent resume evidence, infer an unevidenced skill, or turn a tool/vendor integration into ownership of the tool/vendor.",
@@ -694,6 +704,16 @@ def _validated_annotation(  # skipcq: PY-R1000
         detail = " ".join(detail.split())
         if not detail or len(detail) > 200:
             return None
+        withheld_evidence_ids = (
+            candidate_evidence_ids & WITHHELD_PROFILE_EVIDENCE_IDS
+        )
+        if withheld_evidence_ids and (
+            factor != "preferences"
+            or assessment != "unknown"
+            or candidate_evidence_ids != withheld_evidence_ids
+            or detail != WITHHELD_ABSTENTION_DETAIL
+        ):
+            return None
         if contains_forbidden(detail, global_never_claims):
             return None
         if basis == "posting" and re.search(
@@ -742,6 +762,8 @@ def _validated_annotation(  # skipcq: PY-R1000
         return None
     fit_line_candidate_evidence_ids = set(fit_line_evidence_ids) - {posting_evidence_id}
     if not fit_line_candidate_evidence_ids:
+        return None
+    if fit_line_candidate_evidence_ids & WITHHELD_PROFILE_EVIDENCE_IDS:
         return None
     fit_line = " ".join(fit_line.split())
     if not fit_line or len(fit_line) > 160:
