@@ -449,8 +449,13 @@ def test_prompt_uses_safe_profile_contract_without_private_connectors(
 ) -> None:
     luna = load_annotate_module()
     private_name = "PRIVATE_NAME_SENTINEL"
+    private_prohibition = "PRIVATE_PROHIBITION_SENTINEL"
+    private_exclusion = "PRIVATE_OWNERSHIP_EXCLUSION_SENTINEL"
     profile_path = tmp_path / "profile.yaml"
-    write_safe_contract(profile_path, safe_projection(), private_name=private_name)
+    projection = safe_projection()
+    projection["constraints"]["global_never_claims"].append(private_prohibition)
+    projection["fit_signals"][0]["ownership"]["exclusions"] = [private_exclusion]
+    write_safe_contract(profile_path, projection, private_name=private_name)
     runner = SequenceRunner(
         {
             "status": "ok",
@@ -475,13 +480,40 @@ def test_prompt_uses_safe_profile_contract_without_private_connectors(
     assert "Do not use tools or modify files" in prompt
     assert "product and role match" in prompt
     assert "demonstrated stack and domain evidence" in prompt
-    assert "less than one year" in prompt
-    assert "Allowed geography must not reduce fit" in prompt
-    assert "product-company preference" in prompt
+    assert "withheld from model input" in prompt
+    assert "do not infer them or reduce fit" in prompt
+    assert "without inventing a personal gap tolerance" in prompt
+    assert "may support only an explicit withheld/unknown abstention" in prompt
     assert "An explicit human verdict is authoritative" in prompt
     assert private_name.casefold() not in prompt.casefold()
+    assert private_prohibition not in prompt
+    assert private_exclusion not in prompt
+    assert "Shipped production voice-agent tool calling." in prompt
+    assert '"open_to"' not in prompt
+    assert '"preferences"' not in prompt
     assert "/Users/" not in prompt
     assert schema["additionalProperties"] is False
+
+    db_profile = {
+        "candidate.positioning": "Public professional positioning",
+        "candidate.tenure_years": 4,
+        "candidate.fit_terms": ["public-skill"],
+        "candidate.professional_depth": {"PublicSkill": ["hands-on"]},
+        "candidate.open_to.geographies": [private_name],
+        "candidate.preferences.experience_gap": {"person": private_name},
+        "connectors": [private_name],
+        "people": [private_name],
+        "constraints.global_never_claims": [private_prohibition],
+        "fit_signals": projection["fit_signals"],
+    }
+    db_projection = json.dumps(luna._professional_profile(db_profile))
+    assert "Public professional positioning" in db_projection
+    assert "hands-on" in db_projection
+    assert "Verified scope for voice-agent-tool-calling." in db_projection
+    assert all(
+        value not in db_projection
+        for value in (private_name, private_prohibition, private_exclusion)
+    )
 
 
 def test_safe_profile_contract_consumes_only_projection_and_accepts_false_relocation(
