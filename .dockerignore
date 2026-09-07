@@ -1,0 +1,13 @@
+.git
+.gitignore
+.worktrees
+.env
+**/.env
+docs.local
+profile.yaml
+data
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+scraper/test_*.py
+scraper/fixtures

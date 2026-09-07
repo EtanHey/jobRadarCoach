@@ -1,0 +1,69 @@
+{
+  "fixture_schema_version": 2,
+  "snapshot": {
+    "snapshot_id": "anonymous-2026-08-26-reviewed-current-source",
+    "snapshot_version": 2,
+    "source_kind": "reviewed_current_source",
+    "source_label": "Anonymous reviewed current-source snapshot",
+    "exported_at": "2026-08-26T15:42:51+03:00",
+    "reviewed_at": "2026-08-26T15:42:51+03:00",
+    "source_checksum": "sha256:3fff422d1adeca85a8f2efde90b5c0b1030fe2eef07b2a2be72db9d34392cdff",
+    "snapshot_checksum": "sha256:2f0583e5e0524d62df49819b8cdff07f18c1e96cf9053411874024e716e733ea",
+    "supabase_export_verified": false,
+    "provenance_status": "blocked",
+    "provenance_blocker": "No verified Supabase export receipt or durable Supabase decision IDs were available."
+  },
+  "cases": [
+    {
+      "source_decision_id": null,
+      "source_record_key": "linkedin-job:4459009700",
+      "human_verdict": "applied",
+      "human_rank": 1,
+      "decision_basis": "fit",
+      "pair_eligible": true,
+      "decision_note": "Best fit of the reviewed set: voice agents, production provider-layer work, and local speech tooling; the 4+ year request was not treated as a wall.",
+      "posting": {
+        "id": "4459009700",
+        "title": "Software Engineer (Harmony)",
+        "company": "monday.com",
+        "location": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+        "url": "https://il.linkedin.com/jobs/view/software-engineer-harmony-at-monday-com-4459009700",
+        "jd_text": "Harmony is the AI voice venture built inside monday.com. Our agents hold real phone conversations for businesses, and every one of those calls runs through systems we design and build ourselves: real-time audio pipelines, agent orchestration, telephony integrations, and the tools our customers use to build and monitor their agents. We are a small team that ships fast. Engineers here own features end to end - from design through production - and work shoulder to shoulder with AI researchers, turning models into products. About The Role Design and build backend services powering live voice conversations: low-latency, real-time, and reliable under load. Develop the platform our customers use to create, test, and analyze their voice agents. Integrate with telephony providers, CRMs, calendars, and the wider monday.com platform. Turn research prototypes into production systems together with our AI scientists. Own what you ship: architecture, code quality, observability, and performance. Requirements 4+ years of experience building production backend or full-stack systems. Strong TypeScript and Node.js skills, or deep experience in a comparable stack and the will to switch. Solid grasp of distributed systems, APIs, databases, and event-driven architectures. Bias for shipping: pragmatic, fast, and rigorous where it matters. Bonus: experience with real-time audio or streaming, telephony (SIP, WebRTC), or LLM-powered products."
+      }
+    },
+    {
+      "source_decision_id": null,
+      "source_record_key": "linkedin-job:4457669002",
+      "human_verdict": "applied",
+      "human_rank": 2,
+      "decision_basis": "fit",
+      "pair_eligible": true,
+      "decision_note": "React, Node.js, MongoDB, product ownership, async work, and Europe/GMT+3 alignment made this the selected Jiga application.",
+      "posting": {
+        "id": "4457669002",
+        "title": "Full Stack Product Engineer - Remote/Europe",
+        "company": "Jiga",
+        "location": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+        "url": "https://il.linkedin.com/jobs/view/full-stack-product-engineer-remote-europe-at-jiga-4457669002",
+        "jd_text": "About The Role Jiga is on a mission to help engineers build physical products faster. Think npm install for mechanical engineers - we're building the infrastructure that makes hardware development as fast as software. We're a small remote team made up of the best of the best. Our team members are distributed around the globe. While most of our product and engineering talent is located in Europe and Israel, you'll also work with people from the US and Asia. Most of our work is made async, which is the secret sauce of our success. What you need 3+ years building full-stack web applications end-to-end Strong at React + Node.js. MongoDB experience is a great plus. Experience building complex applications - you understand clean architecture, security, scaling, performance, and maintainability Solid data modeling fundamentals Product company experience (you've felt the joy and pain of real users) Some overlap with GMT+3 working hours so we can actually talk to you sometimes Compensation $80K - $140K + 0.05% - 0.10% equity"
+      }
+    },
+    {
+      "source_decision_id": null,
+      "source_record_key": "linkedin-job:4457655885",
+      "human_verdict": "skip",
+      "human_rank": null,
+      "decision_basis": "workflow_override",
+      "pair_eligible": false,
+      "decision_note": "Distinct US twin deliberately skipped to keep one application per team; this is workflow policy, not role-fit ground truth.",
+      "posting": {
+        "id": "4457655885",
+        "title": "Full Stack Product Engineer - Remote/US",
+        "company": "Jiga",
+        "location": "Tel Aviv-Yafo, Tel Aviv District, Israel",
+        "url": "https://il.linkedin.com/jobs/view/full-stack-product-engineer-remote-us-at-jiga-4457655885",
+        "jd_text": "About The Role Jiga is on a mission to help engineers build physical products faster. Think npm install for mechanical engineers - we're building the infrastructure that makes hardware development as fast as software. Jiga is fully funded, cashflow positive, with growing revenue MoM. We're completely transparent about our runway and finances - ask us anything. We're a small remote team made up of the best of the best, distributed around the globe. Most of our work is async, which is the secret sauce of our success. What you need 3+ years building full-stack web applications end-to-end Strong at React + Node.js. Basic at maintaining AWS services. MongoDB + Terraform experience is a great plus. Experience building complex applications - you understand clean architecture, security, scaling, performance, and maintainability Solid data modeling fundamentals Product company experience (you've felt the joy and pain of real users) Some overlap with GMT+3 working hours so we can actually talk to you sometimes Compensation $120K - $190K + 0.05% - 0.10% equity"
+      }
+    }
+  ]
+}

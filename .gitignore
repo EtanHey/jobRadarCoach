@@ -1,3 +1,10 @@
 docs.local/
 .env
 *.local.*
+.worktrees/
+profile.yaml
+supabase/.env
+data/
+__pycache__/
+*.pyc
+.pytest_cache/
