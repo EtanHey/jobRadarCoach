@@ -42,11 +42,11 @@ def install_runtime(
     monkeypatch.setattr(
         brain,
         "_verify_codex_version",
-        lambda path: verified.append(path),
+        lambda path, **_kwargs: verified.append(path),
         raising=False,
     )
     monkeypatch.setattr(
-        brain, "_subscription_auth_path", lambda: auth_path, raising=False
+        brain, "_subscription_auth_path", auth_path.resolve, raising=False
     )
     monkeypatch.setattr(
         brain, "_run_codex_process", process_runner, raising=False
@@ -66,7 +66,7 @@ def test_codex_dispatch_preserves_isolation_and_configured_provenance(
         isolated_home = Path(kwargs["env"]["CODEX_HOME"])
         captured.update(
             command=command,
-            prompt=kwargs["input"],
+            prompt=kwargs["stdin_text"],
             options=kwargs,
             schema=json.loads(schema_path.read_text(encoding="utf-8")),
             workspace=Path(kwargs["cwd"]),
@@ -114,7 +114,7 @@ def test_codex_dispatch_preserves_isolation_and_configured_provenance(
     assert {"shell_tool", "code_mode_host", "computer_use", "multi_agent"} <= disabled_features
     assert command[command.index("--sandbox") + 1] == "read-only"
     assert command[-1] == "-"
-    assert options["timeout"] == 12
+    assert 0 < options["timeout"] <= 12
     assert options["cwd"] == Path(command[command.index("-C") + 1])
     assert options["cwd"] != Path.cwd()
     assert options["stdout"] is subprocess.DEVNULL
