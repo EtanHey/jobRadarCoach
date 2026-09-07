@@ -184,6 +184,7 @@ def write_safe_contract(
     projection: dict[str, object],
     *,
     contract_version: int = 1,
+    private_name: str = "LEGACY_PRIVATE_CONTACT_SENTINEL",
 ) -> None:
     safe_json = json.dumps(projection, ensure_ascii=False, indent=2, sort_keys=True)
     path.write_text(
@@ -191,7 +192,7 @@ def write_safe_contract(
             [
                 f"contract_version: {contract_version}",
                 "profile:",
-                "  positioning: LEGACY_PRIVATE_CONTACT_SENTINEL",
+                f"  positioning: {private_name}",
                 "artifacts:",
                 "- path: /Users/private/LEGACY_PATH_SENTINEL.pdf",
                 "connectors:",
@@ -442,8 +443,13 @@ def test_safe_profile_contract_includes_only_reviewed_ranking_evidence() -> None
     assert "/Users/" not in serialized
 
 
-def test_prompt_uses_safe_profile_contract_without_private_connectors() -> None:
+def test_prompt_uses_safe_profile_contract_without_private_connectors(
+    tmp_path: Path,
+) -> None:
     luna = load_annotate_module()
+    private_name = "PRIVATE_NAME_SENTINEL"
+    profile_path = tmp_path / "profile.yaml"
+    write_safe_contract(profile_path, safe_projection(), private_name=private_name)
     runner = SequenceRunner(
         {
             "status": "ok",
@@ -459,7 +465,7 @@ def test_prompt_uses_safe_profile_contract_without_private_connectors() -> None:
         }
     )
 
-    luna.annotate(posting("agency"), runner=runner, profile_path=PROFILE_PATH)
+    luna.annotate(posting("agency"), runner=runner, profile_path=profile_path)
 
     prompt, schema = runner.calls[0]
     assert "Product-minded full-stack software engineer" in prompt
@@ -472,7 +478,7 @@ def test_prompt_uses_safe_profile_contract_without_private_connectors() -> None:
     assert "Allowed geography must not reduce fit" in prompt
     assert "product-company preference" in prompt
     assert "An explicit human verdict is authoritative" in prompt
-    assert Path.home().name.casefold() not in prompt.casefold()
+    assert private_name.casefold() not in prompt.casefold()
     assert "/Users/" not in prompt
     assert schema["additionalProperties"] is False
 
@@ -954,7 +960,6 @@ def test_calibration_fixture_preserves_anonymous_reviewed_labels_without_private
     assert len({case["source_record_key"] for case in cases}) == 3
     assert all(len(case["posting"]["jd_text"]) >= 1000 for case in cases)
     for forbidden in (
-        Path.home().name,
         "PRIVATE_NAME_SENTINEL",
         "/Users/",
         "connector",

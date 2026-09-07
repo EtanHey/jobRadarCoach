@@ -6,6 +6,8 @@ Credential-free harvesting for LinkedIn guest search and public Comeet, Greenhou
 
 Copy `profile.example.yaml` to the gitignored `profile.yaml` and replace every example value with your own. The image deliberately does not contain either file; mount `profile.yaml` read-only at runtime.
 
+The container runs as the image's `radar` user (UID/GID 1000). On Linux, a restrictive profile such as mode `0600` must therefore be owned by UID/GID 1000 before it is bind-mounted; for example, `chmod 0600 profile.yaml && sudo chown 1000:1000 profile.yaml`. macOS Docker Desktop and OrbStack remap host mounts, so ownership behavior there is runtime-specific. If you override the container with `--user`, also use a host directory owned by that user for `/app/data` instead of the Docker-managed volume shown below.
+
 `searches.yaml` is a transitional Israel-regional example with generic public role names. The inherited ATS filter currently requires that regional setting; changing only the locations can silently eliminate ATS matches. Lane 2 must replace both search selection and posting-location filtering with DB/profile-driven geography before this is stranger-ready.
 
 ## Local run

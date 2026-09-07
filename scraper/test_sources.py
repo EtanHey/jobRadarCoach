@@ -4,11 +4,12 @@
 import importlib.util
 import inspect
 import json
+import re
 import socket
 import subprocess
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -97,6 +98,10 @@ def test_greenhouse_adapter_parses_real_board_fixture() -> None:
     assert postings[0]["updated_at"] == "2026-05-28T07:00:01-04:00"
     assert postings[0]["posted_ago"] == "2026-05-28 10:59 UTC"
     assert_uniform_posting(postings[0], "greenhouse")
+
+    for posting in postings:
+        assert re.search(r"<[a-zA-Z/][^>]*>", str(posting["jd_text"])) is None
+        assert "class=" not in str(posting["jd_text"])
 
 
 def test_lever_adapter_parses_real_board_fixture() -> None:
@@ -217,6 +222,118 @@ def test_workable_adapter_fetches_real_markdown_board_and_jd_fixture() -> None:
         "https://apply.workable.com/myteam/jobs/view/99FDF530F1.md",
     ]
     assert_uniform_posting(postings[0], "workable")
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (None, "Comeet board request failed"),
+        ("<html>no positions marker</html>", "Comeet board omitted COMPANY_POSITIONS_DATA"),
+    ],
+)
+def test_comeet_distinguishes_request_failure_from_missing_marker(
+    body: str | None,
+    message: str,
+) -> None:
+    module = load_source("comeet")
+
+    with pytest.raises(RuntimeError, match=message):
+        module.fetch(
+            {"slug": "acme", "company_uid": "CA.001"},
+            fetcher=lambda _url: body,
+            before_request=lambda: None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("source", "query", "body", "expected_id", "tenant"),
+    [
+        (
+            "comeet",
+            {"slug": "acme", "company_uid": "CA.001"},
+            "<script>COMPANY_POSITIONS_DATA = "
+            + json.dumps([{"name": "Broken"}, {"uid": "good", "name": "Good"}])
+            + "; POSITION_DATA = {};</script>",
+            "comeet:CA.001:good",
+            "CA.001",
+        ),
+        (
+            "greenhouse",
+            {"board": "acme"},
+            json.dumps({"jobs": [{"title": "Broken"}, {"id": 7, "title": "Good"}]}),
+            "greenhouse:acme:7",
+            "acme",
+        ),
+        (
+            "lever",
+            {"account": "acme"},
+            json.dumps([{"text": "Broken"}, {"id": "good", "text": "Good"}]),
+            "lever:acme:good",
+            "acme",
+        ),
+    ],
+)
+def test_missing_adapter_identity_skips_only_bad_row_and_logs_tenant(
+    source: str,
+    query: dict[str, str],
+    body: str,
+    expected_id: str,
+    tenant: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    module = load_source(source)
+
+    with caplog.at_level("INFO"):
+        postings = module.fetch(
+            query,
+            fetcher=lambda _url: body,
+            before_request=lambda: None,
+        )
+
+    assert [posting["id"] for posting in postings] == [expected_id]
+    assert tenant in caplog.text
+
+
+def test_lever_null_location_stays_empty_in_fields_and_raw_text() -> None:
+    module = load_source("lever")
+    body = json.dumps(
+        [{"id": "good", "text": "Engineer", "categories": {"location": None}}]
+    )
+
+    posting = module.fetch(
+        {"account": "acme", "company": "Acme"},
+        fetcher=lambda _url: body,
+        before_request=lambda: None,
+    )[0]
+
+    assert posting["location"] == ""
+    assert "None" not in posting["raw_text"]
+
+
+@pytest.mark.parametrize("invalid_date", ["—", "", "2026-02-30"])
+def test_workable_invalid_posted_dates_are_empty_and_valid_dates_parse(
+    invalid_date: str,
+) -> None:
+    module = load_source("workable")
+    board = "\n".join(
+        [
+            f"| Broken | Dept | Remote | Full-time | — | {invalid_date} | [View](https://apply.workable.com/acme/jobs/view/BAD1.md) |",
+            "| Good | Dept | Remote | Full-time | — | 2026-02-28 | [View](https://apply.workable.com/acme/jobs/view/GOOD1.md) |",
+        ]
+    )
+
+    postings = module.fetch(
+        {"account": "acme"},
+        fetcher=lambda url: "detail" if "/view/" in url else board,
+        before_request=lambda: None,
+    )
+
+    assert postings[0]["posted_at"] == postings[0]["posted_ago"] == ""
+    assert postings[1]["posted_ago"] == "2026-02-28"
+    assert all(
+        not posting["posted_at"] or datetime.fromisoformat(str(posting["posted_at"]).replace("Z", "+00:00"))
+        for posting in postings
+    )
 
 
 def test_ats_filter_api_has_no_dead_harvested_at_parameter() -> None:
@@ -1226,7 +1343,7 @@ def test_registry_dry_run_lists_each_status_without_secret_values(tmp_path: Path
 
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(REGISTRY_MODULE_PATH),
             "--dry-run",
             "--registry",
@@ -1277,7 +1394,7 @@ def test_registry_dry_run_treats_disabled_only_as_healthy(tmp_path: Path) -> Non
 
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             str(REGISTRY_MODULE_PATH),
             "--dry-run",
             "--registry",

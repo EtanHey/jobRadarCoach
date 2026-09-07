@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import date
 from typing import Callable
 
 
@@ -11,6 +12,14 @@ DETAIL_PATTERN = re.compile(
     r"\[View\]\(https://apply\.workable\.com/[^/]+/jobs/view/([A-Z0-9]+)\.md\)"
 )
 LOGGER = logging.getLogger("coach.jobfeed.source.workable")
+
+
+def _posted_fields(value: object) -> tuple[str, str]:
+    try:
+        posted_date = date.fromisoformat(str(value or "").strip()).isoformat()
+    except ValueError:
+        return "", ""
+    return f"{posted_date}T00:00:00Z", posted_date
 
 
 def _board_rows(markdown: str) -> list[tuple[str, str, str, str]]:
@@ -45,14 +54,15 @@ def fetch(
     filtered_count = 0
     for title, location, posted_date, token in rows:
         url = f"https://apply.workable.com/{account}/jobs/view/{token}.md"
+        posted_at, posted_ago = _posted_fields(posted_date)
         posting = {
             "id": f"workable:{account}:{token}",
             "title": title,
             "company": company,
             "location": location,
             "url": url,
-            "posted_at": f"{posted_date}T00:00:00Z",
-            "posted_ago": posted_date,
+            "posted_at": posted_at,
+            "posted_ago": posted_ago,
             "source": "workable",
             "raw_text": " ".join(value for value in (title, company, location) if value),
         }

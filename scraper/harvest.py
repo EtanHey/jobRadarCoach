@@ -801,9 +801,15 @@ def format_rescore_table(
 def load_prior_ids(output_dir: Path, current_date: str) -> set[str]:
     """Read listing IDs from every dated JSONL file before the current day."""
 
+    cutoff = date.fromisoformat(current_date)
     seen: set[str] = set()
     for path in sorted(output_dir.glob("????-??-??.jsonl")):
-        if path.name == f"{current_date}.jsonl":
+        try:
+            feed_date = date.fromisoformat(path.stem)
+        except ValueError:
+            LOGGER.warning("Skipping invalid dated JSONL filename: %s", path)
+            continue
+        if feed_date >= cutoff:
             continue
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if not line.strip():

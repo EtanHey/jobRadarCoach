@@ -1234,6 +1234,15 @@ def test_dedupe_uses_every_prior_day_and_removes_in_run_duplicates(tmp_path: Pat
     assert fresh == [{"id": "new-1"}]
 
 
+def test_load_prior_ids_excludes_current_and_future_dated_files(tmp_path: Path) -> None:
+    harvest = load_harvest_module()
+    (tmp_path / "2026-08-08.jsonl").write_text('{"id":"past"}\n', encoding="utf-8")
+    (tmp_path / "2026-08-09.jsonl").write_text('{"id":"today"}\n', encoding="utf-8")
+    (tmp_path / "2026-08-10.jsonl").write_text('{"id":"future"}\n', encoding="utf-8")
+
+    assert harvest.load_prior_ids(tmp_path, current_date="2026-08-09") == {"past"}
+
+
 def test_load_searches_has_transitional_regional_examples() -> None:
     harvest = load_harvest_module()
     searches = harvest.load_searches(SEARCHES_PATH)

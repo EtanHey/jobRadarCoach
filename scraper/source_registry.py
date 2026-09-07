@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Validate and inspect the checked-in public ATS tenant registry."""
+"""Validate and inspect the checked-in public ATS tenant registry.
+
+Network egress validation is best-effort: DNS is checked before opening each
+URL and after redirects, but the connection may re-resolve a hostname between
+validation and use. These checks do not prevent DNS rebinding. Treat the
+reviewed registry, ``CAREERS_HOSTS`` allowlists, and ``--import-candidates``
+corpora as trusted inputs; candidate import is not for attacker-controlled data.
+"""
 
 from __future__ import annotations
 
@@ -957,7 +964,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     mode.add_argument(
         "--import-candidates",
         action="store_true",
-        help="read corpora and print review candidates without writing the registry",
+        help=(
+            "read trusted local corpora and print review candidates without writing "
+            "the registry"
+        ),
     )
     parser.add_argument("--registry", type=Path, default=REGISTRY_PATH)
     parser.add_argument("--as-of", type=date.fromisoformat)

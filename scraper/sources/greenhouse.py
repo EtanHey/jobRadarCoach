@@ -4,15 +4,23 @@ from __future__ import annotations
 
 import html
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from typing import Callable
 
 
+LOGGER = logging.getLogger("coach.jobfeed.source.greenhouse")
+
+
 def _plain(value: object) -> str:
-    return " ".join(
-        html.unescape(re.sub(r"<[^>]+>", " ", str(value))).split()
-    )
+    text = str(value)
+    while True:
+        decoded = html.unescape(text)
+        if decoded == text:
+            break
+        text = decoded
+    return " ".join(re.sub(r"<[^>]+>", " ", text).split())
 
 
 def _posted_fields(value: object) -> tuple[str, str] | None:
@@ -40,6 +48,10 @@ def fetch(
     payload = json.loads(body)
     postings: list[dict[str, object]] = []
     for job in payload.get("jobs", []):
+        job_id = job.get("id")
+        if not job_id:
+            LOGGER.info("Skipping Greenhouse posting without id for tenant %s", board)
+            continue
         jd_text = _plain(job.get("content", ""))
         location = job.get("location") or {}
         company = str(job.get("company_name") or query.get("company", board)).strip()
@@ -47,7 +59,7 @@ def fetch(
         posted_at, posted_ago = posted_fields or ("", "")
         postings.append(
             {
-                "id": f"greenhouse:{board}:{job['id']}",
+                "id": f"greenhouse:{board}:{job_id}",
                 "title": str(job.get("title", "")),
                 "company": company,
                 "location": str(location.get("name", "")),
