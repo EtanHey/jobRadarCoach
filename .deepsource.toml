@@ -16,3 +16,12 @@ enabled = true
 
 [analyzers.meta]
 dockerfile_paths = ["scraper/Dockerfile"]
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+[analyzers.meta]
+plugins = ["react"]
+environment = ["nodejs", "browser"]
+dependency_file_paths = ["ui"]
