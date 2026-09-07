@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import hashlib
 import json
-import os
+from copy import deepcopy
 from pathlib import Path
 from uuid import uuid4
 
@@ -12,8 +11,8 @@ import pytest
 from extractor import core, persistence
 from scraper.brain_contract import BrainTransportError
 
-
 psycopg = pytest.importorskip("psycopg")
+from test_support.postgres import DatabaseUnavailable, migrated_database
 
 RAW_JD = (
     "Senior Backend Engineer in Tel Aviv. Remote work is available. "
@@ -26,17 +25,22 @@ FACTS = {
     "stack": [{"value": "TypeScript", "evidence_quote": "TypeScript"}],
     "salary": {"value": "120,000 USD annually", "evidence_quote": "120,000 USD annually"},
 }
+MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
+
+
+@pytest.fixture(scope="module")
+def migrated_database_url():
+    try:
+        with migrated_database(MIGRATIONS, through=6) as url:
+            yield url
+    except DatabaseUnavailable as error:
+        pytest.skip(str(error))
 
 
 @pytest.fixture
-def connection():
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        pytest.skip("DATABASE_URL is required for real extraction persistence tests")
-    connection = psycopg.connect(database_url)
+def connection(migrated_database_url):
+    connection = psycopg.connect(migrated_database_url)
     connection.execute("select 1")
-    migration = Path(__file__).resolve().parents[1] / "supabase/migrations/0005_extraction_metadata.sql"
-    connection.execute(migration.read_text(encoding="utf-8"))
     try:
         yield connection
     finally:
@@ -83,9 +87,38 @@ def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
         "insert into public.posting_status (posting_id, status) values (%s, 'saved')",
         (posting_id,),
     )
+    reasons: list[object] = []
+    labels = {
+        "role_type": None,
+        "seniority_match": "unknown",
+        "remote_ok": "unknown",
+        "red_flag_count": 0,
+    }
+    score_payload = {
+        "employer_type": "unknown",
+        "seniority_real": None,
+        "fit_score": 77,
+        "fit_tier": "good",
+        "recommendation": "review",
+        "reasons": reasons,
+        "fit_line": "Compatibility fixture score.",
+        "fit_line_evidence_ids": [],
+        "luna_status": "ok",
+    }
     connection.execute(
-        "insert into public.posting_scores (posting_id, score, brain) values (%s, 77, 'test')",
-        (posting_id,),
+        "insert into public.posting_scores (posting_id, score, reasons, labels, brain, "
+        "model, scorer_version, posting_sha256, profile_sha256, history_sha256, "
+        "score_payload) values (%s, 77, %s::jsonb, %s::jsonb, 'test', 'fixture', "
+        "'test-1', %s, %s, %s, %s::jsonb)",
+        (
+            posting_id,
+            json.dumps(reasons),
+            json.dumps(labels),
+            "a" * 64,
+            "b" * 64,
+            "c" * 64,
+            json.dumps(score_payload),
+        ),
     )
     return posting_id
 
