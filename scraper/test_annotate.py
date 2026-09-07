@@ -30,7 +30,8 @@ def load_annotate_module():
 
 def posting(case: str) -> dict[str, object]:
     fixtures = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
-    return next(item for item in fixtures if item["case"] == case)
+    # A missing named fixture must fail the test loudly.
+    return next(item for item in fixtures if item["case"] == case)  # skipcq: PTC-W0063
 
 
 class SequenceRunner:
@@ -1235,7 +1236,8 @@ def test_subscription_runner_invokes_luna_through_codex_exec(monkeypatch) -> Non
 
     monkeypatch.setattr(luna, "_discover_codex", lambda: "/test/bin/codex")
 
-    def fake_run(command, *, input, **kwargs):
+    # The stub mirrors subprocess.run's required keyword name.
+    def fake_run(command, *, input, **kwargs):  # skipcq: PYL-W0622
         calls.append((command, input))
         output_path = Path(command[command.index("--output-last-message") + 1])
         output_path.write_text(
