@@ -358,10 +358,12 @@ def _professional_profile(profile: dict[str, object]) -> dict[str, object]:
     """Select only professional facts approved for cloud-brain transport."""
 
     candidate = profile.get("candidate")
-    if isinstance(candidate, dict):
-        candidate_value = candidate.get
-    else:
-        candidate_value = lambda key: profile.get(f"candidate.{key}")
+
+    def candidate_value(key: str) -> object:
+        if isinstance(candidate, dict):
+            return candidate.get(key)
+        return profile.get(f"candidate.{key}")
+
     professional_candidate = {
         key: candidate_value(key)
         for key in ("positioning", "tenure_years", "fit_terms")
