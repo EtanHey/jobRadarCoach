@@ -99,3 +99,6 @@ Withheld from workers: anything under `k8s/livekit*`, `agent/`, and the mic page
   company-wide hard block or invented fixed cooldown; `posting_status` remains the current posting state.
 - CLIProxyAPI is permitted only for a future `BRAIN=codex` spike after logical lane 2. It is not an
   approved transport for Claude or Gemini and is not claimed installed or verified.
+- Voice sessions (Etan, 2026-09-07 evening): one LiveKit room per web client (Mac tab, phone tab). Mic is
+  sticky push-to-talk: tap opens, tap closes; opening the mic on any client closes any other open mic for the
+  same user. No always-open mic. `ui` and `livekit` are the only Services; Jobs/CronJobs get none.
