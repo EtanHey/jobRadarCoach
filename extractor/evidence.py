@@ -101,8 +101,8 @@ def _remote_source_values(quote: str, raw_jd: str) -> set[bool | None]:
 
 
 _NON_ROLE_LOCATION_RE = re.compile(
-    r"\b(?:regional|global)\s+headquarters\b|"
-    r"\b(?:has|have)\s+offices\s+in\b|"
+    r"\b(?:headquarters|headquartered)\b|"
+    r"\boffices\s+(?:are\s+)?(?:located\s+)?in\b|"
     r"\b(?:within|across)\s+the\s+\w+\s+market\b|"
     r"\b(?:startup|company)\s+(?:is\s+)?based\s+in\b",
     re.IGNORECASE,
