@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scraper
+  namespace: job-radar-coach
+spec:
+  schedule: "* * * * *" # every minute, for now
+  timeZone: Asia/Jerusalem
+  jobTemplate: # layer 2: the Job
+    spec:
+      template: # layer 3: the Pod
+        spec:
+          restartPolicy: Never # a job runs once; don't loop on failure
+          containers:
+            - name: scraper
+              image: postgres:16
+              command:
+                [
+                  "psql",
+                  "$(DATABASE_URL)",
+                  "-c",
+                  "create table if not exists heartbeat(at timestamptz default now()); insert into heartbeat default values;",
+                ]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef: # pull it from the Secret you made
+                      name: supabase-db
+                      key: DATABASE_URL
