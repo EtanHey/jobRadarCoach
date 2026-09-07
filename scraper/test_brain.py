@@ -143,3 +143,24 @@ def test_native_ollama_positive_and_missing_model_failure() -> None:
 def test_unimplemented_provider_has_no_fallback():
     with pytest.raises(brain.UnsupportedBrainError, match="codex"):
         brain.run_brain(request(), {}, env={"BRAIN": "codex"})
+
+@pytest.mark.parametrize("model", ["x" * 513, "é" * 257])
+def test_model_byte_limit_rejects_before_http(model):
+    def forbidden_opener(*_args, **_kwargs):
+        pytest.fail("oversized model reached HTTP")
+
+    with pytest.raises(brain.BrainConfigurationError, match="OLLAMA_MODEL"):
+        brain.run_brain(request(), env={"OLLAMA_MODEL": model}, opener=forbidden_opener)
+
+
+def test_invalid_utf8_response_uses_brain_error():
+    with pytest.raises(brain.BrainResponseError, match="invalid response JSON"):
+        brain.run_brain(request(), env={}, opener=lambda *_a, **_k: Response(b"\xff"))
+
+
+def test_direct_socket_timeout_uses_brain_error():
+    def timed_out(*_args, **_kwargs):
+        raise TimeoutError("socket inactivity")
+
+    with pytest.raises(brain.BrainTransportError, match="timed out"):
+        brain.run_brain(request(), env={}, opener=timed_out)
