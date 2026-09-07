@@ -51,10 +51,8 @@ def fetch(
     if match is None:
         raise RuntimeError("Comeet board omitted COMPANY_POSITIONS_DATA")
 
+    # POSITIONS_PATTERN captures only array syntax; invalid JSON still raises.
     positions = json.loads(match.group(1))
-    if not isinstance(positions, list):
-        LOGGER.info("Skipping non-list Comeet records for tenant %s", company_uid)
-        return []
 
     postings: list[dict[str, object]] = []
     for position in positions:
