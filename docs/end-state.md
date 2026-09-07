@@ -86,3 +86,16 @@ conversation.
 6. `docs/setup.md` + guard script.
 
 Withheld from workers: anything under `k8s/livekit*`, `agent/`, and the mic page's LiveKit client code.
+
+## Owner amendments — 2026-09-07
+
+- Luna receives an explicitly selected professional projection only: skills, ratified depth, tenure,
+  positioning, and public-safe project facts. People, connectors, prohibited-claims
+  lists, and nested ownership exclusions never enter a cloud-brain request; they remain local guards.
+- Professional depth supports `hands-on`, `directed-AI`, and `studied-with-AI`. Values require Etan's
+  explicit ratification. Empty/unset depth is not evidence of no knowledge, and recent AI-directed work
+  does not erase earlier confirmed hands-on depth.
+- Application history is a separate future table and fit input. A past company is context, never a
+  company-wide hard block or invented fixed cooldown; `posting_status` remains the current posting state.
+- CLIProxyAPI is permitted only for a future `BRAIN=codex` spike after logical lane 2. It is not an
+  approved transport for Claude or Gemini and is not claimed installed or verified.

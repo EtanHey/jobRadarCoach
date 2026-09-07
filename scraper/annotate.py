@@ -354,6 +354,35 @@ def _expected_human_recommendation(posting: dict[str, object]) -> str | None:
     return HUMAN_RECOMMENDATIONS.get(raw.strip().lower())
 
 
+def _professional_profile(profile: dict[str, object]) -> dict[str, object]:
+    """Select only professional facts approved for cloud-brain transport."""
+
+    candidate = profile.get("candidate")
+    if isinstance(candidate, dict):
+        candidate_value = candidate.get
+    else:
+        candidate_value = lambda key: profile.get(f"candidate.{key}")
+    professional_candidate = {
+        key: candidate_value(key)
+        for key in ("positioning", "tenure_years", "fit_terms")
+    }
+    if candidate_value("professional_depth"):
+        professional_candidate["professional_depth"] = candidate_value("professional_depth")
+    signals = []
+    for signal in profile["fit_signals"]:
+        public_signal = {
+            key: signal[key] for key in ("evidence_id", "tags", "claim", "status")
+        }
+        ownership = signal.get("ownership")
+        if isinstance(ownership, dict) and ownership.get("verified_scope"):
+            public_signal["verified_scope"] = ownership["verified_scope"]
+        signals.append(public_signal)
+    return {
+        "candidate": professional_candidate,
+        "fit_signals": signals,
+    }
+
+
 def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str:
     posting_id = str(posting.get("id", "")).strip()
     public_posting = {
@@ -382,17 +411,17 @@ def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str
             "Return only the requested JSON fields. This is an advisory ranking, never a human verdict.",
             "Employer type: direct means the named company is hiring for itself; agency means a recruiter/staffing firm is posting for a client; otherwise unknown.",
             "Seniority real: true when the JD's actual scope or experience bar is genuinely senior, false when the title is inflated, null when unclear.",
-            "Comparatively weigh product and role match, demonstrated stack and domain evidence, seniority gap, employer type, and preferences.",
-            "Allowed geography must not reduce fit. Relocation and remote modes are explicit in the profile.",
-            "A requirement gap of less than one year is evidence to weigh, not an automatic wall.",
-            "Treat product-company preference as a preference, not a fabricated hard constraint.",
+            "Comparatively weigh product and role match, demonstrated stack and domain evidence, seniority gap, and employer type. Preferences are unknown.",
+            "Geography, relocation, work modes, and job preferences are withheld from model input. Treat them as unknown: do not infer them or reduce fit because they are absent.",
+            "Assess stated tenure against posting requirements without inventing a personal gap tolerance.",
+            "Do not infer an employer-type preference from the absence of preference data.",
             "Fit tiers are exact: strong=80-100, good=60-79, stretch=40-59, weak=0-39.",
             "Recommendation semantics: apply=direct application now; referral=worth pursuing through a warm path; review=insufficient or conflicting evidence; skip=material mismatch outweighs positives.",
             "Return exactly five reasons, one for each named factor. Every reason must cite only allowed evidence IDs and must include the posting evidence ID.",
             "Reason basis is exact: employer_type uses posting; every other factor uses comparison.",
             "A posting-basis reason may describe only the posting and must cite only the posting evidence ID.",
             "A comparison-basis reason must cite at least one candidate profile evidence ID as well as the posting evidence ID.",
-            "Use profile:tenure only for stated tenure, profile:open-to only for geography/modes, and profile:preferences only for stated preferences.",
+            "Use profile:tenure only for stated tenure. profile:open-to and profile:preferences may support only an explicit withheld/unknown abstention, never a positive or negative claim.",
             "Do not repeat a global never-claim in fit_line or reason detail. Do not make a claim forbidden for evidence cited by that reason or fit line.",
             "Only brainlayer, voicelayer, or cmuxlayer evidence may support an MCP claim; voice-agent-tool-calling is not MCP evidence.",
             "Never invent resume evidence, infer an unevidenced skill, or turn a tool/vendor integration into ownership of the tool/vendor.",
@@ -402,8 +431,8 @@ def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str
             'If fit_tier is weak, fit_line MUST begin exactly "Weak fit —". Weak answers are expected; do not flatter.',
             "Allowed evidence IDs:",
             json.dumps(allowed_evidence_ids, ensure_ascii=False),
-            "Safe fit profile (private names and paths removed):",
-            json.dumps(profile, ensure_ascii=False, sort_keys=True),
+            "Professional fit profile:",
+            json.dumps(_professional_profile(profile), ensure_ascii=False, sort_keys=True),
             "Public posting:",
             json.dumps(public_posting, ensure_ascii=False, sort_keys=True),
         ]
