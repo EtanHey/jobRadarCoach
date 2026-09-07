@@ -70,6 +70,19 @@ def _setting(settings: Mapping[str, str], name: str, default: str) -> str:
         raise BrainConfigurationError(f"{name} must be a nonblank string")
     return value.strip()
 
+def _model_setting(settings: Mapping[str, str], name: str, default: str) -> str:
+    model = _setting(settings, name, default)
+    try:
+        encoded = model.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise BrainConfigurationError(f"{name} must be valid UTF-8") from error
+    if b"\0" in encoded:
+        raise BrainConfigurationError(f"{name} must not contain NUL characters")
+    if len(encoded) > MAX_MODEL_BYTES:
+        raise BrainConfigurationError(f"{name} exceeds the byte limit")
+    return model
+
+
 def _endpoint(base_url: str) -> str:
     parsed = urlsplit(base_url)
     if (
@@ -109,9 +122,7 @@ def run_brain(
         return _run_codex(request, settings, timeout_seconds)
     if provider != "ollama":
         raise UnsupportedBrainError(f"brain provider '{provider}' is not implemented")
-    model = _setting(settings, "OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
-    if len(model.encode("utf-8")) > MAX_MODEL_BYTES:
-        raise BrainConfigurationError("OLLAMA_MODEL exceeds the byte limit")
+    model = _model_setting(settings, "OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
     endpoint = _endpoint(_setting(settings, "OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL))
     payload = {
         "model": model,
@@ -150,9 +161,7 @@ def _run_codex(
     timeout_seconds: int | float,
 ) -> BrainResult:
     deadline = time.monotonic() + timeout_seconds
-    model = _setting(settings, "CODEX_MODEL", DEFAULT_CODEX_MODEL)
-    if len(model.encode("utf-8")) > MAX_MODEL_BYTES:
-        raise BrainConfigurationError("CODEX_MODEL exceeds the byte limit")
+    model = _model_setting(settings, "CODEX_MODEL", DEFAULT_CODEX_MODEL)
     reasoning_effort = _setting(
         settings,
         "CODEX_REASONING_EFFORT",
