@@ -3,6 +3,7 @@ docs.local/
 *.local.*
 .worktrees/
 profile.yaml
+auth.json
 supabase/.env
 data/
 __pycache__/
