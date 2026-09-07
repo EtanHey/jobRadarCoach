@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit
+  namespace: job-radar-coach
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: livekit # "my pods are the ones with this label"
+  template: # the Pod, same shape as inside the CronJob
+    metadata:
+      labels:
+        app: livekit # must match the selector above
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: livekit
+          image: livekit/livekit-server:latest
+          args: ["--config", "/etc/livekit/livekit.yaml"]
+          ports:
+            - containerPort: 7880 # websocket / http
+          env:
+            - name: LIVEKIT_API_KEY
+              valueFrom:
+                secretKeyRef: { name: livekit-keys, key: LIVEKIT_API_KEY }
+            - name: LIVEKIT_API_SECRET
+              valueFrom:
+                secretKeyRef: { name: livekit-keys, key: LIVEKIT_API_SECRET }
+            - name: LIVEKIT_KEYS
+              value: "$(LIVEKIT_API_KEY): $(LIVEKIT_API_SECRET)"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/livekit
+      volumes:
+        - name: config
+          configMap:
+            name: livekit-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: livekit
+  namespace: job-radar-coach
+spec:
+  selector:
+    app: livekit # phonebook: "livekit" → whichever pod has this label
+  ports:
+    - port: 7880
+      targetPort: 7880
