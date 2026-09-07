@@ -110,6 +110,7 @@ GUEST_JOB_ENDPOINT = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting"
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
 SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable")
 NATIVE_ATS_SOURCES = frozenset(SOURCE_ORDER[1:])
+PostingIdentity = tuple[str, str]
 STAFFING_COMPANIES = frozenset(
     {"medulla", "gotfriends", "got friends", "ethosia", "talent hr", "talenthr", "mertens"}
 )
@@ -784,11 +785,16 @@ def format_rescore_table(
     return "\n".join(rows)
 
 
-def load_prior_ids(output_dir: Path, current_date: str) -> set[str]:
-    """Read listing IDs from every dated JSONL file before the current day."""
+def _persisted_posting_identity(posting: dict[str, object]) -> PostingIdentity:
+    source = str(posting.get("source") or "linkedin").casefold()
+    return source, str(posting.get("id", ""))
+
+
+def load_prior_ids(output_dir: Path, current_date: str) -> set[PostingIdentity]:
+    """Read source-qualified listing IDs from dated JSONL before today."""
 
     cutoff = date.fromisoformat(current_date)
-    seen: set[str] = set()
+    seen: set[PostingIdentity] = set()
     for path in sorted(output_dir.glob("????-??-??.jsonl")):
         try:
             feed_date = date.fromisoformat(path.stem)
@@ -801,29 +807,31 @@ def load_prior_ids(output_dir: Path, current_date: str) -> set[str]:
             if not line.strip():
                 continue
             try:
-                listing_id = str(json.loads(line).get("id", ""))
+                posting = json.loads(line)
+                identity = _persisted_posting_identity(posting)
             except (json.JSONDecodeError, AttributeError):
                 LOGGER.warning("Skipping malformed JSONL row %s:%d", path, line_number)
                 continue
-            if listing_id:
-                seen.add(listing_id)
+            if identity[1]:
+                seen.add(identity)
     return seen
 
 
-def load_jsonl_ids(path: Path) -> set[str]:
+def load_jsonl_ids(path: Path) -> set[PostingIdentity]:
     if not path.exists():
         return set()
-    seen: set[str] = set()
+    seen: set[PostingIdentity] = set()
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         try:
-            listing_id = str(json.loads(line).get("id", ""))
+            posting = json.loads(line)
+            identity = _persisted_posting_identity(posting)
         except (json.JSONDecodeError, AttributeError):
             LOGGER.warning("Skipping malformed JSONL row %s:%d", path, line_number)
             continue
-        if listing_id:
-            seen.add(listing_id)
+        if identity[1]:
+            seen.add(identity)
     return seen
 
 
@@ -985,11 +993,15 @@ def load_triage_verdicts(path: Path) -> dict[str, dict[str, str]]:
 
 def dedupe_postings(
     postings: list[dict[str, object]],
-    seen_ids: set[str],
+    seen_ids: set[str | PostingIdentity],
     seen_secondary_keys: dict[tuple[str, str], set[str]] | None = None,
 ) -> list[dict[str, object]]:
     fresh: list[dict[str, object]] = []
-    prior_ids = set(seen_ids)
+    # Bare IDs predate source-qualified history and can only mean LinkedIn.
+    prior_identities = {
+        identity if isinstance(identity, tuple) else ("linkedin", identity)
+        for identity in seen_ids
+    }
     encountered: set[tuple[str, str]] = set()
     encountered_secondary = {
         key: set(sources) for key, sources in (seen_secondary_keys or {}).items()
@@ -1001,7 +1013,7 @@ def dedupe_postings(
         source = _posting_source(posting)
         if (
             not listing_id
-            or listing_id in prior_ids
+            or source_identity in prior_identities
             or source_identity in encountered
             or (
                 secondary is not None
@@ -2076,7 +2088,7 @@ def run_pipeline(  # skipcq: PY-R1000
         matched_page = [
             posting
             for posting in page_postings
-            if _title_matches_model_scope(posting, searches)
+            if _source_posting_matches(posting, searches, location_terms)
         ]
         linkedin_matched_count += len(matched_page)
         harvested.extend(matched_page)

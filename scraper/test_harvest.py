@@ -1239,7 +1239,7 @@ def test_dedupe_uses_every_prior_day_and_removes_in_run_duplicates(tmp_path: Pat
         seen,
     )
 
-    assert seen == {"old-1", "old-2"}
+    assert seen == {("linkedin", "old-1"), ("linkedin", "old-2")}
     assert fresh == [{"id": "new-1"}]
 
 
@@ -1258,6 +1258,35 @@ def test_in_run_identity_dedupe_uses_source_and_external_id() -> None:
     assert [(posting["source"], posting["id"]) for posting in fresh] == [
         ("linkedin", "shared"), ("lever", "shared")
     ]
+
+
+def test_legacy_linkedin_id_does_not_suppress_same_id_from_lever(
+    tmp_path: Path,
+) -> None:
+    harvest = load_harvest_module()
+    history = tmp_path / "2026-08-08.jsonl"
+    history.write_text(
+        '{"id":"shared"}\n'
+        '{"source":"lever","id":"lever-old"}\n'
+        '{"id":"lever:legacy-shaped"}\n',
+        encoding="utf-8",
+    )
+
+    seen = harvest.load_jsonl_ids(history)
+    fresh = harvest.dedupe_postings(
+        [
+            {"source": "linkedin", "id": "shared"},
+            {"source": "lever", "id": "shared"},
+        ],
+        seen,
+    )
+
+    assert seen == {
+        ("linkedin", "shared"),
+        ("lever", "lever-old"),
+        ("linkedin", "lever:legacy-shaped"),
+    }
+    assert fresh == [{"source": "lever", "id": "shared"}]
 
 
 def test_workable_prefilter_candidates_remain_in_fetched_count(monkeypatch) -> None:
@@ -1315,6 +1344,65 @@ def test_model_title_gate_includes_linkedin_configured_role() -> None:
     assert harvest._title_matches_model_scope(
         {"id": "linkedin-allowed", "title": "Full-Stack Developer"}, searches
     ) is True
+
+
+def test_linkedin_pipeline_requires_paired_title_and_geography(
+    tmp_path: Path, monkeypatch
+) -> None:
+    harvest = load_harvest_module()
+    profile = {
+        "search.terms": ["Software Engineer"],
+        "candidate.open_to.geographies": ["Israel"],
+        "search.recency": "r10800",
+        "candidate.fit_terms": [],
+        "search.location_terms": {"Israel": ["Tel Aviv"]},
+    }
+    postings = [
+        {
+            "id": "in-scope", "title": "Software Engineer", "company": "One",
+            "location": "Tel Aviv", "url": "https://example.test/in-scope",
+        },
+        {
+            "id": "wrong-geography", "title": "Software Engineer", "company": "Two",
+            "location": "London", "url": "https://example.test/wrong-geography",
+        },
+    ]
+    written: list[dict[str, object]] = []
+
+    class Database:
+        @staticmethod
+        def searches_from_profile(_profile):
+            return [
+                {
+                    "keywords": "Software Engineer",
+                    "location": "Israel",
+                    "recency": "r10800",
+                }
+            ]
+
+    def writer(rows, _observed_at):
+        written.extend(rows)
+        return {
+            "observed_posting_ids": [str(row["id"]) for row in rows],
+            "inserted_posting_ids": [str(row["id"]) for row in rows],
+        }
+
+    monkeypatch.setattr(harvest, "load_database_module", lambda: Database)
+    monkeypatch.setattr(
+        harvest, "harvest_search", lambda *_args, **_kwargs: (postings, 0)
+    )
+
+    result = harvest.run_pipeline(
+        config_path=tmp_path / "unused", profile_path=tmp_path / "unused",
+        output_dir=tmp_path, date_string="2026-09-08",
+        harvested_at="2026-09-08T12:00:00Z", max_pages=1,
+        fetcher=lambda _url: "", before_request=lambda: None, jd_fetch_cap=0,
+        profile_snapshot=profile, posting_writer=writer,
+    )
+
+    assert result["fetched_count"] == 2
+    assert result["matched_count"] == 1
+    assert [row["id"] for row in written] == ["in-scope"]
 
 
 def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
@@ -1392,7 +1480,9 @@ def test_load_prior_ids_excludes_current_and_future_dated_files(tmp_path: Path) 
     (tmp_path / "2026-08-09.jsonl").write_text('{"id":"today"}\n', encoding="utf-8")
     (tmp_path / "2026-08-10.jsonl").write_text('{"id":"future"}\n', encoding="utf-8")
 
-    assert harvest.load_prior_ids(tmp_path, current_date="2026-08-09") == {"past"}
+    assert harvest.load_prior_ids(tmp_path, current_date="2026-08-09") == {
+        ("linkedin", "past")
+    }
 
 
 def test_load_searches_has_transitional_regional_examples() -> None:
