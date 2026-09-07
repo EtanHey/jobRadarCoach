@@ -12,7 +12,7 @@ brew install --cask orbstack tailscale-app
 brew install python supabase/tap/supabase ollama
 ```
 
-Launch OrbStack, enable Kubernetes in its settings, and sign in to the Tailscale app. Then verify the local cluster:
+Launch OrbStack, enable Kubernetes in its settings, and sign in to the Tailscale app. In Tailscale settings, install the **CLI integration** ([official CLI setup](https://tailscale.com/docs/reference/tailscale-cli?tab=macos)), then open a new terminal. The app installation alone does not make the `tailscale` command available. Then verify the local cluster and CLI:
 
 ```zsh
 open -a OrbStack
@@ -20,7 +20,7 @@ orbctl start
 kubectl config use-context orbstack
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 open -a Tailscale
-tailscale status
+command -v tailscale && tailscale status
 ```
 
 ## 2. Clone and protect the checkout
