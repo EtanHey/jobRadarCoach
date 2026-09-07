@@ -444,6 +444,7 @@ def test_round4_named_jd_fixture_reproduces_reported_score_boundaries() -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
 
     assert result.returncode == 0, result.stderr
@@ -641,7 +642,8 @@ def test_example_list_waiver_scoped_to_enumeration_not_whole_sentence() -> None:
         "Frameworks such as React, Angular, and Vue are supported, but "
         "deep Angular experience is required."
     )
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "angular"
     )
@@ -659,7 +661,8 @@ def test_example_list_waiver_survives_internal_period_in_core_term() -> None:
     harvest = load_harvest_module()
 
     text = "We use frameworks such as React.js, Angular, and Vue for the frontend."
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "angular"
     )
@@ -676,7 +679,8 @@ def test_example_list_marker_survives_eg_abbreviation() -> None:
     harvest = load_harvest_module()
 
     text = "The stack includes e.g. React, Angular, and Vue for the frontend layer."
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "angular"
     )
@@ -714,7 +718,8 @@ def test_would_like_verb_phrase_is_not_an_example_list_marker() -> None:
     harvest = load_harvest_module()
 
     text = "We would like C++ engineers with React experience."
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "c++"
     )
@@ -749,7 +754,8 @@ def test_like_as_a_verb_does_not_waive_without_would() -> None:
     harvest = load_harvest_module()
 
     text = "We like C++ engineers with React experience."
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "c++"
     )
@@ -765,7 +771,8 @@ def test_hebrew_or_connector_does_not_steal_example_marker() -> None:
     harvest = load_harvest_module()
 
     text = "עובדים עם טכנולוגיות כמו React או Angular בפרונט."
-    angular = next(
+    # A missing named rule must fail the test loudly.
+    angular = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "angular"
     )
@@ -792,7 +799,8 @@ def test_one_of_our_is_not_an_example_list_marker() -> None:
     harvest = load_harvest_module()
 
     text = "one of our Angular developers also uses React daily."
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "angular"
     )
@@ -808,7 +816,8 @@ def test_core_in_same_clause_is_not_enough_without_list_sibling() -> None:
     harvest = load_harvest_module()
 
     text = "including React and then Angular experience is mandatory"
-    pattern = next(
+    # A missing named rule must fail the test loudly.
+    pattern = next(  # skipcq: PTC-W0063
         pattern for label, pattern, _weight, _scope in harvest.NEGATIVE_RULES
         if label == "angular"
     )
@@ -1805,7 +1814,8 @@ def test_pipeline_annotates_only_positive_scores_and_persists_additive_fields(
         fetcher=fetcher,
         before_request=lambda: None,
         annotator=annotator,
-        clock=lambda: next(ticks),
+        # Exhausting the controlled clock must fail the test loudly.
+        clock=lambda: next(ticks),  # skipcq: PTC-W0063
     )
 
     rows = [
@@ -1905,7 +1915,8 @@ def test_annotation_budget_skips_remaining_positive_rows_without_calls() -> None
         [{"id": "first", "score": 1}, {"id": "second", "score": 2}],
         annotator,
         deadline=5.0,
-        clock=lambda: next(ticks),
+        # Exhausting the controlled clock must fail the test loudly.
+        clock=lambda: next(ticks),  # skipcq: PTC-W0063
     )
 
     assert calls == ["first"]
