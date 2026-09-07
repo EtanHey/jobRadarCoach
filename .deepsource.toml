@@ -1,6 +1,6 @@
 version = 1
 
-test_patterns = ["scraper/test_*.py", "extractor/test_*.py", "classifier/test_*.py", "test_support/**"]
+test_patterns = ["scraper/test_*.py", "extractor/test_*.py", "classifier/test_*.py", "test_support/**", "scripts/test_*.py", "ui/tests/**"]
 exclude_patterns = ["scraper/fixtures/**"]
 
 [[analyzers]]
