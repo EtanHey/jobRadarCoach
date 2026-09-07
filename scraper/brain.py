@@ -1,13 +1,29 @@
-"""Native Ollama transport for validated batch brain requests."""
+"""Native Ollama and Codex transports for validated batch brain requests."""
 from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
+import subprocess
+import tempfile
+import time
 from typing import Callable, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
+from scraper.annotate import (
+    LUNA_MODEL,
+    LUNA_REASONING_EFFORT,
+    _codex_exec_command,
+    _discover_codex,
+    _isolated_codex_environment,
+    _subscription_auth_path,
+)
+from scraper.codex_process import (
+    run_codex_process as _run_codex_process,
+    verify_codex_version as _verify_codex_version,
+)
 from scraper.brain_contract import (
     BrainError,
     BrainConfigurationError,
@@ -32,6 +48,12 @@ DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
 DEFAULT_OLLAMA_MODEL = "qwen2.5:7b-instruct"
 
+DEFAULT_CODEX_MODEL = LUNA_MODEL
+
+DEFAULT_CODEX_REASONING_EFFORT = LUNA_REASONING_EFFORT
+
+CODEX_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high", "xhigh"})
+
 MAX_MODEL_BYTES = 512
 
 MAX_RESPONSE_BYTES = 64_000
@@ -45,6 +67,19 @@ def _setting(settings: Mapping[str, str], name: str, default: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise BrainConfigurationError(f"{name} must be a nonblank string")
     return value.strip()
+
+def _model_setting(settings: Mapping[str, str], name: str, default: str) -> str:
+    model = _setting(settings, name, default)
+    try:
+        encoded = model.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise BrainConfigurationError(f"{name} must be valid UTF-8") from error
+    if b"\0" in encoded:
+        raise BrainConfigurationError(f"{name} must not contain NUL characters")
+    if len(encoded) > MAX_MODEL_BYTES:
+        raise BrainConfigurationError(f"{name} exceeds the byte limit")
+    return model
+
 
 def _endpoint(base_url: str) -> str:
     parsed = urlsplit(base_url)
@@ -79,13 +114,13 @@ def run_brain(
 ) -> BrainResult:
     settings = os.environ if env is None else env
     provider = resolve_brain(profile_snapshot, settings)
-    if provider != "ollama":
-        raise UnsupportedBrainError(f"brain provider '{provider}' is not implemented")
     if type(timeout_seconds) not in (int, float) or not 0 < timeout_seconds <= MAX_TIMEOUT_SECONDS:
         raise BrainConfigurationError("timeout must be between 0 and 120 seconds")
-    model = _setting(settings, "OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
-    if len(model.encode("utf-8")) > MAX_MODEL_BYTES:
-        raise BrainConfigurationError("OLLAMA_MODEL exceeds the byte limit")
+    if provider == "codex":
+        return _run_codex(request, settings, timeout_seconds)
+    if provider != "ollama":
+        raise UnsupportedBrainError(f"brain provider '{provider}' is not implemented")
+    model = _model_setting(settings, "OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
     endpoint = _endpoint(_setting(settings, "OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL))
     payload = {
         "model": model,
@@ -116,6 +151,114 @@ def run_brain(
     except OSError as error:
         raise BrainTransportError("Ollama request failed") from error
     return _parse_response(raw, request)
+
+
+def _run_codex(
+    request: BrainRequest,
+    settings: Mapping[str, str],
+    timeout_seconds: int | float,
+) -> BrainResult:
+    deadline = time.monotonic() + timeout_seconds
+    model = _model_setting(settings, "CODEX_MODEL", DEFAULT_CODEX_MODEL)
+    reasoning_effort = _setting(
+        settings,
+        "CODEX_REASONING_EFFORT",
+        DEFAULT_CODEX_REASONING_EFFORT,
+    ).casefold()
+    if reasoning_effort not in CODEX_REASONING_EFFORTS:
+        raise BrainConfigurationError("CODEX_REASONING_EFFORT is unsupported")
+    try:
+        codex = _discover_codex()
+        auth_path = _subscription_auth_path()
+    except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+        raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="job-radar-codex-") as temp_dir:
+            temp_root = Path(temp_dir)
+            workspace = temp_root / "workspace"
+            codex_home = temp_root / "codex-home"
+            workspace.mkdir()
+            codex_home.mkdir()
+            (codex_home / "auth.json").symlink_to(auth_path)
+            environment = _isolated_codex_environment(codex_home)
+            try:
+                _verify_codex_version(codex, cwd=workspace, env=environment,
+                                      timeout=min(10, max(0, deadline - time.monotonic())))
+            except RuntimeError as error:
+                raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
+            schema_path = workspace / "schema.json"
+            output_path = workspace / "result.json"
+            schema_path.write_text(
+                json.dumps(request.output_schema, ensure_ascii=False, sort_keys=True),
+                encoding="utf-8",
+            )
+            command = _codex_exec_command(
+                codex,
+                workspace=workspace,
+                schema_path=schema_path,
+                output_path=output_path,
+                model=model,
+                reasoning_effort=reasoning_effort,
+            )
+            completed = _run_codex_process(
+                command,
+                stdin_text=request.prompt,
+                text=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=max(0, deadline - time.monotonic()),
+                cwd=workspace,
+                env=environment,
+            )
+            if completed.returncode != 0:
+                raise BrainTransportError(
+                    f"Codex request failed with exit code {completed.returncode}"
+                )
+            raw = _read_codex_output(output_path)
+    except subprocess.TimeoutExpired as error:
+        raise BrainTransportError("Codex request timed out") from error
+    except BrainError:
+        raise
+    except OSError as error:
+        raise BrainTransportError("Codex request failed") from error
+
+    data = _load_codex_json(raw)
+    if not isinstance(data, dict):
+        raise BrainValidationError("Codex structured result must be an object")
+    return BrainResult(
+        data,
+        "codex",
+        f"configured:{model}",
+        request=request,
+    )
+
+
+def _read_codex_output(output_path: Path) -> bytes:
+    try:
+        if output_path.stat().st_size > MAX_RESPONSE_BYTES:
+            raise BrainResponseError("Codex response exceeds the byte limit")
+        with output_path.open("rb") as output_file:
+            raw = output_file.read(MAX_RESPONSE_BYTES + 1)
+    except FileNotFoundError as error:
+        raise BrainResponseError("Codex output is missing") from error
+    except BrainError:
+        raise
+    except OSError as error:
+        raise BrainResponseError("Codex output could not be read") from error
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise BrainResponseError("Codex response exceeds the byte limit")
+    return raw
+
+
+def _load_codex_json(raw: bytes) -> object:
+    def reject_constant(value: str) -> None:
+        raise ValueError(value)
+
+    try:
+        return json.loads(raw.decode("utf-8"), parse_constant=reject_constant)
+    except ValueError as error:
+        raise BrainResponseError("Codex returned invalid JSON") from error
 
 
 def _parse_response(raw: bytes, request: BrainRequest) -> BrainResult:

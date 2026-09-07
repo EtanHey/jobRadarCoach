@@ -141,8 +141,8 @@ def test_native_ollama_positive_and_missing_model_failure() -> None:
         )
 
 def test_unimplemented_provider_has_no_fallback():
-    with pytest.raises(brain.UnsupportedBrainError, match="codex"):
-        brain.run_brain(request(), {}, env={"BRAIN": "codex"})
+    with pytest.raises(brain.UnsupportedBrainError, match="claude"):
+        brain.run_brain(request(), {}, env={"BRAIN": "claude"})
 
 @pytest.mark.parametrize("model", ["x" * 513, "é" * 257])
 def test_model_byte_limit_rejects_before_http(model):
@@ -164,3 +164,12 @@ def test_direct_socket_timeout_uses_brain_error():
 
     with pytest.raises(brain.BrainTransportError, match="timed out"):
         brain.run_brain(request(), env={}, opener=timed_out)
+
+@pytest.mark.parametrize("provider", ["codex", "ollama"])
+@pytest.mark.parametrize("model", ["bad\0model", "\ud800"])
+def test_invalid_model_encoding_fails_before_provider(monkeypatch, provider, model):
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("invalid model reached provider")
+    monkeypatch.setattr(brain, "_discover_codex", forbidden)
+    with pytest.raises(brain.BrainConfigurationError, match="MODEL"):
+        brain.run_brain(request(), env={"BRAIN": provider, f"{provider.upper()}_MODEL": model}, opener=forbidden)
