@@ -12,6 +12,7 @@ _REMOTE_AVAILABILITY = (
     r"(?:available|allowed|offered|permitted|possible|supported|an\s+option)"
 )
 _REMOTE_DENIAL_ACTION = r"(?:offer|allow|permit|support|provide|accommodate|approve)"
+_REMOTE_CLAUSE_TEXT = r"(?:(?!\b(?:and|but|while|whereas|however)\b)[^,.!?;\n])"
 _REMOTE_WORD_RE = re.compile(_REMOTE_WORD, re.IGNORECASE)
 _REMOTE_ONSITE_RE = re.compile(
     r"\b(?:on[ -]?site|office[ -]based)\b",
@@ -21,18 +22,18 @@ _REMOTE_NEGATED_BEFORE_RE = re.compile(
     rf"\bnon[ -]?remote\b|"
     rf"\bno\s+(?:longer\s+)?(?:fully\s+)?{_REMOTE_WORD}|"
     rf"\bno\s+(?:option|possibility|opportunity)\b"
-    rf"[^.!?;\n]{{0,32}}{_REMOTE_WORD}|"
+    rf"{_REMOTE_CLAUSE_TEXT}{{0,32}}{_REMOTE_WORD}|"
     rf"\b(?:never|without)\s+(?:an?\s+|any\s+)?{_REMOTE_WORD}|"
-    rf"\b(?:cannot|can't|can not)\b[^.!?;\n]{{0,32}}{_REMOTE_WORD}|"
+    rf"\b(?:cannot|can't|can not)\b{_REMOTE_CLAUSE_TEXT}{{0,32}}{_REMOTE_WORD}|"
     rf"\bnot(?!\s+only\b)\s+(?:currently\s+)?(?:an?\s+)?{_REMOTE_WORD}|"
     rf"\b(?:do|does|did|will|would)\s+not\s+{_REMOTE_DENIAL_ACTION}\b"
-    rf"[^.!?;\n]{{0,32}}{_REMOTE_WORD}|"
+    rf"{_REMOTE_CLAUSE_TEXT}{{0,32}}{_REMOTE_WORD}|"
     rf"\b(?:don't|doesn't|didn't|won't|wouldn't)\s+{_REMOTE_DENIAL_ACTION}\b"
-    rf"[^.!?;\n]{{0,32}}{_REMOTE_WORD}",
+    rf"{_REMOTE_CLAUSE_TEXT}{{0,32}}{_REMOTE_WORD}",
     re.IGNORECASE,
 )
 _REMOTE_NEGATED_AFTER_RE = re.compile(
-    rf"{_REMOTE_WORD}(?:(?!\b(?:and|but|while|whereas|however)\b)[^,.!?;\n]){{0,64}}\b(?:"
+    rf"{_REMOTE_WORD}{_REMOTE_CLAUSE_TEXT}{{0,64}}\b(?:"
     r"(?:is|are|was|were|will|would|can|could)?\s*"
     r"(?:not(?!\s+only\b)|never|cannot|can't|won't|wouldn't|couldn't|"
     r"isn't|aren't|wasn't|weren't)"
@@ -57,11 +58,12 @@ def _validate_quote(
         return
     if not isinstance(quote, str) or not quote.strip() or quote not in raw_jd:
         raise BrainValidationError(f"{field} evidence must be an exact nonblank quote")
-    if isinstance(value, str):
-        if not value.strip() or not re.search(
+    if isinstance(value, str) and (
+        not value.strip() or not re.search(
             rf"(?<!\w){re.escape(value)}(?!\w)", quote, re.IGNORECASE
-        ):
-            raise BrainValidationError(f"{field} value must occur in its evidence quote")
+        )
+    ):
+        raise BrainValidationError(f"{field} value must occur in its evidence quote")
 
 
 def _remote_quote_value(quote: str) -> bool | None:
