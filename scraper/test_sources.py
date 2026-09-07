@@ -2116,8 +2116,49 @@ def test_ats_postings_are_filtered_by_title_synonyms_and_israel_location() -> No
 
     assert [
         posting["id"]
-        for posting in harvest.filter_source_postings(postings, searches)
+        for posting in harvest.filter_source_postings(
+            postings, searches, {"Israel": ["Tel Aviv"]}
+        )
     ] == ["1", "4", "5"]
+
+
+def test_ats_geography_uses_profile_aliases_and_explicit_remote() -> None:
+    harvest = load_harvest()
+    searches = [
+        {"keywords": "Software Engineer", "location": "Portugal", "recency": "r43200"},
+        {"keywords": "Software Engineer", "location": "Remote", "recency": "r43200"},
+    ]
+    aliases = {"Portugal": ["Lisbon", "Porto"]}
+    postings = [
+        {"id": "1", "title": "Software Developer", "location": "Lisbon"},
+        {"id": "2", "title": "Software Engineer", "location": "Madrid"},
+        {"id": "3", "title": "Software Engineer", "location": "EMEA", "remote": True},
+        {"id": "4", "title": "Account Executive", "location": "Remote"},
+    ]
+
+    assert [
+        posting["id"]
+        for posting in harvest.filter_source_postings(postings, searches, aliases)
+    ] == ["1", "3"]
+
+
+def test_ats_geography_requires_normalized_token_and_phrase_boundaries() -> None:
+    harvest = load_harvest()
+    searches = [
+        {"keywords": "Software Engineer", "location": "US", "recency": "r43200"}
+    ]
+    aliases = {"US": ["United States"]}
+    postings = [
+        {"id": "1", "title": "Software Engineer", "location": "Austria"},
+        {"id": "2", "title": "Software Engineer", "location": "Remote — US"},
+        {"id": "3", "title": "Software Engineer", "location": "United States, NY"},
+        {"id": "4", "title": "Software Engineer", "location": "United Statesville"},
+    ]
+
+    assert [
+        posting["id"]
+        for posting in harvest.filter_source_postings(postings, searches, aliases)
+    ] == ["2", "3"]
 
 
 def test_ats_title_matching_covers_common_engineer_developer_variants(caplog) -> None:
