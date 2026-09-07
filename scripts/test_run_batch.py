@@ -69,13 +69,18 @@ def test_correlates_all_ids_and_continues_after_extractor_failure():
     assert "BRAIN" not in {item["name"] for item in fake.created[1]["spec"]["template"]["spec"]["containers"][0].get("env", [])}
     assert {item["name"]: item.get("value") for item in fake.created[2]["spec"]["template"]["spec"]["containers"][0]["env"]}["BRAIN"] == "codex"
     assert not any(call[0][1] in {"patch", "delete", "replace"} for call in fake.calls)
+    _assert_lifecycle(fake.calls)
+
+def _assert_lifecycle(calls):
     lifecycle = []
-    for command, body, _timeout in fake.calls:
+    for command, body, _timeout in calls:
         if body:
             stage = json.loads(body)["metadata"]["labels"]["job-radar-coach/stage"]
         else:
-            stage = next(name for name in ("scraper", "extractor", "classifier")
-                         if any(name in argument for argument in command))
+            stages = [name for name in ("scraper", "extractor", "classifier")
+                      if any(name in argument for argument in command)]
+            assert len(stages) == 1
+            stage = stages[0]
         action = "dry-run" if "--dry-run=client" in command else command[1]
         lifecycle.append((stage, action))
     assert lifecycle == [("scraper", action) for action in ("get", "create", "get", "get", "logs")] + [
