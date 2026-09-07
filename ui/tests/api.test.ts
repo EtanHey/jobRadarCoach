@@ -161,7 +161,7 @@ test("successful detail/status/profile responses honor their public shapes", asy
     { params: Promise.resolve({ id: ID }) },
   );
   assert.deepEqual(await statusResponse.json(), { status: "rejected", reason: "Not aligned" });
-  const profileResponse = await makeGetProfile(store())(new Request("http://localhost/api/profile"));
+  const profileResponse = await makeGetProfile(store())();
   assert.deepEqual(await profileResponse.json(), {
     profile,
   });

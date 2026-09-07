@@ -5,7 +5,7 @@ import { mutationJson, output, safely } from "../../../lib/http";
 import { getApiStore, type ApiStore } from "../../../lib/server";
 
 export function makeGetProfile(store: ApiStore) {
-  return (_request: Request) => safely(async () => {
+  return () => safely(async () => {
     return output(ProfileResponseSchema, { profile: await store.getProfile() });
   });
 }
@@ -17,8 +17,8 @@ export function makePatchProfile(store: ApiStore) {
   });
 }
 
-export function GET(request: Request): Promise<Response> {
-  return makeGetProfile(getApiStore())(request);
+export function GET(): Promise<Response> {
+  return makeGetProfile(getApiStore())();
 }
 
 export function PATCH(request: Request): Promise<Response> {
