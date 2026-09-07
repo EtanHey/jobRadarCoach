@@ -1,5 +1,5 @@
 "use client";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Search } from "lucide-react";
 import type { JobDetail, JobSummary, StatusPatch } from "@/lib/contracts";
@@ -26,7 +26,7 @@ export function BoardHeader() { return <header className="border-b border-[#dce3
       <Link href="/" className="flex items-center gap-3 font-semibold tracking-tight"><span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-[#173f31] text-white">J</span>Job Radar <span className="hidden font-normal text-[#76867c] sm:inline">/ Coach</span></Link><span className="rounded-full bg-[#eef3ed] px-3 py-1 text-xs">Your private workspace</span>
     </div></header>; }
 
-export function BoardHero() { return <div className="mb-9 flex flex-wrap items-end justify-between gap-5"><div><p className="mb-3 text-xs font-semibold tracking-[0.2em] text-[#687d6e]">THE JOB SEARCH, WITH CONTEXT</p><h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">Find your next good fit.</h1><p className="mt-4 max-w-xl text-sm leading-6 text-[#66766b]">Your roles, your priorities. Review the evidence, keep what matters, and make your next move.</p></div></div>; }
+export function BoardHero({children}: {children?: ReactNode}) { return <div className="mb-9 flex flex-wrap items-end justify-between gap-5"><div><p className="mb-3 text-xs font-semibold tracking-[0.2em] text-[#687d6e]">THE JOB SEARCH, WITH CONTEXT</p><h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">Find your next good fit.</h1><p className="mt-4 max-w-xl text-sm leading-6 text-[#66766b]">Your roles, your priorities. Review the evidence, keep what matters, and make your next move.</p></div>{children}</div>; }
 
 function JobRow({job, openerRef, selectJob}: RowProps) { return <button onClick={(event) => { openerRef.current = event.currentTarget; selectJob(job.id); }} className="group flex w-full items-start gap-4 px-5 py-6 text-left hover:bg-[#f8faf6] focus-visible:bg-[#eef4ea] focus-visible:outline-2 sm:px-6">
           <span aria-hidden="true" className="hidden size-11 shrink-0 items-center justify-center rounded-xl border border-[#e2e8dd] bg-[#f3f6ef] text-lg font-semibold text-[#65795b] sm:flex">{job.company.slice(0, 1)}</span>
