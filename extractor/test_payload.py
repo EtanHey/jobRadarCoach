@@ -26,7 +26,7 @@ FACTS = {
 
 def extraction(
     raw_jd: str = RAW_JD,
-    facts: dict[str, object] = FACTS,
+    facts: dict[str, object] | None = None,
 ) -> dict[str, object]:
     jd_sha256 = hashlib.sha256(raw_jd.encode()).hexdigest()
     identity = {
@@ -39,7 +39,7 @@ def extraction(
     fingerprint = hashlib.sha256(
         json.dumps(identity, separators=(",", ":"), sort_keys=True).encode()
     ).hexdigest()
-    return {**identity, "facts": deepcopy(facts), "fingerprint": fingerprint}
+    return {**identity, "facts": deepcopy(FACTS if facts is None else facts), "fingerprint": fingerprint}
 
 
 def test_rejects_fingerprint_not_owned_by_identity() -> None:
@@ -72,4 +72,17 @@ def test_rejects_unknown_nested_fact_fields(field: str) -> None:
     fact["private_notes"] = "PRIVATE_FACT_SENTINEL"
 
     with pytest.raises(ValueError, match="shape"):
+        build_payload(invalid, RAW_JD)
+
+
+def test_rejects_self_consistent_foreign_schema_identity() -> None:
+    from extractor.payload import fingerprint
+
+    invalid = extraction()
+    invalid["schema_sha256"] = "a" * 64
+    invalid["fingerprint"] = fingerprint(
+        invalid["brain"], invalid["model"], invalid["extractor_version"],
+        invalid["schema_sha256"], invalid["jd_sha256"],
+    )
+    with pytest.raises(ValueError, match="schema"):
         build_payload(invalid, RAW_JD)
