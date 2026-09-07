@@ -68,7 +68,23 @@ def test_ollama_request_excludes_profile_and_returns_actual_provenance() -> None
     assert (captured["url"], captured["timeout"]) == ("http://127.0.0.1:11434/api/chat", 12)
     assert captured["body"]["format"] == OUTPUT_SCHEMA
     assert captured["body"]["stream"] is False
+    assert brain.OLLAMA_NUM_PREDICT == 2048
+    assert captured["body"]["options"] == {"temperature": 0, "num_predict": 2048}
     assert "PRIVATE_PROFILE_SENTINEL" not in json.dumps(captured["body"])
+
+def test_ollama_length_completion_is_rejected_even_with_valid_json() -> None:
+    envelope = {
+        "model": "qwen2.5:7b-instruct",
+        "done": True,
+        "done_reason": "length",
+        "eval_count": 2048,
+        "message": {"content": json.dumps({
+            "role_family": "frontend", "mentions_typescript": True,
+        })},
+    }
+
+    with pytest.raises(brain.BrainResponseError, match="truncated"):
+        brain.run_brain(request(), {}, env={}, opener=lambda *_a, **_k: Response(envelope))
 
 @pytest.mark.parametrize("payload,error", [
     (b"not-json", brain.BrainResponseError),

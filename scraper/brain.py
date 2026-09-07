@@ -56,6 +56,8 @@ CODEX_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high", "xhigh"
 
 MAX_MODEL_BYTES = 512
 
+OLLAMA_NUM_PREDICT = 2048
+
 MAX_RESPONSE_BYTES = 64_000
 
 MAX_TIMEOUT_SECONDS = 120
@@ -116,7 +118,7 @@ def run_brain(
         "messages": [{"role": "user", "content": request.prompt}],
         "stream": False,
         "format": request.output_schema,
-        "options": {"temperature": 0, "num_predict": 512},
+        "options": {"temperature": 0, "num_predict": OLLAMA_NUM_PREDICT},
     }
     http_request = Request(
         endpoint,
@@ -260,6 +262,8 @@ def _parse_response(raw: bytes, request: BrainRequest) -> BrainResult:
     _ensure_finite(envelope, BrainResponseError)
     if not isinstance(envelope, dict) or envelope.get("done") is not True:
         raise BrainResponseError("Ollama response is incomplete")
+    if envelope.get("done_reason") == "length":
+        raise BrainResponseError("Ollama response was truncated")
     actual_model = envelope.get("model")
     message = envelope.get("message")
     if not isinstance(actual_model, str) or not actual_model.strip() or not isinstance(message, dict):
