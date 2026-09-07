@@ -15,7 +15,7 @@ name = "docker"
 enabled = true
 
 [analyzers.meta]
-dockerfile_paths = ["scraper/Dockerfile"]
+dockerfile_paths = ["scraper/Dockerfile", "ui/Dockerfile"]
 
 [[analyzers]]
 name = "javascript"
