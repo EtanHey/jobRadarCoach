@@ -1346,6 +1346,18 @@ def test_build_search_url_uses_live_guest_endpoint_and_recency() -> None:
     assert "start=25" in url
 
 
+def test_build_search_url_adds_remote_workplace_filter() -> None:
+    harvest = load_harvest_module()
+    url = harvest.build_search_url(
+        {"keywords": "Software Engineer", "location": "Remote", "recency": "r43200"},
+        start=0,
+    )
+
+    query = parse_qs(urlparse(url).query)
+    assert query["location"] == ["Remote"]
+    assert query["f_WT"] == ["2"]
+
+
 class FakeResponse:
     def __init__(self, body: bytes) -> None:
         self.body = body

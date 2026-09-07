@@ -126,24 +126,6 @@ SOURCE_LABELS = {
     "lever": "Lever",
     "workable": "Workable",
 }
-ISRAEL_LOCATION_TERMS = (
-    "israel",
-    "tel aviv",
-    "jerusalem",
-    "haifa",
-    "petah tikva",
-    "ramat gan",
-    "ra anana",
-    "kefar saba",
-    "kfar saba",
-    "hod hasharon",
-    "herzliya",
-    "beer sheva",
-    "be er sheva",
-    "rehovot",
-    "netanya",
-    "yokneam",
-)
 OUTPUT_FIELDS = (
     "id",
     "title",
@@ -1252,29 +1234,54 @@ def _title_match_tokens(value: object) -> set[str]:
     return set(joined.split())
 
 
+def _contains_normalized_phrase(text: str, phrase: str) -> bool:
+    text_tokens = text.split()
+    phrase_tokens = phrase.split()
+    return bool(phrase_tokens) and any(
+        text_tokens[index : index + len(phrase_tokens)] == phrase_tokens
+        for index in range(len(text_tokens))
+    )
+
+
+def _location_matches(
+    posting: dict[str, object],
+    geography: str,
+    location_terms: dict[str, object],
+) -> bool:
+    location = _normalized_identity(posting.get("location", ""))
+    if geography.strip().casefold() == "remote":
+        return posting.get("remote") is True or "remote" in location.split()
+    aliases = location_terms.get(geography, [])
+    terms = [geography]
+    if isinstance(aliases, list):
+        terms.extend(alias for alias in aliases if isinstance(alias, str))
+    return any(
+        _contains_normalized_phrase(location, normalized)
+        for term in terms
+        if (normalized := _normalized_identity(term))
+    )
+
+
 def _source_posting_matches(
     posting: dict[str, object],
     searches: list[dict[str, str]],
+    location_terms: dict[str, object] | None = None,
 ) -> bool:
     title_tokens = _title_match_tokens(posting.get("title", ""))
-    query_tokens = {
-        frozenset(_title_match_tokens(search["keywords"]))
+    aliases = location_terms or {}
+    return any(
+        _title_match_tokens(search["keywords"]) <= title_tokens
+        and _location_matches(posting, search["location"], aliases)
         for search in searches
-        if search.get("location", "").casefold() == "israel"
-    }
-    if not any(tokens <= title_tokens for tokens in query_tokens):
-        return False
-    location = _normalized_identity(posting.get("location", ""))
-    if not any(term in location for term in ISRAEL_LOCATION_TERMS):
-        return False
-    return True
+    )
 
 
 def filter_source_postings(
     postings: list[dict[str, object]],
     searches: list[dict[str, str]],
+    location_terms: dict[str, object] | None = None,
 ) -> list[dict[str, object]]:
-    """Apply title synonyms and Israel scope to ATS boards.
+    """Apply configured title and geography scope to ATS boards.
 
     Native ATS freshness means first seen by this radar, enforced later by stable-id
     dedupe across dated JSONL files. LinkedIn's run window does not apply here.
@@ -1283,7 +1290,7 @@ def filter_source_postings(
     matched = [
         posting
         for posting in postings
-        if _source_posting_matches(posting, searches)
+        if _source_posting_matches(posting, searches, location_terms)
     ]
     totals: dict[str, int] = {}
     kept: dict[str, int] = {}
@@ -1378,14 +1385,15 @@ def load_profile_contract(path: Path) -> dict[str, object]:  # skipcq: PY-R1000
 
 
 def build_search_url(search: dict[str, str], start: int) -> str:
-    query = urlencode(
-        {
-            "keywords": search["keywords"],
-            "location": search["location"],
-            "f_TPR": search["recency"],
-            "start": start,
-        }
-    )
+    parameters: dict[str, object] = {
+        "keywords": search["keywords"],
+        "location": search["location"],
+        "f_TPR": search["recency"],
+        "start": start,
+    }
+    if search["location"].strip().casefold() == "remote":
+        parameters["f_WT"] = "2"
+    query = urlencode(parameters)
     return f"{GUEST_SEARCH_ENDPOINT}?{query}"
 
 
