@@ -100,6 +100,36 @@ def _remote_source_values(quote: str, raw_jd: str) -> set[bool | None]:
     return values
 
 
+_NON_ROLE_LOCATION_RE = re.compile(
+    r"\b(?:headquarters|headquartered)\b|"
+    r"\boffices\s+(?:are\s+)?(?:located\s+)?in\b|"
+    r"\b(?:within|across)\s+the\s+\w+\s+market\b|"
+    r"\b(?:startup|company)\s+(?:is\s+)?based\s+in\b",
+    re.IGNORECASE,
+)
+
+
+def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
+    if fact["value"] is None:
+        return
+    quote = fact["evidence_quote"]
+    assert isinstance(quote, str)
+    if re.search(
+        r"\b(?:this|the)\s+(?:role|position|job)\s+(?:is\s+)?(?:based|located)\b",
+        quote, re.IGNORECASE,
+    ):
+        return
+    offset = 0
+    while (start := raw_jd.find(quote, offset)) >= 0:
+        before = max(raw_jd.rfind(boundary, 0, start) for boundary in ".!?;\n")
+        after = [position for boundary in ".!?;\n"
+                 if (position := raw_jd.find(boundary, start + len(quote))) >= 0]
+        context = raw_jd[before + 1:min(after, default=len(raw_jd))]
+        if _NON_ROLE_LOCATION_RE.search(context):
+            raise BrainValidationError("company geography does not establish job location")
+        offset = start + len(quote)
+
+
 def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
     """Reject extracted facts that are not supported by their source quotes."""
 
@@ -107,6 +137,7 @@ def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
         fact = facts[field]
         assert isinstance(fact, dict)
         _validate_quote(field, fact["value"], fact["evidence_quote"], raw_jd)
+    _validate_location_context(facts["location"], raw_jd)
     remote = facts["remote"]
     assert isinstance(remote, dict)
     remote_value = remote["value"]

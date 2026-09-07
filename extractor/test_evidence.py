@@ -126,3 +126,35 @@ def test_explicit_workable_onsite_token_preserves_remote_polarity() -> None:
     validate_facts(remote_only_facts(False, quote), quote)
     with pytest.raises(BrainValidationError, match="remote value conflicts"):
         validate_facts(remote_only_facts(True, quote), quote)
+
+
+@pytest.mark.parametrize(("raw_jd", "quote", "value"), [
+    ("Our headquarters are in Tel Aviv.", "Tel Aviv", "Tel Aviv"),
+    ("We are headquartered in London.", "London", "London"),
+    ("Our offices are located in Berlin and Paris.", "Berlin and Paris", "Berlin and Paris"),
+    ("Our regional headquarters are in New York, Tel Aviv, and London.", "Tel Aviv", "Tel Aviv"),
+    ("Pagaya has offices in New York and Tel Aviv.", "New York and Tel Aviv", "New York and Tel Aviv"),
+    ("Work with customers within the Israeli market.", "within the Israeli market", "Israeli market"),
+    ("Panax is a startup based in Tel Aviv and New York.", "Tel Aviv and New York", "Tel Aviv and New York"),
+])
+def test_company_locations_and_customer_markets_do_not_establish_job_location(
+    raw_jd: str, quote: str, value: str
+) -> None:
+    candidate = remote_only_facts(None, None)
+    candidate["location"] = {"value": value, "evidence_quote": quote}
+    with pytest.raises(BrainValidationError, match="job location"):
+        validate_facts(candidate, raw_jd)
+
+
+def test_explicit_role_location_survives_company_office_context() -> None:
+    raw_jd = "Our regional headquarters are in New York and Tel Aviv. This role is based in Tel Aviv."
+    candidate = remote_only_facts(None, None)
+    candidate["location"] = {"value": "Tel Aviv", "evidence_quote": "This role is based in Tel Aviv"}
+    validate_facts(candidate, raw_jd)
+
+
+def test_role_explicitly_based_at_headquarters_is_supported() -> None:
+    quote = "This role is based at our regional headquarters in Tel Aviv"
+    candidate = remote_only_facts(None, None)
+    candidate["location"] = {"value": "Tel Aviv", "evidence_quote": quote}
+    validate_facts(candidate, quote)
