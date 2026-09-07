@@ -18,6 +18,15 @@ python3 scraper/harvest.py --profile profile.yaml --output-dir data/job-feed --m
 
 Enable reviewed public ATS sources with `--sources comeet,greenhouse,lever,workable`. Luna annotation is best-effort and uses `codex exec` when that binary is available; deterministic JSONL output remains available when it is not.
 
+The subscription runner is verified against `codex-cli 0.153.4` and fails closed
+on any other version. It gives Codex an empty temporary home containing only a
+symlink to the existing subscription credential, runs from a separate data-only
+temporary directory, ignores user configuration and rules, disables local and
+MCP-capable tool surfaces, and passes only an allowlisted environment. Strict
+configuration makes an unsupported isolation flag a nonzero runner failure; it
+does not fall back to ordinary Codex read-only mode, which is not a privacy
+boundary.
+
 ## Docker
 
 Build from the repository root:

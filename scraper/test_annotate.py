@@ -1232,13 +1232,19 @@ def test_operational_failure_never_raises_into_caller() -> None:
 
 def test_subscription_runner_invokes_luna_through_codex_exec(monkeypatch) -> None:
     luna = load_annotate_module()
-    calls: list[tuple[list[str], str]] = []
+    calls: list[tuple[list[str], str, dict[str, object]]] = []
 
     monkeypatch.setattr(luna, "_discover_codex", lambda: "/test/bin/codex")
+    monkeypatch.setattr(luna, "_verify_codex_version", lambda _codex: None)
+    monkeypatch.setattr(luna, "_subscription_auth_path", lambda: PROFILE_PATH)
+    monkeypatch.setenv("JOB_RADAR_PRIVATE_SENTINEL", "must-not-reach-runner")
 
     # The stub mirrors subprocess.run's required keyword name.
     def fake_run(command, *, input, **kwargs):  # skipcq: PYL-W0622
-        calls.append((command, input))
+        calls.append((command, input, kwargs))
+        isolated_home = Path(kwargs["env"]["CODEX_HOME"])
+        assert (isolated_home / "auth.json").is_symlink()
+        assert (isolated_home / "auth.json").resolve() == PROFILE_PATH.resolve()
         output_path = Path(command[command.index("--output-last-message") + 1])
         output_path.write_text(
             json.dumps(
@@ -1259,11 +1265,33 @@ def test_subscription_runner_invokes_luna_through_codex_exec(monkeypatch) -> Non
 
     result = luna._subscription_runner("annotate me", luna.LUNA_SCHEMA)
 
-    command, prompt = calls[0]
+    command, prompt, run_options = calls[0]
     assert command[:2] == ["/test/bin/codex", "exec"]
     assert command[command.index("-m") + 1] == "gpt-5.6-luna"
     assert luna.LUNA_REASONING_EFFORT == "xhigh"
     assert 'model_reasoning_effort="xhigh"' in command
+    assert "--strict-config" in command
+    assert "--ignore-user-config" in command
+    assert "--ignore-rules" in command
+    disabled_features = {
+        command[index + 1]
+        for index, argument in enumerate(command[:-1])
+        if argument == "--disable"
+    }
+    assert disabled_features == set(luna.CODEX_DISABLED_FEATURES)
+    assert {"shell_tool", "code_mode_host", "computer_use", "view_image"} <= (
+        disabled_features
+    )
+    assert command[command.index("--sandbox") + 1] == "read-only"
+    isolated_root = command[command.index("-C") + 1]
+    assert run_options["cwd"] == Path(isolated_root)
+    assert Path(isolated_root) != luna.REPO_ROOT
+    isolated_home = Path(run_options["env"]["CODEX_HOME"])
+    assert isolated_home.parent == Path(isolated_root).parent
+    assert isolated_home != Path(isolated_root)
+    assert run_options["env"]["HOME"] == str(isolated_home)
+    assert run_options["env"] == luna._isolated_codex_environment(isolated_home)
+    assert "JOB_RADAR_PRIVATE_SENTINEL" not in run_options["env"]
     assert "--output-schema" in command
     assert "--output-last-message" in command
     assert command[-1] == "-"
@@ -1284,4 +1312,61 @@ def test_subscription_runner_invokes_luna_through_codex_exec(monkeypatch) -> Non
                 "example-project",
             ],
         },
+    }
+
+
+def test_subscription_auth_path_resolves_relative_codex_home(
+    monkeypatch, tmp_path
+) -> None:
+    luna = load_annotate_module()
+    relative_home = Path("relative-codex-home")
+    auth_path = tmp_path / relative_home / "auth.json"
+    auth_path.parent.mkdir()
+    auth_path.write_text("test-only-placeholder", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CODEX_HOME", str(relative_home))
+
+    resolved = luna._subscription_auth_path()
+
+    assert resolved == auth_path.resolve()
+    assert resolved.is_absolute()
+
+
+def test_subscription_runner_rejects_unverified_codex_version(monkeypatch) -> None:
+    luna = load_annotate_module()
+    monkeypatch.setattr(luna, "_discover_codex", lambda: "/test/bin/codex")
+    monkeypatch.setattr(
+        luna.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout="codex-cli 0.154.0\n",
+            stderr="",
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="requires codex-cli 0.153.4"):
+        luna._subscription_runner("annotate me", luna.LUNA_SCHEMA)
+
+
+def test_subscription_runner_fails_closed_when_strict_config_is_rejected(
+    monkeypatch,
+) -> None:
+    luna = load_annotate_module()
+    monkeypatch.setattr(luna, "_discover_codex", lambda: "/test/bin/codex")
+    monkeypatch.setattr(luna, "_verify_codex_version", lambda _codex: None)
+    monkeypatch.setattr(luna, "_subscription_auth_path", lambda: PROFILE_PATH)
+    monkeypatch.setattr(
+        luna.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=1,
+            stderr="Error: Unknown feature flag: shell_tool",
+        ),
+    )
+
+    assert luna._subscription_runner("annotate me", luna.LUNA_SCHEMA) == {
+        "status": "error",
+        "exit_code": 1,
+        "stderr": "Error: Unknown feature flag: shell_tool",
     }
