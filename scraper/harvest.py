@@ -2296,11 +2296,13 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 annotation_profile = database.annotation_profile(profile_snapshot)
 
-            def posting_writer(postings, observed_at):
+            def write_posting_batch(postings, observed_at):
                 with psycopg.connect(database_url) as write_connection:
                     return database.persist_postings(
                         write_connection, postings, observed_at
                     )
+
+            posting_writer = write_posting_batch
 
         result = _run_main_pipeline(
             args,
