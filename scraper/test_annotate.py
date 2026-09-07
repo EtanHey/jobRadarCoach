@@ -18,6 +18,11 @@ ANNOTATE_PATH = HERE / "annotate.py"
 PROFILE_PATH = HERE.parent / "profile.example.yaml"
 FIXTURE_PATH = HERE / "fixtures" / "luna-postings.json"
 CALIBRATION_PATH = HERE / "fixtures" / "luna-ranking-calibration-2026-08-26.json"
+WITHHELD_ADVERSE_PATH = HERE / "fixtures" / "luna-withheld-preferences-adverse.json"
+WITHHELD_ABSTENTION = (
+    "Preferences and open-to information are withheld; "
+    "no candidate fact or fit effect is assessed."
+)
 
 
 def load_annotate_module():
@@ -94,9 +99,11 @@ def structured_annotation(
             {
                 "factor": factor,
                 "basis": basis_by_factor[factor],
-                "assessment": "positive",
+                "assessment": "unknown" if factor == "preferences" else "positive",
                 "evidence_ids": evidence_by_factor[factor],
-                "detail": f"Evidence-backed {factor.replace('_', ' ')} assessment.",
+                "detail": WITHHELD_ABSTENTION
+                if factor == "preferences"
+                else f"Evidence-backed {factor.replace('_', ' ')} assessment.",
             }
             for factor in REASON_FACTORS
         ],
@@ -484,6 +491,8 @@ def test_prompt_uses_safe_profile_contract_without_private_connectors(
     assert "do not infer them or reduce fit" in prompt
     assert "without inventing a personal gap tolerance" in prompt
     assert "may support only an explicit withheld/unknown abstention" in prompt
+    assert WITHHELD_ABSTENTION in prompt
+    assert "Never cite withheld evidence IDs in fit_line" in prompt
     assert "An explicit human verdict is authoritative" in prompt
     assert private_name.casefold() not in prompt.casefold()
     assert private_prohibition not in prompt
@@ -515,6 +524,61 @@ def test_prompt_uses_safe_profile_contract_without_private_connectors(
         for value in (private_name, private_prohibition, private_exclusion)
     )
 
+
+def test_retained_withheld_preference_claims_fail_closed() -> None:
+    luna = load_annotate_module()
+    artifact = json.loads(WITHHELD_ADVERSE_PATH.read_text(encoding="utf-8"))
+
+    assert luna._validated_annotation(
+        artifact["response"],
+        profile=safe_projection(),
+        allowed_evidence_ids=set(artifact["allowed_evidence_ids"]),
+        posting_evidence_id=artifact["posting_evidence_id"],
+        expected_recommendation=None,
+    ) is None
+
+
+def test_withheld_evidence_requires_exact_canonical_abstention() -> None:
+    luna = load_annotate_module()
+    valid = structured_annotation("4377864561")
+    allowed = {
+        "posting:4377864561", "profile:tenure", "profile:open-to",
+        "profile:preferences", "example-project", "example-workflow",
+    }
+
+    def validate(data: dict[str, object]) -> dict[str, object] | None:
+        return luna._validated_annotation(
+            data,
+            profile=safe_projection(),
+            allowed_evidence_ids=allowed,
+            posting_evidence_id="posting:4377864561",
+            expected_recommendation=None,
+        )
+
+    assert validate(valid) is not None
+    adverse = []
+    for assessment, detail in (
+        ("mixed", WITHHELD_ABSTENTION),
+        ("unknown", "Preferences are unknown, but the candidate prefers remote work."),
+    ):
+        candidate = copy.deepcopy(valid)
+        candidate["reasons"][4].update(assessment=assessment, detail=detail)
+        adverse.append(candidate)
+    mixed_evidence = copy.deepcopy(valid)
+    mixed_evidence["reasons"][4]["evidence_ids"].append("example-project")
+    adverse.append(mixed_evidence)
+    wrong_factor = copy.deepcopy(valid)
+    wrong_factor["reasons"][0]["evidence_ids"] = [
+        "posting:4377864561", "profile:open-to",
+    ]
+    adverse.append(wrong_factor)
+    withheld_fit_line = copy.deepcopy(valid)
+    withheld_fit_line["fit_line_evidence_ids"] = [
+        "posting:4377864561", "profile:preferences",
+    ]
+    adverse.append(withheld_fit_line)
+
+    assert all(validate(candidate) is None for candidate in adverse)
 
 def test_safe_profile_contract_consumes_only_projection_and_accepts_false_relocation(
     tmp_path: Path,
