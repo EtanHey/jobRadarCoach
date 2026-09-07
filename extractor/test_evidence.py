@@ -129,6 +129,9 @@ def test_explicit_workable_onsite_token_preserves_remote_polarity() -> None:
 
 
 @pytest.mark.parametrize(("raw_jd", "quote", "value"), [
+    ("Our headquarters are in Tel Aviv.", "Tel Aviv", "Tel Aviv"),
+    ("We are headquartered in London.", "London", "London"),
+    ("Our offices are located in Berlin and Paris.", "Berlin and Paris", "Berlin and Paris"),
     ("Our regional headquarters are in New York, Tel Aviv, and London.", "Tel Aviv", "Tel Aviv"),
     ("Pagaya has offices in New York and Tel Aviv.", "New York and Tel Aviv", "New York and Tel Aviv"),
     ("Work with customers within the Israeli market.", "within the Israeli market", "Israeli market"),
