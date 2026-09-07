@@ -55,7 +55,8 @@ Supabase Realtime subscriptions push row changes to the UI (agent marks applied 
 One adapter, chosen by env: `BRAIN=ollama | codex | claude | cursor-agent`. `ollama` is the repo default
 ($0, runs anywhere). Etan's own instance uses `codex` (ChatGPT subscription, `codex exec`); see
 `~/Gits/t3code` for how a Codex CLI connection and commit-message generation are wired. The UI has a toggle.
-The live voice LLM is always Ollama (an OpenAI-compatible chat endpoint); `codex exec` cannot hold a
+The live voice LLM is always a local OpenAI-compatible chat endpoint, `LLM_BASE_URL`: Ollama by default
+(portable); Etan's instance points it at `mlx_lm.server` (faster on Apple Silicon). `codex exec` cannot hold a
 conversation.
 
 ## Voice agent tools (D4, Etan builds; workers only prepare the SQL functions they call)
