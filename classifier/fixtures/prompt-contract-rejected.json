@@ -1,0 +1,46 @@
+{
+  "employer_type": "direct",
+  "seniority_real": null,
+  "fit_score": 65,
+  "fit_tier": "good",
+  "recommendation": "referral",
+  "reasons": [
+    {
+      "factor": "product_role_match",
+      "basis": "comparison",
+      "assessment": "unknown",
+      "evidence_ids": ["profile:preferences", "posting:4459009700"],
+      "detail": "Preferences and open-to information are withheld; no candidate fact or fit effect is assessed."
+    },
+    {
+      "factor": "stack_domain_evidence",
+      "basis": "comparison",
+      "assessment": "unknown",
+      "evidence_ids": ["profile:synthetic-project", "posting:4459009700"],
+      "detail": "Candidate has TypeScript and React experience, but the posting emphasizes backend services and real-time systems. No direct overlap."
+    },
+    {
+      "factor": "seniority_gap",
+      "basis": "comparison",
+      "assessment": "unknown",
+      "evidence_ids": ["profile:tenure", "posting:4459009700"],
+      "detail": "Candidate has 4 years of experience, which aligns with the posting's requirements. No seniority gap."
+    },
+    {
+      "factor": "employer_type",
+      "basis": "posting",
+      "assessment": "unknown",
+      "evidence_ids": ["posting:4459009700"],
+      "detail": "Employer type is direct, but the posting does not specify a preference for candidates from certain backgrounds."
+    },
+    {
+      "factor": "preferences",
+      "basis": "comparison",
+      "assessment": "unknown",
+      "evidence_ids": ["profile:open-to", "posting:4459009700"],
+      "detail": "Preferences and open-to information are withheld; no candidate fact or fit effect is assessed."
+    }
+  ],
+  "fit_line": "Good fit — TypeScript and React experience align, but the role requires backend expertise not directly demonstrated.",
+  "fit_line_evidence_ids": ["profile:synthetic-project", "posting:4459009700"]
+}
