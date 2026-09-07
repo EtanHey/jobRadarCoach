@@ -66,7 +66,7 @@ def test_codex_dispatch_preserves_isolation_and_configured_provenance(
         isolated_home = Path(kwargs["env"]["CODEX_HOME"])
         captured.update(
             command=command,
-            prompt=kwargs["input"],
+            prompt=kwargs["stdin_text"],
             options=kwargs,
             schema=json.loads(schema_path.read_text(encoding="utf-8")),
             workspace=Path(kwargs["cwd"]),
