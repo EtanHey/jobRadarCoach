@@ -4,7 +4,7 @@ metadata:
   name: scraper
   namespace: job-radar-coach
 spec:
-  schedule: "* * * * *" # every minute, for now
+  schedule: "30 0,6,12,18 * * *" # every 6:30 and 12:30 of the day (4 times, AM+PM)
   timeZone: Asia/Jerusalem
   jobTemplate: # layer 2: the Job
     spec:
@@ -13,14 +13,7 @@ spec:
           restartPolicy: Never # a job runs once; don't loop on failure
           containers:
             - name: scraper
-              image: postgres:16
-              command:
-                [
-                  "psql",
-                  "$(DATABASE_URL)",
-                  "-c",
-                  "create table if not exists heartbeat(at timestamptz default now()); insert into heartbeat default values;",
-                ]
+              image: job-radar:dev
               env:
                 - name: DATABASE_URL
                   valueFrom:
