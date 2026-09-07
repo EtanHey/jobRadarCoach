@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 from typing import Callable, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -18,7 +19,10 @@ from scraper.annotate import (
     _discover_codex,
     _isolated_codex_environment,
     _subscription_auth_path,
-    _verify_codex_version,
+)
+from scraper.codex_process import (
+    run_codex_process as _run_codex_process,
+    verify_codex_version as _verify_codex_version,
 )
 from scraper.brain_contract import (
     BrainError,
@@ -55,8 +59,6 @@ MAX_MODEL_BYTES = 512
 MAX_RESPONSE_BYTES = 64_000
 
 MAX_TIMEOUT_SECONDS = 120
-
-_run_codex_process = subprocess.run
 
 def _setting(settings: Mapping[str, str], name: str, default: str) -> str:
     if name not in settings:
@@ -145,6 +147,7 @@ def _run_codex(
     settings: Mapping[str, str],
     timeout_seconds: int | float,
 ) -> BrainResult:
+    deadline = time.monotonic() + timeout_seconds
     model = _setting(settings, "CODEX_MODEL", DEFAULT_CODEX_MODEL)
     if len(model.encode("utf-8")) > MAX_MODEL_BYTES:
         raise BrainConfigurationError("CODEX_MODEL exceeds the byte limit")
@@ -157,7 +160,6 @@ def _run_codex(
         raise BrainConfigurationError("CODEX_REASONING_EFFORT is unsupported")
     try:
         codex = _discover_codex()
-        _verify_codex_version(codex)
         auth_path = _subscription_auth_path()
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
@@ -170,6 +172,12 @@ def _run_codex(
             workspace.mkdir()
             codex_home.mkdir()
             (codex_home / "auth.json").symlink_to(auth_path)
+            environment = _isolated_codex_environment(codex_home)
+            try:
+                _verify_codex_version(codex, cwd=workspace, env=environment,
+                                      timeout=min(10, max(0, deadline - time.monotonic())))
+            except RuntimeError as error:
+                raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
             schema_path = workspace / "schema.json"
             output_path = workspace / "result.json"
             schema_path.write_text(
@@ -190,10 +198,10 @@ def _run_codex(
                 text=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                timeout=timeout_seconds,
+                timeout=max(0, deadline - time.monotonic()),
                 check=False,
                 cwd=workspace,
-                env=_isolated_codex_environment(codex_home),
+                env=environment,
             )
             if completed.returncode != 0:
                 raise BrainTransportError(
