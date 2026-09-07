@@ -1,0 +1,14 @@
+{
+  "searches": [
+    {"keywords": "Software Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Full Stack Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Frontend Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Backend Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Product Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Platform Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "AI Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Machine Learning Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Site Reliability Engineer", "location": "Israel", "recency": "r10800"},
+    {"keywords": "Engineering Manager", "location": "Israel", "recency": "r10800"}
+  ]
+}

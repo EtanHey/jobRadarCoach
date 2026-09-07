@@ -1,0 +1,737 @@
+{
+  "schema_version": 1,
+  "tenants": [
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "senai",
+        "company_uid": "CA.004"
+      },
+      "company": "SenAI",
+      "careers_url": "https://www.comeet.com/jobs/senai/CA.004",
+      "provenance": [
+        {
+          "kind": "adapter-validation-fixture",
+          "reference": "scraper/fixtures/comeet-senai-board-2026-08-11.html"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/senai/CA.004"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "guiddelinkedin"
+      },
+      "company": "Guidde",
+      "careers_url": "https://job-boards.greenhouse.io/guiddelinkedin",
+      "provenance": [
+        {
+          "kind": "adapter-validation-fixture",
+          "reference": "scraper/fixtures/greenhouse-guiddelinkedin-board-2026-08-11.json"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/guiddelinkedin/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "Zadara"
+      },
+      "company": "Zadara",
+      "careers_url": "https://jobs.lever.co/Zadara",
+      "provenance": [
+        {
+          "kind": "adapter-validation-fixture",
+          "reference": "scraper/fixtures/lever-zadara-board-2026-08-11.json"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.lever.co/v0/postings/Zadara"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "myteam"
+      },
+      "company": "my team",
+      "careers_url": "https://apply.workable.com/myteam/",
+      "provenance": [
+        {
+          "kind": "adapter-validation-fixture",
+          "reference": "scraper/fixtures/workable-myteam-jobs-2026-08-11.md"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/myteam/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "jeenai",
+        "company_uid": "DA.008"
+      },
+      "company": "Jeen.ai",
+      "careers_url": "https://www.comeet.com/jobs/jeenai/DA.008",
+      "provenance": [
+        {
+          "kind": "public-careers-page",
+          "reference": "https://www.comeet.com/jobs/jeenai/DA.008"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/jeenai/DA.008"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "armissecurity"
+      },
+      "company": "Armis",
+      "careers_url": "https://job-boards.greenhouse.io/armissecurity",
+      "provenance": [
+        {
+          "kind": "public-careers-page",
+          "reference": "https://job-boards.greenhouse.io/armissecurity"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/armissecurity/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "wedev",
+        "region": "eu"
+      },
+      "company": "WeDev Technologies",
+      "careers_url": "https://job-boards.eu.greenhouse.io/wedev",
+      "provenance": [
+        {
+          "kind": "public-careers-page",
+          "reference": "https://job-boards.eu.greenhouse.io/wedev"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/wedev/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "backslash",
+        "company_uid": "98.004"
+      },
+      "company": "Backslash Security",
+      "careers_url": "https://www.comeet.com/jobs/backslash/98.004",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/backslash/98.004/senior-full-stack-engineer/3D.D59"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/backslash/98.004"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "deloitte",
+        "company_uid": "F7.00B"
+      },
+      "company": "Deloitte Israel",
+      "careers_url": "https://www.comeet.com/jobs/deloitte/F7.00B",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/deloitte/F7.00B/full-stack-developer/F3.464"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/deloitte/F7.00B"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "empathy",
+        "company_uid": "F8.007"
+      },
+      "company": "Empathy",
+      "careers_url": "https://www.comeet.com/jobs/empathy/F8.007",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/empathy/F8.007/senior-full-stack-developer/38.B43"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/empathy/F8.007"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "gambit_security",
+        "company_uid": "BA.00E"
+      },
+      "company": "Gambit Security",
+      "careers_url": "https://www.comeet.com/jobs/gambit_security/BA.00E",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/gambit_security/BA.00E/frontend-engineer/D9.D60"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/gambit_security/BA.00E"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "israeltechguard",
+        "company_uid": "29.009"
+      },
+      "company": "Israel Tech Guard",
+      "careers_url": "https://www.comeet.com/jobs/israeltechguard/29.009",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/israeltechguard/29.009/full-stack-engineer/FD.A51"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/israeltechguard/29.009"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "minimus",
+        "company_uid": "19.00B"
+      },
+      "company": "Minimus",
+      "careers_url": "https://www.comeet.com/jobs/minimus/19.00B",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/minimus/19.00B/senior-backend-developer/EB.B43"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/minimus/19.00B"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "ourcrowd",
+        "company_uid": "D3.00A"
+      },
+      "company": "OurCrowd",
+      "careers_url": "https://www.comeet.com/jobs/ourcrowd/D3.00A",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/ourcrowd/D3.00A/full-stack-developer/C3.E6D"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/ourcrowd/D3.00A"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "paragon",
+        "company_uid": "76.006"
+      },
+      "company": "Paragon",
+      "careers_url": "https://www.comeet.com/jobs/paragon/76.006",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/paragon/76.006/software-engineer/0F.941"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/paragon/76.006"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "team8",
+        "company_uid": "61.003"
+      },
+      "company": "Team8",
+      "careers_url": "https://www.comeet.com/jobs/team8/61.003",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://www.comeet.com/jobs/team8/61.003/charm-security-senior-full-stack-software-engineer/D0.36A"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://www.comeet.com/jobs/team8/61.003"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "apiiro"
+      },
+      "company": "Apiiro",
+      "careers_url": "https://job-boards.greenhouse.io/apiiro",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/apiiro/jobs/6670059003"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/apiiro/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "bluevineisrael"
+      },
+      "company": "Bluevine Israel",
+      "careers_url": "https://job-boards.greenhouse.io/bluevineisrael",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/bluevineisrael/jobs/7450377003"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/bluevineisrael/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "descope"
+      },
+      "company": "Descope",
+      "careers_url": "https://job-boards.greenhouse.io/descope",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/descope/jobs/4238542009"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/descope/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "forter"
+      },
+      "company": "Forter",
+      "careers_url": "https://job-boards.greenhouse.io/forter",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/forter"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/forter/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "guidde"
+      },
+      "company": "Guidde",
+      "careers_url": "https://job-boards.greenhouse.io/guidde",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/guidde/jobs/4752188101"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/guidde/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "neosecurityinc"
+      },
+      "company": "Neo Security",
+      "careers_url": "https://job-boards.greenhouse.io/neosecurityinc",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/neosecurityinc/jobs/4323674009"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/neosecurityinc/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "oasissecurity"
+      },
+      "company": "Oasis Security",
+      "careers_url": "https://job-boards.greenhouse.io/oasissecurity",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/oasissecurity/jobs/5250563008"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/oasissecurity/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "pagayais"
+      },
+      "company": "Pagaya Israel",
+      "careers_url": "https://job-boards.greenhouse.io/pagayais",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/pagayais/jobs/7712850003"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/pagayais/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "tenableinc"
+      },
+      "company": "Tenable",
+      "careers_url": "https://job-boards.greenhouse.io/tenableinc",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/tenableinc"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/tenableinc/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "vonage"
+      },
+      "company": "Vonage",
+      "careers_url": "https://job-boards.greenhouse.io/vonage",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://job-boards.greenhouse.io/vonage/jobs/8431278002"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/vonage/jobs"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "lendbuzz"
+      },
+      "company": "Lendbuzz",
+      "careers_url": "https://jobs.lever.co/lendbuzz",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://jobs.lever.co/lendbuzz?department=Tel-Aviv+Office"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.lever.co/v0/postings/lendbuzz"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "palantir"
+      },
+      "company": "Palantir",
+      "careers_url": "https://jobs.lever.co/palantir",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://jobs.lever.co/palantir/c4442730-2926-41ad-8c0e-5e5a6b4d14ae"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.lever.co/v0/postings/palantir"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "Sauce"
+      },
+      "company": "Sauce",
+      "careers_url": "https://jobs.lever.co/Sauce",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://jobs.lever.co/Sauce"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.lever.co/v0/postings/Sauce"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "walkme"
+      },
+      "company": "WalkMe",
+      "careers_url": "https://jobs.lever.co/walkme",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://jobs.lever.co/walkme/9165e357-3a66-43eb-b968-f06907572c74"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.lever.co/v0/postings/walkme"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "autofleet"
+      },
+      "company": "Autofleet",
+      "careers_url": "https://apply.workable.com/autofleet/",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://apply.workable.com/autofleet/j/471FFA2C2A/"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/autofleet/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "goarc"
+      },
+      "company": "GOARC",
+      "careers_url": "https://apply.workable.com/goarc/",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://apply.workable.com/goarc/j/E822F93FB5/"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/goarc/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "rayzone-group"
+      },
+      "company": "Rayzone Group",
+      "careers_url": "https://apply.workable.com/rayzone-group/",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://apply.workable.com/rayzone-group/j/102418B8CC/"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/rayzone-group/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "real-dev-inc"
+      },
+      "company": "REAL DEV INC",
+      "careers_url": "https://apply.workable.com/real-dev-inc/",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://apply.workable.com/real-dev-inc/j/2A25A7E20F/"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/real-dev-inc/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "shifters-ai"
+      },
+      "company": "Shifters",
+      "careers_url": "https://apply.workable.com/shifters-ai/",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://apply.workable.com/shifters-ai/j/DF0C13D17B/"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/shifters-ai/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "source": "workable",
+      "identifiers": {
+        "account": "tomax"
+      },
+      "company": "Tomax Think Academy",
+      "careers_url": "https://apply.workable.com/tomax/",
+      "provenance": [
+        {
+          "kind": "web-search",
+          "reference": "https://apply.workable.com/tomax/j/041CDA091E/"
+        },
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://apply.workable.com/tomax/jobs.md"
+        }
+      ],
+      "last_verified_at": "2026-08-26",
+      "enabled": true
+    }
+  ]
+}

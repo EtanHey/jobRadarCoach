@@ -1,0 +1,30 @@
+[
+  {
+    "case": "agency",
+    "id": "4449531562",
+    "title": "Backend Engineer",
+    "company": "Gotfriends",
+    "jd_text": "A recruiting firm is sourcing a backend engineer for a confidential client. The role uses Node.js, TypeScript, PostgreSQL and REST APIs."
+  },
+  {
+    "case": "direct",
+    "id": "4377864561",
+    "title": "Frontend Software Engineer",
+    "company": "Upwind Security",
+    "jd_text": "Join Upwind's product engineering team to build React and TypeScript interfaces, design systems and tested customer-facing workflows."
+  },
+  {
+    "case": "inflated-senior",
+    "id": "senior-example",
+    "title": "Senior Full Stack Engineer",
+    "company": "Example Product Co",
+    "jd_text": "Build a React and Node.js product. Two years of professional software development experience are required."
+  },
+  {
+    "case": "weak-fit",
+    "id": "weak-example",
+    "title": "Senior Embedded C++ Engineer",
+    "company": "Example Hardware Co",
+    "jd_text": "Design embedded firmware in C++ for real-time semiconductor hardware. Ten years of low-level systems experience are required."
+  }
+]

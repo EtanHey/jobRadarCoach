@@ -1,0 +1,69 @@
+contract_version: 1
+profile:
+  positioning: Product-minded full-stack software engineer
+  tenure_years: 5
+  location: Example City
+  fit_terms:
+  - typescript
+  - react
+  - node
+  - full-stack
+  - frontend
+  - fullstack
+  - ai
+  - agents
+artifacts: []
+connectors: []
+prohibited:
+- Do not infer skills, employers, education, or achievements that are not explicitly listed.
+safe_radar_projection:
+  {
+    "projection_version": 1,
+    "candidate": {
+      "positioning": "Product-minded full-stack software engineer",
+      "tenure_years": 5,
+      "location": "Example City",
+      "fit_terms": ["typescript", "react", "node", "full-stack", "frontend", "fullstack", "ai", "agents"],
+      "open_to": {
+        "geographies": ["Example City", "Remote"],
+        "work_modes": ["hybrid", "remote"],
+        "relocation": false
+      },
+      "preferences": {
+        "product_company": "preferred",
+        "experience_gap": {
+          "max_years_below_requirement": 1,
+          "treatment": "weigh-not-wall"
+        }
+      }
+    },
+    "fit_signals": [
+      {
+        "evidence_id": "example-project",
+        "tags": ["typescript", "react"],
+        "claim": "Built and shipped a TypeScript and React application.",
+        "ownership": {
+          "verified_scope": "Application implementation",
+          "exclusions": ["Infrastructure ownership"]
+        },
+        "status": "verified"
+      },
+      {
+        "evidence_id": "example-workflow",
+        "tags": ["product-shipping"],
+        "claim": "Used an AI-assisted workflow while shipping a product.",
+        "ownership": {
+          "verified_scope": "Product delivery workflow",
+          "exclusions": ["Claims about any specific vendor"]
+        },
+        "status": "verified"
+      }
+    ],
+    "constraints": {
+      "global_never_claims": ["Do not invent candidate experience."],
+      "evidence_scoped_prohibitions": {
+        "example-project": ["Do not claim infrastructure ownership."],
+        "example-workflow": ["Do not claim ownership of the AI tool."]
+      }
+    }
+  }
