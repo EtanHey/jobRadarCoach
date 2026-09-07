@@ -773,19 +773,20 @@ def annotate(
     *,
     runner: Runner | None = None,
     profile_path: Path = DEFAULT_PROFILE_PATH,
+    profile: dict[str, object] | None = None,
 ) -> dict[str, object] | None:
     """Return one validated annotation, invalid metadata, or None on failure."""
 
     try:
-        profile = _load_safe_profile_contract(profile_path)
-        prompt = _build_prompt(posting, profile)
+        profile_contract = profile or _load_safe_profile_contract(profile_path)
+        prompt = _build_prompt(posting, profile_contract)
         posting_evidence_id = f"posting:{str(posting.get('id', '')).strip()}"
         allowed_evidence_ids = (
             {posting_evidence_id}
             | PROFILE_EVIDENCE_IDS
             | {
                 str(signal["evidence_id"])
-                for signal in profile.get("fit_signals", [])
+                for signal in profile_contract.get("fit_signals", [])
                 if isinstance(signal, dict) and signal.get("evidence_id")
             }
         )
@@ -797,7 +798,7 @@ def annotate(
                 return None
             annotation = _validated_annotation(
                 _extract_data(result),
-                profile=profile,
+                profile=profile_contract,
                 allowed_evidence_ids=allowed_evidence_ids,
                 posting_evidence_id=posting_evidence_id,
                 expected_recommendation=expected_recommendation,
