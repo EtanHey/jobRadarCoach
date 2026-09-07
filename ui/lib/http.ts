@@ -36,7 +36,10 @@ export async function mutationJson<T>(request: Request, schema: z.ZodType<T>): P
   if (origin) {
     let supplied: string;
     try { supplied = new URL(origin).origin; } catch { throw new HttpError(403, "Foreign origin rejected."); }
-    if (supplied !== new URL(request.url).origin) throw new HttpError(403, "Foreign origin rejected.");
+    const local = new URL(request.url);
+    local.host = request.headers.get("host") ?? local.host;
+    const expected = process.env.UI_ORIGIN ? new URL(process.env.UI_ORIGIN).origin : local.origin;
+    if (supplied !== expected) throw new HttpError(403, "Foreign origin rejected.");
   }
   const mediaType = request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
   if (mediaType !== "application/json") throw new HttpError(415, "Content-Type must be application/json.");
