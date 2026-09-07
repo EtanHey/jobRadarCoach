@@ -19,9 +19,9 @@ def test_timeout_stops_descendant(tmp_path):
     code = "import subprocess,sys,time; from pathlib import Path; p=subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); Path(sys.argv[1]).write_text(str(p.pid)); time.sleep(60)"
     try:
         with pytest.raises(subprocess.TimeoutExpired):
-            run_codex_process([sys.executable, '-c', code, str(pid_file)], input='', text=True,
+            run_codex_process([sys.executable, '-c', code, str(pid_file)], stdin_text='', text=True,
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                              timeout=0.5, check=False, cwd=tmp_path, env={})
+                              timeout=0.5, cwd=tmp_path, env={})
         child = int(pid_file.read_text())
         deadline = time.monotonic() + 2
         while running(child) and time.monotonic() < deadline:

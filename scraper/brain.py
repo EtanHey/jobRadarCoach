@@ -194,12 +194,11 @@ def _run_codex(
             )
             completed = _run_codex_process(
                 command,
-                input=request.prompt,
+                stdin_text=request.prompt,
                 text=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=max(0, deadline - time.monotonic()),
-                check=False,
                 cwd=workspace,
                 env=environment,
             )

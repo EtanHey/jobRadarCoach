@@ -16,12 +16,12 @@ def _stop_group(process):
     process.wait()
 
 
-def run_codex_process(command, *, input, text, stdout, stderr, timeout, check, cwd, env):
+def run_codex_process(command, *, stdin_text, text, stdout, stderr, timeout, cwd, env):
     """Discard command output and kill remaining group members on every exit."""
     with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr,
                           text=text, cwd=cwd, env=env, start_new_session=True) as process:
         try:
-            process.communicate(input=input, timeout=timeout)
+            process.communicate(input=stdin_text, timeout=timeout)
             return subprocess.CompletedProcess(command, process.returncode)
         finally:
             _stop_group(process)
