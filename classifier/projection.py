@@ -64,6 +64,8 @@ def _validate_signals(signals: object) -> None:
     for signal in signals:
         if not isinstance(signal, dict):
             raise ValueError("fit signal must be an object")
+        if set(signal) != {"evidence_id", "tags", "claim", "ownership", "status"}:
+            raise ValueError("fit signal contains unsupported fields")
         evidence_id = _text(signal.get("evidence_id"), "fit signal evidence_id")
         if evidence_id in seen or not re.fullmatch(
             r"[a-z0-9][a-z0-9:-]*", evidence_id
@@ -74,6 +76,8 @@ def _validate_signals(signals: object) -> None:
         ownership = signal.get("ownership")
         if not isinstance(ownership, dict):
             raise ValueError("fit signal ownership must be an object")
+        if set(ownership) != {"verified_scope", "exclusions"}:
+            raise ValueError("fit signal ownership contains unsupported fields")
         _text(ownership.get("verified_scope"), "ownership.verified_scope")
         _string_list(
             ownership.get("exclusions"), "ownership.exclusions", allow_empty=True

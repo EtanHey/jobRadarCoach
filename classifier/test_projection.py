@@ -139,3 +139,14 @@ def test_history_projection_rejects_duplicates_and_overflow() -> None:
                 for index in range(projection.MAX_HISTORY_ENTRIES + 1)
             ]
         )
+
+
+@pytest.mark.parametrize("nested", [False, True])
+def test_profile_contract_rejects_unknown_fit_signal_fields(nested: bool) -> None:
+    snapshot = profile_snapshot()
+    signal = copy.deepcopy(snapshot["fit_signals"][0])
+    target = signal["ownership"] if nested else signal
+    target["private_notes"] = PRIVATE
+    snapshot["fit_signals"] = [signal]
+    with pytest.raises(ValueError, match="fields"):
+        projection.profile_contract(snapshot)
