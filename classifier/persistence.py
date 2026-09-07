@@ -53,12 +53,14 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
         connection.execute(
             "lock table public.profile, public.application_history in share mode"
         )
-    suffix = " for update" if lock else ""
-    row = connection.execute(
+    query = (
         "select id::text, title, company, location, raw_jd from public.postings "
-        "where id = %s" + suffix,
-        (posting_id,),
-    ).fetchone()
+        "where id = %s for update"
+        if lock else
+        "select id::text, title, company, location, raw_jd from public.postings "
+        "where id = %s"
+    )
+    row = connection.execute(query, (posting_id,)).fetchone()
     if row is None:
         raise LookupError("posting does not exist")
     posting = dict(zip(("id", "title", "company", "location", "raw_jd"), row))
@@ -185,14 +187,13 @@ def list_scoring_candidates(
     }
     profile_sha256 = _sha256(projection.profile_contract(profile))
     requested = list(dict.fromkeys(posting_ids))
-    id_filter = " and p.id = any(%s::uuid[])" if requested else ""
-    params = (profile_sha256, requested, limit) if requested else (profile_sha256, limit)
     rows = connection.execute(
         "select p.id::text from public.postings p join public.posting_extractions e "
         "on e.posting_id=p.id join public.posting_status st on st.posting_id=p.id "
         "left join public.posting_scores s on s.posting_id=p.id where (s.posting_id is null "
-        "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s))"
-        + id_filter + " order by p.posted_at desc nulls last, p.id limit %s",
-        params,
+        "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s)) "
+        "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
+        "order by p.posted_at desc nulls last, p.id limit %s",
+        (profile_sha256, requested or None, requested or None, limit),
     ).fetchall()
     return [str(row[0]) for row in rows]
