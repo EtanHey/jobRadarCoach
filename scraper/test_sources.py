@@ -185,7 +185,8 @@ def test_unparseable_timestamp_keeps_the_board_row_without_display_metadata(
     )
 
     assert [posting["id"] for posting in postings] == expected_ids
-    bad = next(posting for posting in postings if posting["posted_ago"] == "")
+    # A missing malformed-timestamp fixture row must fail the test loudly.
+    bad = next(posting for posting in postings if posting["posted_ago"] == "")  # skipcq: PTC-W0063
     assert bad["posted_ago"] == ""
 
 
@@ -198,7 +199,8 @@ def test_workable_adapter_fetches_real_markdown_board_and_jd_fixture() -> None:
         FIXTURES / "workable-myteam-job-99FDF530F1-2026-08-11.md"
     ).read_text(encoding="utf-8")
     header = "\n".join(board.splitlines()[:6])
-    target_row = next(line for line in board.splitlines() if "99FDF530F1" in line)
+    # A missing named fixture row must fail the test loudly.
+    target_row = next(line for line in board.splitlines() if "99FDF530F1" in line)  # skipcq: PTC-W0063
     one_job_board = f"{header}\n{target_row}\n"
     requested: list[str] = []
 
@@ -911,10 +913,12 @@ def test_default_network_helpers_reject_unsafe_target_before_open(
         def __exit__(self, *_args: object) -> None:
             return None
 
-        def geturl(self) -> str:
+        # Instance method intentionally matches the urllib response protocol.
+        def geturl(self) -> str:  # skipcq: PYL-R0201
             return url
 
-        def read(self) -> bytes:
+        # Instance method intentionally matches the urllib response protocol.
+        def read(self) -> bytes:  # skipcq: PYL-R0201
             return b""
 
     def fake_open(request, **_kwargs: object):
@@ -1046,7 +1050,8 @@ def test_unsafe_corpus_row_isolated_without_url_or_token_leak(
         def __exit__(self, *_args: object) -> None:
             return None
 
-        def geturl(self) -> str:
+        # Instance method intentionally matches the urllib response protocol.
+        def geturl(self) -> str:  # skipcq: PYL-R0201
             return "file:///dev/null?TOP-SECRET-TOKEN"
 
     monkeypatch.setattr(
@@ -1696,10 +1701,12 @@ def test_default_network_helpers_never_expand_remaining_timeout(monkeypatch) -> 
         def __exit__(self, *_args: object) -> None:
             return None
 
-        def geturl(self) -> str:
+        # Instance method intentionally matches the urllib response protocol.
+        def geturl(self) -> str:  # skipcq: PYL-R0201
             return "https://example.test/final"
 
-        def read(self) -> bytes:
+        # Instance method intentionally matches the urllib response protocol.
+        def read(self) -> bytes:  # skipcq: PYL-R0201
             return b"{}"
 
     def fake_open(_url: str, timeout: float):

@@ -23,7 +23,8 @@ def load_jd_fetch_module():
 
 
 class FakeHeaders(dict):
-    def get_content_charset(self):
+    # Instance method intentionally matches the urllib headers protocol.
+    def get_content_charset(self):  # skipcq: PYL-R0201
         return "utf-8"
 
 

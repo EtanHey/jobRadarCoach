@@ -6,7 +6,7 @@ import html
 import re
 from datetime import datetime, timezone
 from typing import Callable
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
@@ -136,7 +136,7 @@ def check_url(
             reason=f"http-{error.code}-uncertain",
             final_url=final_url,
         )
-    except (URLError, TimeoutError, OSError) as error:
+    except OSError as error:
         return _result(
             None,
             status=None,
