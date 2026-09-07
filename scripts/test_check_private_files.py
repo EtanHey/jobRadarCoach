@@ -174,3 +174,34 @@ def test_nested_invocation_cannot_hide_private_paths(
         git(repo, "commit", "-qm", "tracked fixture")
     git(repo, "config", "diff.relative", "true")
     assert run_guard(repo / "sub", *mode).returncode == 1
+
+
+def test_installed_hook_rejects_a_real_commit(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    write(repo, "scripts/check_private_files.py", GUARD.read_text())
+    hook = write(
+        repo,
+        ".githooks/pre-commit",
+        (GUARD.parents[1] / ".githooks/pre-commit").read_text(),
+    )
+    hook.chmod(0o755)
+    git(repo, "config", "core.hooksPath", ".githooks")
+    write(repo, "profile.yaml", "PRIVATE_MARKER")
+    git(repo, "add", "-f", ".")
+    result = subprocess.run(
+        ["git", "commit", "-qm", "must be rejected"],
+        cwd=repo,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode != 0
+    assert "Private-file guard rejected" in result.stderr
+    assert "PRIVATE_MARKER" not in result.stderr
+    assert (
+        subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"],
+            cwd=repo,
+            capture_output=True,
+        ).returncode
+        != 0
+    )
