@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import os
-import socket
 from typing import Callable, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -32,6 +31,8 @@ __all__ = ['BrainError', 'BrainConfigurationError', 'UnsupportedBrainError', 'Br
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
 DEFAULT_OLLAMA_MODEL = "qwen2.5:7b-instruct"
+
+MAX_MODEL_BYTES = 512
 
 MAX_RESPONSE_BYTES = 64_000
 
@@ -65,7 +66,7 @@ def _load_json(raw: bytes, label: str) -> object:
 
     try:
         return json.loads(raw.decode("utf-8"), parse_constant=reject_constant)
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
+    except ValueError as error:
         raise BrainResponseError(f"Ollama returned invalid {label} JSON") from error
 
 def run_brain(
@@ -83,6 +84,8 @@ def run_brain(
     if type(timeout_seconds) not in (int, float) or not 0 < timeout_seconds <= MAX_TIMEOUT_SECONDS:
         raise BrainConfigurationError("timeout must be between 0 and 120 seconds")
     model = _setting(settings, "OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+    if len(model.encode("utf-8")) > MAX_MODEL_BYTES:
+        raise BrainConfigurationError("OLLAMA_MODEL exceeds the byte limit")
     endpoint = _endpoint(_setting(settings, "OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL))
     payload = {
         "model": model,
@@ -105,13 +108,17 @@ def run_brain(
             raw = response.read(MAX_RESPONSE_BYTES + 1)
     except HTTPError as error:
         raise BrainTransportError(f"Ollama request failed with HTTP {error.code}") from error
-    except (TimeoutError, socket.timeout) as error:
+    except TimeoutError as error:
         raise BrainTransportError("Ollama request timed out") from error
     except URLError as error:
         message = "Ollama request timed out" if isinstance(error.reason, TimeoutError) else "Ollama request failed"
         raise BrainTransportError(message) from error
     except OSError as error:
         raise BrainTransportError("Ollama request failed") from error
+    return _parse_response(raw, request)
+
+
+def _parse_response(raw: bytes, request: BrainRequest) -> BrainResult:
     if not isinstance(raw, bytes) or len(raw) > MAX_RESPONSE_BYTES:
         raise BrainResponseError("Ollama response exceeds the byte limit")
 
