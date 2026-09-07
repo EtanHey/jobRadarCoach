@@ -23,6 +23,34 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 DEFAULT_PROFILE_PATH = REPO_ROOT / "profile.yaml"
 LUNA_REASONING_EFFORT = "xhigh"
+SUPPORTED_CODEX_CLI_VERSION = "codex-cli 0.153.4"
+CODEX_DISABLED_FEATURES = (
+    "apps",
+    "browser_use",
+    "browser_use_external",
+    "browser_use_full_cdp_access",
+    "code_mode_host",
+    "computer_use",
+    "hooks",
+    "in_app_browser",
+    "in_app_local_automation",
+    "multi_agent",
+    "plugins",
+    "shell_tool",
+    "skill_search",
+    "unified_exec",
+    "view_image",
+)
+CODEX_ENV_ALLOWLIST = {
+    "CODEX_HOME",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "NO_PROXY",
+    "PATH",
+    "SSL_CERT_FILE",
+    "TMPDIR",
+}
 REASON_FACTORS = [
     "product_role_match",
     "stack_domain_evidence",
@@ -392,34 +420,119 @@ def _discover_codex() -> str:
     raise RuntimeError("Codex subscription runner not found")
 
 
+def _verify_codex_version(codex: str) -> None:
+    completed = subprocess.run(
+        [codex, "--version"],
+        text=True,
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    if (
+        completed.returncode != 0
+        or completed.stdout.strip() != SUPPORTED_CODEX_CLI_VERSION
+    ):
+        raise RuntimeError(
+            f"Codex subscription runner requires {SUPPORTED_CODEX_CLI_VERSION}"
+        )
+
+
+def _subscription_auth_path() -> Path:
+    configured_home = os.environ.get("CODEX_HOME", "").strip()
+    codex_home = (
+        Path(configured_home).expanduser()
+        if configured_home
+        else Path.home() / ".codex"
+    )
+    auth_path = codex_home / "auth.json"
+    if not auth_path.is_file():
+        raise RuntimeError("Codex subscription credentials not found")
+    return auth_path.resolve()
+
+
+def _isolated_codex_environment(codex_home: Path) -> dict[str, str]:
+    """Retain only runtime/auth plumbing, never the caller's secret-bearing env."""
+
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if key in CODEX_ENV_ALLOWLIST
+    }
+    environment["HOME"] = str(codex_home)
+    environment["CODEX_HOME"] = str(codex_home)
+    return environment
+
+
+def _codex_exec_command(
+    codex: str,
+    *,
+    workspace: Path,
+    schema_path: Path,
+    output_path: Path,
+    config_overrides: tuple[str, ...] = (),
+) -> list[str]:
+    return [
+        codex,
+        "exec",
+        "--strict-config",
+        "--ignore-user-config",
+        "--ignore-rules",
+        *(
+            argument
+            for feature in CODEX_DISABLED_FEATURES
+            for argument in ("--disable", feature)
+        ),
+        "-m",
+        "gpt-5.6-luna",
+        "-c",
+        f'model_reasoning_effort="{LUNA_REASONING_EFFORT}"',
+        "-c",
+        "project_doc_max_bytes=0",
+        "-c",
+        'shell_environment_policy.inherit="none"',
+        *(
+            argument
+            for override in config_overrides
+            for argument in ("-c", override)
+        ),
+        "--sandbox",
+        "read-only",
+        "--ephemeral",
+        "--skip-git-repo-check",
+        "-C",
+        str(workspace),
+        "--color",
+        "never",
+        "--output-schema",
+        str(schema_path),
+        "--output-last-message",
+        str(output_path),
+        "-",
+    ]
+
+
 def _subscription_runner(prompt: str, schema: dict[str, object]) -> object:
     codex = _discover_codex()
+    _verify_codex_version(codex)
     with tempfile.TemporaryDirectory(prefix="coach-job-feed-luna-") as temp_dir:
-        schema_path = Path(temp_dir) / "schema.json"
-        output_path = Path(temp_dir) / "annotation.json"
+        temp_root = Path(temp_dir)
+        workspace = temp_root / "workspace"
+        codex_home = temp_root / "codex-home"
+        workspace.mkdir()
+        codex_home.mkdir()
+        (codex_home / "auth.json").symlink_to(_subscription_auth_path())
+        schema_path = workspace / "schema.json"
+        output_path = workspace / "annotation.json"
         schema_path.write_text(
             json.dumps(schema, ensure_ascii=False, sort_keys=True),
             encoding="utf-8",
         )
-        command = [
+        command = _codex_exec_command(
             codex,
-            "exec",
-            "-m",
-            "gpt-5.6-luna",
-            "-c",
-            f'model_reasoning_effort="{LUNA_REASONING_EFFORT}"',
-            "--sandbox",
-            "read-only",
-            "--ephemeral",
-            "--skip-git-repo-check",
-            "--color",
-            "never",
-            "--output-schema",
-            str(schema_path),
-            "--output-last-message",
-            str(output_path),
-            "-",
-        ]
+            workspace=workspace,
+            schema_path=schema_path,
+            output_path=output_path,
+        )
         completed = subprocess.run(
             command,
             input=prompt,
@@ -427,7 +540,8 @@ def _subscription_runner(prompt: str, schema: dict[str, object]) -> object:
             capture_output=True,
             timeout=180,
             check=False,
-            cwd=REPO_ROOT,
+            cwd=workspace,
+            env=_isolated_codex_environment(codex_home),
         )
         if completed.returncode != 0:
             return {
