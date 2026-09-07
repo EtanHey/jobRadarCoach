@@ -16,6 +16,10 @@ POSITIONS_PATTERN = re.compile(
 LOGGER = logging.getLogger("coach.jobfeed.source.comeet")
 
 
+def _mapping(value: object) -> dict[str, object]:
+    return value if isinstance(value, dict) else {}
+
+
 def _plain(value: object) -> str:
     return " ".join(
         html.unescape(re.sub(r"<[^>]+>", " ", str(value))).split()
@@ -47,17 +51,33 @@ def fetch(
     if match is None:
         raise RuntimeError("Comeet board omitted COMPANY_POSITIONS_DATA")
 
+    positions = json.loads(match.group(1))
+    if not isinstance(positions, list):
+        LOGGER.info("Skipping non-list Comeet records for tenant %s", company_uid)
+        return []
+
     postings: list[dict[str, object]] = []
-    for position in json.loads(match.group(1)):
+    for position in positions:
+        if not isinstance(position, dict):
+            LOGGER.info(
+                "Skipping non-object Comeet record for tenant %s", company_uid
+            )
+            continue
         position_uid = position.get("uid")
         if not position_uid:
             LOGGER.info(
                 "Skipping Comeet posting without uid for tenant %s", company_uid
             )
             continue
-        details = position.get("custom_fields", {}).get("details", [])
-        jd_text = " ".join(_plain(item.get("value", "")) for item in details).strip()
-        location = position.get("location") or {}
+        details = _mapping(position.get("custom_fields")).get("details", [])
+        if not isinstance(details, list):
+            details = []
+        jd_text = " ".join(
+            _plain(item.get("value", ""))
+            for item in details
+            if isinstance(item, dict)
+        ).strip()
+        location = _mapping(position.get("location"))
         updated_fields = _posted_fields(position.get("time_updated"))
         updated_at, updated_display = updated_fields or ("", "")
         posting = {
