@@ -1,5 +1,6 @@
 # 1. Base: a ready-made Linux with Python 3.12, small variant
 FROM python:3.12-slim
+ARG TARGETARCH
 
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -8,6 +9,11 @@ WORKDIR /app
 
 # 3. Install the bounded runtime dependencies, then copy only the portable scraper.
 RUN python -m pip install --no-cache-dir "psycopg[binary]==3.3.5" "jsonschema==4.26.0"
+
+COPY build/install_codex.py /tmp/install_codex.py
+RUN python /tmp/install_codex.py "$TARGETARCH" \
+    && rm /tmp/install_codex.py \
+    && codex --version
 
 COPY scraper/ /app/scraper/
 
