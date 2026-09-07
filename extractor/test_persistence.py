@@ -46,7 +46,7 @@ def connection():
 
 def extraction(
     raw_jd: str = RAW_JD,
-    facts: dict[str, object] = FACTS,
+    facts: dict[str, object] | None = None,
     *,
     brain: str = "ollama",
     model: str = "qwen2.5:7b-instruct",
@@ -64,7 +64,7 @@ def extraction(
     fingerprint = hashlib.sha256(
         json.dumps(identity, separators=(",", ":"), sort_keys=True).encode()
     ).hexdigest()
-    return {**identity, "facts": deepcopy(facts), "fingerprint": fingerprint}
+    return {**identity, "facts": deepcopy(FACTS if facts is None else facts), "fingerprint": fingerprint}
 
 
 def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
