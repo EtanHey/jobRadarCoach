@@ -11,7 +11,7 @@ import re
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from extractor.core import _schema
+from extractor.core import EXTRACTION_SCHEMA_SHA256, _schema
 from extractor.evidence import validate_facts
 
 
@@ -100,6 +100,8 @@ def build_payload(
     model = require_text(extraction["model"], "model")
     version = require_text(extraction["extractor_version"], "extractor_version")
     schema_sha256 = require_sha256(extraction["schema_sha256"], "schema_sha256")
+    if schema_sha256 != EXTRACTION_SCHEMA_SHA256:
+        raise ValueError("extraction schema does not match the validator")
     jd_sha256 = require_sha256(extraction["jd_sha256"], "jd_sha256")
     result_fingerprint = require_sha256(extraction["fingerprint"], "fingerprint")
     if hashlib.sha256(captured_raw_jd.encode()).hexdigest() != jd_sha256:
