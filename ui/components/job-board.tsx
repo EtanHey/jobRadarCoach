@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
+import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, BoardHero, JobsPanel, JobDrawer, type Filter } from "./job-views";
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
@@ -23,15 +24,41 @@ export function JobBoard() {
   const [reason, setReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [connection, setConnection] = useState("Connecting live updates…");
   const selectedRef = useRef(selected);
+  const detailVersion = useRef(0);
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const reload = useCallback(() => { setLoading(true); setError(""); setRevision((value) => value + 1); }, []);
   function selectJob(id: string | null) {
+    detailVersion.current += 1;
     selectedRef.current = id;
     setSelected(id); setDetail(null); setDetailError(""); setRejecting(false); setReason("");
   }
   function chooseFilter(value: Filter) { setLoading(true); setError(""); setFilter(value); }
 
+
+  useEffect(() => {
+    const events = new EventSource("/api/events");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let detailRequest: AbortController | undefined;
+    function refresh() {
+      reload();
+      detailRequest?.abort();
+      const id = selectedRef.current;
+      if (!id) return;
+      const version = ++detailVersion.current;
+      const controller = new AbortController();
+      detailRequest = controller;
+      request(`/api/jobs/${id}`, { signal: controller.signal }).then((body) => {
+        if (!controller.signal.aborted && selectedRef.current === id && detailVersion.current === version) { setDetail(JobDetailResponseSchema.parse(body).job); setDetailError(""); }
+      }).catch(() => { if (!controller.signal.aborted && selectedRef.current === id && detailVersion.current === version) setDetailError("Could not refresh this job. Close and reopen to retry."); });
+    }
+    function queueRefresh() { clearTimeout(timer); timer = setTimeout(refresh, 150); }
+    events.addEventListener("ready", () => { setConnection("Live updates connected"); queueRefresh(); });
+    events.addEventListener("refresh", queueRefresh);
+    events.addEventListener("error", () => setConnection("Reconnecting live updates…"));
+    return () => { events.close(); clearTimeout(timer); detailRequest?.abort(); };
+  }, [reload]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -44,6 +71,7 @@ export function JobBoard() {
 
   useEffect(() => {
     if (!selected) return undefined;
+    const version = ++detailVersion.current;
     const controller = new AbortController();
     async function open() {
       try {
@@ -53,9 +81,10 @@ export function JobBoard() {
           method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "seen" }), signal: controller.signal,
         }));
         if (controller.signal.aborted) return;
-        setDetail({ ...job, status: status.status, status_reason: status.reason }); reload();
+        if (detailVersion.current === version) setDetail({ ...job, status: status.status, status_reason: status.reason });
+        reload();
       } catch (cause) {
-        if (!controller.signal.aborted) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
+        if (!controller.signal.aborted && detailVersion.current === version) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
       }
     }
     open();
@@ -85,8 +114,9 @@ export function JobBoard() {
   return <div className="min-h-screen bg-[#f5f6f3] text-[#17332b]">
     <BoardHeader />
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-      <BoardHero />
+      <BoardHero><ProfileDrawer onUpdated={reload} /></BoardHero>
       <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, reload}} />
+      <p role="status" className="mt-4 text-xs text-[#687d6e]">{connection}</p>
       <p className="mt-5 text-xs text-[#82907f]">Scores are a starting point. Open a role to see the reasoning and original description.</p>
     </main>
     <JobDrawer {...{selected, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
