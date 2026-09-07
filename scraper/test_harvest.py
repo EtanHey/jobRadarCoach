@@ -1239,8 +1239,239 @@ def test_dedupe_uses_every_prior_day_and_removes_in_run_duplicates(tmp_path: Pat
         seen,
     )
 
-    assert seen == {"old-1", "old-2"}
+    assert seen == {("linkedin", "old-1"), ("linkedin", "old-2")}
     assert fresh == [{"id": "new-1"}]
+
+
+def test_in_run_identity_dedupe_uses_source_and_external_id() -> None:
+    harvest = load_harvest_module()
+
+    fresh = harvest.dedupe_postings(
+        [
+            {"source": "linkedin", "id": "shared", "company": "One", "title": "Engineer"},
+            {"source": "linkedin", "id": "shared", "company": "Duplicate", "title": "Other"},
+            {"source": "lever", "id": "shared", "company": "Two", "title": "Developer"},
+        ],
+        set(),
+    )
+
+    assert [(posting["source"], posting["id"]) for posting in fresh] == [
+        ("linkedin", "shared"), ("lever", "shared")
+    ]
+
+
+def test_legacy_linkedin_id_does_not_suppress_same_id_from_lever(
+    tmp_path: Path,
+) -> None:
+    harvest = load_harvest_module()
+    history = tmp_path / "2026-08-08.jsonl"
+    history.write_text(
+        '{"id":"shared"}\n'
+        '{"source":"lever","id":"lever-old"}\n'
+        '{"id":"lever:legacy-shaped"}\n',
+        encoding="utf-8",
+    )
+
+    seen = harvest.load_jsonl_ids(history)
+    fresh = harvest.dedupe_postings(
+        [
+            {"source": "linkedin", "id": "shared"},
+            {"source": "lever", "id": "shared"},
+        ],
+        seen,
+    )
+
+    assert seen == {
+        ("linkedin", "shared"),
+        ("lever", "lever-old"),
+        ("linkedin", "lever:legacy-shaped"),
+    }
+    assert fresh == [{"source": "lever", "id": "shared"}]
+
+
+def test_workable_prefilter_candidates_remain_in_fetched_count(monkeypatch) -> None:
+    harvest = load_harvest_module()
+
+    class Adapter:
+        @staticmethod
+        def fetch(_query, *, posting_filter, **_kwargs):
+            rows = [
+                {"id": "allowed", "title": "Software Engineer"},
+                {"id": "excluded", "title": "Mechanical Software Engineer"},
+            ]
+            return [posting for posting in rows if posting_filter(posting)]
+
+    monkeypatch.setattr(harvest, "load_source_adapter", lambda _name: Adapter)
+    fetch_counts: dict[str, int] = {}
+    postings, warnings = harvest.harvest_sources(
+        {"workable": [{"source_tenant": "test"}]}, {"workable"},
+        fetcher=lambda _url: "", before_request=lambda: None,
+        posting_filter=lambda posting: "Mechanical" not in str(posting["title"]),
+        fetch_counts=fetch_counts,
+    )
+
+    assert [posting["id"] for posting in postings] == ["allowed"]
+    assert fetch_counts == {"workable": 2}
+    assert warnings == 0
+
+
+@pytest.mark.parametrize(
+    "title",
+    (
+        "Embedded Software Engineer",
+        "Mechanical Software Engineer",
+        "Data Scientist",
+        "Data Science Software Engineer",
+    ),
+)
+def test_model_title_gate_hard_excludes_categories_despite_positive_jd(title: str) -> None:
+    harvest = load_harvest_module()
+    searches = [{"keywords": title, "location": "Israel", "recency": "r10800"}]
+    posting = {
+        "id": "linkedin-excluded", "title": title, "location": "Israel",
+        "jd_text": "Build React TypeScript Node full-stack AI LLM agent products.",
+        "jd_fetched": True,
+    }
+
+    assert harvest.score_posting(posting)["score"] > 0
+    assert harvest._title_matches_model_scope(posting, searches) is False
+
+
+def test_model_title_gate_includes_linkedin_configured_role() -> None:
+    harvest = load_harvest_module()
+    searches = [{"keywords": "Full Stack Engineer", "location": "Remote", "recency": "r10800"}]
+
+    assert harvest._title_matches_model_scope(
+        {"id": "linkedin-allowed", "title": "Full-Stack Developer"}, searches
+    ) is True
+
+
+def test_linkedin_pipeline_requires_paired_title_and_geography(
+    tmp_path: Path, monkeypatch
+) -> None:
+    harvest = load_harvest_module()
+    profile = {
+        "search.terms": ["Software Engineer"],
+        "candidate.open_to.geographies": ["Israel"],
+        "search.recency": "r10800",
+        "candidate.fit_terms": [],
+        "search.location_terms": {"Israel": ["Tel Aviv"]},
+    }
+    postings = [
+        {
+            "id": "in-scope", "title": "Software Engineer", "company": "One",
+            "location": "Tel Aviv", "url": "https://example.test/in-scope",
+        },
+        {
+            "id": "wrong-geography", "title": "Software Engineer", "company": "Two",
+            "location": "London", "url": "https://example.test/wrong-geography",
+        },
+    ]
+    written: list[dict[str, object]] = []
+
+    class Database:
+        @staticmethod
+        def searches_from_profile(_profile):
+            return [
+                {
+                    "keywords": "Software Engineer",
+                    "location": "Israel",
+                    "recency": "r10800",
+                }
+            ]
+
+    def writer(rows, _observed_at):
+        written.extend(rows)
+        return {
+            "observed_posting_ids": [str(row["id"]) for row in rows],
+            "inserted_posting_ids": [str(row["id"]) for row in rows],
+        }
+
+    monkeypatch.setattr(harvest, "load_database_module", lambda: Database)
+    monkeypatch.setattr(
+        harvest, "harvest_search", lambda *_args, **_kwargs: (postings, 0)
+    )
+
+    result = harvest.run_pipeline(
+        config_path=tmp_path / "unused", profile_path=tmp_path / "unused",
+        output_dir=tmp_path, date_string="2026-09-08",
+        harvested_at="2026-09-08T12:00:00Z", max_pages=1,
+        fetcher=lambda _url: "", before_request=lambda: None, jd_fetch_cap=0,
+        profile_snapshot=profile, posting_writer=writer,
+    )
+
+    assert result["fetched_count"] == 2
+    assert result["matched_count"] == 1
+    assert [row["id"] for row in written] == ["in-scope"]
+
+
+def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
+    tmp_path: Path, monkeypatch
+) -> None:
+    harvest = load_harvest_module()
+    posting = {
+        "id": "linkedin-repeat", "title": "Software Engineer", "company": "Example",
+        "location": "Israel", "url": "https://example.test/repeat",
+        "jd_text": "Build React and TypeScript products. " * 8, "jd_fetched": True,
+    }
+    excluded = [
+        {
+            **posting, "id": f"linkedin-excluded-{index}", "title": title,
+            "url": f"https://example.test/excluded-{index}",
+        }
+        for index, title in enumerate((
+            "Embedded Software Engineer", "Mechanical Software Engineer",
+            "Data Science Software Engineer",
+        ))
+    ]
+    profile = {
+        "search.terms": ["Software Engineer"],
+        "candidate.open_to.geographies": ["Israel"],
+        "search.recency": "r10800", "candidate.fit_terms": [],
+        "search.location_terms": {},
+    }
+    persisted_id = "00000000-0000-0000-0000-000000000001"
+    writes = 0
+    annotations: list[str] = []
+
+    class Database:
+        @staticmethod
+        def searches_from_profile(_profile):
+            return [{"keywords": "Software Engineer", "location": "Israel", "recency": "r10800"}]
+
+    def writer(_postings, _observed_at):
+        nonlocal writes
+        assert [row["id"] for row in _postings] == ["linkedin-repeat"]
+        writes += 1
+        return {
+            "observed_posting_ids": [persisted_id],
+            "inserted_posting_ids": [persisted_id] if writes == 1 else [],
+        }
+
+    monkeypatch.setattr(harvest, "load_database_module", lambda: Database)
+    monkeypatch.setattr(
+        harvest, "harvest_search", lambda *_args, **_kwargs: ([posting, *excluded], 0)
+    )
+
+    def run_once(timestamp: str):
+        return harvest.run_pipeline(
+            config_path=tmp_path / "unused", profile_path=tmp_path / "unused",
+            output_dir=tmp_path, date_string="2026-09-08", harvested_at=timestamp,
+            max_pages=1, fetcher=lambda _url: "", before_request=lambda: None,
+            annotator=lambda row: annotations.append(str(row["id"])), jd_fetch_cap=0,
+            profile_snapshot=profile, posting_writer=writer,
+        )
+
+    first = run_once("2026-09-08T10:00:00Z")
+    repeated = run_once("2026-09-08T11:00:00Z")
+
+    assert first["fetched_count"] == repeated["fetched_count"] == 4
+    assert first["matched_count"] == first["new_count"] == 1
+    assert repeated["matched_count"] == 1
+    assert repeated["new_count"] == 0
+    assert first["inserted_posting_ids"] == [persisted_id]
+    assert repeated["inserted_posting_ids"] == []
+    assert annotations == ["linkedin-repeat"]
 
 
 def test_load_prior_ids_excludes_current_and_future_dated_files(tmp_path: Path) -> None:
@@ -1249,7 +1480,9 @@ def test_load_prior_ids_excludes_current_and_future_dated_files(tmp_path: Path) 
     (tmp_path / "2026-08-09.jsonl").write_text('{"id":"today"}\n', encoding="utf-8")
     (tmp_path / "2026-08-10.jsonl").write_text('{"id":"future"}\n', encoding="utf-8")
 
-    assert harvest.load_prior_ids(tmp_path, current_date="2026-08-09") == {"past"}
+    assert harvest.load_prior_ids(tmp_path, current_date="2026-08-09") == {
+        ("linkedin", "past")
+    }
 
 
 def test_load_searches_has_transitional_regional_examples() -> None:
@@ -2259,6 +2492,8 @@ def test_run_pipeline_dedupes_prior_and_current_files(tmp_path: Path) -> None:
         for line in (tmp_path / "2026-08-09.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert result == {
+        "fetched_count": 20,
+        "matched_count": 20,
         "harvested_count": 20,
         "new_count": 1,
         "new_published_count": 1,
@@ -2439,10 +2674,13 @@ def test_main_db_runtime_uses_snapshot_without_seed_or_prior_reads(
             return projection
 
         @staticmethod
-        def persist_postings(_connection, postings, observed_at):
+        def persist_postings_with_disposition(_connection, postings, observed_at):
             captured["postings"] = postings
             captured["observed_at"] = observed_at
-            return ["durable-id"] * len(postings)
+            return {
+                "observed_posting_ids": ["durable-id"] * len(postings),
+                "inserted_posting_ids": [],
+            }
 
     def forbidden_read(*_args, **_kwargs):
         pytest.fail("completed DB runtime read a seed or JSONL history file")
@@ -2488,9 +2726,13 @@ def test_main_db_runtime_uses_snapshot_without_seed_or_prior_reads(
     assert captured["annotation_profile"] is projection
     assert [posting["id"] for posting in captured["postings"]] == ["repeat-id"]
     summary = json.loads(capsys.readouterr().out)
-    assert "new_count" not in summary
+    assert summary["fetched_count"] == 1
+    assert summary["matched_count"] == 1
+    assert summary["new_count"] == 0
     assert summary["observed_count"] == 1
     assert summary["observed_published_count"] == 1
+    assert summary["observed_posting_ids"] == ["durable-id"]
+    assert summary["inserted_posting_ids"] == []
 
 
 def test_main_db_runtime_fails_closed_without_database_url(monkeypatch) -> None:
@@ -2603,7 +2845,7 @@ def test_run_pipeline_dispatches_registry_queries_and_isolates_tenants(
     assert calls == [("greenhouse", "broken"), ("lever", "good")]
     assert result["source_counts"] == {"linkedin": 1, "greenhouse": 0, "lever": 1}
     assert result["source_fetch_counts"] == {"greenhouse": 0, "lever": 1}
-    assert result["source_match_counts"] == {"linkedin": 0, "greenhouse": 0, "lever": 1}
+    assert result["source_match_counts"] == {"linkedin": 10, "greenhouse": 0, "lever": 1}
     assert {(row["source"], row["source_tenant"]) for row in rows} == {
         ("linkedin", "linkedin-guest"), ("lever", "good")
     }

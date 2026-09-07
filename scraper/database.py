@@ -344,25 +344,63 @@ returning id
 """
 
 
-def persist_postings(
+POSTING_INSERT = """
+insert into public.postings (
+  source, external_id, url, title, company, location, remote, seniority, stack,
+  salary, apply_url, posted_at, raw_jd, first_seen_at, last_seen_at, liveness
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+on conflict on constraint postings_source_external_id_key do nothing
+returning id
+"""
+
+
+def _persist_postings(
     connection: Connection, postings: list[dict[str, object]], observed_at: str
-) -> list[str]:
-    """Atomically upsert observations and initialize only missing statuses."""
+) -> tuple[list[str], list[str]]:
+    """Atomically upsert observations and distinguish inserts under contention."""
 
     timestamp = _timestamp(observed_at)
     if timestamp is None:
         raise ValueError("harvested_at must be an offset-aware ISO timestamp")
     posting_ids: list[str] = []
+    inserted_ids: list[str] = []
     with connection.transaction():
         for posting in postings:
-            row = connection.execute(POSTING_UPSERT, _posting_values(posting, timestamp)).fetchone()
+            values = _posting_values(posting, timestamp)
+            row = connection.execute(POSTING_INSERT, values[:-1]).fetchone()
+            inserted = row is not None
+            if row is None:
+                row = connection.execute(POSTING_UPSERT, values).fetchone()
             if row is None:
                 raise RuntimeError("posting upsert returned no durable identity")
             posting_id = str(row[0])
             posting_ids.append(posting_id)
+            if inserted:
+                inserted_ids.append(posting_id)
             connection.execute(
                 "insert into public.posting_status (posting_id) values (%s) "
                 "on conflict (posting_id) do nothing",
                 (posting_id,),
             )
+    return posting_ids, inserted_ids
+
+
+def persist_postings(
+    connection: Connection, postings: list[dict[str, object]], observed_at: str
+) -> list[str]:
+    """Compatibility API: atomically upsert observations and return durable IDs."""
+
+    posting_ids, _inserted_ids = _persist_postings(connection, postings, observed_at)
     return posting_ids
+
+
+def persist_postings_with_disposition(
+    connection: Connection, postings: list[dict[str, object]], observed_at: str
+) -> dict[str, list[str]]:
+    """Atomically upsert observations and expose truthful insertion disposition."""
+
+    posting_ids, inserted_ids = _persist_postings(connection, postings, observed_at)
+    return {
+        "observed_posting_ids": posting_ids,
+        "inserted_posting_ids": inserted_ids,
+    }

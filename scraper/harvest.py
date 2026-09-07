@@ -49,6 +49,10 @@ CORE_STACK_PATTERN = re.compile(
     r"full[\s-]?stack|front[\s-]?end)\b",
     re.I,
 )
+HARD_TITLE_EXCLUSION_PATTERN = re.compile(
+    r"\bembedded\b|\bmechanical\b|\bdata[\s-]+scien(?:ces?|tists?)\b",
+    re.I,
+)
 ROLE_TYPE_NEGATIVE_LABELS = {
     "data-scientist", "algorithm-engineer", "ml-engineer",
     "research-engineer", "computer-vision", "nlp-researcher",
@@ -106,6 +110,7 @@ GUEST_JOB_ENDPOINT = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting"
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
 SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable")
 NATIVE_ATS_SOURCES = frozenset(SOURCE_ORDER[1:])
+PostingIdentity = tuple[str, str]
 STAFFING_COMPANIES = frozenset(
     {"medulla", "gotfriends", "got friends", "ethosia", "talent hr", "talenthr", "mertens"}
 )
@@ -780,11 +785,16 @@ def format_rescore_table(
     return "\n".join(rows)
 
 
-def load_prior_ids(output_dir: Path, current_date: str) -> set[str]:
-    """Read listing IDs from every dated JSONL file before the current day."""
+def _persisted_posting_identity(posting: dict[str, object]) -> PostingIdentity:
+    source = str(posting.get("source") or "linkedin").casefold()
+    return source, str(posting.get("id", ""))
+
+
+def load_prior_ids(output_dir: Path, current_date: str) -> set[PostingIdentity]:
+    """Read source-qualified listing IDs from dated JSONL before today."""
 
     cutoff = date.fromisoformat(current_date)
-    seen: set[str] = set()
+    seen: set[PostingIdentity] = set()
     for path in sorted(output_dir.glob("????-??-??.jsonl")):
         try:
             feed_date = date.fromisoformat(path.stem)
@@ -797,29 +807,31 @@ def load_prior_ids(output_dir: Path, current_date: str) -> set[str]:
             if not line.strip():
                 continue
             try:
-                listing_id = str(json.loads(line).get("id", ""))
+                posting = json.loads(line)
+                identity = _persisted_posting_identity(posting)
             except (json.JSONDecodeError, AttributeError):
                 LOGGER.warning("Skipping malformed JSONL row %s:%d", path, line_number)
                 continue
-            if listing_id:
-                seen.add(listing_id)
+            if identity[1]:
+                seen.add(identity)
     return seen
 
 
-def load_jsonl_ids(path: Path) -> set[str]:
+def load_jsonl_ids(path: Path) -> set[PostingIdentity]:
     if not path.exists():
         return set()
-    seen: set[str] = set()
+    seen: set[PostingIdentity] = set()
     for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         try:
-            listing_id = str(json.loads(line).get("id", ""))
+            posting = json.loads(line)
+            identity = _persisted_posting_identity(posting)
         except (json.JSONDecodeError, AttributeError):
             LOGGER.warning("Skipping malformed JSONL row %s:%d", path, line_number)
             continue
-        if listing_id:
-            seen.add(listing_id)
+        if identity[1]:
+            seen.add(identity)
     return seen
 
 
@@ -981,21 +993,28 @@ def load_triage_verdicts(path: Path) -> dict[str, dict[str, str]]:
 
 def dedupe_postings(
     postings: list[dict[str, object]],
-    seen_ids: set[str],
+    seen_ids: set[str | PostingIdentity],
     seen_secondary_keys: dict[tuple[str, str], set[str]] | None = None,
 ) -> list[dict[str, object]]:
     fresh: list[dict[str, object]] = []
-    encountered = set(seen_ids)
+    # Bare IDs predate source-qualified history and can only mean LinkedIn.
+    prior_identities = {
+        identity if isinstance(identity, tuple) else ("linkedin", identity)
+        for identity in seen_ids
+    }
+    encountered: set[tuple[str, str]] = set()
     encountered_secondary = {
         key: set(sources) for key, sources in (seen_secondary_keys or {}).items()
     }
     for posting in postings:
         listing_id = str(posting.get("id", ""))
+        source_identity = (_posting_source(posting), listing_id)
         secondary = _posting_secondary_key(posting)
         source = _posting_source(posting)
         if (
             not listing_id
-            or listing_id in encountered
+            or source_identity in prior_identities
+            or source_identity in encountered
             or (
                 secondary is not None
                 and secondary in encountered_secondary
@@ -1003,7 +1022,7 @@ def dedupe_postings(
             )
         ):
             continue
-        encountered.add(listing_id)
+        encountered.add(source_identity)
         if secondary is not None:
             encountered_secondary.setdefault(secondary, set()).add(source)
         fresh.append(posting)
@@ -1178,15 +1197,23 @@ def harvest_sources(
             continue
         for query in source_queries.get(name, []):
             try:
+                prefilter_count = 0
                 adapter_kwargs = {
                     "fetcher": fetcher,
                     "before_request": before_request,
                 }
                 if name == "workable" and posting_filter is not None:
-                    adapter_kwargs["posting_filter"] = posting_filter
+                    def counted_filter(posting):
+                        nonlocal prefilter_count
+                        prefilter_count += 1
+                        return posting_filter(posting)
+
+                    adapter_kwargs["posting_filter"] = counted_filter
                 fetched = list(adapter.fetch(query, **adapter_kwargs))
                 if fetch_counts is not None:
-                    fetch_counts[name] = fetch_counts.get(name, 0) + len(fetched)
+                    fetch_counts[name] = fetch_counts.get(name, 0) + (
+                        prefilter_count if prefilter_count else len(fetched)
+                    )
                 for posting in fetched:
                     enriched = dict(posting)
                     enriched["source"] = name
@@ -1235,6 +1262,19 @@ def _title_match_tokens(value: object) -> set[str]:
     return set(joined.split())
 
 
+def _title_matches_model_scope(
+    posting: dict[str, object], searches: list[dict[str, str]]
+) -> bool:
+    """Apply the shared configured-title inclusion, then explicit hard exclusions."""
+
+    title = str(posting.get("title", ""))
+    title_tokens = _title_match_tokens(title)
+    included = any(
+        _title_match_tokens(search["keywords"]) <= title_tokens for search in searches
+    )
+    return included and HARD_TITLE_EXCLUSION_PATTERN.search(title) is None
+
+
 def _contains_normalized_phrase(text: str, phrase: str) -> bool:
     text_tokens = text.split()
     phrase_tokens = phrase.split()
@@ -1270,7 +1310,7 @@ def _source_posting_matches(
 ) -> bool:
     title_tokens = _title_match_tokens(posting.get("title", ""))
     aliases = location_terms or {}
-    return any(
+    return _title_matches_model_scope(posting, searches) and any(
         _title_match_tokens(search["keywords"]) <= title_tokens
         and _location_matches(posting, search["location"], aliases)
         for search in searches
@@ -1982,7 +2022,7 @@ def run_pipeline(  # skipcq: PY-R1000
     jd_fetch_cap: int = 40,
     liveness_checker: Callable[[dict[str, object]], dict[str, object]] | None = None,
     profile_snapshot: dict[str, object] | None = None,
-    posting_writer: Callable[[list[dict[str, object]], str], list[str]] | None = None,
+    posting_writer: Callable[[list[dict[str, object]], str], object] | None = None,
 ) -> dict[str, object]:
     if jd_fetch_cap < 0:
         raise ValueError("jd_fetch_cap must be non-negative")
@@ -2034,6 +2074,8 @@ def run_pipeline(  # skipcq: PY-R1000
     else:
         source_queries = {}
     harvested: list[dict[str, object]] = []
+    linkedin_fetched_count = 0
+    linkedin_matched_count = 0
     warning_count = len(source_config_warnings)
     for search in searches:
         page_postings, page_warnings = harvest_search(
@@ -2042,7 +2084,14 @@ def run_pipeline(  # skipcq: PY-R1000
             fetcher=fetcher,
             before_request=before_request,
         )
-        harvested.extend(page_postings)
+        linkedin_fetched_count += len(page_postings)
+        matched_page = [
+            posting
+            for posting in page_postings
+            if _source_posting_matches(posting, searches, location_terms)
+        ]
+        linkedin_matched_count += len(matched_page)
+        harvested.extend(matched_page)
         warning_count += page_warnings
 
     source_fetch_counts = {name: 0 for name in SOURCE_ORDER if name in enabled_sources}
@@ -2060,8 +2109,11 @@ def run_pipeline(  # skipcq: PY-R1000
         source_postings, searches, location_terms
     )
     source_match_counts = count_postings_by_source(source_postings, enabled_sources)
+    source_match_counts["linkedin"] = linkedin_matched_count
     harvested.extend(source_postings)
     warning_count += source_warnings + count_missing_source_jds(source_postings)
+    fetched_count = linkedin_fetched_count + sum(source_fetch_counts.values())
+    matched_count = len(harvested)
 
     unique = dedupe_postings(harvested, set())
     if database_mode:
@@ -2110,9 +2162,34 @@ def run_pipeline(  # skipcq: PY-R1000
 
     output_path = None
     recent_liveness_counts = None
+    observed_posting_ids: list[str] = []
+    inserted_posting_ids: list[str] = []
+    annotation_candidates = scored
     if database_mode:
         assert posting_writer is not None
-        posting_writer(scored_all, harvested_at)
+        persistence = posting_writer(scored_all, harvested_at)
+        if not isinstance(persistence, dict) or set(persistence) != {
+            "observed_posting_ids", "inserted_posting_ids"
+        }:
+            raise ValueError("DB posting writer returned an invalid disposition")
+        observed = persistence["observed_posting_ids"]
+        inserted = persistence["inserted_posting_ids"]
+        if (
+            not isinstance(observed, list)
+            or not isinstance(inserted, list)
+            or not all(isinstance(posting_id, str) for posting_id in [*observed, *inserted])
+            or len(observed) != len(scored_all)
+            or not set(inserted) <= set(observed)
+        ):
+            raise ValueError("DB posting writer returned an invalid disposition")
+        observed_posting_ids = observed
+        inserted_posting_ids = inserted
+        inserted_set = set(inserted_posting_ids)
+        annotation_candidates = [
+            posting
+            for posting, posting_id in zip(scored_all, observed_posting_ids)
+            if posting_id in inserted_set and posting.get("alive") is not False
+        ]
     else:
         output_path = append_postings(output_dir, date_string, scored_all)
     if liveness_checker is not None and not database_mode:
@@ -2120,6 +2197,8 @@ def run_pipeline(  # skipcq: PY-R1000
             output_dir, date_string, liveness_checker
         )
     skipped_seen = len(unique) - len(fresh)
+    if database_mode:
+        skipped_seen += len(observed_posting_ids) - len(inserted_posting_ids)
     if not database_mode:
         write_summary(
             output_dir,
@@ -2132,7 +2211,7 @@ def run_pipeline(  # skipcq: PY-R1000
             liveness_counts=liveness_counts if liveness_checker is not None else None,
             jd_fetch_degraded=jd_fetch_degraded,
         )
-    annotated = scored
+    annotated = annotation_candidates
     annotation_count = 0
     annotation_unavailable_count = 0
     annotation_invalid_count = 0
@@ -2145,7 +2224,7 @@ def run_pipeline(  # skipcq: PY-R1000
             annotation_unavailable_count,
             annotation_invalid_count,
         ) = annotate_positive_postings(
-            scored,
+            annotation_candidates,
             annotator,
             deadline=annotation_started + ANNOTATION_BUDGET_SECONDS,
             clock=clock,
@@ -2176,9 +2255,10 @@ def run_pipeline(  # skipcq: PY-R1000
                 annotation_invalid_count = 0
 
     result: dict[str, object] = {
+        "fetched_count": fetched_count,
+        "matched_count": matched_count,
+        "new_count": len(inserted_posting_ids) if database_mode else len(scored_all),
         "harvested_count": len(harvested),
-        ("observed_count" if database_mode else "new_count"): len(scored_all),
-        ("observed_published_count" if database_mode else "new_published_count"): len(scored),
         "jd_fetched_count": sum(posting.get("jd_fetched") is True for posting in scored),
         "jd_fetch_attempted": jd_fetch_attempted,
         "jd_fetch_failed": jd_fetch_failed,
@@ -2190,6 +2270,18 @@ def run_pipeline(  # skipcq: PY-R1000
         "annotation_invalid_count": annotation_invalid_count,
         "annotation_seconds": annotation_seconds,
     }
+    if database_mode:
+        inserted_set = set(inserted_posting_ids)
+        result["observed_count"] = len(scored_all)
+        result["observed_published_count"] = len(scored)
+        result["new_published_count"] = sum(
+            posting_id in inserted_set and posting.get("alive") is not False
+            for posting, posting_id in zip(scored_all, observed_posting_ids)
+        )
+        result["observed_posting_ids"] = observed_posting_ids
+        result["inserted_posting_ids"] = inserted_posting_ids
+    else:
+        result["new_published_count"] = len(scored)
     if enabled_sources:
         result["source_counts"] = source_counts
         result["source_fetch_counts"] = source_fetch_counts
@@ -2298,7 +2390,7 @@ def main(argv: list[str] | None = None) -> int:
 
             def write_posting_batch(postings, observed_at):
                 with psycopg.connect(database_url) as write_connection:
-                    return database.persist_postings(
+                    return database.persist_postings_with_disposition(
                         write_connection, postings, observed_at
                     )
 
@@ -2329,7 +2421,7 @@ def _run_main_pipeline(
     enabled_sources: set[str],
     annotation_profile: dict[str, object] | None,
     profile_snapshot: dict[str, object] | None,
-    posting_writer: Callable[[list[dict[str, object]], str], list[str]] | None,
+    posting_writer: Callable[[list[dict[str, object]], str], object] | None,
     unavailable_annotator: Callable[[dict[str, object]], None],
 ) -> dict[str, object]:
     if args.no_annotate:
