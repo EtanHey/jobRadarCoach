@@ -32,7 +32,8 @@ def install(architecture: str, destination: Path) -> None:
         archive_path = Path(temporary) / "codex.tgz"
         digest = hashlib.sha512()
         total = 0
-        with urlopen(url, timeout=60) as response, archive_path.open("wb") as archive:
+        # Fixed HTTPS npm origin, allowlisted architecture/version; SHA-512 verified below.
+        with urlopen(url, timeout=60) as response, archive_path.open("wb") as archive:  # skipcq: BAN-B310
             while chunk := response.read(1_048_576):
                 total += len(chunk)
                 if total > MAX_ARCHIVE_BYTES:
