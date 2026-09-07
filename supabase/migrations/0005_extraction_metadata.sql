@@ -20,10 +20,14 @@ create table if not exists public.posting_extractions (
     jsonb_typeof(facts) = 'object'
     and facts ?& array['location', 'remote', 'seniority', 'stack', 'salary']
     and jsonb_typeof(facts->'location') = 'object'
+    and (facts->'location') ?& array['value', 'evidence_quote']
     and jsonb_typeof(facts->'remote') = 'object'
+    and (facts->'remote') ?& array['value', 'evidence_quote']
     and jsonb_typeof(facts->'seniority') = 'object'
+    and (facts->'seniority') ?& array['value', 'evidence_quote']
     and jsonb_typeof(facts->'stack') = 'array'
     and jsonb_typeof(facts->'salary') = 'object'
+    and (facts->'salary') ?& array['value', 'evidence_quote']
   )
 );
 
