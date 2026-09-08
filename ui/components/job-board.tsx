@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { relatedDuplicateJobs } from "@/lib/job-dedup";
+import { relativeAge } from "@/lib/job-display";
+import { groupDuplicateJobs, relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobs, type ViewOptions } from "@/lib/job-filters";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
-import { BoardHeader, BoardHero, JobsPanel, JobDrawer, type Filter } from "./job-views";
+import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
   const response = await fetch(path, { cache: "no-store", ...options });
@@ -140,12 +141,11 @@ export function JobBoard() {
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   return <div className="min-h-screen bg-background text-foreground">
-    <BoardHeader />
-    <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
-      <BoardHero><ProfileDrawer onUpdated={requestRefresh} /></BoardHero>
+    <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
+    <main className="mx-auto max-w-7xl px-4 py-4 sm:px-8">
+      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1><span className="rounded-full bg-muted px-2 py-1">{groupDuplicateJobs(visible).length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
       <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={setView} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
-      <p className="mt-5 text-xs text-muted-foreground">Scores are a starting point. Open a role to see the reasoning and original description.</p>
     </main>
     <JobDrawer {...{selected, relatedJobs, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
   </div>;
