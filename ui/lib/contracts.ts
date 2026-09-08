@@ -39,6 +39,7 @@ export const JobSummarySchema = z.object({
   source: text,
   last_seen_at: text,
   experience: nullableText,
+  description_available: z.boolean(),
   seniority_origin: z.enum(["extracted", "title", "unknown"]),
   extraction_state: z.enum(["not-extracted", "extracted"]),
   location: nullableText,
