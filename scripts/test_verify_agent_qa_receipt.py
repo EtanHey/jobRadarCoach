@@ -150,3 +150,19 @@ def test_cli_missing_receipt_is_nonzero(monkeypatch, tmp_path, capsys):
     output = capsys.readouterr()
     assert output.out == ""
     assert output.err.startswith("NOT_READY receipt_missing ")
+
+
+@pytest.mark.parametrize("failure", ["qa_mode_missing", "unknown_automatic_workers"])
+def test_cli_rejection_gate_has_nonzero_stderr_contract(monkeypatch, tmp_path, capsys, failure):
+    logs = registration_logs("worker-owned", "worker-unknown") if failure == "unknown_automatic_workers" else None
+    install_live_seams(monkeypatch, logs=logs)
+    receipt = ready_receipt()
+    if failure == "qa_mode_missing":
+        receipt["startup"]["voice_qa_mode"] = "0"
+    receipt_path = tmp_path / "receipt.json"
+    receipt_path.write_text(json.dumps(receipt))
+    monkeypatch.setattr(sys, "argv", ["verify_agent_qa_receipt.py", str(receipt_path)])
+    assert subject.main() == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err.startswith(f"NOT_READY {failure} ")
