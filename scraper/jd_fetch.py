@@ -18,6 +18,62 @@ BROWSER_USER_AGENT = (
 MIN_PLAUSIBLE_JD_CHARS = 200
 SKIPPED_TAGS = {"button", "script", "style", "svg"}
 SHOW_CONTROL_PATTERN = re.compile(r"^Show\s+(?:more|less)$", re.IGNORECASE)
+BLOCK_TAGS = {"article", "p", "section", "ul", "ol"}
+HEADING_TAGS = {f"h{level}": level for level in range(1, 7)}
+
+
+class _MarkupWriter:
+    """Translate only explicit HTML structure into restricted Markdown."""
+
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+        self.strong_depth = 0
+        self.strong_parts: list[str] = []
+
+    def _append(self, value: str) -> None:
+        target = self.strong_parts if self.strong_depth else self.parts
+        target.append(value)
+
+    def boundary(self, lines: int) -> None:
+        self._append("\n" * lines)
+
+    def start(self, tag: str) -> None:
+        if tag == "strong":
+            if not self.strong_depth:
+                self.strong_parts = []
+            self.strong_depth += 1
+        elif self.strong_depth:
+            return
+        elif tag in HEADING_TAGS:
+            self.boundary(2)
+            self.parts.append("#" * HEADING_TAGS[tag] + " ")
+        elif tag in BLOCK_TAGS:
+            self.boundary(2)
+        elif tag == "li":
+            self.boundary(1)
+            self.parts.append("- ")
+
+    def data(self, value: str) -> None:
+        self._append(re.sub(r"\s+", " ", value.replace("\xa0", " ")))
+
+    def br(self) -> None:
+        self.boundary(1)
+
+    def end(self, tag: str) -> None:
+        if tag == "strong" and self.strong_depth:
+            self.strong_depth -= 1
+            if not self.strong_depth:
+                lines = [re.sub(r"\s+", " ", line).strip()
+                         for line in "".join(self.strong_parts).split("\n")]
+                self.parts.append("\n".join(f"**{line}**" if line else "" for line in lines))
+                self.strong_parts = []
+            return
+        if self.strong_depth:
+            return
+        if tag in HEADING_TAGS or tag in BLOCK_TAGS:
+            self.boundary(2)
+        elif tag == "li":
+            self.boundary(1)
 
 
 class _DescriptionParser(HTMLParser):
@@ -30,8 +86,16 @@ class _DescriptionParser(HTMLParser):
         self.primary_tag: str | None = None
         self.fallback_tag: str | None = None
         self.skipped_depth = 0
-        self.primary_parts: list[str] = []
-        self.fallback_parts: list[str] = []
+        self.primary = _MarkupWriter()
+        self.fallback = _MarkupWriter()
+
+    def _active_writers(self) -> list[_MarkupWriter]:
+        writers = []
+        if self.primary_depth:
+            writers.append(self.primary)
+        if self.fallback_depth:
+            writers.append(self.fallback)
+        return writers
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag in SKIPPED_TAGS:
@@ -57,23 +121,21 @@ class _DescriptionParser(HTMLParser):
             self.fallback_depth = 1
             self.fallback_tag = tag
 
-        if tag == "br":
-            if self.primary_depth:
-                self.primary_parts.append("\n")
-            if self.fallback_depth:
-                self.fallback_parts.append("\n")
+        for writer in self._active_writers():
+            writer.br() if tag == "br" else writer.start(tag)
 
     def handle_data(self, data: str) -> None:
-        if not self.skipped_depth and self.primary_depth:
-            self.primary_parts.append(data)
-        if not self.skipped_depth and self.fallback_depth:
-            self.fallback_parts.append(data)
+        if not self.skipped_depth:
+            for writer in self._active_writers():
+                writer.data(data)
 
     def handle_endtag(self, tag: str) -> None:
         if self.skipped_depth:
             if tag in SKIPPED_TAGS:
                 self.skipped_depth = max(0, self.skipped_depth - 1)
             return
+        for writer in self._active_writers():
+            writer.end(tag)
         if self.primary_depth and tag == self.primary_tag:
             self.primary_depth = max(0, self.primary_depth - 1)
         if self.fallback_depth and tag == self.fallback_tag:
@@ -81,9 +143,20 @@ class _DescriptionParser(HTMLParser):
 
 
 def _normalize(parts: list[str]) -> str:
-    visible_parts = [part for part in parts if not SHOW_CONTROL_PATTERN.fullmatch(part.strip())]
-    text = " ".join(visible_parts).replace("\xa0", " ")
-    return re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"[^\S\n]+", " ", "".join(parts).replace("\xa0", " "))
+    lines: list[str] = []
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if line and SHOW_CONTROL_PATTERN.fullmatch(line):
+            continue
+        if line:
+            if line.startswith("- ") and lines[-1:] == [""] and len(lines) > 1:
+                if lines[-2].startswith("- "):
+                    lines.pop()
+            lines.append(line)
+        elif lines and lines[-1]:
+            lines.append("")
+    return "\n".join(lines).strip()
 
 
 def extract_full_jd(page_html: str) -> str:
@@ -94,7 +167,7 @@ def extract_full_jd(page_html: str) -> str:
     parser = _DescriptionParser()
     parser.feed(page_html)
     parser.close()
-    return _normalize(parser.primary_parts) or _normalize(parser.fallback_parts)
+    return _normalize(parser.primary.parts) or _normalize(parser.fallback.parts)
 
 
 def _failed(error: object) -> dict[str, object]:
