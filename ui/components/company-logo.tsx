@@ -19,5 +19,5 @@ export function CompanyLogo({ company, className }: CompanyLogoProps) {
     return <span role="img" aria-label={`${company} logo unavailable`} data-logo-state={src ? "load-failed" : "unmapped"} className={cn(frame, "text-sm font-bold text-slate-700")}>{companyInitials(company)}</span>;
   }
 
-  return <span className={frame}><Image unoptimized src={src} alt={`${company} logo`} width={44} height={44} className="size-full object-contain" onError={() => setFailedSrc(src)} /></span>;
+  return <span className={frame}><Image unoptimized src={src} alt={`${company} logo`} width={44} height={44} className="size-full scale-110 object-cover" onError={() => setFailedSrc(src)} /></span>;
 }
