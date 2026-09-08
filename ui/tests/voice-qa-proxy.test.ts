@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createServer } from "node:http";
+import { createServer, request } from "node:http";
 import { test } from "node:test";
 import { TokenVerifier } from "livekit-server-sdk";
 import { startQaProxy } from "../lib/voice/qa-proxy.mjs";
@@ -108,4 +108,80 @@ test("origins are validated and the runner receives a copy of room receipts", as
     h.proxy.rooms.length = 0;
     assert.equal(h.proxy.receipt().rooms.length, 1);
   } finally { await h.close(); }
+});
+
+test("borrowed GET strips connection-scoped headers and streams the response body", async () => {
+  let upstreamHeaders: import("node:http").IncomingHttpHeaders = {};
+  let finishBody!: () => void;
+  const bodyGate = new Promise<void>(resolve => { finishBody = resolve; });
+  const upstream = createServer(async (req, res) => {
+    upstreamHeaders = req.headers;
+    res.writeHead(200, {
+      "Content-Type": "application/octet-stream",
+      "X-End-To-End-Response": "preserved",
+      Connection: "keep-alive, x-response-hop",
+      "Keep-Alive": "timeout=99",
+      "Proxy-Authenticate": "fixture-secret",
+      Trailer: "X-Response-Trailer",
+      "X-Response-Hop": "remove-me",
+    });
+    res.write("stream-");
+    await bodyGate;
+    res.end("body");
+  });
+  await new Promise<void>(resolve => upstream.listen(0, "127.0.0.1", resolve));
+  const address = upstream.address();
+  if (!address || typeof address === "string") throw new Error("Missing test address");
+  const session = randomUUID();
+  const proxy = await startQaProxy({ upstream: `http://127.0.0.1:${address.port}`,
+    upstreamOrigin: "https://borrowed.example.test", key, secret,
+    serverUrl: "wss://signal.example.test", qaSessionId: session, verifyAgent: async () => true });
+
+  let firstChunk!: (chunk: Buffer) => void;
+  const first = new Promise<Buffer>(resolve => { firstChunk = resolve; });
+  let sawChunk = false;
+  const completed = new Promise<{ headers: import("node:http").IncomingHttpHeaders; body: string }>((resolve, reject) => {
+    const outgoing = request(proxy.origin + "/asset", { headers: {
+      Connection: "keep-alive, x-request-hop",
+      "Keep-Alive": "timeout=88",
+      "Proxy-Authorization": "fixture-secret",
+      TE: "trailers",
+      "X-Request-Hop": "remove-me",
+      "X-End-To-End-Request": "preserved",
+      Host: "untrusted.example.test",
+      Origin: "https://untrusted.example.test",
+    } }, response => {
+      const chunks: Buffer[] = [];
+      response.on("data", chunk => {
+        const bytes = Buffer.from(chunk); chunks.push(bytes);
+        if (!sawChunk) { sawChunk = true; firstChunk(bytes); }
+      });
+      response.on("end", () => resolve({ headers: response.headers, body: Buffer.concat(chunks).toString() }));
+    });
+    outgoing.on("error", reject);
+    outgoing.end();
+  });
+
+  try {
+    assert.equal((await first).toString(), "stream-");
+    finishBody();
+    const response = await completed;
+    assert.equal(response.body, "stream-body");
+    assert.equal(upstreamHeaders["x-request-hop"], undefined);
+    assert.equal(upstreamHeaders["proxy-authorization"], undefined);
+    assert.equal(upstreamHeaders.te, undefined);
+    assert.equal(upstreamHeaders["x-end-to-end-request"], "preserved");
+    assert.equal(upstreamHeaders.host, "borrowed.example.test");
+    assert.equal(upstreamHeaders.origin, "https://borrowed.example.test");
+    assert.equal(response.headers["x-response-hop"], undefined);
+    assert.equal(response.headers["proxy-authenticate"], undefined);
+    assert.equal(response.headers.trailer, undefined);
+    assert.equal(response.headers["x-end-to-end-response"], "preserved");
+    assert.equal(response.headers["content-type"], "application/octet-stream");
+  } finally {
+    finishBody();
+    await proxy.close();
+    upstream.closeAllConnections();
+    await new Promise<void>(resolve => upstream.close(() => resolve()));
+  }
 });
