@@ -98,3 +98,23 @@ def test_unconfirmed_rollback_preserves_partial_identity(monkeypatch):
     with pytest.raises(subject.PartialStartError) as caught:
         service.start(context)
     assert caught.value.owned_identity["created"] == ["https:8445"]
+
+
+def test_cleanup_rechecks_each_mapping_before_removal(monkeypatch):
+    context, service = FakeContext(), subject.TailscaleServeService()
+    targets = dict(service.desired)
+    off_keys = []
+    monkeypatch.setattr(service, "_targets", lambda _context: dict(targets))
+
+    def result(_context, command):
+        key = next(item for item in command if item.startswith("--https="))[2:].replace("=", ":")
+        off_keys.append(key)
+        targets[key] = None
+        if key == "https:8446":
+            targets["https:8445"] = "http://127.0.0.1:9999"
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(subject, "_result", result)
+    with pytest.raises(RuntimeError, match="mapping https:8445 changed"):
+        service._remove(context, ["https:8445", "https:8446"])
+    assert off_keys == ["https:8446"]

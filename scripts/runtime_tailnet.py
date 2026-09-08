@@ -125,8 +125,8 @@ class TailscaleServeService:
         self._remove(context, identity["created"])
 
     def _remove(self, context: RuntimeContext, keys: Sequence[str]) -> None:
-        targets = self._targets(context) or {}
         for key in reversed(keys):
+            targets = self._targets(context) or {}
             if targets.get(key) != self.desired.get(key):
                 raise RuntimeError(f"mapping {key} changed; refusing cleanup")
             kind, port = key.split(":")
