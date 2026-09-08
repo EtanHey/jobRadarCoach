@@ -31,3 +31,8 @@ test("location filters keep countryless remote roles unknown",()=>{
   assert.deepEqual(filterJobs(rows,{...options,location:"united-states"}).map((row)=>row.id),[rows[1].id,rows[4].id,rows[5].id,rows[6].id,rows[7].id]);
   assert.deepEqual(filterJobs(rows,{...options,location:"other"}).map((row)=>row.id),[rows[2].id]);
 });
+
+test("country codes alone cannot masquerade as US states",()=>{
+  for (const location of ["Toronto, CA", "Hyderabad, IN", "Unknown City, CA", "Bremen, DE"]) assert.equal(locationGroup(location),"other",location);
+  for (const location of ["San Francisco, CA", "Fortville, IN", "Chicago, IL", "Washington, DC", "Austin, Texas Metropolitan Area"]) assert.equal(locationGroup(location),"united-states",location);
+});
