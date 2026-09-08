@@ -167,23 +167,64 @@ def test_semantic_failure_retries_once_without_score_zero_stub() -> None:
     bad = wire_annotation(posting()["id"], fit_score=85, fit_tier="weak")
     good = wire_annotation(posting()["id"])
     runner = SequenceBrain(bad, good)
+    recovered_diagnostics: list[str] = []
 
-    accepted = core.score_posting(profile_snapshot(), posting(), [], brain_runner=runner)
+    accepted = core.score_posting(
+        profile_snapshot(), posting(), [], brain_runner=runner,
+        diagnostic=recovered_diagnostics.append,
+    )
 
     assert accepted is not None and accepted.annotation["luna_status"] == "ok"
     assert len(runner.calls) == 2
+    assert recovered_diagnostics == []
 
     rejected_runner = SequenceBrain(bad, copy.deepcopy(bad))
-    rejected = core.score_posting(profile_snapshot(), posting(), [], brain_runner=rejected_runner)
+    rejected_diagnostics: list[str] = []
+    rejected = core.score_posting(
+        profile_snapshot(), posting(), [], brain_runner=rejected_runner,
+        diagnostic=rejected_diagnostics.append,
+    )
     assert rejected is None
     assert len(rejected_runner.calls) == 2
+    assert rejected_diagnostics == ["semantic"]
 
 
 def test_provider_failure_stops_without_retry_or_fallback() -> None:
     runner = SequenceBrain(BrainTransportError("provider unavailable"))
+    diagnostics: list[str] = []
 
-    assert core.score_posting(profile_snapshot(), posting(), [], brain_runner=runner) is None
+    assert core.score_posting(
+        profile_snapshot(), posting(), [], brain_runner=runner,
+        diagnostic=diagnostics.append,
+    ) is None
     assert len(runner.calls) == 1
+    assert diagnostics == ["provider"]
+
+
+def test_projection_and_wire_failures_emit_only_sanitized_categories() -> None:
+    projection_diagnostics: list[str] = []
+    assert core.score_posting(
+        profile_snapshot(), posting(None), [],
+        diagnostic=projection_diagnostics.append,
+    ) is None
+    assert projection_diagnostics == ["projection"]
+
+    wire_diagnostics: list[str] = []
+    assert core.score_posting(
+        profile_snapshot(), posting(), [],
+        brain_runner=lambda *_args: object(),  # type: ignore[arg-type,return-value]
+        diagnostic=wire_diagnostics.append,
+    ) is None
+    assert wire_diagnostics == ["wire"]
+
+
+def test_diagnostic_callback_failure_cannot_escape() -> None:
+    def broken_diagnostic(_category: str) -> None:
+        raise RuntimeError("diagnostic sink unavailable")
+
+    assert core.score_posting(
+        profile_snapshot(), posting(None), [], diagnostic=broken_diagnostic,
+    ) is None
 
 
 @pytest.mark.parametrize("raw_jd", [None, "", "title only", 42])

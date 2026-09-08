@@ -9,6 +9,7 @@ import os
 from typing import Protocol
 from uuid import UUID
 
+from classifier.core import diagnostic_scope
 from classifier.persistence import list_scoring_candidates, score_and_persist
 from scraper.brain import run_brain
 from scraper.brain_contract import UnsupportedBrainError, resolve_brain
@@ -116,13 +117,19 @@ def run_batch(
 
     scored = failed = 0
     for posting_id in candidates:
+        failure_categories: list[str] = []
         try:
-            outcome = scorer(connection, posting_id, brain_runner=brain_runner)
+            with diagnostic_scope(failure_categories.append):
+                outcome = scorer(connection, posting_id, brain_runner=brain_runner)
             if outcome in ("failed", "stale"):
                 failed += 1
                 failure = "ScoringFailed" if outcome == "failed" else "StaleInputs"
+                diagnostic = (
+                    {"failure_category": failure_categories[-1]}
+                    if outcome == "failed" and failure_categories else {}
+                )
                 _log(posting_id=posting_id, provider=provider,
-                     outcome=outcome, failure=failure)
+                     outcome=outcome, failure=failure, **diagnostic)
                 continue
             if outcome not in ("stored", "unchanged"):
                 raise RuntimeError("classifier persistence returned an unsupported outcome")
