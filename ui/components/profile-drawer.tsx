@@ -9,6 +9,7 @@ import {
   type ProfileEntry,
 } from "@/lib/contracts";
 import { Button } from "@/components/ui/button";
+import { ProfileListField } from "@/components/profile-list-field";
 import {
   Sheet,
   SheetContent,
@@ -18,24 +19,15 @@ import {
 } from "@/components/ui/sheet";
 
 type Draft = {
-  roles: string;
-  stacks: string;
-  seniority: string;
-  geographies: string;
+  roles: string[];
+  stacks: string[];
+  seniority: string[];
+  geographies: string[];
   remote: "" | "true" | "false";
   salary: string;
-  redFlags: string;
+  redFlags: string[];
   preferences: string;
   brain: "ollama" | "codex";
-};
-
-type ListFieldProps = {
-  id: string;
-  label: string;
-  value: string;
-  busy: boolean;
-  onChange: (value: string) => void;
-  onSave: () => void;
 };
 
 type ProfileFieldsProps = {
@@ -49,22 +41,18 @@ const inputClass = "mt-2 w-full rounded-lg border bg-background px-3 py-2 text-s
 
 function draftFrom(profile: Profile): Draft {
   return {
-    roles: profile["candidate.roles_wanted"].join(", "),
-    stacks: profile["candidate.stacks"].join(", "),
-    seniority: profile["candidate.seniority"].join(", "),
-    geographies: profile["candidate.open_to.geographies"].join(", "),
+    roles: profile["candidate.roles_wanted"],
+    stacks: profile["candidate.stacks"],
+    seniority: profile["candidate.seniority"],
+    geographies: profile["candidate.open_to.geographies"],
     remote: profile["candidate.remote"] === null
       ? ""
       : profile["candidate.remote"] ? "true" : "false",
     salary: profile["candidate.salary_floor"] === null ? "" : String(profile["candidate.salary_floor"]),
-    redFlags: profile["candidate.red_flag_words"].join(", "),
+    redFlags: profile["candidate.red_flag_words"],
     preferences: profile["candidate.preferences.free_text"] ?? "",
     brain: profile["runtime.brain"],
   };
-}
-
-function list(value: string): string[] {
-  return value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 }
 
 function mergeSavedField(current: Draft, profile: Profile, field: ProfileEntry["field"]): Draft {
@@ -104,16 +92,6 @@ async function profileRequest(
   return parsed.data.profile;
 }
 
-function ListField({ id, label, value, busy, onChange, onSave }: ListFieldProps) {
-  return <fieldset className="rounded-xl border p-4" disabled={busy}>
-    <legend className="sr-only">{label} editor</legend>
-    <label htmlFor={id} className="text-sm font-medium">{label}</label>
-    <p className="mt-1 text-xs text-muted-foreground">Separate entries with commas or new lines.</p>
-    <textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} className={`${inputClass} min-h-20`} />
-    <Button type="button" variant="outline" className="mt-3" onClick={onSave}>Save {label.toLowerCase()}</Button>
-  </fieldset>;
-}
-
 function Field({ label, busy, children }: { label: string; busy: boolean; children: React.ReactNode }) {
   return <fieldset className="rounded-xl border p-4" disabled={busy}>
     <legend className="sr-only">{label} editor</legend>
@@ -123,10 +101,10 @@ function Field({ label, busy, children }: { label: string; busy: boolean; childr
 
 function ProfileFields({ draft, busy, onChange, onSave }: ProfileFieldsProps) {
   return <>
-    <ListField id="profile-roles" label="Roles wanted" value={draft.roles} busy={busy} onChange={(value) => onChange("roles", value)} onSave={() => onSave({ field: "candidate.roles_wanted", value: list(draft.roles) }, "Roles wanted")} />
-    <ListField id="profile-stacks" label="Stacks" value={draft.stacks} busy={busy} onChange={(value) => onChange("stacks", value)} onSave={() => onSave({ field: "candidate.stacks", value: list(draft.stacks) }, "Stacks")} />
-    <ListField id="profile-seniority" label="Seniority" value={draft.seniority} busy={busy} onChange={(value) => onChange("seniority", value)} onSave={() => onSave({ field: "candidate.seniority", value: list(draft.seniority) }, "Seniority")} />
-    <ListField id="profile-geographies" label="Open geographies" value={draft.geographies} busy={busy} onChange={(value) => onChange("geographies", value)} onSave={() => onSave({ field: "candidate.open_to.geographies", value: list(draft.geographies) }, "Open geographies")} />
+    <ProfileListField id="profile-roles" label="Roles wanted" description="Job titles and role families you want to find." placeholder="e.g. Product Engineer" emptyHint="No target roles added yet." value={draft.roles} busy={busy} onChange={(value) => onChange("roles", value)} onSave={(value) => onSave({ field: "candidate.roles_wanted", value }, "Roles wanted")} />
+    <ProfileListField id="profile-stacks" label="Technology priorities" description="Technologies to prioritize for your search. This is not a proficiency rating or a scoring-model input yet." placeholder="e.g. TypeScript" emptyHint="No technology priorities added yet." value={draft.stacks} busy={busy} onChange={(value) => onChange("stacks", value)} onSave={(value) => onSave({ field: "candidate.stacks", value }, "Technology priorities")} />
+    <ProfileListField id="profile-seniority" label="Target role levels" description="Role levels to keep for future and manual search guidance. Leaving this empty does not reject any level." placeholder="e.g. Senior" emptyHint="Any role level can be considered." value={draft.seniority} busy={busy} onChange={(value) => onChange("seniority", value)} onSave={(value) => onSave({ field: "candidate.seniority", value }, "Target role levels")} />
+    <ProfileListField id="profile-geographies" label="Open geographies" description="Countries, regions, or time zones where you would consider a role." placeholder="e.g. Israel" emptyHint="No geographic preferences added yet." value={draft.geographies} busy={busy} onChange={(value) => onChange("geographies", value)} onSave={(value) => onSave({ field: "candidate.open_to.geographies", value }, "Open geographies")} />
     <Field label="Remote preference" busy={busy}>
       <label htmlFor="profile-remote" className="text-sm font-medium">Remote preference</label>
       <select id="profile-remote" value={draft.remote} onChange={(event) => onChange("remote", event.target.value as Draft["remote"])} className={inputClass}>
@@ -139,10 +117,11 @@ function ProfileFields({ draft, busy, onChange, onSave }: ProfileFieldsProps) {
       <input id="profile-salary" type="number" min="0" value={draft.salary} onChange={(event) => onChange("salary", event.target.value)} placeholder="Unknown" className={inputClass} />
       <Button type="button" variant="outline" className="mt-3" onClick={() => onSave({ field: "candidate.salary_floor", value: draft.salary === "" ? null : Number(draft.salary) }, "Salary floor")}>Save salary floor</Button>
     </Field>
-    <ListField id="profile-red-flags" label="Red flag words" value={draft.redFlags} busy={busy} onChange={(value) => onChange("redFlags", value)} onSave={() => onSave({ field: "candidate.red_flag_words", value: list(draft.redFlags) }, "Red flag words")} />
+    <ProfileListField id="profile-red-flags" label="Red flag words" description="Words or phrases that may signal a poor fit and deserve attention." placeholder="e.g. commission only" emptyHint="No red flag words added yet." value={draft.redFlags} busy={busy} onChange={(value) => onChange("redFlags", value)} onSave={(value) => onSave({ field: "candidate.red_flag_words", value }, "Red flag words")} />
     <Field label="Free-text preferences" busy={busy}>
       <label htmlFor="profile-preferences" className="text-sm font-medium">Free-text preferences</label>
-      <textarea id="profile-preferences" maxLength={2000} value={draft.preferences} onChange={(event) => onChange("preferences", event.target.value)} placeholder="Unknown" className={`${inputClass} min-h-28`} />
+      <p className="mt-1 text-xs text-muted-foreground">Personal job-fit guidance for your search, such as the work, team, or company environment you prefer. It is saved here and is not sent to the scoring model yet.</p>
+      <textarea id="profile-preferences" maxLength={2000} value={draft.preferences} onChange={(event) => onChange("preferences", event.target.value)} placeholder="e.g. I prefer product teams with close customer contact." className={`${inputClass} min-h-28`} />
       <Button type="button" variant="outline" className="mt-3" onClick={() => onSave({ field: "candidate.preferences.free_text", value: draft.preferences.trim() || null }, "Free-text preferences")}>Save preferences</Button>
     </Field>
     <Field label="Extraction brain" busy={busy}>
@@ -174,9 +153,9 @@ function ProfileStatus({ loading, saving, success, error, retry }: {
     <div aria-live="polite" className="min-h-5 text-sm">
       {loading ? <span className="text-muted-foreground">Loading the latest profile…</span> : null}
       {saving ? <span className="text-muted-foreground">Saving…</span> : null}
-      {success ? <span className="text-emerald-700">{success}</span> : null}
+      {success ? <span className="text-foreground">{success}</span> : null}
     </div>
-    {error ? <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+    {error ? <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
       {error}
       {retry ? <Button type="button" variant="outline" className="ml-3" onClick={retry}>Retry</Button> : null}
     </div> : null}
