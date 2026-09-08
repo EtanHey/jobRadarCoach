@@ -169,7 +169,9 @@ async function main() {
     await proxyStartup;
   } catch (error) {
     if (closing) return;
-    reason = error?.code === 'ERR_MODULE_NOT_FOUND' ? 'proxy_module_unavailable' : 'proxy_start_failed';
+    if (!revoked) {
+      reason = error?.code === 'ERR_MODULE_NOT_FOUND' ? 'proxy_module_unavailable' : 'proxy_start_failed';
+    }
     await publish('NOT_READY');
     throw new Error(`QA NOT READY: ${reason}`);
   }
