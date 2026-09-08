@@ -3,7 +3,7 @@
 import type { ReactNode, RefObject } from "react";
 import { Bookmark } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
-import { publishedAge, workMode } from "@/lib/job-display";
+import { postingDate, workMode } from "@/lib/job-display";
 import { CompanyLogo } from "./company-logo";
 
 type Props = {
@@ -15,6 +15,7 @@ type Props = {
 };
 
 export function JobCard({ job, alternateCount = 0, openerRef, selectJob, children }: Props) {
+  const date = postingDate(job.posted_at, job.first_seen_at);
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   return <article data-posting-id={job.id} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:border-ring/50 focus-within:ring-2 focus-within:ring-ring">
     <button type="button" aria-label={`Open ${job.title} at ${job.company}`} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
@@ -35,7 +36,7 @@ export function JobCard({ job, alternateCount = 0, openerRef, selectJob, childre
     <div className="pointer-events-none relative min-h-[3.625rem] text-muted-foreground [&_button]:pointer-events-auto">{job.stack.length ? children : <span className="text-xs">Stack unspecified</span>}</div>
     <div className="pointer-events-none mt-auto flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
       <span className="min-w-0 flex-1 truncate" title={experience}>{experience}</span>
-      <span className="shrink-0" title={job.posted_at ?? undefined}>{publishedAge(job.posted_at)}</span>
+      <time className="shrink-0" dateTime={date.dateTime} title={date.dateTime}>{date.label}</time>
       <span className="shrink-0 capitalize">{job.source}</span>
       {alternateCount > 0 && <span className="shrink-0" title="Open to choose another listing">{alternateCount + 1} listings</span>}
     </div>
