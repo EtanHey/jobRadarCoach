@@ -89,8 +89,13 @@ class TailscaleServeService:
         created: list[str] = []
         try:
             for key, target in self.desired.items():
-                if targets[key] is not None:
+                current = self._targets(context)
+                if current is None:
+                    raise RuntimeError("Tailscale status unavailable")
+                if current.get(key) == target:
                     continue
+                if current.get(key) is not None:
+                    raise RuntimeError(f"refusing to replace mapping: {key}")
                 if context.stop_requested():
                     raise InterruptedError("stop requested while adding Tailscale mappings")
                 kind, port = key.split(":")
