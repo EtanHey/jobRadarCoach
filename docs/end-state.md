@@ -134,3 +134,24 @@ profile/settings edits, then it goes over them with me?"
 
 The advisor tier is also where overfitting gets caught: a bad suggestion shows up as a proposal with thin
 evidence attached, instead of a silent narrowing noticed weeks later when good roles stopped appearing.
+
+### Status is a pipeline, not triage (Etan, 2026-09-08)
+
+Etan, comparing against ScoutMole: "she also has more options for once you want to set a status on a job."
+Her menu: שווה בדיקה (worth checking) · שלחתי קו"ח (sent CV) · ראיון ראשוני (initial interview) ·
+ראיון טכני (technical interview) · חוזה (contract) · ארכיון (archive) · לא רלוונטי (not relevant).
+
+Supersedes the earlier `new → seen → saved | applied | rejected` enum. Etan already tracks these stages by
+hand in his Obsidian Career Hub table; the app should carry them so it replaces that table, and the stages
+feed the application-history table built in lane 2H.
+
+New `posting_status.status`:
+`new` → `seen` → `worth_checking` → `applied` → `screen` (HR/recruiter call) → `interview_technical` →
+`interview_final` → `offer` → `contract`, with the terminal side branches `rejected` (reason REQUIRED,
+stored verbatim), `archived`, and `not_relevant`.
+
+Rules: one status per posting, forward moves are ordinary edits and backward moves are allowed. Every
+transition is timestamped in application history so the UI can show "applied 6 days ago, no reply." The
+voice agent's `set_status` tool takes any of these. `rejected` and `not_relevant` are distinct: rejected
+means they said no, not_relevant means Etan ruled it out — and only the second is taste signal for the
+advisor tier.
