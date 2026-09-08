@@ -40,18 +40,40 @@ function JobCard({job, openerRef, selectJob, alternateCount = 0}: RowProps) {
 }
 function Placeholder({loading}: {loading: boolean}) { return <div className="grid min-h-[35rem] place-items-center px-6 py-16 text-center"><div>{loading ? <><div className="mx-auto size-8 animate-spin rounded-full border-2 border-muted border-t-primary" /><p className="mt-4 text-sm text-muted-foreground">Loading roles…</p></> : <><h2 className="text-xl font-medium">No roles in this view yet.</h2><p className="mt-2 text-sm text-muted-foreground">Try another filter or clear your search.</p></>}</div></div> }
 export function JobsPanel({filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, reload, toolbar, resultLimit = 250, sortLabel}: ListProps) { const groups = groupDuplicateJobs(visible); return <section aria-label="Job search"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div className="flex max-w-full gap-1 overflow-x-auto" aria-label="Job filters">{(Object.keys(filters) as Filter[]).map((item) => <button key={item} aria-pressed={filter === item} onClick={() => item !== filter && chooseFilter(item)} className={`shrink-0 rounded-lg px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 ${filter === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{filters[item]}</button>)}</div><label className="flex w-full items-center gap-2 rounded-lg border bg-card px-3 py-2 sm:w-80"><Search size={16} aria-hidden="true" /><span className="sr-only">Search loaded jobs by title, company, or stack</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search title, company, or stack" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label></div>{toolbar}<div className="flex flex-wrap justify-between gap-2 pb-3 text-xs text-muted-foreground"><span aria-live="polite">{loading ? "Loading roles…" : `${groups.length} ${groups.length === 1 ? "role" : "roles"}`}{jobs.length === resultLimit ? ` · latest ${resultLimit.toLocaleString()}` : ""}</span><span>{sortLabel ?? (filter === "new-for-me" ? "Ranked for you" : "Newest first")}</span></div>{error ? <div role="alert" className="min-h-[35rem] rounded-2xl border border-destructive/20 bg-card p-6 text-sm text-destructive">{error}<Button variant="outline" className="ml-3" onClick={reload}>Retry</Button></div> : loading || visible.length === 0 ? <Placeholder loading={loading} /> : <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{groups.map(({job, alternates}) => <JobCard job={job} alternateCount={alternates.length} key={job.id} openerRef={openerRef} selectJob={selectJob} />)}</div>}</section> }
-function DetailBody({detail, detailError}: Pick<BodyProps, "detail" | "detailError">) {
-  if (!detail) return <p className="p-4" role="status">{detailError || "Loading job…"}</p>;
-  return <div className="space-y-4 p-4">
-    {detailError && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{detailError}</p>}
-    <section aria-label="Job description"><JobDescription text={detail.raw_jd} /></section>
-    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground"><span>{experienceStatus(detail)}</span>{detail.seniority && <span>{detail.seniority}</span>}</div>
-    {detail.status_reason && <p className="text-sm text-muted-foreground">Status reason: {detail.status_reason}</p>}
-    <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
-  </div>;
+export function JobDrawer({ selected, relatedJobs = [], openerRef, selectJob, ...bodyProps }: DrawerProps) {
+  const { detail, saving, changeStatus, detailError } = bodyProps;
+  return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
+    <SheetContent finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
+      <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
+        <div className="flex items-center gap-3">{detail && <CompanyLogo company={detail.company} className="size-12" />}<SheetDescription>{detail ? `${detail.company} · Listing ${shortListingId(detail.id)}` : "Loading the role…"}</SheetDescription></div>
+        <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-lg leading-snug">{detail?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
+        {detail && <>
+          <p className="mt-2 text-xs text-muted-foreground">{detail.location ?? "Location unspecified"} · {workMode(detail.remote)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
+          <div className="mt-3 flex flex-wrap gap-2" aria-label="Technologies">{detail.stack.map(name => <span key={name} className="flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs"><TechIcon name={name} />{name}</span>)}</div>
+        </>}
+      </SheetHeader>
+      {detailError && <p role="alert" className="shrink-0 bg-destructive/10 px-4 py-2 text-sm text-destructive">{detailError}</p>}
+      <section aria-label="Job description" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-offset-[-2px]">
+        {detail ? <JobDescription text={detail.raw_jd} /> : <p role="status">{detailError || "Loading job…"}</p>}
+      </section>
+      {relatedJobs.length > 0 && <details className="shrink-0 border-t bg-background px-4 py-2" aria-label="Other listings for this role">
+        <summary className="cursor-pointer py-1 text-xs font-medium">Other listings for this role ({relatedJobs.length})</summary>
+        <ul className="mt-2 max-h-28 space-y-2 overflow-y-auto">{relatedJobs.map(job => <li key={job.id}>
+          <button aria-label={`Open ${job.title} at ${job.company}, listing ${job.id}`} onClick={() => selectJob(job.id)} className="w-full rounded-lg border px-3 py-2 text-left text-xs hover:bg-muted focus-visible:outline-2">
+            <span className="block">{job.location ?? "Location unknown"} · {job.source}</span>
+            <span className="mt-1 block text-muted-foreground">{job.posted_at ? `Posted ${date(job.posted_at)} · ` : ""}{statusLabels[job.status]} · {job.score === null ? "Not scored" : `${job.score}/100`} · Listing {shortListingId(job.id)}</span>
+          </button>
+        </li>)}</ul>
+      </details>}
+      {detail && <footer className="max-h-[30dvh] shrink-0 space-y-2 overflow-y-auto border-t bg-background p-4">
+        <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <StatusSelect key={detail.id} job={detail} saving={saving || selected === null} changeStatus={changeStatus} />
+          <a className={buttonVariants({className:"w-fit"})} href={detail.apply_url ?? detail.url} target="_blank" rel="noopener noreferrer">Apply on company site <ArrowUpRight aria-hidden="true" /></a>
+        </div>
+        {detail.status_reason && <p className="text-xs text-muted-foreground">Status reason: {detail.status_reason}</p>}
+      </footer>}
+    </SheetContent>
+  </Sheet>;
 }
-export function JobDrawer({selected, relatedJobs = [], openerRef, selectJob, ...bodyProps}: DrawerProps) { const {detail, saving, changeStatus} = bodyProps; return <Sheet open={selected !== null} onOpenChange={(open) => !open && selectJob(null)}><SheetContent finalFocus={openerRef} className="flex overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl"><div className="flex min-h-0 flex-1 flex-col"><SheetHeader className="shrink-0 border-b bg-background p-4 pr-12">
-  <div className="flex items-center gap-2">{detail && <CompanyLogo company={detail.company} className="size-9" />}<SheetDescription>{detail ? `${detail.company} · Listing ${shortListingId(detail.id)}` : "Loading the role…"}</SheetDescription></div>
-  <div className="mt-2 flex items-start justify-between gap-2"><SheetTitle className="text-lg leading-snug">{detail?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
-  {detail && <><p className="mt-1 text-xs text-muted-foreground">{detail.location ?? "Location unspecified"} · {workMode(detail.remote)}</p><a className={buttonVariants({className:"mt-3 w-fit"})} href={detail.apply_url ?? detail.url} target="_blank" rel="noopener noreferrer">Apply on company site <ArrowUpRight aria-hidden="true" /></a></>}
-</SheetHeader><div className="min-h-0 flex-1 overflow-y-auto"><DetailBody detail={detail} detailError={bodyProps.detailError} />{relatedJobs.length > 0 && <section aria-label="Other listings for this role" className="border-b p-6"><h2 className="text-sm font-semibold">Other listings for this role</h2><p className="mt-1 text-xs text-muted-foreground">Each listing keeps its own location, score and application status.</p><ul className="mt-3 space-y-2">{relatedJobs.map((job) => <li key={job.id}><button aria-label={`Open ${job.title} at ${job.company}, listing ${job.id}`} onClick={() => selectJob(job.id)} className="w-full rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2"><span className="block">{job.location ?? "Location unknown"} · {job.source}</span><span className="mt-1 block text-xs capitalize text-muted-foreground">{job.posted_at ? `Posted ${date(job.posted_at)} · ` : ""}Found {date(job.first_seen_at)} · {statusLabels[job.status]} · {job.score === null ? "Not scored" : `${job.score}/100`}</span><span className="mt-1 block font-mono text-xs text-muted-foreground" title={job.id}>Listing {shortListingId(job.id)}</span></button></li>)}</ul></section>}</div><div className="shrink-0 border-t bg-background p-4">{detail && <StatusSelect key={detail.id} job={detail} saving={saving} changeStatus={changeStatus} />}</div></div></SheetContent></Sheet> }

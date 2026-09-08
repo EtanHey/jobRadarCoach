@@ -44,7 +44,9 @@ export function JobBoard() {
   function selectJob(id: string | null) {
     detailRequestRef.current?.abort();
     detailCoordinator.select(id);
-    setSelected(id); setDetail(null); setDetailError(""); setRejecting(false); setReason("");
+    setSelected(id);
+    // Keep the previous body intact during the sheet closing transition.
+    if (id !== null) { setDetail(null); setDetailError(""); setRejecting(false); setReason(""); }
   }
   function chooseFilter(value: Filter) { if (value === filter) return; filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); setView((current) => ({ ...current, fit: value === "new-for-me" ? "recommended" : "" })); setFilter(value); }
 
@@ -114,7 +116,7 @@ export function JobBoard() {
   }, [detailCoordinator, selected, requestRefresh]);
 
   async function changeStatus(patch: StatusPatch) {
-    if (!detail || saving) return false;
+    if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
     const id = detail.id;
     const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
@@ -139,7 +141,8 @@ export function JobBoard() {
     } finally { setSaving(false); }
   }
   const visible = filterJobs(jobs, {...view, search});
-  const relatedJobs = selected ? relatedDuplicateJobs(jobs, selected, detail) : [];
+  const relatedId = selected ?? detail?.id;
+  const relatedJobs = relatedId ? relatedDuplicateJobs(jobs, relatedId, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   return <div className="min-h-screen bg-background text-foreground">
