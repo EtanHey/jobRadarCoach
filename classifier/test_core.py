@@ -14,6 +14,7 @@ from scraper.test_brain import Response
 PRIVATE = "PRIVATE_SENTINEL_DO_NOT_SEND"
 UNRELATED = "UNRELATED_PROFILE_ROW_SENTINEL"
 DEFAULT_JD = object()
+SYNTHETIC_GLOBAL_LITERAL = "synthetic-never-specialty"
 
 
 def wire_annotation(posting_id: str, **kwargs) -> dict[str, object]:
@@ -303,3 +304,46 @@ def test_existing_local_claim_guard_rejects_schema_valid_output() -> None:
 
     assert core.score_posting(profile_snapshot(), posting(), [], brain_runner=runner) is None
     assert len(runner.calls) == 2
+
+
+@pytest.mark.parametrize(
+    ("factor", "fit_line", "text"),
+    [
+        (
+            "employer_type",
+            False,
+            f"Public Example is hiring a {SYNTHETIC_GLOBAL_LITERAL} role directly.",
+        ),
+        (
+            "product_role_match",
+            False,
+            f"The candidate is not a {SYNTHETIC_GLOBAL_LITERAL} specialist.",
+        ),
+        (
+            None,
+            True,
+            f"Strong fit because the candidate has {SYNTHETIC_GLOBAL_LITERAL} experience.",
+        ),
+    ],
+)
+def test_global_literal_guard_remains_fail_closed_for_all_output_wording(
+    factor: str | None, fit_line: bool, text: str,
+) -> None:
+    snapshot = profile_snapshot()
+    snapshot["constraints.global_never_claims"].append(SYNTHETIC_GLOBAL_LITERAL)
+    invalid = wire_annotation(posting()["id"])
+    if fit_line:
+        invalid["fit_line"] = text
+    else:
+        invalid["reasons"][factor]["detail"] = text
+    runner = SequenceBrain(invalid, copy.deepcopy(invalid))
+    diagnostics: list[str] = []
+
+    result = core.score_posting(
+        snapshot, posting(), [], brain_runner=runner,
+        diagnostic=diagnostics.append,
+    )
+
+    assert result is None
+    assert len(runner.calls) == 2
+    assert diagnostics == ["semantic"]

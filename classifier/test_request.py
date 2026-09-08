@@ -20,6 +20,7 @@ from scraper.test_annotate import safe_projection, structured_annotation
 
 HERE = Path(__file__).parent
 REJECTED_PATH = HERE / "fixtures" / "prompt-contract-rejected.json"
+SYNTHETIC_GLOBAL_LITERAL = "synthetic-never-specialty"
 
 
 def request_inputs():
@@ -173,6 +174,23 @@ def test_request_schema_and_prompt_match_the_constrained_wire_contract() -> None
     assert "If fit_score is below 40" in request.prompt
     assert WITHHELD_ABSTENTION_DETAIL in request.prompt
     assert "synthetic-project" not in request.prompt
+
+
+def test_request_keeps_global_literals_local_and_requires_neutral_wording() -> None:
+    posting, profile, history = request_inputs()
+    global_literals = profile["constraints"]["global_never_claims"]
+    global_literals.append(SYNTHETIC_GLOBAL_LITERAL)
+
+    prompt = scoring_request.build_request(posting, profile, history).prompt
+    assert SYNTHETIC_GLOBAL_LITERAL not in prompt
+    assert (
+        "describe only whether the named employer is hiring directly or through an agency"
+        in prompt
+    )
+    assert "do not repeat the posting's specialty or title" in prompt
+    assert "cite concrete verified candidate work" in prompt
+    assert 'posting specialty labels only as "this role"' in prompt
+    assert "including in negative comparisons" in prompt
 
 
 @pytest.mark.parametrize(
