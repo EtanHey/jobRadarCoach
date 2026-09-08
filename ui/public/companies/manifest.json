@@ -1,0 +1,2726 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-08T07:15:24.643Z",
+  "sourcePostingCount": 256,
+  "uniqueCompanyCount": 149,
+  "coveredCompanyCount": 142,
+  "coveredPostingCount": 243,
+  "entries": [
+    {
+      "canonicalName": "180 engineering",
+      "companyNames": [
+        "180 Engineering"
+      ],
+      "file": "180-engineering-731f008f1e.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3693,
+      "sha256": "731f008f1e7a9ad6ee521e7697e17d754e2df773d0ebf92e1d41f8bb5f02a16a",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQGiNF2eVRL4Kg/company-logo_100_100/company-logo_100_100/0/1648067901040/180engineering_logo?e=2147483647&v=beta&t=GuC-ViacKnPN4gQJ949qmnWe4LuUsGLcIm5MTuupWYM",
+        "page": "7371b16a-b041-4db4-8770-c4da5370e18e.html",
+        "pageSha256": "56169ac719d970f6a8e53a985865efacbecb94b028c7fe7d152dbc1517161732",
+        "postingId": "7371b16a-b041-4db4-8770-c4da5370e18e",
+        "alt": "180 Engineering"
+      }
+    },
+    {
+      "canonicalName": "acceler8 talent",
+      "companyNames": [
+        "Acceler8 Talent"
+      ],
+      "file": "acceler8-talent-19fab60137.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3094,
+      "sha256": "19fab6013755eaba9df88d6d775d50dd364c64f42aaab116bc924de4663c0934",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQEqSPYwONtZ1Q/company-logo_100_100/company-logo_100_100/0/1657014242460/acceler8_talent_logo?e=2147483647&v=beta&t=HT37_f5pTCl_6uYoo8qYIvMJHOFesVYRwH042Xr9Las",
+        "page": "233f3895-3ae0-4e60-8895-91cbb696c636.html",
+        "pageSha256": "e34118982d9f405b7401019fca4b9dbd96ad952698f38eb23a8dca54ef36a4ea",
+        "postingId": "233f3895-3ae0-4e60-8895-91cbb696c636",
+        "alt": "Acceler8 Talent",
+        "sourceBytes": 3094,
+        "sourceSha256": "19fab6013755eaba9df88d6d775d50dd364c64f42aaab116bc924de4663c0934"
+      }
+    },
+    {
+      "canonicalName": "air apps",
+      "companyNames": [
+        "Air Apps"
+      ],
+      "file": "air-apps-d21c6c0b31.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2253,
+      "sha256": "d21c6c0b3185cea58cc488d5b1ab096a2345eaec7fd920c4fbd35b40accdbb91",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQGsf8xDO35hvA/company-logo_100_100/company-logo_100_100/0/1707529392169/airapps_logo?e=2147483647&v=beta&t=pMhs74F1luDbY0hRBDh8Yw5UXFvAkDVGaWe6yo1ra88",
+        "page": "8cadabc4-55b6-4263-8f15-f934692eb751.html",
+        "pageSha256": "f6d544c0433df555e7912e7603c87de6ba3afe478420fea9ee7e14ccaba3c046",
+        "postingId": "8cadabc4-55b6-4263-8f15-f934692eb751",
+        "alt": "Air Apps"
+      }
+    },
+    {
+      "canonicalName": "amawaterways river cruises",
+      "companyNames": [
+        "AmaWaterways River Cruises"
+      ],
+      "file": "amawaterways-river-cruises-46c7376f97.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4063,
+      "sha256": "46c7376f975c3549d6401088790a9aa951b90e2677ead5417d13dc607ea8d2ab",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQEDaHU_ke2tdg/company-logo_100_100/B4EZ6O_O3rIgAM-/0/1780515401447/amawaterways_logo?e=2147483647&v=beta&t=96GGn0VCLoyyoMEADUFT3Goikx5ELQ7snrywFO-7DHQ",
+        "page": "c6cfa38d-ff19-4aa4-9c3d-97aaa1260705.html",
+        "pageSha256": "3d4825d833d7361a39b1f256159c2be75ce5202060b840421e8bd9519420151e",
+        "postingId": "c6cfa38d-ff19-4aa4-9c3d-97aaa1260705",
+        "alt": "AmaWaterways River Cruises"
+      }
+    },
+    {
+      "canonicalName": "anthropic",
+      "companyNames": [
+        "Anthropic"
+      ],
+      "file": "anthropic-5ece991343.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2130,
+      "sha256": "5ece991343fabc86faa5f037ffcb046295f3d6b63e5347fcb6edd7ed0ea58d25",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFMhKgeR7EYAg/company-logo_100_100/company-logo_100_100/0/1719256989269/anthropicresearch_logo?e=2147483647&v=beta&t=wN6y3zcI_-vsVBJOlfO3ChnXP7tCkDhgXODydqtMIAE",
+        "page": "fb0b66fa-a606-49d5-ad25-99b350f2e3db.html",
+        "pageSha256": "d6859199df83a6c55873a78c2353cf759d9aed1f787981e1874cf04214fc123c",
+        "postingId": "fb0b66fa-a606-49d5-ad25-99b350f2e3db",
+        "alt": "Anthropic"
+      }
+    },
+    {
+      "canonicalName": "apiiro",
+      "companyNames": [
+        "Apiiro"
+      ],
+      "file": "apiiro-ea388f2cc2.png",
+      "mimeType": "image/png",
+      "bytes": 3315,
+      "sha256": "ea388f2cc20b651f6102d06d3f8787174a63e1a3648f26696d369e699b54e5e2",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s3-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/340/300/original/transparent_logo.png?1601007310",
+        "page": "https://job-boards.greenhouse.io/apiiro/jobs/7809871003",
+        "pageSha256": "b49b2df4009b4e7a516f35b86bea3ae595d0bb82891d7d1a91e06772a3a8ff20",
+        "postingId": "adcef630-dc11-4ac8-85a5-08871228dc64",
+        "alt": "Apiiro",
+        "sourceBytes": 7652,
+        "sourceSha256": "aa66364afc79a151641512838d926bc07aba97538b106147396347bfd59b95ed"
+      }
+    },
+    {
+      "canonicalName": "armis security",
+      "companyNames": [
+        "Armis Security"
+      ],
+      "file": "armis-security-4dbc556a51.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2670,
+      "sha256": "4dbc556a51cd03590e367631031c99c9ec3a6827e4f8984c6f4d2d47b96c8fed",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s4-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/718/100/original/Copy_of_armis_PRPL-BLK_lrg.jpg?1644417557",
+        "page": "https://job-boards.greenhouse.io/armissecurity/jobs/5994462004",
+        "pageSha256": "310727be877b6a81c83ae24bfdc6e70f0310ae58f5de703ed4b593b26adf12d5",
+        "postingId": "577149f2-1c81-4c68-9b81-e8cb86ad7570",
+        "alt": "Armis Security",
+        "sourceBytes": 26989,
+        "sourceSha256": "37cb1572298978afac58a87f99f9b6761f963b95618320585b292c7a65e73eb2"
+      }
+    },
+    {
+      "canonicalName": "armstrong international – intelligent solutions in steam, air and hot water",
+      "companyNames": [
+        "Armstrong International – Intelligent Solutions in Steam, Air and Hot Water"
+      ],
+      "file": "armstrong-international-intelligent-solutions-in-6bfa4a5881.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2722,
+      "sha256": "6bfa4a588184838af2a8a99dfff0bfb50a799a582f4516a444343c940ed88b82",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQHrRY39qUnAEw/company-logo_100_100/company-logo_100_100/0/1631326143813?e=2147483647&v=beta&t=Pn6Tvz4tUHWKeNnJz01ZFPWgYxgYzCLdspeuUh8Z5Cs",
+        "page": "3d19118f-cea0-4f58-af2c-dff8cdeca947.html",
+        "pageSha256": "af88e02ce2e8c13010d13c563bc369128160d466a470dcd43506040862aeebbe",
+        "postingId": "3d19118f-cea0-4f58-af2c-dff8cdeca947",
+        "alt": "Armstrong International – Intelligent Solutions in Steam, Air and Hot Water"
+      }
+    },
+    {
+      "canonicalName": "arrows",
+      "companyNames": [
+        "Arrows"
+      ],
+      "file": "arrows-b01e0e5087.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2036,
+      "sha256": "b01e0e5087d13988742634d58cb409e15ff5018628373f04891dea9b36da5b49",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQFxk3lxYzlVUQ/company-logo_100_100/B4DZq04WnAJMAQ-/0/1763971263389/arrows_group_logo?e=2147483647&v=beta&t=QMFYeE551VwItoCOW2TG6Aj23JWEj9oZzXUvu84zAl4",
+        "page": "ddc79f96-afb3-467f-90ca-5fb5a4b9d97c.html",
+        "pageSha256": "4a91d6b05d1e3ee140f31d7e6e0bfc948ea23cd5d88aeb45bb614af4808e99c2",
+        "postingId": "ddc79f96-afb3-467f-90ca-5fb5a4b9d97c",
+        "alt": "Arrows",
+        "sourceBytes": 2036,
+        "sourceSha256": "b01e0e5087d13988742634d58cb409e15ff5018628373f04891dea9b36da5b49"
+      }
+    },
+    {
+      "canonicalName": "ashby",
+      "companyNames": [
+        "Ashby"
+      ],
+      "file": "ashby-586b63cb5a.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2311,
+      "sha256": "586b63cb5a219b37f1b10da14d3998ff6367da17b5678f498616e61a9ed690ad",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQEone_c6UeF5Q/company-logo_100_100/B56Z_YeATGH4AI-/0/1786043172247/ashbyhq_logo?e=2147483647&v=beta&t=jaOXe4mK6YzF33cd71uV-UAoJEK7pfd0qeJcxouvSB0",
+        "page": "52210e03-1332-456c-b6a8-5b4865154daa.html",
+        "pageSha256": "2400a3534e6079c835e04fe7402f0e1b7fc0e97485bfaee021fe93684a50260f",
+        "postingId": "52210e03-1332-456c-b6a8-5b4865154daa",
+        "alt": "Ashby"
+      }
+    },
+    {
+      "canonicalName": "astera labs",
+      "companyNames": [
+        "Astera Labs"
+      ],
+      "file": "astera-labs-1f00d8a99b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2698,
+      "sha256": "1f00d8a99b459ba72b507bab451d2d7effa0654361b0624458d1678b65c206d1",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQFiYutK-QgOhQ/company-logo_100_100/company-logo_100_100/0/1681517329665/astera_labs_logo?e=2147483647&v=beta&t=6wsFeB0TxAvl7k8a6FWuqc1HJkPchpxGsN6F9d-FgF4",
+        "page": "b505fc4c-0a12-41de-91d1-adec648acf35.html",
+        "pageSha256": "dc6fcc6738fe6ef70b956eb3eb336d4af43e767c041afd592b2b937d128b0fed",
+        "postingId": "b505fc4c-0a12-41de-91d1-adec648acf35",
+        "alt": "Astera Labs"
+      }
+    },
+    {
+      "canonicalName": "autofleet",
+      "companyNames": [
+        "Autofleet"
+      ],
+      "file": "autofleet-11d68ecd85.png",
+      "mimeType": "image/png",
+      "bytes": 12340,
+      "sha256": "11d68ecd8514c28287a580436993d02cd03c3ed433688350789c85b681c68626",
+      "source": {
+        "kind": "workable-public-job-page",
+        "url": "https://workablehr.s3.amazonaws.com/uploads/account/open_graph_logo/445657/social?1786519504000",
+        "page": "https://apply.workable.com/autofleet/j/471FFA2C2A/",
+        "pageSha256": "0c9815fe40df553d4f5df503c7612143e75f5a62eecd08a09fc7cbb68b3f6229",
+        "postingId": "9b155cbb-8b28-4029-87ee-d4479b4e0b93",
+        "alt": "Autofleet",
+        "sourceBytes": 578692,
+        "sourceSha256": "744e4c5b281cba140fb0ba31434804e08618dd66d5577389b4f31f0b57210a74"
+      }
+    },
+    {
+      "canonicalName": "beaconfire inc.",
+      "companyNames": [
+        "BeaconFire Inc."
+      ],
+      "file": "beaconfire-inc-dbaeeb5739.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3844,
+      "sha256": "dbaeeb57392c261e58310706383128a3f4e567eebc8aaca692b1581505bbcf12",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQEgZyD0JY8dTA/company-logo_100_100/company-logo_100_100/0/1630645938186?e=2147483647&v=beta&t=rtUNZayNFddz2ZEVUXEZVkDrnx6z-sh2A6Z8ZQvTSqc",
+        "page": "a6103dbb-6f3e-45a6-b940-86707c10b787.html",
+        "pageSha256": "5fa37fac0610c556356214abfa350f78bc5d9163dd16abe6644221a6e5fbb2e0",
+        "postingId": "a6103dbb-6f3e-45a6-b940-86707c10b787",
+        "alt": "BeaconFire Inc."
+      }
+    },
+    {
+      "canonicalName": "bluevine",
+      "companyNames": [
+        "Bluevine"
+      ],
+      "file": "bluevine-28b5954995.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2154,
+      "sha256": "28b5954995df0f25ac5ae24bfe07726092c97e3446cba5ccd7ddb90340e5cd5d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQFUPwflWqnZmA/company-logo_100_100/company-logo_100_100/0/1653150278798/bluevine_logo?e=2147483647&v=beta&t=TRMQ5q4expUyfcoV40u7Ltek4upJxalFJWI8-U696fk",
+        "page": "050fd80b-92d5-4752-bce9-881b1ca96620.html",
+        "pageSha256": "062382eb55bc6311aff772d660c286e4b8fdef838272a7d7ab4b1f1f9c0f65df",
+        "postingId": "050fd80b-92d5-4752-bce9-881b1ca96620",
+        "alt": "Bluevine"
+      }
+    },
+    {
+      "canonicalName": "bluevine - israel",
+      "companyNames": [
+        "Bluevine - Israel"
+      ],
+      "file": "bluevine-israel-c081c91d7e.png",
+      "mimeType": "image/png",
+      "bytes": 7078,
+      "sha256": "c081c91d7ea0f27f0ce7ecff1e19e74724f67e276fba59ebd0e735e62ae56b15",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s3-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/714/900/original/General_1.png?1769943804",
+        "page": "https://job-boards.greenhouse.io/bluevineisrael/jobs/7743128003",
+        "pageSha256": "425cdc324ff8eb8b79b0df6ab8b5d58dfa0c27ad4026e466e987eaf597141433",
+        "postingId": "fc19006c-4775-4278-a266-d1c1f89811a2",
+        "alt": "Bluevine - Israel",
+        "sourceBytes": 50413,
+        "sourceSha256": "c366105c1b59d3a5ee18c84b297f067658a550cfbd7d0184a4f5596abbfbca6a"
+      }
+    },
+    {
+      "canonicalName": "brg",
+      "companyNames": [
+        "BRG"
+      ],
+      "file": "brg-9ad6f32bdf.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2581,
+      "sha256": "9ad6f32bdf3391a7e7a54ea3e8cf7d2677381f9fcddaaacdce8f52b00a1b6be0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGLz5g3wR955w/company-logo_100_100/company-logo_100_100/0/1719854349434/berkeley_research_group_llc_logo?e=2147483647&v=beta&t=pQ0K3jRgpVCyxbaO1cnjfcrXwNXETtGOcMMBcGU6Xwg",
+        "page": "0096b589-d9b1-4e52-b0e4-11c4c41d2a67.html",
+        "pageSha256": "6eaa5726974a16647f34f4fda060136581ca2db944459b52e579aedefd413a69",
+        "postingId": "0096b589-d9b1-4e52-b0e4-11c4c41d2a67",
+        "alt": "BRG"
+      }
+    },
+    {
+      "canonicalName": "camunda",
+      "companyNames": [
+        "Camunda"
+      ],
+      "file": "camunda-06460d1984.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1810,
+      "sha256": "06460d198474f6a637dddbf985883cedd31fa637c8fb8588ccdbee956f9b0167",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQGiQbE-OPp1qA/company-logo_100_100/company-logo_100_100/0/1643213812449/camunda_logo?e=2147483647&v=beta&t=oHu3syEHrjGIuunuIsHQnMZM72GsMhJVPUYAXuaeCq4",
+        "page": "b64f0476-c5e5-4620-8587-2b407fa556e1.html",
+        "pageSha256": "d483fa6d93fa2d3a4d08fdbad0c79a9fe59628ee918a8235e9b5f93c43a06240",
+        "postingId": "b64f0476-c5e5-4620-8587-2b407fa556e1",
+        "alt": "Camunda"
+      }
+    },
+    {
+      "canonicalName": "cape",
+      "companyNames": [
+        "Cape"
+      ],
+      "file": "cape-a1f73245e7.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1991,
+      "sha256": "a1f73245e77c2adfb046af0e43ca0a92339b5856d3c1eb17eb2b80e5aa039e36",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQE2YSPo1FfF-A/company-logo_100_100/company-logo_100_100/0/1698257470366?e=2147483647&v=beta&t=gpWnxO-xMO08RTN60OH5yLMmppxM6ituKnbjdolWM0A",
+        "page": "15577537-0a7d-4b03-93ab-30081e40c3f5.html",
+        "pageSha256": "2e862c21fba28d663aee13212ef5851c29a7ce02b91b65ae53917b8acbc1c9d7",
+        "postingId": "15577537-0a7d-4b03-93ab-30081e40c3f5",
+        "alt": "Cape"
+      }
+    },
+    {
+      "canonicalName": "capital one",
+      "companyNames": [
+        "Capital One"
+      ],
+      "file": "capital-one-d4a8f5fa3e.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2187,
+      "sha256": "d4a8f5fa3eebeb32ca0c289502ed3ac5d2ae521f4e995ed935a4876ce91c1310",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQF0OgQyRZ9yAA/company-logo_100_100/company-logo_100_100/0/1635782718446/capital_one_logo?e=2147483647&v=beta&t=3vOvEagCN6Oz8iNwzA1s1AyoVUy5mbl-0M0gQjeiKvs",
+        "page": "23592400-52a6-45df-abc1-d5dfc6996f8b.html",
+        "pageSha256": "df999cfe242c68335283619c05fe106212b9f8cce0e615e54caeb1d16a9f7267",
+        "postingId": "23592400-52a6-45df-abc1-d5dfc6996f8b",
+        "alt": "Capital One"
+      }
+    },
+    {
+      "canonicalName": "cellebrite",
+      "companyNames": [
+        "Cellebrite"
+      ],
+      "file": "cellebrite-ee6cd6d27b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 6538,
+      "sha256": "ee6cd6d27ba28a1b54e5d48d0404891844b65f7307e5a748171486db4881d11c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHxV2h3FtCXQw/company-logo_100_100/company-logo_100_100/0/1719836228423/cellebrite_logo?e=2147483647&v=beta&t=fUe9vfmg1-BEPTDCGatpG618tsMLqvZ4Cr1amu8521Q",
+        "page": "aa2c8d0c-9558-4a1c-b59c-047dd676735a.html",
+        "pageSha256": "e4f64a63c168700c454551c3f0920482e75997506516dc7081da1d9912b139ec",
+        "postingId": "aa2c8d0c-9558-4a1c-b59c-047dd676735a",
+        "alt": "Cellebrite"
+      }
+    },
+    {
+      "canonicalName": "cerberus capital management",
+      "companyNames": [
+        "Cerberus Capital Management"
+      ],
+      "file": "cerberus-capital-management-b9b7bf6071.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2531,
+      "sha256": "b9b7bf60711f367fcc95249b970c041264d86729f54951289b059a54266757b2",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQEiZ4DnzXMzIg/company-logo_100_100/company-logo_100_100/0/1630573511871/cerberus_capital_management_logo?e=2147483647&v=beta&t=Cb6NnA9_oJ27c3FahpmotWHe_dj7EH0m2ZIljqHdolo",
+        "page": "ee9e1cd2-c855-4005-a86b-be63b7e3a028.html",
+        "pageSha256": "264cb31c281134a0d86b99cddec7444b79be21cbb52a006d528ca9b8f408069c",
+        "postingId": "ee9e1cd2-c855-4005-a86b-be63b7e3a028",
+        "alt": "Cerberus Capital Management"
+      }
+    },
+    {
+      "canonicalName": "clearstory",
+      "companyNames": [
+        "Clearstory"
+      ],
+      "file": "clearstory-860eb75473.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2311,
+      "sha256": "860eb75473302c9b450da0cecf9f7436bad42f20027bfa8edf6904b97f83d486",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQEiJqjqg8EoTw/company-logo_100_100/B56ZpVWK3zIYAY-/0/1762368466753/clearstory_build_logo?e=2147483647&v=beta&t=r7w2UcJzivdLvIE5ITpFIR85s9B09HLtMj-JrMx1Gts",
+        "page": "02fa3a8b-8195-4505-a2d1-e49a8749e43f.html",
+        "pageSha256": "608e602dffdef85b5b2bd7b3f5111baf82676ba7fc2f1db74abdaaf0b224b3d9",
+        "postingId": "02fa3a8b-8195-4505-a2d1-e49a8749e43f",
+        "alt": "Clearstory"
+      }
+    },
+    {
+      "canonicalName": "cohere",
+      "companyNames": [
+        "Cohere"
+      ],
+      "file": "cohere-1ef2bc6b4f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2424,
+      "sha256": "1ef2bc6b4f2fd01b6bb901236d60a54c6a00f54ffa2b96cd0164456913de7253",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQFzalLAtaow6A/company-logo_100_100/B4DZ7wZ3joH0AM-/0/1782149773884/cohere_ai_logo?e=2147483647&v=beta&t=5ixHw7MnmrduJqO5H1dm4xWmQUqqTtMupbk1vBJ5CPY",
+        "page": "e06f66c3-cdce-410d-a0ee-c915f6d915e9.html",
+        "pageSha256": "ef5073201c83e13ebf22299c52b65dc5c37b48533c95af82bec3b09f7be7fe0e",
+        "postingId": "e06f66c3-cdce-410d-a0ee-c915f6d915e9",
+        "alt": "Cohere",
+        "sourceBytes": 2424,
+        "sourceSha256": "1ef2bc6b4f2fd01b6bb901236d60a54c6a00f54ffa2b96cd0164456913de7253"
+      }
+    },
+    {
+      "canonicalName": "coinbase",
+      "companyNames": [
+        "Coinbase"
+      ],
+      "file": "coinbase-ea24408db3.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3030,
+      "sha256": "ea24408db3111ff5aafa809e16a6dc9cba55ec8d3b3049f76499c2ed332ddcc5",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHQJxIt9C0pHA/company-logo_100_100/B4EZ755_FYJIAI-/0/1782309188194/coinbase_logo?e=2147483647&v=beta&t=QA31DvDolLvZZPWuau144cSPtAB7zyB0CLnL3o2O6-o",
+        "page": "6453836d-669a-4190-8e54-c72eea1d3e67.html",
+        "pageSha256": "ee78448aaf51d534519580b470a3594aeed20a2356eae68bc4494e9667dc9167",
+        "postingId": "6453836d-669a-4190-8e54-c72eea1d3e67",
+        "alt": "Coinbase",
+        "sourceBytes": 3030,
+        "sourceSha256": "ea24408db3111ff5aafa809e16a6dc9cba55ec8d3b3049f76499c2ed332ddcc5"
+      }
+    },
+    {
+      "canonicalName": "commit",
+      "companyNames": [
+        "Commit"
+      ],
+      "file": "commit-3708fe21d4.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2137,
+      "sha256": "3708fe21d4ff47b463bb8c234b3f5e1c5b5fb36c1139aaca2b69960bfeda5ba0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQFt3OoTFjD6oQ/company-logo_100_100/company-logo_100_100/0/1674997480725/comm_it_logo?e=2147483647&v=beta&t=GjGmyhgmlTXFHjTYAJ4BNWah6HKjkbhlTUFDHP-Hx9A",
+        "page": "def13307-4ec8-4c70-81ea-5c222daaa163.html",
+        "pageSha256": "d8881fe41e64239caf89e5d6d9c1d78fd355f95770e75f74c3ab9492b258a521",
+        "postingId": "def13307-4ec8-4c70-81ea-5c222daaa163",
+        "alt": "Commit"
+      }
+    },
+    {
+      "canonicalName": "coralogix",
+      "companyNames": [
+        "Coralogix"
+      ],
+      "file": "coralogix-70a1d7063f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2121,
+      "sha256": "70a1d7063fdd6dc11338a29ae50afd817ccb01c9cb2a683f1752be9d14b74c68",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHzTXIE42Korw/company-logo_100_100/B4EZeaXy8vGcAQ-/0/1750641619087/coralogix_logo?e=2147483647&v=beta&t=jNm_ErIylj3mpcKgweZNkJjxcBLwCw1m_fC39f-100g",
+        "page": "aa3e86d7-9551-430a-b28c-1253ff693082.html",
+        "pageSha256": "acd16853847600f8dc07676774773916a3a7724f8d7bc8d41c2331fff129d7eb",
+        "postingId": "aa3e86d7-9551-430a-b28c-1253ff693082",
+        "alt": "Coralogix"
+      }
+    },
+    {
+      "canonicalName": "crown equipment corporation",
+      "companyNames": [
+        "Crown Equipment Corporation"
+      ],
+      "file": "crown-equipment-corporation-b4f074bd6f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1540,
+      "sha256": "b4f074bd6f6d91387a7a09619b853486d677c21afbe475f534263031b6bc74db",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQEQOxpJdxAR5A/company-logo_100_100/company-logo_100_100/0/1630508074846/crownequipment_logo?e=2147483647&v=beta&t=eqhcAyyaIJ_TYRFkYWJr13aGooTv2hQg_vikDeifm6A",
+        "page": "106dccf1-56a2-4f91-b91e-d4b83ed8c879.html",
+        "pageSha256": "3454d4ab6f9000456273e1711d4f5d663599c86a7e18004366b0820a5d58fdba",
+        "postingId": "106dccf1-56a2-4f91-b91e-d4b83ed8c879",
+        "alt": "Crown Equipment Corporation"
+      }
+    },
+    {
+      "canonicalName": "cyabra",
+      "companyNames": [
+        "Cyabra"
+      ],
+      "file": "cyabra-db7780ba5b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3700,
+      "sha256": "db7780ba5b1d41938fbe90b9c8d52ff2c4082b19283214b20265bb57839f6c81",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQFWFSiEXwrdJQ/company-logo_100_100/B4DZyaIFBUJoAQ-/0/1772112335349/cyabra_logo?e=2147483647&v=beta&t=V2g0FJcS85UdSM4vb65LzAm6aMtGrge3zGx-oEOhi0Q",
+        "page": "3ee3e11e-ef83-49fb-a7ec-f3539d6f93b7.html",
+        "pageSha256": "df26e25fefdd68c8e483a43d60152b9db4d101863a272e2065a5234ecef52da6",
+        "postingId": "3ee3e11e-ef83-49fb-a7ec-f3539d6f93b7",
+        "alt": "Cyabra",
+        "sourceBytes": 3700,
+        "sourceSha256": "db7780ba5b1d41938fbe90b9c8d52ff2c4082b19283214b20265bb57839f6c81"
+      }
+    },
+    {
+      "canonicalName": "doit",
+      "companyNames": [
+        "DoiT"
+      ],
+      "file": "doit-1a4c4090b4.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2438,
+      "sha256": "1a4c4090b4596c65365bb9bc0a7eca35a74ff9281ad1b75780b4e5343840e90c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQELH40cpGiudg/company-logo_100_100/B4EaA1ALcJHQAI-/0/1787595634652/doitintl_logo?e=2147483647&v=beta&t=DO1o0_8pR-0lNvpeVeq3K5tqhYE8MVa3oTTqtmyh2vg",
+        "page": "0ac718b9-5d1e-4d5f-9c39-838d2e1e82e1.html",
+        "pageSha256": "321430df568b5d182c34df2affb97d42f0720b0f3a32e078c1db3dae0f9e2ecf",
+        "postingId": "0ac718b9-5d1e-4d5f-9c39-838d2e1e82e1",
+        "alt": "DoiT"
+      }
+    },
+    {
+      "canonicalName": "effectivbiz",
+      "companyNames": [
+        "EffectivBIZ"
+      ],
+      "file": "effectivbiz-b7077f63b8.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3236,
+      "sha256": "b7077f63b8b5068a2039b4758b05781ed1edf29c7ec2faacb9a892805570c7ca",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQEgGaiFrkeuaA/company-logo_100_100/company-logo_100_100/0/1630511861646?e=2147483647&v=beta&t=pIinr54tSNDJd4f_tno7AzUMGqiFeBIyjfZy-j60vyI",
+        "page": "7d55d8bc-a195-467e-b93f-33270164e24d.html",
+        "pageSha256": "7c5ec58d6922085a479b8f1380ed02f5b6db95b43c340447761c195dd3e044bc",
+        "postingId": "7d55d8bc-a195-467e-b93f-33270164e24d",
+        "alt": "EffectivBIZ"
+      }
+    },
+    {
+      "canonicalName": "elbit systems israel",
+      "companyNames": [
+        "Elbit Systems Israel"
+      ],
+      "file": "elbit-systems-israel-a70d7fdb6d.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2311,
+      "sha256": "a70d7fdb6d9dd9c004cda782768e34bf1bcab5ec0df98e8627dbba588281852d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQFVu8fgvCZMcw/company-logo_100_100/company-logo_100_100/0/1656575042637/elbit_systems_ltd_logo?e=2147483647&v=beta&t=thhyWI1tpwu0e_2FMadmEpucjwav6dZallxGqfVRa-Q",
+        "page": "6e49eb79-88e3-4839-8ff7-8c2c1ec0654c.html",
+        "pageSha256": "88c295df9f06b668d0816b92b7fb93641f72f8f6b80b90f86a0378862803e745",
+        "postingId": "6e49eb79-88e3-4839-8ff7-8c2c1ec0654c",
+        "alt": "Elbit Systems Israel"
+      }
+    },
+    {
+      "canonicalName": "empathy",
+      "companyNames": [
+        "Empathy"
+      ],
+      "file": "empathy-f487d48d9c.png",
+      "mimeType": "image/png",
+      "bytes": 3649,
+      "sha256": "f487d48d9c111dba8e72a00015299323ed2a8ffe7e70123e559135d334e21591",
+      "source": {
+        "kind": "comeet-public-job-page",
+        "url": "https://comeet-euw-app.s3.amazonaws.com/2295/fea0406bc49a5a04f9fa3871b58e19303d160716",
+        "page": "https://www.comeet.com/jobs/empathy/F8.007/senior-full-stack-developer/38.B43",
+        "pageSha256": "18c96f0fdccca523d505c15513140290c91c729649317df6e04eecaf9732b7b0",
+        "postingId": "c68db1a2-d1b2-41c7-bcd0-14e63c0ba161",
+        "alt": "Empathy",
+        "sourceBytes": 28113,
+        "sourceSha256": "392d13598dbbf8b0286b5214447800bc8d79099ff9a92323403abebc8f49588a"
+      }
+    },
+    {
+      "canonicalName": "eni-one ltd",
+      "companyNames": [
+        "ENI-ONE LTD"
+      ],
+      "file": "eni-one-ltd-76aaafccff.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2663,
+      "sha256": "76aaafccffa408d90be7aaac1f69561d5b924a09b2e3bc3a1d4dc97d4683d8cd",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHOSnVwW4BcZg/company-logo_100_100/company-logo_100_100/0/1689231736148?e=2147483647&v=beta&t=DMqN13edPyk4OKq3SSaSv51HjbFCUpClcj08f9wNxeE",
+        "page": "1402c8ff-7ef1-4435-80b7-96ee50b90f11.html",
+        "pageSha256": "6a5d4ebba1636bd280380f34c5e5b95819fa86e0b993ad78fcafb1eac98ce0c1",
+        "postingId": "1402c8ff-7ef1-4435-80b7-96ee50b90f11",
+        "alt": "ENI-ONE LTD",
+        "sourceBytes": 2663,
+        "sourceSha256": "76aaafccffa408d90be7aaac1f69561d5b924a09b2e3bc3a1d4dc97d4683d8cd"
+      }
+    },
+    {
+      "canonicalName": "enlighten",
+      "companyNames": [
+        "Enlighten"
+      ],
+      "file": "enlighten-8adee07e1d.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3782,
+      "sha256": "8adee07e1d425fc2c84405e126c9451de45a10be91074a0842420a30d0117497",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQENcqWEctMz2w/company-logo_100_100/company-logo_100_100/0/1654524249207/enlighten_it_group_logo?e=2147483647&v=beta&t=Gi5-J-FZkBeP_LJHTXcQjW9C39grAs2LmYDQZKRAcgE",
+        "page": "d2fa82b3-5f94-4551-b511-060eef714ead.html",
+        "pageSha256": "f725949599f978ef8ef0582ab2dc5686cb9fed68b097d308413b69073446c31d",
+        "postingId": "d2fa82b3-5f94-4551-b511-060eef714ead",
+        "alt": "Enlighten",
+        "sourceBytes": 3782,
+        "sourceSha256": "8adee07e1d425fc2c84405e126c9451de45a10be91074a0842420a30d0117497"
+      }
+    },
+    {
+      "canonicalName": "erp logic israel, sap partner",
+      "companyNames": [
+        "ERP Logic Israel, SAP Partner"
+      ],
+      "file": "erp-logic-israel-sap-partner-ceede26f66.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2462,
+      "sha256": "ceede26f6680f637f236eac73fc5425fb6ab39c9576d9fba3ddf6c5e04b4aec3",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQFjk17Vxz-Rag/company-logo_100_100/company-logo_100_100/0/1640207133415/erp_logic_israel_logo?e=2147483647&v=beta&t=ECThyN2PhW9fjRSQLzmfXy8crqrl6ADKxQ69bScTky4",
+        "page": "c60d9564-1aa2-47b0-a820-b29341e171b7.html",
+        "pageSha256": "5f76afb80b4785f4f319638c98a773b6be5c3154eb48f42313403042e99787da",
+        "postingId": "c60d9564-1aa2-47b0-a820-b29341e171b7",
+        "alt": "ERP Logic Israel, SAP Partner"
+      }
+    },
+    {
+      "canonicalName": "esentire",
+      "companyNames": [
+        "eSentire"
+      ],
+      "file": "esentire-4c54e14280.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3287,
+      "sha256": "4c54e14280171a1d266a16f99ca122e82145b63953401df5f6bc5fd74bfd5d30",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQEHLVlYew_qBQ/company-logo_100_100/company-logo_100_100/0/1657030403254/esentire_inc__logo?e=2147483647&v=beta&t=dqUprlm277JCqxUvGt2JWscfxMs9ndtONOJbKGc8oW4",
+        "page": "e04a4213-c7db-451c-85fe-26344055fe0b.html",
+        "pageSha256": "d83c3ec2f189585c0e5375cac6cd62607b3facca7a6d98690ba4ed82db0eac09",
+        "postingId": "e04a4213-c7db-451c-85fe-26344055fe0b",
+        "alt": "eSentire",
+        "sourceBytes": 3287,
+        "sourceSha256": "4c54e14280171a1d266a16f99ca122e82145b63953401df5f6bc5fd74bfd5d30"
+      }
+    },
+    {
+      "canonicalName": "evlo ai",
+      "companyNames": [
+        "Evlo AI"
+      ],
+      "file": "evlo-ai-3d24b0cf18.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1841,
+      "sha256": "3d24b0cf1849f704fdade300155d7d2f35f7d59e5a39bd69236cd989646fbb01",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQF_OpNqhKfEZg/company-logo_100_100/B56Z75vFBaHIAI-/0/1782306328864/evlo_ai_logo?e=2147483647&v=beta&t=MtsOJcMy_ubIXjyoGkhPH5a-xh5C6JCVnP4EvmjL954",
+        "page": "4db16b2c-8fee-44a3-8480-5544d8c4c577.html",
+        "pageSha256": "d04c94e0e179b5171782a78ca13887b84f59027308e53d6dd5a85921a169673f",
+        "postingId": "4db16b2c-8fee-44a3-8480-5544d8c4c577",
+        "alt": "Evlo AI"
+      }
+    },
+    {
+      "canonicalName": "finch",
+      "companyNames": [
+        "Finch"
+      ],
+      "file": "finch-858f685954.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1305,
+      "sha256": "858f685954e2ca1839be5c059c8a0dc36c22f18a4abc2ad75041068b92867da5",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFq5eNzX4vdtQ/company-logo_100_100/B4EZl3yqyLKYAQ-/0/1758651395530/finchapi_logo?e=2147483647&v=beta&t=t6IKr3J67_t4Z80V9TFe3kIl1Ny7CGrKmnXfJietMG4",
+        "page": "3542f6d5-8402-41f2-b619-d39e345bba2e.html",
+        "pageSha256": "4f4a652778441cc8ac3d4db486723b43ccfc6b436882f6eab3553d3b9391556a",
+        "postingId": "3542f6d5-8402-41f2-b619-d39e345bba2e",
+        "alt": "Finch"
+      }
+    },
+    {
+      "canonicalName": "forter",
+      "companyNames": [
+        "Forter"
+      ],
+      "file": "forter-aafc2477bf.png",
+      "mimeType": "image/png",
+      "bytes": 3585,
+      "sha256": "aafc2477bfc9f47d596fb688f1267c19255ad2e951724fe5a8a023c0f1a37b10",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s2-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/695/300/original/Forter_Logo_Blue.png?1731596491",
+        "page": "https://job-boards.greenhouse.io/forter/jobs/8299310002",
+        "pageSha256": "c0098b1ac9d01753cfe46f47a98e77bc7b18f6a84c9a71d3a0a3f3aea88c155d",
+        "postingId": "c61d2888-2558-42bb-8e7a-3e6ed6a02af5",
+        "alt": "Forter",
+        "sourceBytes": 70131,
+        "sourceSha256": "feb4efe280f6bf4be4892f896d3f504db414b3ac24c495e76979c6b3bed55a0c"
+      }
+    },
+    {
+      "canonicalName": "franklin fitch",
+      "companyNames": [
+        "Franklin Fitch"
+      ],
+      "file": "franklin-fitch-4b88a74898.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3085,
+      "sha256": "4b88a748982ed8aae3559ef2a4021cf8398ed582b90616c7e7f6a7f8ab06355f",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHNXE_RBW1N4Q/company-logo_100_100/B4EZhkfIwgGYAY-/0/1754032541425/franklin_fitch_logo?e=2147483647&v=beta&t=oK1iClGGyrmojLnfbFyProqtuwdLKYODtJunvTibGXQ",
+        "page": "c5fde036-384f-46b8-832f-f17bf61bf8b3.html",
+        "pageSha256": "f958783f32852ea71cdc2f20cf4c3ea5f0ab45a149f725bece841bc0cf2ad362",
+        "postingId": "c5fde036-384f-46b8-832f-f17bf61bf8b3",
+        "alt": "Franklin Fitch"
+      }
+    },
+    {
+      "canonicalName": "fullstack",
+      "companyNames": [
+        "FullStack"
+      ],
+      "file": "fullstack-332cebaadf.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1981,
+      "sha256": "332cebaadf7b9ca3c508f0ace0410dc29bbb896c733e08a31eb40357768b8507",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFl6I0phUCDQg/company-logo_100_100/B4EZo1FC7hIIAQ-/0/1761827107300/fullstack_labs_logo?e=2147483647&v=beta&t=TX2W7XY8VQOqyE5uwUHWxTPZC3rSHuZcy5UN31sBL-4",
+        "page": "45ef4745-03af-4452-a77b-3427729e35a5.html",
+        "pageSha256": "5eb15949bdf4b2edd251901a1fef2a0c7e87138d241e14868d4cd5c7e8930515",
+        "postingId": "45ef4745-03af-4452-a77b-3427729e35a5",
+        "alt": "FullStack",
+        "sourceBytes": 1981,
+        "sourceSha256": "332cebaadf7b9ca3c508f0ace0410dc29bbb896c733e08a31eb40357768b8507"
+      }
+    },
+    {
+      "canonicalName": "gambit security",
+      "companyNames": [
+        "Gambit Security"
+      ],
+      "file": "gambit-security-b5e0c7efd6.png",
+      "mimeType": "image/png",
+      "bytes": 4211,
+      "sha256": "b5e0c7efd6dcabd9e55d168210895228201f6643527d6de0d470c3c5aa8d1401",
+      "source": {
+        "kind": "comeet-public-job-page",
+        "url": "https://comeet-euw-app.s3.amazonaws.com/2750/50c9b9387065fba2adb9a8be9e7708aedb8b8aba",
+        "page": "https://www.comeet.com/jobs/gambit_security/BA.00E/frontend-engineer/D9.D60",
+        "pageSha256": "3d3a906f57f78c2ac68b4c49090f04f2245d561e7c8189e363d5b9bb5e0e0143",
+        "postingId": "375437ff-30e9-419e-accc-df56bd09cd97",
+        "alt": "Gambit Security",
+        "sourceBytes": 23589,
+        "sourceSha256": "af23ec757964dc75b536906f88f47aeca8667acdd9972b55221edb87c26e28e4"
+      }
+    },
+    {
+      "canonicalName": "ge healthcare",
+      "companyNames": [
+        "GE HealthCare"
+      ],
+      "file": "ge-healthcare-f1b0f37245.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 5504,
+      "sha256": "f1b0f372453dc489eee289936b7ff1196305f0af8731dfc3f01eab0d83936d62",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQG30MejU_UygQ/company-logo_100_100/B56ZlzFxy6I0AQ-/0/1758572519588/gehealthcare_logo?e=2147483647&v=beta&t=nY-wpTVABSqcsPg_WG65-jSQQsWCROwqEEKlxai4V6g",
+        "page": "c43e497f-dcc0-4e54-ad87-51326a5c4b00.html",
+        "pageSha256": "651ecf90711cfa72e1e174582781c0f162d3372d632532dbd466af7c7de31d2b",
+        "postingId": "c43e497f-dcc0-4e54-ad87-51326a5c4b00",
+        "alt": "GE HealthCare"
+      }
+    },
+    {
+      "canonicalName": "gitkraken",
+      "companyNames": [
+        "GitKraken"
+      ],
+      "file": "gitkraken-4268e6a500.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4366,
+      "sha256": "4268e6a50035f5c7b237e5534b0a7282b6a64b0590a676b792a065f08e4c890b",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQH7kMFduqTX1Q/company-logo_100_100/company-logo_100_100/0/1691785850257/gitkraken_logo?e=2147483647&v=beta&t=r8LSKkQoEo0m3OqGEBjjIVcSvALiLa94azD685QegL0",
+        "page": "85963639-6bca-4646-8f67-cd5c5e08e3a2.html",
+        "pageSha256": "e8d021d078b2947f17de7869c153a665f7a2acef0679fc0bdf40de3f73e6c1d8",
+        "postingId": "85963639-6bca-4646-8f67-cd5c5e08e3a2",
+        "alt": "GitKraken"
+      }
+    },
+    {
+      "canonicalName": "goarc",
+      "companyNames": [
+        "GOARC"
+      ],
+      "file": "goarc-0f45e9e71c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4924,
+      "sha256": "0f45e9e71c26ea6aa3dde5efc35516babbc99eb0b9d461d1d241577f4691a2e2",
+      "source": {
+        "kind": "workable-public-job-page",
+        "url": "https://workablehr.s3.amazonaws.com/uploads/account/open_graph_logo/724398/social?1785744115000",
+        "page": "https://apply.workable.com/goarc/j/E822F93FB5/",
+        "pageSha256": "df39ce1f6ec07728e52a021daf6906f18b86b9a9395fe30269e7cfafb9d31ab8",
+        "postingId": "448b291c-e7fc-4bab-a80b-56bc7c36e20b",
+        "alt": "GOARC",
+        "sourceBytes": 92066,
+        "sourceSha256": "8664c63c85d414a1a190bf86f978630348cb1de21b7193a854e73a1ff019b111"
+      }
+    },
+    {
+      "canonicalName": "google",
+      "companyNames": [
+        "Google"
+      ],
+      "file": "google-131faa0434.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2861,
+      "sha256": "131faa0434c6f5f79f16bcde0cb851c70c3520a168fbbb5ed81180b43b3adc45",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGv3cqOuUMY7g/company-logo_100_100/B4EZmhegXHGcAU-/0/1759350753990/google_logo?e=2147483647&v=beta&t=zYekdwB_mnXarr4wa4kw8w3Jikm8YaakM5aiDyAyvP0",
+        "page": "5669cb04-c106-407c-85e7-9d909351a92b.html",
+        "pageSha256": "32a728bd91951b0847507ad6bab233b88c05faf0594f6aac10487c9127e98205",
+        "postingId": "5669cb04-c106-407c-85e7-9d909351a92b",
+        "alt": "Google",
+        "sourceBytes": 2861,
+        "sourceSha256": "131faa0434c6f5f79f16bcde0cb851c70c3520a168fbbb5ed81180b43b3adc45"
+      }
+    },
+    {
+      "canonicalName": "grove collaborative",
+      "companyNames": [
+        "Grove Collaborative"
+      ],
+      "file": "grove-collaborative-467a4c2514.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2989,
+      "sha256": "467a4c251418c73715576486fe8ad2935975d93e0fd576a0c760086e70d5373d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQG215FuFM5aRQ/company-logo_100_100/company-logo_100_100/0/1630585956081/grove_collaborative_logo?e=2147483647&v=beta&t=N9Z9VmsFk5rL_H95ljTpseEI0JxksQFSNUVMHQtF7CI",
+        "page": "d9057820-01cc-41fc-be68-2f4286b341bf.html",
+        "pageSha256": "cde73855388b91e2bb44f565a7783c2295ac0733cd5cb3f45c49284ee8d9483f",
+        "postingId": "d9057820-01cc-41fc-be68-2f4286b341bf",
+        "alt": "Grove Collaborative"
+      }
+    },
+    {
+      "canonicalName": "guidde",
+      "companyNames": [
+        "Guidde"
+      ],
+      "file": "guidde-1a32b922f1.png",
+      "mimeType": "image/png",
+      "bytes": 2684,
+      "sha256": "1a32b922f1de9bf661abe0362a7a6d77d0ea8772b4db5174fb0261204cc73f79",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s101-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/305/010/original/red_guidde_logo_-_white_background.png?1744203809",
+        "page": "https://job-boards.eu.greenhouse.io/guiddelinkedin/jobs/4957383101",
+        "pageSha256": "14aa98e04c4383689105d0a33aa97ceabb7d206628dc0ac0f2d6e2199901778d",
+        "postingId": "8970eb6a-3ab6-4451-acf0-a6974176747f",
+        "alt": " Guidde",
+        "sourceBytes": 14435,
+        "sourceSha256": "2e21abb9ea1efd83864d13ee183d717cd40b0bac01a0427a26755c82f4eab105"
+      }
+    },
+    {
+      "canonicalName": "harrison clarke",
+      "companyNames": [
+        "Harrison Clarke"
+      ],
+      "file": "harrison-clarke-e9fef18018.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2510,
+      "sha256": "e9fef1801828339c49a737cf89e35f1dd642af8797bb80bb8bfa385f0d10cbfb",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQGCGvTjhDo-bA/company-logo_100_100/company-logo_100_100/0/1656672305000/harrisonclarke_logo?e=2147483647&v=beta&t=osAc9r3Gx_Zyy9xfCeLZuexrx_gK0zfRqOABXIGqOXk",
+        "page": "8909650a-0051-4c00-9d24-13e76b709c11.html",
+        "pageSha256": "b77e3793c9f66dc4122bf8dc6c950731a622847284a86e12527551e389a70006",
+        "postingId": "8909650a-0051-4c00-9d24-13e76b709c11",
+        "alt": "Harrison Clarke"
+      }
+    },
+    {
+      "canonicalName": "haystack",
+      "companyNames": [
+        "Haystack"
+      ],
+      "file": "haystack-5ed99bb0c5.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2061,
+      "sha256": "5ed99bb0c5a0931e30c443bf4a4a9b697487d3e7b26d85847fc38924d4d19152",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFq9pcJGgSIpw/company-logo_100_100/company-logo_100_100/0/1661435358398/wearehaystack_logo?e=2147483647&v=beta&t=rujfUADbjJfzHP5KvyRjFwVpiCqcmuXrLF36sSaB1m8",
+        "page": "002528e6-61e8-453c-b9df-4f0300419d28.html",
+        "pageSha256": "43e93c71a9ba8d7f05682e51e2a60c10ed2a6ade6f12cea644c5028c22f908f7",
+        "postingId": "002528e6-61e8-453c-b9df-4f0300419d28",
+        "alt": "Haystack"
+      }
+    },
+    {
+      "canonicalName": "hendrickson",
+      "companyNames": [
+        "Hendrickson"
+      ],
+      "file": "hendrickson-673aa9063b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2807,
+      "sha256": "673aa9063bc2fb86a6ef632a7b0b79cbb79ae4b8a6fd3bb3c201ad6484493d9f",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQENV0yeKS7Eew/company-logo_100_100/B4EZ_xCHA6K0AM-/0/1786455290287/hendrickson_logo?e=2147483647&v=beta&t=oR3oFYSDex7YCfUKx5znUT4-evGhITDCa3kpgBRzHRw",
+        "page": "eb38ed1e-d955-4acd-b2f3-751c6f661f01.html",
+        "pageSha256": "933ee75225ec38c29800652b0eae723371e0e6ef30d17662125fc8b1e355ce11",
+        "postingId": "eb38ed1e-d955-4acd-b2f3-751c6f661f01",
+        "alt": "Hendrickson"
+      }
+    },
+    {
+      "canonicalName": "hightouch",
+      "companyNames": [
+        "Hightouch"
+      ],
+      "file": "hightouch-3bef39e3fa.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1797,
+      "sha256": "3bef39e3fa843d6b046f0856cd56fb2e50c36f0ca9f44e4ac23867e74b1c455a",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGcPLVhxpvL-w/company-logo_100_100/B4EZ8e4.P9JYAI-/0/1782929679619/hightouchio_logo?e=2147483647&v=beta&t=3koJvZTeWpyk79oiuoZg2vNIL02BRi5LCVcaC4fTktA",
+        "page": "5ad8a2e8-85e8-4d5a-ba5b-bcd59a795300.html",
+        "pageSha256": "9c1b68ab821dac0f2370b1796865eb3f2776ff95cdf829ad6f229b1628d301bd",
+        "postingId": "5ad8a2e8-85e8-4d5a-ba5b-bcd59a795300",
+        "alt": "Hightouch",
+        "sourceBytes": 1797,
+        "sourceSha256": "3bef39e3fa843d6b046f0856cd56fb2e50c36f0ca9f44e4ac23867e74b1c455a"
+      }
+    },
+    {
+      "canonicalName": "howmet aerospace",
+      "companyNames": [
+        "Howmet Aerospace"
+      ],
+      "file": "howmet-aerospace-f23d2a7cc7.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3032,
+      "sha256": "f23d2a7cc78281eaf3223ccd50f527266283cd6d1cada8f4a3708ae4d9768e46",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQE2d6yGVijCIw/company-logo_100_100/company-logo_100_100/0/1630533066633/howmet_aerospace_logo?e=2147483647&v=beta&t=avnw6OeB4OTJ7Cm5M-H1uOIsxxoesb2hRtuVkZBINZw",
+        "page": "2c80dab0-f471-4d56-8878-74f017cc71a1.html",
+        "pageSha256": "4cae588000c386fb803d615e154d749a2464921001af86b5bd79693bd2714039",
+        "postingId": "2c80dab0-f471-4d56-8878-74f017cc71a1",
+        "alt": "Howmet Aerospace",
+        "sourceBytes": 3032,
+        "sourceSha256": "f23d2a7cc78281eaf3223ccd50f527266283cd6d1cada8f4a3708ae4d9768e46"
+      }
+    },
+    {
+      "canonicalName": "hunter bond",
+      "companyNames": [
+        "Hunter Bond"
+      ],
+      "file": "hunter-bond-b02335d20c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2176,
+      "sha256": "b02335d20c7172e3743d8316664336b7774faa77f0d779c5c028a28887c8a6e5",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQG5o-a152PxzQ/company-logo_100_100/B4EZrFwi_pIIAQ-/0/1764254429535/hunter_bond_logo?e=2147483647&v=beta&t=KCtyUKIwa_XmSaBdOUy6iwzO9frBzPjekNP7ogtRPSg",
+        "page": "a5219ec2-8a61-4f49-ab41-94e3ada1f711.html",
+        "pageSha256": "cd61c606d2ec07587f1813fcf1713a585cac1525ff08a3b073bece3946fdd071",
+        "postingId": "a5219ec2-8a61-4f49-ab41-94e3ada1f711",
+        "alt": "Hunter Bond",
+        "sourceBytes": 2176,
+        "sourceSha256": "b02335d20c7172e3743d8316664336b7774faa77f0d779c5c028a28887c8a6e5"
+      }
+    },
+    {
+      "canonicalName": "iai - israel aerospace industries",
+      "companyNames": [
+        "IAI - Israel Aerospace Industries"
+      ],
+      "file": "iai-israel-aerospace-industries-5df79b6ace.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2401,
+      "sha256": "5df79b6aceee1ee58fea2d4c7ba8a2a70ce9ef26d4d6065092ba7d0257224492",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQEqphKdN-tQ2Q/company-logo_100_100/B4DZX6fKsUHAAQ-/0/1743664230552/iai_logo?e=2147483647&v=beta&t=k_dD34xngJAIu4hzFjsTCyyjjiwByChrI5Igv9uoR4s",
+        "page": "750261f5-0f6c-48e1-b326-319553b7673b.html",
+        "pageSha256": "7d19564aac69984e862a16f5f7e00d2ab9e2abf3b23b8f5d8317c7c993e41d9a",
+        "postingId": "750261f5-0f6c-48e1-b326-319553b7673b",
+        "alt": "IAI - Israel Aerospace Industries"
+      }
+    },
+    {
+      "canonicalName": "ice",
+      "companyNames": [
+        "ICE"
+      ],
+      "file": "ice-4eeb54e764.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2165,
+      "sha256": "4eeb54e76467e9b78dbf1e6ec68d8d02d607a4325e476fba57f66861dd227ed0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGyUyYm01gbSQ/company-logo_100_100/B4EZgUeOPSGwAQ-/0/1752690124069/icemarkets_logo?e=2147483647&v=beta&t=Yxhm-AGh0m4kQ3G09FDg5xWVeqPLrrmla0j_f6Smd4w",
+        "page": "16d31aa6-954d-4fbf-bfbd-eb7cd2b520f8.html",
+        "pageSha256": "5f3e8e889f9216bdf64ab3b602d14ce0840126ea35444323b4587920395e9c3c",
+        "postingId": "16d31aa6-954d-4fbf-bfbd-eb7cd2b520f8",
+        "alt": "ICE"
+      }
+    },
+    {
+      "canonicalName": "instawork",
+      "companyNames": [
+        "Instawork"
+      ],
+      "file": "instawork-31366a8c49.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2441,
+      "sha256": "31366a8c4966cbeb1379763bd6982bdb1581f2fc3f07a6df9fec4cfcb2a674bc",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQF9MsoYN5RGUw/company-logo_100_100/company-logo_100_100/0/1736971422401/instawork_logo?e=2147483647&v=beta&t=Q6Yk1CE8Fd1Oh9WVaBtUQo1mVDO2EVwV5TflTs5CmBM",
+        "page": "835786a6-6022-4592-8f57-390e59217da0.html",
+        "pageSha256": "0c6737776db80179c61e736ee0733000b92fc8e26f43adb7af55185ad8660fae",
+        "postingId": "835786a6-6022-4592-8f57-390e59217da0",
+        "alt": "Instawork",
+        "sourceBytes": 2441,
+        "sourceSha256": "31366a8c4966cbeb1379763bd6982bdb1581f2fc3f07a6df9fec4cfcb2a674bc"
+      }
+    },
+    {
+      "canonicalName": "jll",
+      "companyNames": [
+        "JLL"
+      ],
+      "file": "jll-3a41126272.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1903,
+      "sha256": "3a411262721ffda5c167de5cea566fe184d0e6008d163a8e61048c803fda7d1e",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQGGGDZT12LbJg/company-logo_100_100/B56ZeGwlz9HEAU-/0/1750312575106/jll_logo?e=2147483647&v=beta&t=rV3mz0FK0_wHoKjfV7lfJt7X-4_RUa6WxnEoEvnhZZE",
+        "page": "c7f3e1f0-8ab4-427f-be72-64c20d8e6fe0.html",
+        "pageSha256": "1cdd5ccaa6c99ce35c70663b23a8236d1925cb5e323c2e0904028b480262f367",
+        "postingId": "c7f3e1f0-8ab4-427f-be72-64c20d8e6fe0",
+        "alt": "JLL"
+      }
+    },
+    {
+      "canonicalName": "jobright.ai",
+      "companyNames": [
+        "Jobright.ai"
+      ],
+      "file": "jobright-ai-7bfe2e3c14.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3326,
+      "sha256": "7bfe2e3c14613e7d60f94df81d528499aaee83de6fd6339f7529621daf8de86a",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQENJWU02sl4ZA/company-logo_100_100/company-logo_100_100/0/1701315479200/jobright_ai_logo?e=2147483647&v=beta&t=Qp5ZNbGfD1Y9tuchwA2EOIb0gsCDK-vB4qlQrF4r5BA",
+        "page": "160266f2-080e-4f58-af5b-2abb2905a5e1.html",
+        "pageSha256": "c2c72b66cd58fa79db2ff61a419a5060667c1d5b55a040da7bdde9e2d5a9ad48",
+        "postingId": "160266f2-080e-4f58-af5b-2abb2905a5e1",
+        "alt": "Jobright.ai"
+      }
+    },
+    {
+      "canonicalName": "jobsseek",
+      "companyNames": [
+        "JobsSeek"
+      ],
+      "file": "jobsseek-d0b12fabda.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1989,
+      "sha256": "d0b12fabdaed26c48357c8426cae12a6401d32710c207d1ef3eb9ebae505946a",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQFc4u1wp4facA/company-logo_100_100/company-logo_100_100/0/1704712762989/jobsseek_logo?e=2147483647&v=beta&t=Ldqf7J6mMvUr6WGU4z-wifS9Y7rH-2vqgqAy-3p-cgA",
+        "page": "5e5ad3cc-1374-4225-a995-037310cd5cff.html",
+        "pageSha256": "3a6d0dbc66160c306103498ff5e586372bf7863526b744672bbbd120b1206a18",
+        "postingId": "5e5ad3cc-1374-4225-a995-037310cd5cff",
+        "alt": "JobsSeek",
+        "sourceBytes": 1989,
+        "sourceSha256": "d0b12fabdaed26c48357c8426cae12a6401d32710c207d1ef3eb9ebae505946a"
+      }
+    },
+    {
+      "canonicalName": "larson design group",
+      "companyNames": [
+        "Larson Design Group"
+      ],
+      "file": "larson-design-group-e01e9f5404.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2896,
+      "sha256": "e01e9f5404bca91d355481258ba796e7a9a8831f61963a978100ab5afb841157",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQFA54L3FY54bg/company-logo_100_100/company-logo_100_100/0/1630534055116/larson_design_group_logo?e=2147483647&v=beta&t=qn44rWQF9rgkth24oWsqLLPrxgr9_Hcg_XlCVgYmi7k",
+        "page": "3f78c331-c1ea-4680-826e-035a311a4d2e.html",
+        "pageSha256": "a50a91c12ec6a875f1f59e8f3fdb2c9cc2d36b06bab3c6aaf71a3db338760aec",
+        "postingId": "3f78c331-c1ea-4680-826e-035a311a4d2e",
+        "alt": "Larson Design Group",
+        "sourceBytes": 2896,
+        "sourceSha256": "e01e9f5404bca91d355481258ba796e7a9a8831f61963a978100ab5afb841157"
+      }
+    },
+    {
+      "canonicalName": "lemonade",
+      "companyNames": [
+        "Lemonade"
+      ],
+      "file": "lemonade-ad1b17761f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1928,
+      "sha256": "ad1b17761f0b8a0a25d1321c28551ce645fdea38fc811dcd741657ba311627e0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQHnPV8dBNy7ag/company-logo_100_100/company-logo_100_100/0/1630567737736/lemonade_inc__logo?e=2147483647&v=beta&t=DsVpz4nlgwSA4mOpgWH5w7cgLzJMtYtPAvocUw0B6CA",
+        "page": "b3849b86-85af-4b52-b89d-3aeb6390cb3d.html",
+        "pageSha256": "bbe4d11d76789b6281165f406ac45401ddf95ae1ada281fd77bb3c258fc37610",
+        "postingId": "b3849b86-85af-4b52-b89d-3aeb6390cb3d",
+        "alt": "Lemonade",
+        "sourceBytes": 1928,
+        "sourceSha256": "ad1b17761f0b8a0a25d1321c28551ce645fdea38fc811dcd741657ba311627e0"
+      }
+    },
+    {
+      "canonicalName": "liveramp",
+      "companyNames": [
+        "LiveRamp"
+      ],
+      "file": "liveramp-652c50e469.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1689,
+      "sha256": "652c50e469efa83b1fb724a3ab9d6a4a807779fcf890c5c65aaa7300e6e5075a",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQGLYeN3eswyeg/company-logo_100_100/company-logo_100_100/0/1731707766169/liveramp_logo?e=2147483647&v=beta&t=KxXa0kWD4MKJ-0YW__o88h3XOuG-EbRFfUwrWWFTl2A",
+        "page": "a7bdceb9-68ff-4ee5-8c34-8dc883c8f5cb.html",
+        "pageSha256": "52e1df19475de5408f5dde3f8fc5fea60c5e03684d918d222bb269f768c020c8",
+        "postingId": "a7bdceb9-68ff-4ee5-8c34-8dc883c8f5cb",
+        "alt": "LiveRamp",
+        "sourceBytes": 1689,
+        "sourceSha256": "652c50e469efa83b1fb724a3ab9d6a4a807779fcf890c5c65aaa7300e6e5075a"
+      }
+    },
+    {
+      "canonicalName": "luxoft",
+      "companyNames": [
+        "Luxoft"
+      ],
+      "file": "luxoft-681becd334.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2425,
+      "sha256": "681becd334bc1f87e40f8c388b511be8a65cc0415f1201f6b88143cbe2eb2a2b",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQGXg4uCDPdcXg/company-logo_100_100/B56ZtGvJgYIEAU-/0/1766418324735/luxoft_logo?e=2147483647&v=beta&t=m36tKBwGTR2jNU6PMP7F-56-I9f2bnqUi8ori4OpFxg",
+        "page": "6960b413-dd9a-433a-bb4e-b621650fb40c.html",
+        "pageSha256": "a2247902bc3a6841a54e871fda455a09aaf7b115b65ffce5333a2fe084f4ebd2",
+        "postingId": "6960b413-dd9a-433a-bb4e-b621650fb40c",
+        "alt": "Luxoft"
+      }
+    },
+    {
+      "canonicalName": "meeboss",
+      "companyNames": [
+        "MeeBoss"
+      ],
+      "file": "meeboss-5c0db4a82c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2140,
+      "sha256": "5c0db4a82cbfe3dc8604693dbf72e9bb40f97cf916416e3a0ce2767b3a68250a",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQH7KwZNWpOqRg/company-logo_100_100/B56ZcuuX28GsAQ-/0/1748835598284/meeboss_logo?e=2147483647&v=beta&t=kIyFeq5olRjgZVEaLtZYV4GgvbbKxUxoI-Xw6gtzuHY",
+        "page": "201c0a5e-7be6-49be-95bd-45cd3ff63a0e.html",
+        "pageSha256": "e7d0617d402df4fcb8eb59010cf4d72b67cce3208ecda6a26e877d0582d15d4f",
+        "postingId": "201c0a5e-7be6-49be-95bd-45cd3ff63a0e",
+        "alt": "MeeBoss"
+      }
+    },
+    {
+      "canonicalName": "merck healthcare",
+      "companyNames": [
+        "Merck Healthcare"
+      ],
+      "file": "merck-healthcare-81c47b5792.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1997,
+      "sha256": "81c47b5792fc77816e95de904754daca1c14e8e210a1e6bffa328b28c9a54c00",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQGhXfEEz75U7Q/company-logo_100_100/company-logo_100_100/0/1668426170276/merck_healthcare_logo?e=2147483647&v=beta&t=0dxpqRkcIddvdufTrpyfCHs8uHxcO1bYqICTr6wOqFA",
+        "page": "93600485-007f-44c9-b6b0-0adbd75f6f0c.html",
+        "pageSha256": "939a5508fab2a78ab72a17e7b4d91b1e1c95392a96d878af76ce0f939df07f6e",
+        "postingId": "93600485-007f-44c9-b6b0-0adbd75f6f0c",
+        "alt": "Merck Healthcare"
+      }
+    },
+    {
+      "canonicalName": "microai",
+      "companyNames": [
+        "MicroAI"
+      ],
+      "file": "microai-f9cc3d1b6d.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2079,
+      "sha256": "f9cc3d1b6dc22c9dcee00a555e1fae438477af88f972c53d193423475855d6ce",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHro06zXJMokw/company-logo_100_100/B4EZ7RQKyFIkAI-/0/1781627137377/microai_ai_logo?e=2147483647&v=beta&t=avok3vGv4EMFl5I4KMRvYV_MkVdofV_pVB4BcTYAzis",
+        "page": "4c5cb2f8-2c62-46f3-8194-62241f3297f9.html",
+        "pageSha256": "3f2a0f15ecac5afea804148bcbded0000e0f8ad4c95222b87b8bc713097d6e84",
+        "postingId": "4c5cb2f8-2c62-46f3-8194-62241f3297f9",
+        "alt": "MicroAI"
+      }
+    },
+    {
+      "canonicalName": "microsoft",
+      "companyNames": [
+        "Microsoft"
+      ],
+      "file": "microsoft-1b9b05f438.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1554,
+      "sha256": "1b9b05f4386c2575f560a7d56f757b10ddb58c44dcc7d822e9feda39d1020042",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQH32RJQCl3dDQ/company-logo_100_100/B56ZYQ0mrGGoAU-/0/1744038948046/microsoft_logo?e=2147483647&v=beta&t=rr_7_bFRKp6umQxIHErPOZHtR8dMPIYeTjlKFdotJBY",
+        "page": "a91d5150-6c8e-4425-9613-06125c2e504a.html",
+        "pageSha256": "12d58f535ad7187637476c53a46ea35f30302c6a7e40328eddb688a85e372535",
+        "postingId": "a91d5150-6c8e-4425-9613-06125c2e504a",
+        "alt": "Microsoft"
+      }
+    },
+    {
+      "canonicalName": "millennium",
+      "companyNames": [
+        "Millennium"
+      ],
+      "file": "millennium-d290d6a307.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2380,
+      "sha256": "d290d6a307f6e2c0a2d9a0d1bb7f2b374e9ad6e3bc17754ee0223b93632e9766",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQERyyseYCjemg/company-logo_100_100/B4EZ348VzUHUAI-/0/1777998060987/millennium_partners_logo?e=2147483647&v=beta&t=a7jZRcg4a0ySlvT1AMzA6REJFxqMbHhxABa0zhMqrb8",
+        "page": "384b4da1-82bd-4ba8-9b6c-6efa5f969af9.html",
+        "pageSha256": "e30dfd175cb5a7d614084d572c9f8299421b3d41158135748eb99d96b3f46bf1",
+        "postingId": "384b4da1-82bd-4ba8-9b6c-6efa5f969af9",
+        "alt": "Millennium",
+        "sourceBytes": 2380,
+        "sourceSha256": "d290d6a307f6e2c0a2d9a0d1bb7f2b374e9ad6e3bc17754ee0223b93632e9766"
+      }
+    },
+    {
+      "canonicalName": "minimus",
+      "companyNames": [
+        "Minimus"
+      ],
+      "file": "minimus-430b093528.png",
+      "mimeType": "image/png",
+      "bytes": 2425,
+      "sha256": "430b093528758a28aa81d4c7fb340b4dbdf47a2387f9ec18874de357dadc8e86",
+      "source": {
+        "kind": "comeet-public-job-page",
+        "url": "https://comeet-euw-app.s3.amazonaws.com/2331/6606e7c0e43795d58cb4d4e462dbbdc594de95e6",
+        "page": "https://www.comeet.com/jobs/minimus/19.00B/frontend-developer/42.843",
+        "pageSha256": "e3887e4b62b9a9dc0ae0d66bb82d749920db8d1be66c95254bc0a20b5e6a66af",
+        "postingId": "e1e3a118-b2c0-4078-9ace-f70166700fba",
+        "alt": "Minimus",
+        "sourceBytes": 5309,
+        "sourceSha256": "17ccdb51a967fd698eca3c36635983de9f28460249acc943e6b3987b8886f0c3"
+      }
+    },
+    {
+      "canonicalName": "mobileye",
+      "companyNames": [
+        "Mobileye"
+      ],
+      "file": "mobileye-2a8c2df52e.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2623,
+      "sha256": "2a8c2df52e7de3e918df49a7d0178ab4ec22820db4095b53b172caeb33b4d15e",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQGMqdNe9MW06Q/company-logo_100_100/company-logo_100_100/0/1658223890583/mobileye_logo?e=2147483647&v=beta&t=Qx5AuX9E7Zbr1GScuv5IGaUrVLVypF7VEOhVaw2Zu88",
+        "page": "31675b6a-eb68-475c-b5e3-c64125d97409.html",
+        "pageSha256": "7b262608c2e591b039e15eca2448085b6c329bc5acfa9790124587e4e88a0784",
+        "postingId": "31675b6a-eb68-475c-b5e3-c64125d97409",
+        "alt": "Mobileye"
+      }
+    },
+    {
+      "canonicalName": "molex",
+      "companyNames": [
+        "Molex"
+      ],
+      "file": "molex-4d631a4ed5.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2125,
+      "sha256": "4d631a4ed57869ee2df30ab118ab49dcb9ffc2caae486c8adc20c9f6da6967b0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQEdluDNcIV-Bg/company-logo_100_100/company-logo_100_100/0/1630626975184/molex_logo?e=2147483647&v=beta&t=kGicJInwpWbwmeqzy0rPRzZWAfTcDl1QOFXFJDexmyI",
+        "page": "6b5c416f-47b1-4057-8a7e-af051650575d.html",
+        "pageSha256": "df8094373b6180e466f9cc0f454a1cb59017288e566b721a3b953c9aada44ac0",
+        "postingId": "6b5c416f-47b1-4057-8a7e-af051650575d",
+        "alt": "Molex"
+      }
+    },
+    {
+      "canonicalName": "mongodb",
+      "companyNames": [
+        "MongoDB"
+      ],
+      "file": "mongodb-bf5e6bc2cc.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1764,
+      "sha256": "bf5e6bc2ccd5990a7563f61e7438e8eae78ef63084ca6bce64cc884c812e799d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQFKe8PwqzyHyA/company-logo_100_100/company-logo_100_100/0/1635171226992/mongodbinc_logo?e=2147483647&v=beta&t=XQ9gwijDSDjLOQk3lG85H5PUI5-eUAl6eAe-e3K01UA",
+        "page": "613fbaeb-ae34-4a0e-ba07-1ce33c27923b.html",
+        "pageSha256": "14fcef74c2a67f962fb3bd584d988a181f26fd1819ccf9dbf08fc29e7c7e78da",
+        "postingId": "613fbaeb-ae34-4a0e-ba07-1ce33c27923b",
+        "alt": "MongoDB",
+        "sourceBytes": 1764,
+        "sourceSha256": "bf5e6bc2ccd5990a7563f61e7438e8eae78ef63084ca6bce64cc884c812e799d"
+      }
+    },
+    {
+      "canonicalName": "moov",
+      "companyNames": [
+        "MOOV"
+      ],
+      "file": "moov-d9e73144be.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 7582,
+      "sha256": "d9e73144be89577fa14768550cc07fb7ea96e96be8ddd3a03bcd7ef76da8cc51",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQFzfxw7XcwBJw/company-logo_100_100/company-logo_100_100/0/1658423856691/whatsthemoov_logo?e=2147483647&v=beta&t=iYrycN9lgo4-KkrnBru7DAiR7cz0-_c4A6CczsH_0Uo",
+        "page": "9152b807-18bb-4a7a-b3c8-5afc8a6e6130.html",
+        "pageSha256": "e6575bd1fb5d0574542b2995b3cd5f58496371dd4cfd11da61a1d5597506b461",
+        "postingId": "9152b807-18bb-4a7a-b3c8-5afc8a6e6130",
+        "alt": "MOOV"
+      }
+    },
+    {
+      "canonicalName": "moveo source",
+      "companyNames": [
+        "Moveo Source"
+      ],
+      "file": "moveo-source-918d0d5f46.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4941,
+      "sha256": "918d0d5f46e42ad0b5f0cb6ff2e1bb4f729ced9d0b37d077ea747c4e6709f458",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQEH6gNYfrT57w/company-logo_100_100/B4DZxrFF_GJ8AQ-/0/1771323024224?e=2147483647&v=beta&t=uAlDP3xuW_L0svySURhqDThM6kaoP0xHnZBb3qkfkbw",
+        "page": "5ce33a5c-8320-4f49-be42-52aabb2cdc15.html",
+        "pageSha256": "41348677d2499952b6035f62b67b9c22c8aa2934985142f4c4a4ee210231059f",
+        "postingId": "5ce33a5c-8320-4f49-be42-52aabb2cdc15",
+        "alt": "Moveo Source"
+      }
+    },
+    {
+      "canonicalName": "nerdwallet",
+      "companyNames": [
+        "NerdWallet"
+      ],
+      "file": "nerdwallet-a16868cd37.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2172,
+      "sha256": "a16868cd37cc26b2fc40c178c9cdf2162be271160bbd525677d4520d12fb8ee7",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQH1nzqwZATI2w/company-logo_100_100/company-logo_100_100/0/1631309537739?e=2147483647&v=beta&t=lQFkmtTB7qo0pUge_WOuBHnltuLoEJ6NXU5noEGYC9Q",
+        "page": "3254f3f4-5b24-4571-8ab5-e76c137241ea.html",
+        "pageSha256": "b9697d03d4f47b500d164d9cfca9fc41e3ee2925c3c9aa0b0eade5e041a76964",
+        "postingId": "3254f3f4-5b24-4571-8ab5-e76c137241ea",
+        "alt": "NerdWallet"
+      }
+    },
+    {
+      "canonicalName": "netspend",
+      "companyNames": [
+        "Netspend"
+      ],
+      "file": "netspend-bfe4003544.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1383,
+      "sha256": "bfe40035447e514a04bcf2d847de394266d0a6b54ee4a56ed286fffadf4c63d9",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQGlwJSImn8VDw/company-logo_100_100/company-logo_100_100/0/1699569988822/netspend_logo?e=2147483647&v=beta&t=vcQDjdPRv0UXBKHhjDDYjQKKS4ZFf99QkbGfrAkkUnA",
+        "page": "fd6bae61-3df5-4a18-a403-6bff4e9d968e.html",
+        "pageSha256": "d659c35f3b88062f37732b9b038faeb7a30245799cbc99cda5a06c073eba11d9",
+        "postingId": "fd6bae61-3df5-4a18-a403-6bff4e9d968e",
+        "alt": "Netspend"
+      }
+    },
+    {
+      "canonicalName": "nike",
+      "companyNames": [
+        "Nike"
+      ],
+      "file": "nike-87303dd48e.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1230,
+      "sha256": "87303dd48eb9631ce11658dfda4dafe12a0e030144228eed5e3fe21012c2d92b",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHJk7IdfuV1Dw/company-logo_100_100/company-logo_100_100/0/1732131503851/nike_logo?e=2147483647&v=beta&t=qF7rqr8Es8BnExo0QJcZr_vvtzGkir2vjZAg4fcS9hY",
+        "page": "510513da-dc69-47a7-af62-e6096008f75d.html",
+        "pageSha256": "a21c5ccab774729b1808d8357278ca86e14eef0d12626056799f48dc742b2699",
+        "postingId": "510513da-dc69-47a7-af62-e6096008f75d",
+        "alt": "Nike",
+        "sourceBytes": 1230,
+        "sourceSha256": "87303dd48eb9631ce11658dfda4dafe12a0e030144228eed5e3fe21012c2d92b"
+      }
+    },
+    {
+      "canonicalName": "norwood medical",
+      "companyNames": [
+        "Norwood Medical"
+      ],
+      "file": "norwood-medical-2b22570117.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2885,
+      "sha256": "2b22570117eeaaa8580df5665b5c044ba674f538ecc0de3333ce26b1582dead1",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQEwv6dHYI-VTQ/company-logo_100_100/company-logo_100_100/0/1712675901397/norwood_medical_logo?e=2147483647&v=beta&t=aUDZ3HDRGnLlcxvscL5UDTraOML9t6RAZWfAcuB_zdg",
+        "page": "e9e67abe-ca94-4a20-a144-daa6510264d1.html",
+        "pageSha256": "e73a5c060b2eb4a8031a39c1aa6db683da7be66f394c9258b7445b09eaf6da04",
+        "postingId": "e9e67abe-ca94-4a20-a144-daa6510264d1",
+        "alt": "Norwood Medical"
+      }
+    },
+    {
+      "canonicalName": "nvidia",
+      "companyNames": [
+        "NVIDIA"
+      ],
+      "file": "nvidia-3b62e5f905.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2469,
+      "sha256": "3b62e5f90537597c6155fdeafb3a8f1cd27bfd83c1cce1125cf06094f5954fa0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQGV36q2EowSyw/company-logo_100_100/company-logo_100_100/0/1724881581208/nvidia_logo?e=2147483647&v=beta&t=oCxt8kGhi0AfLuVDY7D_jzkUIEe-fAV5Q5eLaRxXzOE",
+        "page": "0e91f5a2-74fc-4db9-8a2f-fd994a6eaa3c.html",
+        "pageSha256": "d4f1ed990e7c431f72c2a6e38788c8ca606ecee24e41062f069f2522d98c5046",
+        "postingId": "0e91f5a2-74fc-4db9-8a2f-fd994a6eaa3c",
+        "alt": "NVIDIA"
+      }
+    },
+    {
+      "canonicalName": "oakwell hampton group",
+      "companyNames": [
+        "Oakwell Hampton Group"
+      ],
+      "file": "oakwell-hampton-group-cc460a3dfb.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2194,
+      "sha256": "cc460a3dfb6e004a776941ab989fc110dc5ab860fb3a0dc3be4c7a3ba9ead6e6",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQEsaE7YExD5wA/company-logo_100_100/B4EZmfW_dYHgAQ-/0/1759315228857/oakwell_hampton_logo?e=2147483647&v=beta&t=XW-V5Wz7hxaAoMsKUDaJThksKU2IhofUTTmy3BWNTnE",
+        "page": "b18caefd-017a-4e9a-a356-fdd5a4355164.html",
+        "pageSha256": "404809c2b2e7988ac21674e632b49fb59f2e7fa6248347c91a75e3ebf491ee4e",
+        "postingId": "b18caefd-017a-4e9a-a356-fdd5a4355164",
+        "alt": "Oakwell Hampton Group",
+        "sourceBytes": 2194,
+        "sourceSha256": "cc460a3dfb6e004a776941ab989fc110dc5ab860fb3a0dc3be4c7a3ba9ead6e6"
+      }
+    },
+    {
+      "canonicalName": "openai",
+      "companyNames": [
+        "OpenAI"
+      ],
+      "file": "openai-7d1abc3615.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3082,
+      "sha256": "7d1abc3615283bcb9775242e2ccbe910ccb01c962ff381b483a5e7c8ef0c9f1f",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHpzXbqSyR74A/company-logo_100_100/B56ZT8EYB8HsAQ-/0/1739395793272/openai_logo?e=2147483647&v=beta&t=UE3RX4g5jO0WzxZIir4Dit4rZrlzHfCq5pFmYGHSLTU",
+        "page": "c3095141-7a55-4e0a-9e9e-3d00be48fac4.html",
+        "pageSha256": "ec6fee27ae33da756f395b261a1216f496bbc7778e68a8016b130298689dd0b3",
+        "postingId": "c3095141-7a55-4e0a-9e9e-3d00be48fac4",
+        "alt": "OpenAI"
+      }
+    },
+    {
+      "canonicalName": "ovative group",
+      "companyNames": [
+        "Ovative Group"
+      ],
+      "file": "ovative-group-4df5fa37c2.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3200,
+      "sha256": "4df5fa37c234089b4dc4512cc3ef5d4d3b0daaa39475d46d11fcc7cdc1580010",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQG1TiW9_w-hLQ/company-logo_100_100/company-logo_100_100/0/1706548796081/ovative_group_logo?e=2147483647&v=beta&t=Ell8eeHzyc1mQ-GajBjtgs-0tRku2qFxIKG_t3mjPs4",
+        "page": "5d19f444-affe-41a0-b7a3-461b2ef32e70.html",
+        "pageSha256": "adf02703e4b29837b7a6b5625070a5c9ff91f58b189960664d2090c1a9d3ae28",
+        "postingId": "5d19f444-affe-41a0-b7a3-461b2ef32e70",
+        "alt": "Ovative Group",
+        "sourceBytes": 3200,
+        "sourceSha256": "4df5fa37c234089b4dc4512cc3ef5d4d3b0daaa39475d46d11fcc7cdc1580010"
+      }
+    },
+    {
+      "canonicalName": "pachama",
+      "companyNames": [
+        "Pachama"
+      ],
+      "file": "pachama-3a6c9fd15f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3432,
+      "sha256": "3a6c9fd15f2b23de2a6574de3da03b34b4baead38bfa8543892a2695719c5746",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQFE9JXS2r3Hqw/company-logo_100_100/company-logo_100_100/0/1707755109381/pachama_logo?e=2147483647&v=beta&t=yfVa4BDu3jFBO4btkhu8yAVCG_RWdOTDS2xTyYwPgcE",
+        "page": "817efad4-8b88-4055-9b3d-4a85a82bea62.html",
+        "pageSha256": "960eb3638cb93a2e73d398a14f5e0adb2681ab58e51fdc4c515d70ce59cfd4ec",
+        "postingId": "817efad4-8b88-4055-9b3d-4a85a82bea62",
+        "alt": "Pachama"
+      }
+    },
+    {
+      "canonicalName": "palantir",
+      "companyNames": [
+        "Palantir"
+      ],
+      "file": "palantir-0c78444820.png",
+      "mimeType": "image/png",
+      "bytes": 2711,
+      "sha256": "0c7844482030ded5aa748ae62c5af7501b16911ebaeaec711b52c75004b599a9",
+      "source": {
+        "kind": "lever-public-job-page",
+        "url": "https://lever-client-logos.s3.us-west-2.amazonaws.com/b8300af6-ed1c-4d0b-8956-cee7839555b9-1599675095718.png",
+        "page": "https://jobs.lever.co/palantir/c4442730-2926-41ad-8c0e-5e5a6b4d14ae",
+        "pageSha256": "1971a7efcbbd702dc6c6fadeef57e07408e999d2565c4280e61192bcd94963e9",
+        "postingId": "28f76922-0ecb-4998-ba0e-52e166151ab1",
+        "alt": "Palantir Technologies",
+        "sourceBytes": 9261,
+        "sourceSha256": "ea58e96bf91b0a9daad1f1890fcc3943d58e45921ebb938f25a871beda16c166"
+      }
+    },
+    {
+      "canonicalName": "palo alto networks",
+      "companyNames": [
+        "Palo Alto Networks"
+      ],
+      "file": "palo-alto-networks-62af6580b8.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3224,
+      "sha256": "62af6580b8ccdc9402999dd491d6f85e21ec8f7ed6252f98bca4e8037257932e",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQFZg72Sfni4SA/company-logo_100_100/company-logo_100_100/0/1657225156841/palo_alto_networks_logo?e=2147483647&v=beta&t=w5HNHNOQyVpcdvzfmUcHeJEtSJFrAouMjagBqwW3Itk",
+        "page": "096ed800-cdc7-47df-bd35-2faf1229a521.html",
+        "pageSha256": "054f75c9fbf68646da3f5a0e0413ebc404c6cf23fe799eabe4d4de9038e30b12",
+        "postingId": "096ed800-cdc7-47df-bd35-2faf1229a521",
+        "alt": "Palo Alto Networks"
+      }
+    },
+    {
+      "canonicalName": "paperless parts",
+      "companyNames": [
+        "Paperless Parts"
+      ],
+      "file": "paperless-parts-549c25c576.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 7286,
+      "sha256": "549c25c5766830cb12456bee735b23d3a0e2f3821f57add9a606a474638a155d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQEoXQzQZMTvAg/company-logo_100_100/company-logo_100_100/0/1730390395598/paperlessparts_logo?e=2147483647&v=beta&t=JjOjtHqbqp__ylnCHS8-IIf0uPHzPCsvwht9hyLNSHM",
+        "page": "77c0f059-48f3-4a45-a007-2a4b08bb5ade.html",
+        "pageSha256": "fb1159615ae99137fdda31a899f9c7775d31bed8e11e627bbbf56c7682050a52",
+        "postingId": "77c0f059-48f3-4a45-a007-2a4b08bb5ade",
+        "alt": "Paperless Parts",
+        "sourceBytes": 7286,
+        "sourceSha256": "549c25c5766830cb12456bee735b23d3a0e2f3821f57add9a606a474638a155d"
+      }
+    },
+    {
+      "canonicalName": "paragon",
+      "companyNames": [
+        "Paragon"
+      ],
+      "file": "paragon-777f7d8502.png",
+      "mimeType": "image/png",
+      "bytes": 2415,
+      "sha256": "777f7d8502b7fe19dd1789c572b06e7b8e77f85242ad3be7f54bffe4d204f0d8",
+      "source": {
+        "kind": "comeet-public-job-page",
+        "url": "https://comeet-euw-app.s3.amazonaws.com/1654/8a48072c657eef2d70925185b2a267fcc5513e2e",
+        "page": "https://www.comeet.com/jobs/paragon/76.006/ai-engineer/8B.A66",
+        "pageSha256": "6de9027b3ba179c4bf42cd47dc2e9e24b22224ddc19588eea14df7df56bf08b7",
+        "postingId": "84b968fa-6b63-4632-9635-f759db93a381",
+        "alt": "Paragon",
+        "sourceBytes": 37329,
+        "sourceSha256": "69a2d79eb928e607c91c76ff3f34559f0916bfb547767ca2b9e128a8c63222bd"
+      }
+    },
+    {
+      "canonicalName": "parloa",
+      "companyNames": [
+        "Parloa"
+      ],
+      "file": "parloa-166e16b11a.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1987,
+      "sha256": "166e16b11aa7b4fde84135b36d8e976f8898537fe79c3bf12c61d28ceeda3b58",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFunh8_eguWLQ/company-logo_100_100/B4EZgXokUlGwAQ-/0/1752743167671/parloa_logo?e=2147483647&v=beta&t=Lt7NNXd0PGBfZA3bDmls_ktsyUWd75qG4gtrMGP9YQc",
+        "page": "50636ab0-4f7a-4b06-8efd-703b0d7407a4.html",
+        "pageSha256": "d4ee1935615b03ccb38ec479ed6a28bc7d1023fab51f47103fbd29188914b14c",
+        "postingId": "50636ab0-4f7a-4b06-8efd-703b0d7407a4",
+        "alt": "Parloa"
+      }
+    },
+    {
+      "canonicalName": "patz corporation",
+      "companyNames": [
+        "Patz Corporation"
+      ],
+      "file": "patz-corporation-dc4b23095f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3512,
+      "sha256": "dc4b23095f9a60b18533b6023394e9b98defeb6d4f250da6f5d1708071247883",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQGhO91GA2ad0g/company-logo_100_100/B56Zo7Eu9aKAAQ-/0/1761927688406/patz_corporation_logo?e=2147483647&v=beta&t=gRUqVl9PJ9Bvjkh4k90Iv6yM3q-p0ZWMANz5u06pYA8",
+        "page": "04b73075-e3d0-4f27-adeb-7c464088c96c.html",
+        "pageSha256": "378491b91813cd6bc11b7ffe3394b726e51ad7f1675e7189d7df8f5958d992bd",
+        "postingId": "04b73075-e3d0-4f27-adeb-7c464088c96c",
+        "alt": "Patz Corporation",
+        "sourceBytes": 3512,
+        "sourceSha256": "dc4b23095f9a60b18533b6023394e9b98defeb6d4f250da6f5d1708071247883"
+      }
+    },
+    {
+      "canonicalName": "pentera",
+      "companyNames": [
+        "Pentera"
+      ],
+      "file": "pentera-1f7025ce02.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 11480,
+      "sha256": "1f7025ce02f3ab258554412903a9d49e94b0a0c39335454f10e1bc515a1f64d7",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQEo0wdQ9tWFxg/company-logo_100_100/B4EZ.egfZdJMAI-/0/1785070745397/penterasecurity_logo?e=2147483647&v=beta&t=fj4w0i-bSiR2CH2fvHaQ55LALMhJMRAzHti20mnb2XI",
+        "page": "a691cf81-03bb-4efb-975d-bc33a6fb3acf.html",
+        "pageSha256": "415a6ca9b85e2b0ea2fd888ba32376586092e2dcc47fa827bdf771b6d3ffc165",
+        "postingId": "a691cf81-03bb-4efb-975d-bc33a6fb3acf",
+        "alt": "Pentera"
+      }
+    },
+    {
+      "canonicalName": "persado",
+      "companyNames": [
+        "Persado"
+      ],
+      "file": "persado-1a6a57ec92.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2471,
+      "sha256": "1a6a57ec92b153d9d678709e321eb56fdff15824f97f9dfd139e56b3362a2bd6",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQEp5Bya2nBJkA/company-logo_100_100/B56ZkRRMPtHMAQ-/0/1756931343631/persado_logo?e=2147483647&v=beta&t=gbF12ZQQ6tyVJwIpkSkoatTUiNygHpHeNjaP1Ehl2JM",
+        "page": "5ec0f9fb-ed12-47d9-84df-3afb4adb6807.html",
+        "pageSha256": "234a110915afdb9d95728bef08d0e0d903709682771f7a0ffc0ea44aa7538cf5",
+        "postingId": "5ec0f9fb-ed12-47d9-84df-3afb4adb6807",
+        "alt": "Persado",
+        "sourceBytes": 2471,
+        "sourceSha256": "1a6a57ec92b153d9d678709e321eb56fdff15824f97f9dfd139e56b3362a2bd6"
+      }
+    },
+    {
+      "canonicalName": "plaee",
+      "companyNames": [
+        "Plaee"
+      ],
+      "file": "plaee-7cfc31edac.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 11348,
+      "sha256": "7cfc31edac756b458e4886d9c969c1a96349264af57850695997004d19bc1a28",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQE7YKJbvggKrQ/company-logo_100_100/B4DZ.Ov8wqGYAI-/0/1784806362479/plaee_logo?e=2147483647&v=beta&t=Dbkdf-HUYKb3jvfaXp_Csv-WpE3x-SaDPEbRIb7qLps",
+        "page": "30ddcb52-f24b-4a64-bf54-9a123ab2ec93.html",
+        "pageSha256": "0c78c01cfe05c2d396da2fe90aca3428b58b0229b8bb99c296a3e0a59162732b",
+        "postingId": "30ddcb52-f24b-4a64-bf54-9a123ab2ec93",
+        "alt": "Plaee"
+      }
+    },
+    {
+      "canonicalName": "pplied",
+      "companyNames": [
+        "PPLIED"
+      ],
+      "file": "pplied-ef04c1df1f.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1908,
+      "sha256": "ef04c1df1f06b3664f4f4a487e63aa15b3865e52b3c812ad5ba38d8a005bba91",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQF1k3CPfErH7w/company-logo_100_100/B4EZthnaTKIMAQ-/0/1766869280375/theautoapply_logo?e=2147483647&v=beta&t=wobkom3TOwuUHwkdirY7hc1OPeeScuz97uOwM6cqFvk",
+        "page": "7da2e11c-54ea-4e09-8522-d723547b06e9.html",
+        "pageSha256": "363884d9a17fd373112c3d672329e2e20011b09fb83ad4e8ba320533ecab94d7",
+        "postingId": "7da2e11c-54ea-4e09-8522-d723547b06e9",
+        "alt": "PPLIED",
+        "sourceBytes": 1908,
+        "sourceSha256": "ef04c1df1f06b3664f4f4a487e63aa15b3865e52b3c812ad5ba38d8a005bba91"
+      }
+    },
+    {
+      "canonicalName": "prophecy",
+      "companyNames": [
+        "Prophecy"
+      ],
+      "file": "prophecy-cef3ca73fd.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2488,
+      "sha256": "cef3ca73fdf3e8667ec5363b17413cf11b23534e2d31fd373214dfff66e13181",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFBRrSN-tfQ-g/company-logo_100_100/company-logo_100_100/0/1719255592148/prophecy_io_logo?e=2147483647&v=beta&t=chlyAZIvG0bn0eIb0NpkfoGEe9BMjJeax72QYf76SiI",
+        "page": "3741e9a6-477c-4ef1-81ca-960a50a1b57e.html",
+        "pageSha256": "a30f85733132ba5dc7201b963ca9b1206f5e5295d8a732831cf4f927ec04e0d6",
+        "postingId": "3741e9a6-477c-4ef1-81ca-960a50a1b57e",
+        "alt": "Prophecy",
+        "sourceBytes": 2488,
+        "sourceSha256": "cef3ca73fdf3e8667ec5363b17413cf11b23534e2d31fd373214dfff66e13181"
+      }
+    },
+    {
+      "canonicalName": "protolabs",
+      "companyNames": [
+        "Protolabs"
+      ],
+      "file": "protolabs-0b8858e31a.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2796,
+      "sha256": "0b8858e31a83435bfa41d373b7177d589df7af27549a937ce32d128e79f01960",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQFgNsBmUW4fYA/company-logo_100_100/company-logo_100_100/0/1688995048839/proto_labs_logo?e=2147483647&v=beta&t=11WFVyzJ_dAFo6iGiNMtHE_0fXQGz9LNOdcmse9OVxg",
+        "page": "284dc6a2-05a3-40cf-965e-ee83dfaedfd7.html",
+        "pageSha256": "7a83b7339325785bb522b41bc44905934ec940885d2a4f2a546cfe2809eef0d0",
+        "postingId": "284dc6a2-05a3-40cf-965e-ee83dfaedfd7",
+        "alt": "Protolabs"
+      }
+    },
+    {
+      "canonicalName": "ramp",
+      "companyNames": [
+        "Ramp"
+      ],
+      "file": "ramp-0d0f4e8aa5.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1678,
+      "sha256": "0d0f4e8aa54f0392264f5700133b1e5fa50607c2d687a71ae82aa64ba20836bd",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFpzb0Ial_Qaw/company-logo_100_100/company-logo_100_100/0/1735867522188?e=2147483647&v=beta&t=-e5IQvH4Ozx0u6jyMceV3cBf51tDtGsd3N0ngjPy2-I",
+        "page": "4d20c0cd-40e2-4426-a961-13814b8844f4.html",
+        "pageSha256": "f687734cd35ebc942894f0de806c6d4da6e92e8b993cf85ff01816082a19e42c",
+        "postingId": "4d20c0cd-40e2-4426-a961-13814b8844f4",
+        "alt": "Ramp"
+      }
+    },
+    {
+      "canonicalName": "re partners",
+      "companyNames": [
+        "RE Partners"
+      ],
+      "file": "re-partners-065d5ba394.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2681,
+      "sha256": "065d5ba394ecad1eab62e2f0ea89c7a04715c98d99b036d4a40499f67ea33977",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHjUCgCij30rQ/company-logo_100_100/company-logo_100_100/0/1707196309854/re_partners_logo?e=2147483647&v=beta&t=Ej4_iPaJgJnOx8DgGO13uz_NAaq76DTAZ_O92wMbERU",
+        "page": "404af27d-4a01-4779-8c6f-54ef9af737ca.html",
+        "pageSha256": "8d8063df5556605325a5ad1469fd3695937f3a9a8837f77276a7c75890776839",
+        "postingId": "404af27d-4a01-4779-8c6f-54ef9af737ca",
+        "alt": "RE Partners"
+      }
+    },
+    {
+      "canonicalName": "resilience",
+      "companyNames": [
+        "Resilience"
+      ],
+      "file": "resilience-40e6822f02.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1729,
+      "sha256": "40e6822f024bb59d7905d2834be8d25193e51053708bde681ebd2dd40fa57ca7",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFdhRgVO4SaDA/company-logo_100_100/B4EZXt3Pi2H0AQ-/0/1743452437250/weareresilience_logo?e=2147483647&v=beta&t=UmbIydBAf44TDk_7Gd1isOSAL5WbzYR7joPyJl935k4",
+        "page": "b4799872-cea1-4529-bfc2-417321c63e76.html",
+        "pageSha256": "c79f68c2f4811e0bb8d5b8e3e518fe9f1e882a1b2085a07d2960804928cfb8a7",
+        "postingId": "b4799872-cea1-4529-bfc2-417321c63e76",
+        "alt": "Resilience",
+        "sourceBytes": 1729,
+        "sourceSha256": "40e6822f024bb59d7905d2834be8d25193e51053708bde681ebd2dd40fa57ca7"
+      }
+    },
+    {
+      "canonicalName": "rocket science group",
+      "companyNames": [
+        "Rocket Science Group"
+      ],
+      "file": "rocket-science-group-2ca710ddfe.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2503,
+      "sha256": "2ca710ddfe9f0ba2f35d19703f2a58a26e5e9a757a63a9f0d62b3b7e4c0a450b",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHogeTQQNEz7Q/company-logo_100_100/B56ZX0Lv9ZGsAU-/0/1743558475924/rocketsciencegg_logo?e=2147483647&v=beta&t=-CuD8TCgswS3BbchEk7tCuQooCZ1Bc8M4Ynienx5Ua0",
+        "page": "567c71bc-2861-47d0-9751-e432a972ef12.html",
+        "pageSha256": "4a6dac544cfd5a6534370c32247b84dc6510ee0f70af60b036cb47d38e716f75",
+        "postingId": "567c71bc-2861-47d0-9751-e432a972ef12",
+        "alt": "Rocket Science Group"
+      }
+    },
+    {
+      "canonicalName": "rolls-royce",
+      "companyNames": [
+        "Rolls-Royce"
+      ],
+      "file": "rolls-royce-603e8b1b7b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2703,
+      "sha256": "603e8b1b7be93e9fa64d5429e236d4828a02c187747e10bd9c703da320247619",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQG026Y0w2F9ZA/company-logo_100_100/company-logo_100_100/0/1688142449677/rolls_royce_logo?e=2147483647&v=beta&t=BHrIPFJGlK4cAZqEVgxyWFTZJjB3DOxIhK7VUiNsxVI",
+        "page": "4ccc7400-3f02-4f50-9d2f-35d0d6c0c877.html",
+        "pageSha256": "a8d51e426a436b1cb186b0f83337ae7728d8c6518d74df33723abbffb9e79c18",
+        "postingId": "4ccc7400-3f02-4f50-9d2f-35d0d6c0c877",
+        "alt": "Rolls-Royce",
+        "sourceBytes": 2703,
+        "sourceSha256": "603e8b1b7be93e9fa64d5429e236d4828a02c187747e10bd9c703da320247619"
+      }
+    },
+    {
+      "canonicalName": "rubrik",
+      "companyNames": [
+        "Rubrik"
+      ],
+      "file": "rubrik-66e421d491.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2766,
+      "sha256": "66e421d4915148b5ea895cdd7915aaece2281fa59b0cd093c989c96aed8cec3d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHRX1_hJMDh_Q/company-logo_100_100/B56aAnG3nhG4AM-/0/1787362507477/rubrik_inc_logo?e=2147483647&v=beta&t=fTm0FvB58LDdOFNXGLI8HSnOzggF3IgaWmJs2eAYYxQ",
+        "page": "64f9aea6-f619-483f-9706-9df2150247cd.html",
+        "pageSha256": "cf86ad876470a5155b9c28591a0e8b1e0b28ec7ba14aa0304eba75924c8d4bd0",
+        "postingId": "64f9aea6-f619-483f-9706-9df2150247cd",
+        "alt": "Rubrik"
+      }
+    },
+    {
+      "canonicalName": "sardine",
+      "companyNames": [
+        "Sardine"
+      ],
+      "file": "sardine-94f6861fd2.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 11268,
+      "sha256": "94f6861fd24e50db38fcf155a1fbe5d250c87733e442c67c1c40a301f89a90da",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQG85RBr0JFrQA/company-logo_100_100/B56Z83vOBwGgAI-/0/1783346553208/sardineai_logo?e=2147483647&v=beta&t=jjEHvu7M9D-2QLzvVLoJJnYyccT31wPTCx19A5OaSc8",
+        "page": "0bbad6e5-851d-4f24-a7ff-be2400c56e96.html",
+        "pageSha256": "7fc7270c898952d8d0a6639dafd294688d8b39674cd2c7dedf8fd6a7e26bccb6",
+        "postingId": "0bbad6e5-851d-4f24-a7ff-be2400c56e96",
+        "alt": "Sardine",
+        "sourceBytes": 11268,
+        "sourceSha256": "94f6861fd24e50db38fcf155a1fbe5d250c87733e442c67c1c40a301f89a90da"
+      }
+    },
+    {
+      "canonicalName": "sauce",
+      "companyNames": [
+        "Sauce"
+      ],
+      "file": "sauce-a25d1d5412.png",
+      "mimeType": "image/png",
+      "bytes": 3742,
+      "sha256": "a25d1d5412d62aa3a42576a1a98f70ac7a4dd44d2c4fa9673c5998181876ad75",
+      "source": {
+        "kind": "lever-public-job-page",
+        "url": "https://lever-client-logos.s3.us-west-2.amazonaws.com/51a9f446-dff3-470d-816f-ca26bac8a047-1696422789826.png",
+        "page": "https://jobs.lever.co/Sauce/2fd15a2e-7915-446c-a61e-cd1b5f0d9d51",
+        "pageSha256": "9b8c3943e77dd545f54b77e3f9f01b8a677c0ab97d78772a2e6233428baabc7b",
+        "postingId": "71cf05ee-5732-490d-8dd1-ec5c8de6fabe",
+        "alt": "Sauce",
+        "sourceBytes": 12134,
+        "sourceSha256": "50900fb3169a8637489975a84bf16bac0989502a7157c33c1c17ef7261752bda"
+      }
+    },
+    {
+      "canonicalName": "senai",
+      "companyNames": [
+        "SENAI"
+      ],
+      "file": "senai-85c911452e.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3850,
+      "sha256": "85c911452e8a7443a508e3dec8886ee9be35026c8f33237532deabf96d40c92f",
+      "source": {
+        "kind": "comeet-public-job-page",
+        "url": "https://comeet-euw-app.s3.amazonaws.com/2756/0a1c13c402a62af6f6c34ca2ef385be285bc25cc",
+        "page": "https://www.comeet.com/jobs/senai/CA.004/full-stack-engineer/22.26F",
+        "pageSha256": "37b693abe4af3cf2ddf824a627fef58dcdd6a28702a94a41cbe1fb97334d856d",
+        "postingId": "d7985d0d-4837-40a4-b30e-4aabc7525454",
+        "alt": "SENAI",
+        "sourceBytes": 334195,
+        "sourceSha256": "b1bdd58ac628d37274fda6afc40c0ba9523509806f59978b43bd4f4fd2d622be"
+      }
+    },
+    {
+      "canonicalName": "sensata technologies",
+      "companyNames": [
+        "Sensata Technologies"
+      ],
+      "file": "sensata-technologies-e21dd7fa37.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2848,
+      "sha256": "e21dd7fa3758c8587d4ec34c8bed05ee58f8e74bc1ac676ced592b83cad6052b",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQE5reNjmXLZQA/company-logo_100_100/company-logo_100_100/0/1631320104597?e=2147483647&v=beta&t=RqB-haCnQPDNttGz7cz5KbQYXom369pL2LVKSX5Jt7c",
+        "page": "7f8239dc-e0df-438d-bf46-24cf7cab7407.html",
+        "pageSha256": "372a15a20a273cc32c93815097d7f9ca45fc08623fa63dcc4e847fee7a5603d8",
+        "postingId": "7f8239dc-e0df-438d-bf46-24cf7cab7407",
+        "alt": "Sensata Technologies"
+      }
+    },
+    {
+      "canonicalName": "sentinelone",
+      "companyNames": [
+        "SentinelOne"
+      ],
+      "file": "sentinelone-ebe3abca54.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3963,
+      "sha256": "ebe3abca543b1661ff31659f6e119a1e5c81b78a8e721cb6da997f649d76118c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQHQDaLDJ31KBA/company-logo_100_100/B56ZYmt.3HH0AY-/0/1744406310677/sentinelone_logo?e=2147483647&v=beta&t=6UmXrWkvxWYrn0LE17iElW1p1MgUsBdSJsjT_miVSbE",
+        "page": "58be104a-2c24-41b3-9f5f-6c8cdd0db70a.html",
+        "pageSha256": "86485108c50c21a61264ee10aca2f705227e5aa42591284c201ff0c74c813ca4",
+        "postingId": "58be104a-2c24-41b3-9f5f-6c8cdd0db70a",
+        "alt": "SentinelOne"
+      }
+    },
+    {
+      "canonicalName": "signet jewelers",
+      "companyNames": [
+        "Signet Jewelers"
+      ],
+      "file": "signet-jewelers-391f2022ee.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2036,
+      "sha256": "391f2022ee68cb30a9e4f25e52cc17521a14e655aa317149747d9cdcc3b2b5ee",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQFAphzfXT43Lg/company-logo_100_100/B56Zjng2eNG4AU-/0/1756230805788/signetjewelers_logo?e=2147483647&v=beta&t=LSjTxd8yU80-l7GqwqqUux0PMIPR-diduTENEjU9GLU",
+        "page": "55f1cfa3-96d3-4db9-9b58-bf8621f9e605.html",
+        "pageSha256": "f42985176e72ee333fa6bf2795f37137858c7b8d20d9ad19b5704ea2b6009cf7",
+        "postingId": "55f1cfa3-96d3-4db9-9b58-bf8621f9e605",
+        "alt": "Signet Jewelers"
+      }
+    },
+    {
+      "canonicalName": "singular",
+      "companyNames": [
+        "Singular"
+      ],
+      "file": "singular-6e4c089105.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4512,
+      "sha256": "6e4c0891055bc90c7b1beb2dbc53b02df8ac3d5575c50163794d53b15e7cf71e",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHDFpmBRKM1QQ/company-logo_100_100/company-logo_100_100/0/1721075107344/singular_labs_logo?e=2147483647&v=beta&t=3Oua-WJKIOJyTjVzKfOU1wYzH4Hz_wLRKFEaMyAMmzw",
+        "page": "e2887f3e-8b20-4a58-bc0c-0ce597cd391b.html",
+        "pageSha256": "e838be037577136ad8d128f7052d7407d7668e7acd521e0e7c58b1ef1f740cdf",
+        "postingId": "e2887f3e-8b20-4a58-bc0c-0ce597cd391b",
+        "alt": "Singular"
+      }
+    },
+    {
+      "canonicalName": "skyde drones",
+      "companyNames": [
+        "Skyde Drones"
+      ],
+      "file": "skyde-drones-2ee0cf4dbe.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3260,
+      "sha256": "2ee0cf4dbe5d64f10395755bb8ca665122c0fdbf290f7f4a056c086c7190c0ac",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGWbcmvO7qlPA/company-logo_100_100/B4EaB77GiGIIAM-/0/1788785486229?e=2147483647&v=beta&t=chw30Q7NdkIJhOk7YSMHOcreQxTCirxVgINPNvujeIM",
+        "page": "cd1a4e06-cf1c-453a-ae4b-db55bc525613.html",
+        "pageSha256": "972f5625ae34e91c1c61f2ac3ad786533f4113812192416c2a4fa34b249103d6",
+        "postingId": "cd1a4e06-cf1c-453a-ae4b-db55bc525613",
+        "alt": "Skyde Drones"
+      }
+    },
+    {
+      "canonicalName": "solomon page",
+      "companyNames": [
+        "Solomon Page"
+      ],
+      "file": "solomon-page-0fab70d102.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4060,
+      "sha256": "0fab70d102b6deb6305b0466d2d3d97673c06b2fbc95ce008e2b1293b294b8eb",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGPrWAJ3VAt6g/company-logo_100_100/B4EZk0kpPUKsAU-/0/1757523645657/solomon_page_group_logo?e=2147483647&v=beta&t=78rO7f1dHcpurXCBC-58f5_X0iBbH9HQMCS_esBRkvo",
+        "page": "43795730-e4e7-407e-be14-80ce85084054.html",
+        "pageSha256": "c376d6fd88ecfdcb751f526b1884307c4372984352eaf9cab97923014128b113",
+        "postingId": "43795730-e4e7-407e-be14-80ce85084054",
+        "alt": "Solomon Page"
+      }
+    },
+    {
+      "canonicalName": "solventum",
+      "companyNames": [
+        "Solventum"
+      ],
+      "file": "solventum-faa97e0966.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2556,
+      "sha256": "faa97e09664e32f5575ebb679abd70e80e4f92b0d4371f54b76359f69d8a1ade",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQFVkMBm1NMPaA/company-logo_100_100/company-logo_100_100/0/1700148501766/solventumhealth_logo?e=2147483647&v=beta&t=nYjIpvsAr0WCLjq1t11zls5UR7EyZtFm7vGaN8D3c7E",
+        "page": "abe19a41-baf7-4d7f-bdf5-4425a377c907.html",
+        "pageSha256": "3b6b3192a2998397ad76a01d0400ad278daa0eda4dc7bda7e12b55fe63527577",
+        "postingId": "abe19a41-baf7-4d7f-bdf5-4425a377c907",
+        "alt": "Solventum",
+        "sourceBytes": 2556,
+        "sourceSha256": "faa97e09664e32f5575ebb679abd70e80e4f92b0d4371f54b76359f69d8a1ade"
+      }
+    },
+    {
+      "canonicalName": "soni",
+      "companyNames": [
+        "Soni"
+      ],
+      "file": "soni-743a880e0b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3166,
+      "sha256": "743a880e0b56bdf8c43c39ab4f9b3aec204e263d69a2eec1f7b0f86e5584c9ad",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQHccLKG_djL8w/company-logo_100_100/company-logo_100_100/0/1630663992669/soni_resources_group_logo?e=2147483647&v=beta&t=wSTMgkHd7UCME5iEA3ng__ebYodtpixnvyxhMZ-qLoM",
+        "page": "c00761a5-741e-4a33-a650-b72170f41850.html",
+        "pageSha256": "fe470475280f7f9ba225406e567a8982168b8a94a04bdc5a49483431cd82b5a6",
+        "postingId": "c00761a5-741e-4a33-a650-b72170f41850",
+        "alt": "Soni"
+      }
+    },
+    {
+      "canonicalName": "spacex",
+      "companyNames": [
+        "SpaceX"
+      ],
+      "file": "spacex-998a5b480c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1894,
+      "sha256": "998a5b480ce0a91f42efc06db77caa794bab386df6c338138226c938b547b3c0",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQEbqLQ-JE0vdQ/company-logo_100_100/company-logo_100_100/0/1630604387686/spacex_logo?e=2147483647&v=beta&t=GRQpRkaQuQb4J1flww-3IuiK7Z1k-yexUFK66DFc038",
+        "page": "4953f2dd-8d93-4100-a3be-bf5d12688922.html",
+        "pageSha256": "42a6d040374057bcbe14d44401b5f28b6fe2c01677d99baccf3b7377e4900a5e",
+        "postingId": "4953f2dd-8d93-4100-a3be-bf5d12688922",
+        "alt": "SpaceX"
+      }
+    },
+    {
+      "canonicalName": "speak",
+      "companyNames": [
+        "Speak"
+      ],
+      "file": "speak-6544290768.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2121,
+      "sha256": "654429076885b3725cafc18bbe6028327b5f0252592c8de814db4a2ce848b02b",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQF3rapep5ytWw/company-logo_100_100/company-logo_100_100/0/1639771992803/usespeak_logo?e=2147483647&v=beta&t=WMFbgjOGFDoCiRD4_c5eyzcIOE1sr6oqRCuF3lJqvZM",
+        "page": "907a5762-cd75-4154-aa6b-9506dd85b303.html",
+        "pageSha256": "69aeca32b2233e9038cd38d9749c82c1d1412adff2ce1329821184760de3215d",
+        "postingId": "907a5762-cd75-4154-aa6b-9506dd85b303",
+        "alt": "Speak",
+        "sourceBytes": 2121,
+        "sourceSha256": "654429076885b3725cafc18bbe6028327b5f0252592c8de814db4a2ce848b02b"
+      }
+    },
+    {
+      "canonicalName": "stackadapt",
+      "companyNames": [
+        "StackAdapt"
+      ],
+      "file": "stackadapt-bd5aed31c3.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2142,
+      "sha256": "bd5aed31c38f44fd2eb9374d9a257327c44894676ee5c07decee483f82b938e9",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFpmO5_TMu93A/company-logo_100_100/company-logo_100_100/0/1724347642479/stackadapt_logo?e=2147483647&v=beta&t=ZOjXVgrtPjPg7JL7VFOaKz_aw8BpEwiqHvSIHhd2V5s",
+        "page": "01bb562a-6d5d-4e6d-a64b-e492ab4f77bd.html",
+        "pageSha256": "ac55494aba5ea83684259b5d0e9382660cadea3bfcf31115ba728b46bf66d28f",
+        "postingId": "01bb562a-6d5d-4e6d-a64b-e492ab4f77bd",
+        "alt": "StackAdapt",
+        "sourceBytes": 2142,
+        "sourceSha256": "bd5aed31c38f44fd2eb9374d9a257327c44894676ee5c07decee483f82b938e9"
+      }
+    },
+    {
+      "canonicalName": "startingup",
+      "companyNames": [
+        "Startingup"
+      ],
+      "file": "startingup-b89c6448b8.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2452,
+      "sha256": "b89c6448b83a37e56f9c630f02ce43d9bbac3ecb97ab9ba807283da5e3db4e3e",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQH9lkxaQt1isg/company-logo_100_100/company-logo_100_100/0/1630522373734/startingup_io_logo?e=2147483647&v=beta&t=A8Qx1zgFVjAGTcXjCYAdZqF9aFlW57ALymSW_r_BQhQ",
+        "page": "6a845040-7420-4b3f-9425-baa283ac1463.html",
+        "pageSha256": "facecd61ff47567f6becebe64235ac7f168407dd8903ec0b51f0211bcae3c580",
+        "postingId": "6a845040-7420-4b3f-9425-baa283ac1463",
+        "alt": "Startingup",
+        "sourceBytes": 2452,
+        "sourceSha256": "b89c6448b83a37e56f9c630f02ce43d9bbac3ecb97ab9ba807283da5e3db4e3e"
+      }
+    },
+    {
+      "canonicalName": "stripe",
+      "companyNames": [
+        "Stripe"
+      ],
+      "file": "stripe-b952611391.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1422,
+      "sha256": "b952611391a6fc8592fada3bc3c4a4ca7d48dede0a2aec1c31796cca619c91ce",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQE2ZfJyfn-VCg/company-logo_100_100/B56ZlyKwpUKIAQ-/0/1758557047806/stripe_logo?e=2147483647&v=beta&t=fRMcaMGPJNFUMq_l1f2zzyX4PaK3yg-MRicyUuY3qSI",
+        "page": "298efcc9-ed50-4f53-a2d8-dd65825d1a7c.html",
+        "pageSha256": "881c1206e41d8bf6c54e81236fc20e528179da28ba8b06e7258251cb9588ac48",
+        "postingId": "298efcc9-ed50-4f53-a2d8-dd65825d1a7c",
+        "alt": "Stripe"
+      }
+    },
+    {
+      "canonicalName": "sundayy",
+      "companyNames": [
+        "Sundayy"
+      ],
+      "file": "sundayy-868466ba98.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2175,
+      "sha256": "868466ba9858302e80b8c789e6ba1a4a204acaea211c216a6c2ccfef66aa101f",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQENO6LrY205eA/company-logo_100_100/B4DZ4g6f6tJUAI-/0/1778668666882/sundayyglobal_logo?e=2147483647&v=beta&t=GCEWH5IGeH33iRMZVookMxOGweSU_yluJHxUWrUEtGs",
+        "page": "67025fea-3a82-4a0d-9c49-a014d997a13d.html",
+        "pageSha256": "176bf43d4a01ca5fc77abe5f0db0aa2439551abd7ed30d479d31553cf8bd1983",
+        "postingId": "67025fea-3a82-4a0d-9c49-a014d997a13d",
+        "alt": "Sundayy"
+      }
+    },
+    {
+      "canonicalName": "taboola",
+      "companyNames": [
+        "Taboola"
+      ],
+      "file": "taboola-9f5d6a1902.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 12880,
+      "sha256": "9f5d6a1902d8a62da97a1b3d4bc7a4581b11b569fe02cf3166f40fe7d7352ec2",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQEMBOO5ZQaKBg/company-logo_100_100/B4DZ.oUpTPI4AM-/0/1785235413073/taboola_logo?e=2147483647&v=beta&t=TpP3b_GfELcCXeu_jlo6Bsi6aW56rPyjhx4ZtT5v5WI",
+        "page": "e9bf2af4-95a2-4af4-bc2b-15c12ff5765d.html",
+        "pageSha256": "c9fb670408218fc5af9350f1f4f0d6016cf7ead7e4650f2a34664f26e1a1286d",
+        "postingId": "e9bf2af4-95a2-4af4-bc2b-15c12ff5765d",
+        "alt": "Taboola",
+        "sourceBytes": 12880,
+        "sourceSha256": "9f5d6a1902d8a62da97a1b3d4bc7a4581b11b569fe02cf3166f40fe7d7352ec2"
+      }
+    },
+    {
+      "canonicalName": "talencio",
+      "companyNames": [
+        "Talencio"
+      ],
+      "file": "talencio-a4c79202a1.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3904,
+      "sha256": "a4c79202a15e896ecb94a14c447a1dff5c966669b6f37e8a52f8de3acb56dc86",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4D0BAQG_l0eQRFvTww/company-logo_100_100/company-logo_100_100/0/1631320428150?e=2147483647&v=beta&t=SqedtFIRCWyOwkeJJcBfv2B_4FPvl4NGRSkFHeRLBSA",
+        "page": "0863d4bb-69ff-4927-8949-a640a00b989a.html",
+        "pageSha256": "af5eb2bd769e5cdc11ac0e87dcf8eec8f34f14512fe3ecd10e09419c5c1e29a7",
+        "postingId": "0863d4bb-69ff-4927-8949-a640a00b989a",
+        "alt": "Talencio"
+      }
+    },
+    {
+      "canonicalName": "talent integration",
+      "companyNames": [
+        "Talent Integration"
+      ],
+      "file": "talent-integration-7702302747.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 4716,
+      "sha256": "7702302747ffeff69d718aadaa5aceca0726cc47b3c644464fc29c84ac55f741",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQF0j-KTVy0Tlg/company-logo_100_100/B4DZ1pOCZ.HgAY-/0/1775586785187?e=2147483647&v=beta&t=LfoeHhdIzFGaGoQglDZsAgBq-XV8bewyWSyljiexL1Q",
+        "page": "c60b6950-54f8-42e1-ad0a-32daeb59f1e3.html",
+        "pageSha256": "402efafd274a1fba153c29d5567a4f65381b8b38d57be6eeeae3adca0db0e12d",
+        "postingId": "c60b6950-54f8-42e1-ad0a-32daeb59f1e3",
+        "alt": "Talent Integration"
+      }
+    },
+    {
+      "canonicalName": "talentally",
+      "companyNames": [
+        "TalentAlly"
+      ],
+      "file": "talentally-39a03ffa15.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1935,
+      "sha256": "39a03ffa158c3dacfde88a5a61c1d3b8d044d6f126645021e3b3d5c0523c6038",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHbDxd4fgyh_A/company-logo_100_100/company-logo_100_100/0/1724678394122/prodivnet_logo?e=2147483647&v=beta&t=vF_1KSH_LL_TedXPVjfoZ0u3TaYtvpfkhGvY3nw_Bv0",
+        "page": "1000dfb4-6b54-45c9-bd4b-5e68797fc61a.html",
+        "pageSha256": "f54e6238e5c9eebc77ef94bb3dcb7ec2838b5e9ffa55e8f7517d17e1a60c3e6e",
+        "postingId": "1000dfb4-6b54-45c9-bd4b-5e68797fc61a",
+        "alt": "TalentAlly"
+      }
+    },
+    {
+      "canonicalName": "team8",
+      "companyNames": [
+        "Team8"
+      ],
+      "file": "team8-3296cc7dc7.png",
+      "mimeType": "image/png",
+      "bytes": 2537,
+      "sha256": "3296cc7dc7c2013b65ca5267541d70d321e40ecc04ce890d78b992a0567194dd",
+      "source": {
+        "kind": "comeet-public-job-page",
+        "url": "https://comeet-euw-app.s3.amazonaws.com/355/4a944f5697369cce56b0f37a6bcef9449bc9e0f2",
+        "page": "https://www.comeet.com/jobs/team8/61.003/bluespine-backenddata-engineer/9D.26D",
+        "pageSha256": "7834ccedf2261449dc8d8c35f3993c7634c01ad37d20543e32f0861d73c80616",
+        "postingId": "294f394c-836a-4334-938d-72a3d773defd",
+        "alt": "Team8",
+        "sourceBytes": 13493,
+        "sourceSha256": "3a6577d50109094f5b5bed7399fe0a2e3f01739e6f77c2adbb128aee1a50692b"
+      }
+    },
+    {
+      "canonicalName": "techaviv",
+      "companyNames": [
+        "TechAviv"
+      ],
+      "file": "techaviv-c9a99eaa9c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2364,
+      "sha256": "c9a99eaa9c921056679fe29c7f44418619aa850c559faf9a103813e74f173473",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4D0BAQF-AHhSNpxdZQ/company-logo_100_100/company-logo_100_100/0/1691889463254/techaviv_logo?e=2147483647&v=beta&t=U9hTnABNPoWQcab2V7iePYZe5I5-h0pmH9wnY_noWaE",
+        "page": "026c04ab-ae62-4792-9544-69e2990ca247.html",
+        "pageSha256": "8876151eec73e9f838bd2468993983b937720c271c1985829d166bbd1205edd0",
+        "postingId": "026c04ab-ae62-4792-9544-69e2990ca247",
+        "alt": "TechAviv"
+      }
+    },
+    {
+      "canonicalName": "temu",
+      "companyNames": [
+        "Temu"
+      ],
+      "file": "temu-b586e6ea99.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 5682,
+      "sha256": "b586e6ea99825f0d070f2141dd208fd244962c381a8dc0b26a3fdcf9689c3563",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQEk8uzNrITzWw/company-logo_100_100/company-logo_100_100/0/1677601998460/temuapp_logo?e=2147483647&v=beta&t=kwDtOYbCN6RfRhrld-jqt7q6K-W6RsVE3lAB8EqqZQo",
+        "page": "5f288705-9ce1-4104-911f-0f8738a61e7b.html",
+        "pageSha256": "245828c80ddc463d674c5ca06b8fe3b0184b1bb3aaaa880f6dd14fb1b2ceb605",
+        "postingId": "5f288705-9ce1-4104-911f-0f8738a61e7b",
+        "alt": "Temu"
+      }
+    },
+    {
+      "canonicalName": "tenable, inc.",
+      "companyNames": [
+        "Tenable, Inc."
+      ],
+      "file": "tenable-inc-6326e126ac.png",
+      "mimeType": "image/png",
+      "bytes": 11914,
+      "sha256": "6326e126acbf351c1b81ab36b51fa2496ec7605134c69a7aff67579082af6cf0",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s8-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/017/900/original/Tenable_Favicon_RGB.png?1785356988",
+        "page": "https://job-boards.greenhouse.io/tenableinc/jobs/5152278008",
+        "pageSha256": "5e6fbea8f8e93c71acb25196212b5ead697a56eb9ffabe7392768ba95f61bd8d",
+        "postingId": "b4f5f3ab-eaeb-46d3-a3b8-501c2d4cb9f0",
+        "alt": "Tenable, Inc.",
+        "sourceBytes": 9900,
+        "sourceSha256": "f5dbfcf62f85f63e3d05bc0f2f16ac0d0084a79ae9aa8e652f5cc2657c6044c5"
+      }
+    },
+    {
+      "canonicalName": "teradyne",
+      "companyNames": [
+        "Teradyne"
+      ],
+      "file": "teradyne-d63a57e755.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2572,
+      "sha256": "d63a57e7554321e8cb766f7b712e75466cd4e45f1fdb29d4cae2b7683c39d09c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQHENz9VS3G-kA/company-logo_100_100/company-logo_100_100/0/1631434670707/teradyne_logo?e=2147483647&v=beta&t=iM6-f-3L1EnhshHMudGVXaGYuU-wUUiMg7xmWOno45U",
+        "page": "41a235dd-52c9-401d-9250-682c8cc5b058.html",
+        "pageSha256": "02c3564456b6a4b8abad6e6ab96845527c5f6395575c26b46a5c338b4c9ddc4d",
+        "postingId": "41a235dd-52c9-401d-9250-682c8cc5b058",
+        "alt": "Teradyne"
+      }
+    },
+    {
+      "canonicalName": "the depository trust & clearing corporation (dtcc)",
+      "companyNames": [
+        "The Depository Trust & Clearing Corporation (DTCC)"
+      ],
+      "file": "the-depository-trust-clearing-corporation-dtcc-30b0ba9a82.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1990,
+      "sha256": "30b0ba9a82bdce21d383fcaa3cc60af48e920168afcce35db0e2d9a51b76521c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQHJdYs7d9tqGA/company-logo_100_100/B4EZfLYIg6HsAY-/0/1751463791095/dtcc_logo?e=2147483647&v=beta&t=NCsOv8UBrHgafxtnBO1PHN5zxqF8zJybqimd_HP2Zx0",
+        "page": "a5272d57-77f7-44af-9e48-401aa5001005.html",
+        "pageSha256": "9e5174f6d397ec3ae4b0fa4f6eb9d6b9c2f7b23ded1bbecffef4d03d101d2e06",
+        "postingId": "a5272d57-77f7-44af-9e48-401aa5001005",
+        "alt": "The Depository Trust & Clearing Corporation (DTCC)"
+      }
+    },
+    {
+      "canonicalName": "the farmer's dog",
+      "companyNames": [
+        "The Farmer's Dog"
+      ],
+      "file": "the-farmer-s-dog-0356722b6b.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2726,
+      "sha256": "0356722b6bec5b42603dc9ea6fd94a93a54c8886c3ef9582ac718241203f595d",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C560BAQHfoSTdF25S7w/company-logo_100_100/company-logo_100_100/0/1654720963053/the_farmers_dog_logo?e=2147483647&v=beta&t=i_IptI9BqeH-_52R58iIXwhcDj3n5Jx9Z3wQWZfZB5E",
+        "page": "28778ec7-ddde-46a5-bff9-075971dc4aef.html",
+        "pageSha256": "3b40454512ddd61e3dc99e856ffd3d69f978ac4eb1015649fb879f30e93dca07",
+        "postingId": "28778ec7-ddde-46a5-bff9-075971dc4aef",
+        "alt": "The Farmer's Dog"
+      }
+    },
+    {
+      "canonicalName": "the restaurant store",
+      "companyNames": [
+        "The Restaurant Store"
+      ],
+      "file": "the-restaurant-store-c1bdc07b5c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2755,
+      "sha256": "c1bdc07b5cf151cb5ba817b6cb54191e4d6261f62365a92499c08cd8a3ab7515",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQEYdZj2yGhwjw/company-logo_100_100/B4EZbqJ.pWGQAU-/0/1747685208048/the_restaurant_store_logo?e=2147483647&v=beta&t=m7vPnECmD8NbOLhpalQV4M6ZOPzjPqFV77lM_vdIX-0",
+        "page": "434173ae-c379-44f2-9eaa-c9f1fb6c7a56.html",
+        "pageSha256": "55f0013acdce8884eacc299a6aadab73d3ec5abc0a41c0cb71c6e293a4830686",
+        "postingId": "434173ae-c379-44f2-9eaa-c9f1fb6c7a56",
+        "alt": "The Restaurant Store"
+      }
+    },
+    {
+      "canonicalName": "trace3",
+      "companyNames": [
+        "Trace3"
+      ],
+      "file": "trace3-8ea623e61c.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2232,
+      "sha256": "8ea623e61cf0fb26ad86c846eba6a5873f06671348615f68204bbc23fe5155a3",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C510BAQFslV0XP1vNtQ/company-logo_100_100/company-logo_100_100/0/1631334060758?e=2147483647&v=beta&t=agToohsAxszShbyVZ_FUYSfKI79JmOjYHw-L2SLBBkk",
+        "page": "519b21b8-6cd0-4e57-85a4-f425f3ebcfc2.html",
+        "pageSha256": "f543547e2c03e4e349d65654e2b396393a91dcca35138393dc0efdb9eea28cda",
+        "postingId": "519b21b8-6cd0-4e57-85a4-f425f3ebcfc2",
+        "alt": "Trace3"
+      }
+    },
+    {
+      "canonicalName": "trm labs",
+      "companyNames": [
+        "TRM Labs"
+      ],
+      "file": "trm-labs-d30a558e93.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2748,
+      "sha256": "d30a558e938389e6e2ec2cb2ac3c347f6155459e5c5959f34a5da6fda8775326",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/C4E0BAQGk-xkrdUoBpg/company-logo_100_100/company-logo_100_100/0/1638543126715/trmlabs_logo?e=2147483647&v=beta&t=X8yL_LjElbuqPsv1LwgY1CDti5tuN1MT2H9nAjAGKVQ",
+        "page": "1144276b-85af-4766-b22f-e1c2fa9f47c0.html",
+        "pageSha256": "270f323c5227fa8f652b90464a8857a7601bae683d7525451abafbfac9d10eee",
+        "postingId": "1144276b-85af-4766-b22f-e1c2fa9f47c0",
+        "alt": "TRM Labs",
+        "sourceBytes": 2748,
+        "sourceSha256": "d30a558e938389e6e2ec2cb2ac3c347f6155459e5c5959f34a5da6fda8775326"
+      }
+    },
+    {
+      "canonicalName": "unframe",
+      "companyNames": [
+        "Unframe"
+      ],
+      "file": "unframe-205156182e.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2135,
+      "sha256": "205156182ee5c9cb279bbdbddcb972576c15d16c0da47c4a43d44d7529268aec",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQF2WgbWRrIDng/company-logo_100_100/B4EZX3nLb_HcAY-/0/1743615998396/unframe_ai_logo?e=2147483647&v=beta&t=bZwfmy2at6gDB2jfAoqDAw9hjqCcMgFmYlRM-cfDwXg",
+        "page": "11645dbd-32ed-48ab-8d03-14d8080ad3a2.html",
+        "pageSha256": "518c8b1fda72f34ee2f080ffabdfd99595bc4cb4b720dd144de8cf0d00533d18",
+        "postingId": "11645dbd-32ed-48ab-8d03-14d8080ad3a2",
+        "alt": "Unframe"
+      }
+    },
+    {
+      "canonicalName": "vanguard",
+      "companyNames": [
+        "Vanguard"
+      ],
+      "file": "vanguard-147e617248.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2112,
+      "sha256": "147e6172487dfa973948552799afb5d76259fcbb1404d396c85c9cee8605d54c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQF_RLzpaBBg5Q/company-logo_100_100/B4EZsOYkN3HoAU-/0/1765472885963/vanguard_logo?e=2147483647&v=beta&t=XLTUpapEF6KXornftm1HPScII-A07Pi6olt_viChy_Q",
+        "page": "0774d244-813d-4e5d-ab29-5ef3964ee8ae.html",
+        "pageSha256": "5f4a66453d50ae890c88cc8da97403e6a34570284a304b8ffb50df76b90a822b",
+        "postingId": "0774d244-813d-4e5d-ab29-5ef3964ee8ae",
+        "alt": "Vanguard",
+        "sourceBytes": 2112,
+        "sourceSha256": "147e6172487dfa973948552799afb5d76259fcbb1404d396c85c9cee8605d54c"
+      }
+    },
+    {
+      "canonicalName": "venture up",
+      "companyNames": [
+        "Venture Up"
+      ],
+      "file": "venture-up-cf0025dd88.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 3022,
+      "sha256": "cf0025dd88313b3d4a4f4584d218084468a6d0e2e9bbf1bb00e3c20d089dabba",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQFZv10VuymqoQ/company-logo_100_100/company-logo_100_100/0/1665000475897/ventureups_logo?e=2147483647&v=beta&t=fB14QVxevJTnV799qYj6Qvfttjxq5L6QxCYHyNnlvFE",
+        "page": "375b7662-3833-4e19-9f35-66362745a74f.html",
+        "pageSha256": "8b87969d1e8d4c8d994d58b240c88bb15e210b7aef127e1ec414e55a87f82e50",
+        "postingId": "375b7662-3833-4e19-9f35-66362745a74f",
+        "alt": "Venture Up"
+      }
+    },
+    {
+      "canonicalName": "versigent",
+      "companyNames": [
+        "Versigent"
+      ],
+      "file": "versigent-84a867f854.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 2517,
+      "sha256": "84a867f8540aaec4b277926026711312c8584c8d6edcaad30239912f7fb2fee3",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D560BAQEeiSpLFj7C9A/company-logo_100_100/B56Zv_Q2Q7JEAQ-/0/1769514165615/versigent_logo?e=2147483647&v=beta&t=EBBYxM-66McsREC__FFZMz7_Y25NmLEcRnPaBuDMhss",
+        "page": "b175bedc-52e5-4f77-9806-8b9c4299e1f5.html",
+        "pageSha256": "bb6d78138f256b80329db116cdcad2679a04cdb33526071d7c10fea21500dce8",
+        "postingId": "b175bedc-52e5-4f77-9806-8b9c4299e1f5",
+        "alt": "Versigent",
+        "sourceBytes": 2517,
+        "sourceSha256": "84a867f8540aaec4b277926026711312c8584c8d6edcaad30239912f7fb2fee3"
+      }
+    },
+    {
+      "canonicalName": "wedev",
+      "companyNames": [
+        "WeDev"
+      ],
+      "file": "wedev-d03d454c7b.png",
+      "mimeType": "image/png",
+      "bytes": 4493,
+      "sha256": "d03d454c7b2e5df9b5d56e8f04e9707336c543b56c7dd8a51bf6b369fbe59c66",
+      "source": {
+        "kind": "greenhouse-public-job-page",
+        "url": "https://s101-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/332/110/original/WEDEV_LOGO_PNG-01_1.png?1759991403",
+        "page": "https://job-boards.eu.greenhouse.io/wedev/jobs/4871703101",
+        "pageSha256": "e2a2da164d010aac7c05b3d607c4df08738eb40c4101686abcb8e17762244839",
+        "postingId": "d2d65eb3-dc07-40e2-ab9c-da1bef3cf18e",
+        "alt": "WeDev",
+        "sourceBytes": 26753,
+        "sourceSha256": "cb505970ba60c78e408d95dac5a1350a4d53f4ed627d6a3f076b94dad8419ac7"
+      }
+    },
+    {
+      "canonicalName": "wiz",
+      "companyNames": [
+        "Wiz"
+      ],
+      "file": "wiz-0817d955ff.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 6753,
+      "sha256": "0817d955ff6cf418309b83a087775785f8d0bd8f0511a860420639ef02089f4c",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFOGx_ymF4Z5A/company-logo_100_100/B4EZ9B2tmlHwAI-/0/1783516289657/wizsecurity_logo?e=2147483647&v=beta&t=aH5nDND1jd-m1VrQWCfURti4bl6UVQLcRweXSaNp2Lo",
+        "page": "e6b00dbe-21b5-4a06-b645-b03d0ffb272a.html",
+        "pageSha256": "6475b422955074c166f389dd3f5a706f50b68ee773b51da5e9c6a3bff1b0fffd",
+        "postingId": "e6b00dbe-21b5-4a06-b645-b03d0ffb272a",
+        "alt": "Wiz"
+      }
+    },
+    {
+      "canonicalName": "zendesk",
+      "companyNames": [
+        "Zendesk"
+      ],
+      "file": "zendesk-9e4495bc95.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1517,
+      "sha256": "9e4495bc954c98da0467b35c61e3e0c02d415aa5516fb4c3b9308e25332f4924",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQH_bC13eyDqjw/company-logo_100_100/company-logo_100_100/0/1684356295421/zendesk_logo?e=2147483647&v=beta&t=w6vh07kTKA91c64ELehbqv7PXy7evnbswb2OTjBxlRo",
+        "page": "205e7ccd-4699-4d69-8874-7385f3d19c4e.html",
+        "pageSha256": "b2c14a6216142b2cf12faf2fa28095b1c1b340b0a3547d7a0ded27f3a5de330b",
+        "postingId": "205e7ccd-4699-4d69-8874-7385f3d19c4e",
+        "alt": "Zendesk"
+      }
+    },
+    {
+      "canonicalName": "zenity",
+      "companyNames": [
+        "Zenity"
+      ],
+      "file": "zenity-3f9eb4f1a2.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 1830,
+      "sha256": "3f9eb4f1a21a30f4c5187b3268c6b46893d3de623ac5014550d8b5c0118244a1",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQFsSGJUHIoXNw/company-logo_100_100/B4EZ_tQyh1HkAU-/0/1786392029563/zenitysec_logo?e=2147483647&v=beta&t=fnsr1Cx8kgfUHong5CSqp_x_2bBuoHrgLIAG9TUwCdg",
+        "page": "89e3d0e2-d385-4763-b8f8-f4df1ec9ddcd.html",
+        "pageSha256": "444ae4d6b66cf49c6b496646ddda6eb32f3d1ee2fb875e83cd4e4b54f3ded745",
+        "postingId": "89e3d0e2-d385-4763-b8f8-f4df1ec9ddcd",
+        "alt": "Zenity"
+      }
+    },
+    {
+      "canonicalName": "zocdoc",
+      "companyNames": [
+        "Zocdoc"
+      ],
+      "file": "zocdoc-eff641f8c4.jpg",
+      "mimeType": "image/jpeg",
+      "bytes": 7155,
+      "sha256": "eff641f8c4d50f9d901b5aabbad6b4771886e7b61b4f09906d54e3e35b9212cb",
+      "source": {
+        "kind": "linkedin-public-job-page",
+        "url": "https://media.licdn.com/dms/image/v2/D4E0BAQGw26vxOtgZtQ/company-logo_100_100/B4EZ4EQA5MKAAQ-/0/1778187767712/zocdoc_logo?e=2147483647&v=beta&t=lUJVZAuGLshJwCP5Y060ogdYy-aDdfNVLME0twIn57k",
+        "page": "d29bf13b-afc2-4630-9a63-7e7ddebe566a.html",
+        "pageSha256": "4344abed24b93e0864530a9578f73aa95e4a1870e2fbe765a547f5985caa2e63",
+        "postingId": "d29bf13b-afc2-4630-9a63-7e7ddebe566a",
+        "alt": "Zocdoc",
+        "sourceBytes": 7155,
+        "sourceSha256": "eff641f8c4d50f9d901b5aabbad6b4771886e7b61b4f09906d54e3e35b9212cb"
+      }
+    }
+  ],
+  "unresolved": [
+    "confidential",
+    "gigfinder.ai",
+    "my team",
+    "pagaya israel",
+    "real dev inc",
+    "shifters",
+    "tomax think academy"
+  ],
+  "skipped": [
+    {
+      "page": "18d16e1f-1052-4d26-a0f2-632ab0efbb06.html",
+      "company": "GigFinder.ai",
+      "reason": "linkedin-logo-not-found"
+    },
+    {
+      "company": "Pagaya Israel",
+      "source": "greenhouse",
+      "reason": "attributable-ats-logo-not-found"
+    },
+    {
+      "company": "my team",
+      "source": "workable",
+      "reason": "attributable-ats-logo-not-found"
+    },
+    {
+      "company": "REAL DEV INC",
+      "source": "workable",
+      "reason": "attributable-ats-logo-not-found"
+    },
+    {
+      "company": "Shifters",
+      "source": "workable",
+      "reason": "attributable-ats-logo-not-found"
+    },
+    {
+      "company": "Tomax Think Academy",
+      "source": "workable",
+      "reason": "attributable-ats-logo-not-found"
+    },
+    {
+      "company": "Confidential",
+      "page": "6bd49fdd-2567-4b42-bf43-a9d53f62c7f9.html",
+      "reason": "not a supported raster image (image/svg+xml)"
+    }
+  ]
+}
