@@ -247,6 +247,8 @@ class RoomAgentService:
         }
         if "WORKER_LOAD_THRESHOLD" in os.environ:
             env["WORKER_LOAD_THRESHOLD"] = os.environ["WORKER_LOAD_THRESHOLD"]
+        if "VOICE_STT_PORT" in os.environ:
+            env["STT_URL"] = f"http://127.0.0.1:{int(os.environ['VOICE_STT_PORT'])}/inference"
         self._process = ProcessService(
             self.name,
             (str(context.repo_root / ".venv-agent/bin/python"), "agent/main.py", "start"),
