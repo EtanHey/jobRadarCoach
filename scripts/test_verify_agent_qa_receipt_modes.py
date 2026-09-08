@@ -77,6 +77,26 @@ def test_v1_has_no_provable_load_threshold():
     assert caught.value.code == "threshold_unknown"
 
 
+@pytest.mark.parametrize("failure", [OSError, AttributeError])
+def test_unavailable_load_has_structured_cli_refusal(monkeypatch, tmp_path, capsys, failure):
+    install_live_seams(monkeypatch)
+    receipt_path = tmp_path / "normal.json"
+    receipt_path.write_text(json.dumps(v2_receipt("normal")))
+    monkeypatch.setattr(sys, "argv", [
+        "verify_agent_qa_receipt.py", "--require-mode", "normal", str(receipt_path),
+    ])
+
+    def unavailable():
+        raise failure("synthetic unavailable load")
+
+    monkeypatch.setattr(subject.os, "getloadavg", unavailable)
+    assert subject.main() == 1
+    output = capsys.readouterr()
+    assert output.out == '{"status":"NOT_READY","reason":"load_unavailable"}\n'
+    assert output.err.startswith("NOT_READY load_unavailable ")
+    assert "Traceback" not in output.err
+
+
 @pytest.mark.parametrize(
     ("pool", "reason"),
     [
