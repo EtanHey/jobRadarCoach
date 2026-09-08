@@ -38,3 +38,8 @@ test("recommendation filtering composes with location without hiding stretch rev
   assert.deepEqual(filterJobs(rows,{...options,fit:"skip"}).map(x=>x.id),[rows[1].id]);
   assert.equal(filterJobs(rows,options).length,4);
 });
+
+test("country codes alone cannot masquerade as US states",()=>{
+  for (const location of ["Toronto, CA", "Hyderabad, IN", "Unknown City, CA", "Bremen, DE"]) assert.equal(locationGroup(location),"other",location);
+  for (const location of ["San Francisco, CA", "Fortville, IN", "Chicago, IL", "Washington, DC", "Austin, Texas Metropolitan Area"]) assert.equal(locationGroup(location),"united-states",location);
+});
