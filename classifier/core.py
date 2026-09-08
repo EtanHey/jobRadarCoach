@@ -108,7 +108,11 @@ def score_posting(
             return None
         attempted_brain = result.brain
         try:
-            normalized = normalize_response(result.data)
+            normalized = normalize_response(
+                result.data,
+                posting_evidence_id=posting_evidence_id,
+                expected_recommendation=expected,
+            )
         except Exception:
             _diagnose(diagnostic, "wire")
             return None
