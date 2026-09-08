@@ -200,3 +200,23 @@ def test_all_observed_cli_is_explicit_and_keeps_default_off():
     assert BatchConfig(**vars(build_parser().parse_args([]))).all_observed is False
     configured = BatchConfig(**vars(build_parser().parse_args(["--all-observed", "--limit", "3"])))
     assert configured.all_observed is True and configured.limit == 3
+
+
+@pytest.mark.parametrize("stage,outcome", [("extractor", "extracted"), ("classifier", "scored")])
+def test_all_observed_partial_summary_is_incomplete(stage, outcome):
+    fake = FakeKubectl()
+    def runner(command, **kwargs):
+        result = fake(command, **kwargs)
+        if command[1] == "logs" and "-c" in command:
+            if command[command.index("-c") + 1] == stage:
+                value = json.loads(result)
+                value["selected"] -= 1
+                value[outcome] -= 1
+                return json.dumps(value)
+        return result
+    receipt = run_cohort(BatchConfig(limit=2, all_observed=True), kubectl=runner,
+                         run_id="funnel-partial-summary")
+    assert receipt["aggregate_receipts"][stage]["complete"] is False
+    assert receipt["selected_counts"][stage] is None
+    assert receipt[outcome] is None
+    assert receipt["failures"] == [{"stage": stage, "failure": "IncompleteReceipt", "chunk": 0}]

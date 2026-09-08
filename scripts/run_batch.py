@@ -290,6 +290,9 @@ def _run_all_observed(
                 )
                 result = _create_and_wait(client, job, stage, partial)
                 summary = _model_summary(result["logs"], outcome)
+                if summary["selected"] != len(posting_ids):
+                    summary = None
+                    raise CoordinatorError("IncompleteReceipt")
                 if result["exit_code"] != 0:
                     raise CoordinatorError("JobFailed")
             except Exception as error:
