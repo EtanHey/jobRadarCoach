@@ -9,7 +9,7 @@ Install Command Line Tools and [Homebrew](https://brew.sh), then install the run
 ```zsh
 xcode-select -p >/dev/null 2>&1 || xcode-select --install
 brew install --cask orbstack tailscale-app
-brew install python supabase/tap/supabase ollama
+brew install node python supabase/tap/supabase ollama
 ```
 
 Launch OrbStack, enable Kubernetes in its settings, and sign in to the Tailscale app. In Tailscale settings, install the **CLI integration** ([official CLI setup](https://tailscale.com/docs/reference/tailscale-cli?tab=macos)), then open a new terminal. The app installation alone does not make the `tailscale` command available. Then verify the local cluster and CLI:
@@ -220,6 +220,93 @@ tailscale serve status
 Open `https://<this-machine-tailnet-name>:8445` from a device on the same tailnet. The exact full origin must match the `UI_ORIGIN` stored above or mutations are rejected. Do not use `tailscale serve reset`: it would remove unrelated handlers.
 
 The foreground port-forward is session-scoped. Restart it after logout, reboot, or a selected UI pod restart. Portable setup does not install a background bridge.
+
+### Prepare the voice transport
+
+These transport steps require an installed LiveKit Deployment and Service with the `livekit-keys`
+API Secret configured. Verify their readiness and the tracked bridge source before exposing voice ports:
+
+```zsh
+set -euo pipefail
+kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
+python3 - 3< <(kubectl --context orbstack -n job-radar-coach get service/livekit -o json) <<'PY'
+import json
+
+service = json.load(open(3))
+ports = {
+    (item.get("port"), item.get("targetPort"), item.get("protocol", "TCP"))
+    for item in service.get("spec", {}).get("ports", [])
+}
+required = {(7880, 7880, "TCP"), (7881, 7881, "TCP")}
+if not required <= ports:
+    raise SystemExit("service/livekit must expose numeric TCP 7880->7880 and 7881->7881")
+PY
+node --check scripts/livekit_bridge.cjs
+lsof -nP -iTCP:17880 -sTCP:LISTEN -t || true
+lsof -nP -iTCP:17881 -sTCP:LISTEN -t || true
+```
+
+If both `lsof` commands have no output, keep `node scripts/livekit_bridge.cjs` running in its own
+terminal. If both ports already belong to the same PID, reuse it only when `ps -ww -o command= -p
+<PID>` is exactly `node` plus this checkout's `scripts/livekit_bridge.cjs`, and the health checks below
+pass. A single occupied port, different PIDs, or any other command is a conflict; do not stop or replace
+that process.
+
+Check the existing Serve targets before adding anything. This read-only check prints `missing` or
+`reuse` for each voice mapping and exits nonzero on a conflicting handler:
+
+```zsh
+runtime_tailnet_host="$(tailscale status --json | python3 -c \
+  'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')"
+TAILNET_DNS="${runtime_tailnet_host}" python3 - 3< <(tailscale serve status --json) <<'PY'
+import json
+import os
+
+status = json.load(open(3))
+dns = os.environ["TAILNET_DNS"]
+tcp = status.get("TCP", {})
+web = status.get("Web", {})
+
+rtc = tcp.get("7881")
+if rtc not in (None, {"TCPForward": "127.0.0.1:17881"}):
+    raise SystemExit("conflict: TCP 7881 has another target")
+print("tcp:7881", "missing" if rtc is None else "reuse")
+
+signaling = tcp.get("8446")
+handlers = web.get(f"{dns}:8446", {}).get("Handlers", {})
+expected = {"/": {"Proxy": "http://127.0.0.1:17880"}}
+if not (signaling is None and not handlers) and not (
+    signaling == {"HTTPS": True} and handlers == expected
+):
+    raise SystemExit("conflict: HTTPS 8446 has another target")
+print("https:8446", "missing" if signaling is None else "reuse")
+PY
+```
+
+If `tcp:7881` printed `missing`, add the media mapping:
+
+```zsh
+tailscale serve --bg --tcp=7881 tcp://127.0.0.1:17881
+```
+
+If `https:8446` printed `missing`, add the signaling mapping:
+
+```zsh
+tailscale serve --bg --https=8446 http://127.0.0.1:17880
+```
+
+Leave every `reuse` mapping untouched. Then verify signaling:
+
+```zsh
+curl -fsS -o /dev/null http://127.0.0.1:17880/
+curl -fsS -o /dev/null "https://${runtime_tailnet_host}:8446/"
+unset runtime_tailnet_host
+```
+
+Never use `tailscale serve reset` or Funnel. On cleanup, stop the bridge only if this terminal launched
+it, using Ctrl-C or SIGTERM for that exact PID. Remove only a mapping that this setup created, after the
+same status check still reports its exact target, with `tailscale serve --tcp=7881 off` or `tailscale
+serve --https=8446 off`. Keep reused processes and mappings.
 
 ## Repeat starts
 
