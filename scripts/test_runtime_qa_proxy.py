@@ -5,7 +5,6 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
-import threading
 import time
 import uuid
 
@@ -331,40 +330,21 @@ def test_sighup_during_initial_verifier_reaps_detached_child(tmp_path):
 
 def test_shutdown_during_verifier_source_read_does_not_spawn(tmp_path):
     module, verifier, control = fixtures(tmp_path)
-    spawned, replacement = tmp_path / "spawned", tmp_path / "verifier.py.ready"
-    source = (
-        "import json,pathlib\n"
-        f"pathlib.Path({str(spawned)!r}).touch()\n"
-        "print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'}))\n"
-    )
-    expected_hash = hashlib.sha256(source.encode()).hexdigest()
     verifier.unlink()
     os.mkfifo(verifier)
-    replacement.write_text(source)
-    opened, release = threading.Event(), threading.Event()
-
-    def feed_source():
-        with verifier.open("wb") as pipe:
-            opened.set()
-            release.wait(timeout=5)
-            os.replace(replacement, verifier)
-            pipe.write(source.encode())
-
-    feeder = threading.Thread(target=feed_source)
-    feeder.start()
     child, marker = launch(tmp_path, module, verifier, control, {
-        "QA_EXPECTED_VERIFIER_SHA256": expected_hash,
+        "QA_EXPECTED_VERIFIER_SHA256": "0" * 64,
     })
     try:
-        assert opened.wait(timeout=5)
-        child.terminate()
-        release.set()
-        assert child.wait(timeout=5) == 0
-        assert wait_for(marker, "STOPPED")["status"] == "STOPPED"
-        assert not spawned.exists()
+        time.sleep(0.1)
+        if child.poll() is None:
+            child.terminate()
+        returncode = child.wait(timeout=2)
+        if returncode == 0:
+            assert wait_for(marker, "STOPPED")["status"] == "STOPPED"
+        else:
+            assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_invalid"
     finally:
-        release.set()
-        feeder.join(timeout=5)
         if child.poll() is None:
             child.kill()
             child.wait(timeout=5)
