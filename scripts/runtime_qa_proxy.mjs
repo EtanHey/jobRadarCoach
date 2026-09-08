@@ -12,7 +12,7 @@ const required = name => {
   if (!value) throw new Error(`QA NOT READY: ${name.toLowerCase()}_missing`);
   return value;
 };
-const RELEASED_VERIFIER_SHA256 = 'a1a94bfb4d379a95fe0bd3ec9960d4abf83744d1938971cb88c5b8c521feafa2';
+const RELEASED_VERIFIER_SHA256 = '0c35e739ccaab2f3c9000098f51854ea209f2095ec7e46674e28a8a313928f8d';
 const stableReason = (stdout, stderr) => {
   try {
     const value = JSON.parse(stdout);
