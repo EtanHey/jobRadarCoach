@@ -183,6 +183,7 @@ async function main() {
   );
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
+  process.on('SIGHUP', stop);
   if (!await gate()) {
     if (closing) return;
     await publish('NOT_READY');
