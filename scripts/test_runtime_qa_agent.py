@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import subprocess
 
@@ -34,10 +35,19 @@ def write_receipt(path, pid):
     path.write_text(json.dumps({"process": {"pid": pid}}))
 
 
+@pytest.fixture(autouse=True)
+def released_verifier(monkeypatch, tmp_path):
+    verifier = tmp_path / "scripts/verify_agent_qa_receipt.py"
+    verifier.parent.mkdir(parents=True, exist_ok=True)
+    verifier.write_text("# synthetic released verifier\n")
+    monkeypatch.setattr(subject, "_VERIFIER_SHA256", hashlib.sha256(verifier.read_bytes()).hexdigest())
+
+
 def verifier_command(context, receipt):
     return (
         str(context.repo_root / ".venv-agent/bin/python"),
         str(context.repo_root / "scripts/verify_agent_qa_receipt.py"),
+        "--require-mode", "qa",
         str(receipt),
     )
 
@@ -55,6 +65,64 @@ def test_verified_existing_worker_is_borrowed(monkeypatch, tmp_path):
     assert service.probe(context) == Probe(True, "verified QA worker worker-1")
     assert service.receipt_path(context) == receipt
     assert all(call[0][0] != "supabase" for call in context.calls)
+
+
+def test_v2_qa_ready_is_accepted_but_normal_mode_is_rejected(monkeypatch, tmp_path):
+    receipt = tmp_path / "borrowed.json"
+    write_receipt(receipt, 42)
+    command = verifier_command(FakeContext(tmp_path), receipt)
+    context = FakeContext(tmp_path, {
+        command: result('{"status":"READY","mode":"qa","worker_id":"worker-1"}\n'),
+    })
+    monkeypatch.setattr(subject, "_agent_processes", lambda _context: {42: "dev"})
+    service = subject.QaAgentService(receipt_path=receipt, url_provider=lambda _context: "ws://local")
+
+    assert service.probe(context).healthy
+    context.responses[command] = result(
+        '{"status":"READY","mode":"normal","worker_id":"worker-1"}\n',
+    )
+    assert service.probe(context) == Probe(False, "QA NOT READY: verifier_output_invalid")
+
+
+def test_structured_not_ready_reason_precedes_legacy_stderr_and_every_probe_reverifies(
+    monkeypatch, tmp_path,
+):
+    receipt = tmp_path / "borrowed.json"
+    write_receipt(receipt, 42)
+    command = verifier_command(FakeContext(tmp_path), receipt)
+    responses = iter([
+        result('{"status":"NOT_READY","reason":"wrong_mode"}\n', 1,
+               "NOT_READY verifier_failed legacy\n"),
+        result("", 1, "NOT_READY worker_not_registered legacy\n"),
+    ])
+    context = FakeContext(tmp_path, {command: lambda *_args: next(responses)})
+    monkeypatch.setattr(subject, "_agent_processes", lambda _context: {42: "dev"})
+    service = subject.QaAgentService(receipt_path=receipt, url_provider=lambda _context: "ws://local")
+
+    assert service.probe(context) == Probe(False, "QA NOT READY: wrong_mode")
+    assert service.probe(context) == Probe(False, "QA NOT READY: worker_not_registered")
+    assert [call[0] for call in context.calls] == [command, command]
+
+
+def test_verifier_hash_change_fails_before_execution(monkeypatch, tmp_path):
+    receipt = tmp_path / "borrowed.json"
+    write_receipt(receipt, 42)
+    context = FakeContext(tmp_path)
+    monkeypatch.setattr(subject, "_VERIFIER_SHA256", "0" * 64)
+    service = subject.QaAgentService(receipt_path=receipt, url_provider=lambda _context: "ws://local")
+
+    assert service.probe(context) == Probe(False, "QA NOT READY: verifier_hash_mismatch")
+    assert context.calls == []
+
+
+def test_equal_qa_and_normal_receipt_paths_refuse_before_owned_start(monkeypatch, tmp_path):
+    shared = tmp_path / "shared.json"
+    monkeypatch.setenv("VOICE_QA_RECEIPT_FILE", shared.name)
+    monkeypatch.setenv("AGENT_NORMAL_RECEIPT_FILE", str(shared.parent / "." / shared.name))
+    monkeypatch.setattr(subject, "_agent_processes", lambda _context: pytest.fail("process scan ran"))
+
+    with pytest.raises(RuntimeError, match="receipt_path_conflict"):
+        subject.QaAgentService(url_provider=lambda _context: "ws://local").start(FakeContext(tmp_path))
 
 
 @pytest.mark.parametrize("processes", [{42: "console"}, {42: "dev", 43: None}])

@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
+import hmac
 import json
+import os
 from pathlib import Path
+import re
 import shlex
 import subprocess
 from typing import Callable
@@ -15,6 +19,8 @@ from scripts.runtime_qa_config import resolve_qa_urls
 
 
 KUBECTL = ("kubectl", "--context", "orbstack", "-n", "job-radar-coach")
+_VERIFIER_SHA256 = "a1a94bfb4d379a95fe0bd3ec9960d4abf83744d1938971cb88c5b8c521feafa2"
+_REASON = re.compile(r"[a-z0-9_]+")
 
 
 def _agent_processes(context: RuntimeContext) -> dict[int, str | None] | None:
@@ -55,10 +61,48 @@ def _receipt_pid(path: Path) -> int | None:
 def _not_ready(result: subprocess.CompletedProcess[str] | None) -> str:
     if result is None:
         return "verifier_unavailable"
-    fields = result.stderr.split(maxsplit=2)
-    if len(fields) >= 2 and fields[0] == "NOT_READY" and fields[1].replace("_", "").isalnum():
-        return fields[1]
+    if result.returncode:
+        try:
+            value = json.loads(result.stdout)
+            reason = value.get("reason") if set(value) == {"status", "reason"} else None
+            if value.get("status") == "NOT_READY" and isinstance(reason, str) and _REASON.fullmatch(reason):
+                return reason
+        except (AttributeError, TypeError, json.JSONDecodeError):
+            pass
+        for line in result.stderr.splitlines():
+            fields = line.split(maxsplit=2)
+            if len(fields) >= 2 and fields[0] == "NOT_READY" and _REASON.fullmatch(fields[1]):
+                return fields[1]
     return "verifier_output_invalid" if result.returncode == 0 else "verifier_failed"
+
+
+def _verifier_integrity(path: Path) -> str | None:
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return "verifier_missing" if not path.is_file() else "verifier_unavailable"
+    return None if hmac.compare_digest(digest, _VERIFIER_SHA256) else "verifier_hash_mismatch"
+
+
+def _ready_worker(stdout: str) -> str | None:
+    try:
+        value = json.loads(stdout)
+        worker = value.get("worker_id")
+        if not isinstance(worker, str) or not worker:
+            return None
+        legacy = {"status": "READY", "worker_id": worker}
+        current = {"status": "READY", "mode": "qa", "worker_id": worker}
+        if value not in (legacy, current):
+            return None
+        expected = json.dumps(value, separators=(",", ":")) + "\n"
+        return worker if stdout == expected else None
+    except (AttributeError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def _resolved_path(context: RuntimeContext, path: Path) -> Path:
+    expanded = path.expanduser()
+    return (expanded if expanded.is_absolute() else context.repo_root / expanded).resolve()
 
 
 class QaAgentService:
@@ -77,7 +121,23 @@ class QaAgentService:
         self._process: ProcessService | None = None
 
     def _external_path(self, context: RuntimeContext) -> Path:
-        return self._external_receipt or context.repo_root / "docs.local/voice-qa-agent-receipt.json"
+        selected = self._external_receipt or Path(os.environ.get(
+            "VOICE_QA_RECEIPT_FILE",
+            context.repo_root / "docs.local/voice-qa-agent-receipt.json",
+        ))
+        return _resolved_path(context, selected)
+
+    @staticmethod
+    def _normal_path(context: RuntimeContext) -> Path:
+        return _resolved_path(context, Path(os.environ.get(
+            "AGENT_NORMAL_RECEIPT_FILE",
+            context.repo_root / "docs.local/voice-normal-agent-receipt.json",
+        )))
+
+    def _receipt_paths_separate(self, context: RuntimeContext) -> bool:
+        normal = self._normal_path(context)
+        qa_paths = (self._external_path(context), self._owned_path(context))
+        return all(_resolved_path(context, path) != normal for path in qa_paths)
 
     @staticmethod
     def _owned_path(context: RuntimeContext) -> Path:
@@ -93,24 +153,20 @@ class QaAgentService:
 
     def _verify(self, context: RuntimeContext, receipt: Path, expected_url: str) -> tuple[str | None, str]:
         verifier = context.repo_root / "scripts/verify_agent_qa_receipt.py"
-        command = (str(context.repo_root / ".venv-agent/bin/python"), str(verifier), str(receipt))
+        integrity_error = _verifier_integrity(verifier)
+        if integrity_error:
+            return None, integrity_error
+        command = (
+            str(context.repo_root / ".venv-agent/bin/python"), str(verifier),
+            "--require-mode", "qa", str(receipt),
+        )
         try:
             result = context.run(command, env={"LIVEKIT_URL": expected_url}, timeout=20)
         except (OSError, subprocess.SubprocessError):
             return None, "verifier_unavailable"
-        try:
-            value = json.loads(result.stdout)
-            worker = value["worker_id"]
-            exact = result.stdout == json.dumps(
-                {"status": "READY", "worker_id": worker}, separators=(",", ":"),
-            ) + "\n"
-            if (
-                result.returncode == 0 and result.stderr == "" and exact
-                and isinstance(worker, str) and worker
-            ):
-                return worker, ""
-        except (KeyError, TypeError, json.JSONDecodeError):
-            pass
+        worker = _ready_worker(result.stdout)
+        if result.returncode == 0 and result.stderr == "" and worker is not None:
+            return worker, ""
         return None, _not_ready(result)
 
     def _owned_pid(self) -> int | None:
@@ -118,6 +174,8 @@ class QaAgentService:
         return next(iter(children)) if len(children) == 1 else None
 
     def probe(self, context: RuntimeContext) -> Probe:
+        if not self._receipt_paths_separate(context):
+            return Probe(False, "QA NOT READY: receipt_path_conflict")
         try:
             expected_url = self._expected_url(context)
         except Exception as error:
@@ -168,6 +226,8 @@ class QaAgentService:
     def start(self, context: RuntimeContext) -> Identity:
         if not context.qa_mode:
             raise RuntimeError("QA NOT READY: qa_mode_not_requested")
+        if not self._receipt_paths_separate(context):
+            raise RuntimeError("QA NOT READY: receipt_path_conflict")
         processes = _agent_processes(context)
         if processes is None:
             raise RuntimeError("QA NOT READY: agent_process_scan_unavailable")
