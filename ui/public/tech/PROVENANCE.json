@@ -1,6 +1,72 @@
 {
   "version": 1,
+  "catalogs": {
+    "simple_icons": {
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "metadata_sha256": "8b78e2fa06f18ca8f72c5dc93f4ebdce1df4324382e005dde91fdead8e349de1",
+      "license_metadata_source": "https://github.com/simple-icons/simple-icons/blob/777807a262bb7384ff406fd4b35fdcd02e9514c3/data/simple-icons.json",
+      "disclaimer_source": "https://github.com/simple-icons/simple-icons/blob/777807a262bb7384ff406fd4b35fdcd02e9514c3/DISCLAIMER.md"
+    },
+    "devicon": {
+      "revision": "v2.17.0",
+      "metadata_sha256": "98e0907856a61edc788bc387ba81a1c3643015dc0511228397564a3651a68e72"
+    }
+  },
   "assets": [
+    {
+      "file": "aerospike.svg",
+      "identity": "aerospike",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/aerospike/aerospike-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "0b638883d230a10983b76c0525bc47f0bd6e5178685a1d5d3283ff5709278c29"
+    },
+    {
+      "file": "alpinedotjs.svg",
+      "identity": "Alpine.js",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/alpinedotjs.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c82c5492c4422e5c6bcd253012e2d1656ca56b0e9bd97675bb49c8845a4242c6"
+    },
+    {
+      "file": "android.svg",
+      "identity": "Android",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/android.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-3.0",
+      "sha256": "ff571c5e21163f07dd7176d4670411344f55409d36eb6346b402210ad7c02c4b"
+    },
+    {
+      "file": "angular.svg",
+      "identity": "Angular",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/angular.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-4.0",
+      "sha256": "385c7d047cc4d48d8359003b57ce4df7d1271b6d9e7840c128628ac582c90456"
+    },
+    {
+      "file": "angularmaterial.svg",
+      "identity": "angularmaterial",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/angularmaterial/angularmaterial-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "22cbbd6c590790e4a62d4aeb6903652b0944697d0686a0f55ed7bb6968b0884d"
+    },
+    {
+      "file": "ansible.svg",
+      "identity": "Ansible",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ansible.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "dde263ada8ced6d3ce092f9046fba6224eac3afae87274d912cef45210f8fff6"
+    },
     {
       "file": "anthropic.svg",
       "identity": "Anthropic",
@@ -11,67 +77,67 @@
       "sha256": "1cc599f6ebce2016dc388cf84e54a52c6b13487655c7e243554d654c7bce1882"
     },
     {
-      "file": "googlegemini.svg",
-      "identity": "Google Gemini",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googlegemini.svg",
-      "source_kind": "Simple Icons",
-      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
-      "license": "CC0-1.0",
-      "sha256": "a6228d8846040401e941a39ed17459785e8324dbb7b870ce84233c9b3e9863a0"
+      "file": "apacheairflow.svg",
+      "identity": "apacheairflow",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/apacheairflow/apacheairflow-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "fce828f01e0efe4dfe8b11f4e4e3f20d67a4f885bb4daf8dc8cfa1cc8bd3115e"
     },
     {
-      "file": "huggingface.svg",
-      "identity": "Hugging Face",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/huggingface.svg",
+      "file": "apachekafka.svg",
+      "identity": "Apache Kafka",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/apachekafka.svg",
       "source_kind": "Simple Icons",
       "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
-      "license": "CC0-1.0",
-      "sha256": "aa81744034eecf4ac6b3fb7108dd71223965c7af3c534932391314563b150109"
+      "license": "Apache-2.0",
+      "sha256": "659f015de2ae3aebdf75cf8b16ecff44026fee6031a4e98bc8102a19eef34c26"
     },
     {
-      "file": "langchain.svg",
-      "identity": "LangChain",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/langchain.svg",
+      "file": "apachespark.svg",
+      "identity": "Apache Spark",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/apachespark.svg",
       "source_kind": "Simple Icons",
       "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
-      "license": "CC0-1.0",
-      "sha256": "7886444fa437debc26c8e9a51fd86943ad2cbc24b0f8185f15421190f48ab362"
+      "license": "Apache-2.0",
+      "sha256": "3d7bc046bb2d203cc667c1e2ff9460e082dafe2505c60885a60ac8cff5821bac"
     },
     {
-      "file": "pytorch.svg",
-      "identity": "PyTorch",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/pytorch.svg",
+      "file": "argo.svg",
+      "identity": "Argo",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/argo.svg",
       "source_kind": "Simple Icons",
       "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
       "license": "CC0-1.0",
-      "sha256": "4dd3f3d3e4102f3bee391fcb3d8ac960a14c48e6655d43b23f7b386d5da36d01"
+      "sha256": "82f01ed1da4aa8f87d0d88bbd6c86c45c051bdd0c513262d48022018dfad8259"
     },
     {
-      "file": "qdrant.svg",
-      "identity": "Qdrant",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/qdrant.svg",
-      "source_kind": "Simple Icons",
-      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
-      "license": "CC0-1.0",
-      "sha256": "c5fbbbf771648975f22973627b4eb5620c68a4f81ccfb6c21633bb1d04f9fdf1"
+      "file": "argocd.svg",
+      "identity": "argocd",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/argocd/argocd-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "58ddd3ef9cade78b1505f5d9ce6f6944ff07452e77343c8b3fe86d8ab892eb09"
     },
     {
-      "file": "tensorflow.svg",
-      "identity": "TensorFlow",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/tensorflow.svg",
+      "file": "arm.svg",
+      "identity": "Arm",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/arm.svg",
       "source_kind": "Simple Icons",
       "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
       "license": "CC0-1.0",
-      "sha256": "4c828afb17cd35786d7dd336f78d3111a7c730af54011cc2b20988866bdd8665"
+      "sha256": "d2a132ecc901b543ffcb7df21724b269c6b7bcc5c66631b4dc3614a729823259"
     },
     {
-      "file": "googlecloud.svg",
-      "identity": "Google Cloud",
-      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googlecloud.svg",
+      "file": "autocad.svg",
+      "identity": "AutoCAD",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/autocad.svg",
       "source_kind": "Simple Icons",
       "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
       "license": "CC0-1.0",
-      "sha256": "534a0359c2784e152f5c88ce64a56976036d7336c7831775c995977fd3432713"
+      "sha256": "dee9d0d2f266609cefa58e0df43c9831e426a6d66df5cd17ecaa6e8c7d398b30"
     },
     {
       "file": "aws.svg",
@@ -92,6 +158,1016 @@
       "sha256": "7923db83e3f9755bd412241a683fa996fb7a9d0259b5084de449e6be92f7ca20"
     },
     {
+      "file": "azuredevops.svg",
+      "identity": "azuredevops",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/azuredevops/azuredevops-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "49122a38457209cda2d22a1e3af1b4ff159b67714d4e7b43899544555ee2823c"
+    },
+    {
+      "file": "bash.svg",
+      "identity": "bash",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/bash/bash-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "2682e6473d914a5107c60f2265887ac44e55226b88898bdbe61c38aed08860df"
+    },
+    {
+      "file": "bazel.svg",
+      "identity": "Bazel",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/bazel.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "8b3c1aa9a3a4f8281229d1b1b842c1b0dd115414ddbc4b66f45082de2697a956"
+    },
+    {
+      "file": "bentoml.svg",
+      "identity": "BentoML",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/bentoml.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1a9045479ed24e815147c805af49175cc2664d0e7b921f578f138b1e38334cf4"
+    },
+    {
+      "file": "bitbucket.svg",
+      "identity": "Bitbucket",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/bitbucket.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "887f3bbce5d63f56958fb3dbe3c1b850314ef71a1f21dd5f2099637f01e4b241"
+    },
+    {
+      "file": "c.svg",
+      "identity": "C",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/c.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "fde4284070eedf24f3acc2f78368b8c25a204f9a1b8831caaae4652c3e716c88"
+    },
+    {
+      "file": "cassandra.svg",
+      "identity": "cassandra",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/cassandra/cassandra-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "3ee0a3093decf63676701d2833c041d8659b95081c318ea8bbb0876b759d9075"
+    },
+    {
+      "file": "celery.svg",
+      "identity": "Celery",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/celery.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "10deb22e3e052358ab1722b2e41619bdef863b2aeaf81475bd14d2031b236c67"
+    },
+    {
+      "file": "ceph.svg",
+      "identity": "Ceph",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ceph.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "d86e5a80df62b084b473f06a5d5b10f87e96931c049c94862b02de7443a22f44"
+    },
+    {
+      "file": "circleci.svg",
+      "identity": "CircleCI",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/circleci.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "870bee0dae492b875ef775483bcc806de8785f393e71350b3de69196708a10fa"
+    },
+    {
+      "file": "claude.svg",
+      "identity": "Claude",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/claude.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "2d6fda79eb18ddccca35b799eeb3cece0dfabc22520ce3b10abd25668df9fa93"
+    },
+    {
+      "file": "claudecode.svg",
+      "identity": "Claude Code",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/claudecode.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "f7691bedae6d71e39e41436f39e453430c1ee21f6305a596984c70a5786abbda"
+    },
+    {
+      "file": "clickhouse.svg",
+      "identity": "ClickHouse",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/clickhouse.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9fa7c12613763111ca26bbc1fe10994960028bc3da9faf47247de231a0b27589"
+    },
+    {
+      "file": "cloudrun.svg",
+      "identity": "cloudrun",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/cloudrun/cloudrun-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "7824f252f6b460cf229986196d77951195e031294ddba3dc8389caf4b64c6332"
+    },
+    {
+      "file": "confluence.svg",
+      "identity": "Confluence",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/confluence.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "b9f1e0ae738e22ca281af813e8cc53e808a4c71d41adfa44bdc1a8d2c8134be3"
+    },
+    {
+      "file": "consul.svg",
+      "identity": "Consul",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/consul.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "e02fc7a817314df9e58ee465690ebcec2fabe4f61d17c8a9f4193514114630cc"
+    },
+    {
+      "file": "contentful.svg",
+      "identity": "Contentful",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/contentful.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "37d1f9836c010f260186b59b004edad87660f0f8fde0161085a83aa8e18c37dd"
+    },
+    {
+      "file": "cplusplus.svg",
+      "identity": "C++",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/cplusplus.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "adf33f5026f3f70d54f1068cb5d1a790c37b2105cbe728edd170251759d13f18"
+    },
+    {
+      "file": "crewai.svg",
+      "identity": "CrewAI",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/crewai.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6551b4dae99b4143b7105280fc878ff465a762fd9149ea7bd80200fbe1285461"
+    },
+    {
+      "file": "csharp.svg",
+      "identity": "csharp",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/csharp/csharp-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "ccb93dc80b4fbd7363158d520c948ba798f843eb77ece519d06ae1b92058a8b3"
+    },
+    {
+      "file": "css.svg",
+      "identity": "CSS",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/css.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9a97b95e3207aa4a6545dbb862e22450a01f37201c00e6b7d9c2958b59ca9ff9"
+    },
+    {
+      "file": "css3.svg",
+      "identity": "css3",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/css3/css3-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "8a9931190c761e07ff9ed032cfa8cf5483e47455ef930da6096f5765bb48e515"
+    },
+    {
+      "file": "cssmodules.svg",
+      "identity": "CSS Modules",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/cssmodules.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "b6f763f08efe3e2f07b176d3c0df0b06f5d65858b9fc949186c3c87df07ce6b9"
+    },
+    {
+      "file": "cursor.svg",
+      "identity": "Cursor",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/cursor.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "71572a9be192cc069ec22b48d785e61d754eeed7edb7d082d615f6d5620f70ec"
+    },
+    {
+      "file": "cypress.svg",
+      "identity": "Cypress",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/cypress.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "108ddd6eb4dbf3ac4c0e9d172be30b33128c078a1f1719b422f3c590a205b216"
+    },
+    {
+      "file": "databricks.svg",
+      "identity": "Databricks",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/databricks.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "454aa3efdb318c655e3da2ea844e3577a9c47a20e24d20fff6489362176e5fe4"
+    },
+    {
+      "file": "datadog.svg",
+      "identity": "Datadog",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/datadog.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "2dae0a9ddf090ec01626d9d0f73b1740a70ad280de92e2c27136bc81151fd1ff"
+    },
+    {
+      "file": "django.svg",
+      "identity": "Django",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/django.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "2dd3c936adb3683b01c3d35fe389da97813ed9782b9d01a924212d2e21ce8816"
+    },
+    {
+      "file": "docker.svg",
+      "identity": "Docker",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/docker.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "65571291c261ef869c31540a38f3ca0f0ee3bb73f179c172211c8860f19a6359"
+    },
+    {
+      "file": "dotnet.svg",
+      "identity": ".NET",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/dotnet.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "3b7e1243fb2389116b0a5237c9f07e82f6d2eb18ee40bd232f28abccd7956993"
+    },
+    {
+      "file": "dotnetcore.svg",
+      "identity": "dotnetcore",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/dotnetcore/dotnetcore-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "cb97be131c0d85f3abd624282ab5cba0b1706d472098138a8ca2a29592b5dc8e"
+    },
+    {
+      "file": "duckdb.svg",
+      "identity": "DuckDB",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/duckdb.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "2d53f8978d58ac12411fc618569a492922bb15e3e1798b56ba1511e72c62f826"
+    },
+    {
+      "file": "dynamodb.svg",
+      "identity": "dynamodb",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/dynamodb/dynamodb-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "27867e6fce166f175399be57ff79217ad89d43a769754ea22662cf3013c98255"
+    },
+    {
+      "file": "eclipse.svg",
+      "identity": "eclipse",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/eclipse/eclipse-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "21380f01bc3ad1e2582b017b02ae593b31601fee50f645cbcdad6e9459f237c7"
+    },
+    {
+      "file": "elastic.svg",
+      "identity": "Elastic",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/elastic.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4588a66adba4a9e28820d54d5c7e3f39e490f0e0ecfaf97fbc6dee2541536293"
+    },
+    {
+      "file": "elasticsearch.svg",
+      "identity": "Elasticsearch",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/elasticsearch.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "f866863bb80c3f1e22cb49541442c9db2112bba74b8c1210328bd3536984e6a3"
+    },
+    {
+      "file": "envoy.svg",
+      "identity": "envoy",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/envoy/envoy-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "e499e22cdf5040db98e73def727c567745782190c3bf2583e5cd3120382f5d2b"
+    },
+    {
+      "file": "express.svg",
+      "identity": "Express",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/express.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "7f2cc8797a53da60e11e0d06e75e57d4d5f15965e1ad57e42f9d9711c40dbed5"
+    },
+    {
+      "file": "fastapi.svg",
+      "identity": "FastAPI",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/fastapi.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "af0bdd5fd3f16a49e341089049418af7b02a04eefdc088b2e26c4524fa8b75d1"
+    },
+    {
+      "file": "ffmpeg.svg",
+      "identity": "FFmpeg",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ffmpeg.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "076e200007de7d3f03ddc970e63a23f7cb46a772d1f4e7c670ceb22a9d46ed35"
+    },
+    {
+      "file": "fluentd.svg",
+      "identity": "Fluentd",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/fluentd.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "Apache-2.0",
+      "sha256": "f37050e9aa78e9782f444bf5f65dbf5feffb7d98b351b6fbe873c0edea2cab1c"
+    },
+    {
+      "file": "flux.svg",
+      "identity": "Flux",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/flux.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "custom",
+      "sha256": "7a2f30a7c7638f48f62a6410051680ad64b0e9d9ce41b0fb5ccad4f8821d77dc"
+    },
+    {
+      "file": "git.svg",
+      "identity": "Git",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/git.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-3.0",
+      "sha256": "95724d436215d483de82288610c3c144854138f49945424697fcdf8be66e17d6"
+    },
+    {
+      "file": "github.svg",
+      "identity": "GitHub",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/github.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "3bf8cceead820aec50d4ee825a3fd02c5a1cd6665cc9cf4cbf3d9c8861a204bb"
+    },
+    {
+      "file": "githubactions.svg",
+      "identity": "GitHub Actions",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/githubactions.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "e8b23379b4d89e96731ae354ea9cd3d8ceddf67f411bde39853f215138843777"
+    },
+    {
+      "file": "githubcopilot.svg",
+      "identity": "GitHub Copilot",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/githubcopilot.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "MIT",
+      "sha256": "c72c1e0018e84b3128c5a1ac43ec2be135ac6ec4eb9c0ea18ed76416d23f2af3"
+    },
+    {
+      "file": "gitlab.svg",
+      "identity": "GitLab",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/gitlab.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c7c39058bd1b6f9f40334383bd5136bb8c5ba5e6a24200f2d1f18365e2526e28"
+    },
+    {
+      "file": "go.svg",
+      "identity": "Go",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/go.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "36a745fe15584bf138d02ae6abcbdd155bc1cd4f4976634ad34861b2059db559"
+    },
+    {
+      "file": "googleads.svg",
+      "identity": "Google Ads",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googleads.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "729bf1f97587dd60e7592a98993543fec7ec3583a907a0e54b9fd88f7f28726f"
+    },
+    {
+      "file": "googleanalytics.svg",
+      "identity": "Google Analytics",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googleanalytics.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "b21a9cd9544cefee6f2d09a38523cb2bc06a0d7606dd50af35675c11211d8a61"
+    },
+    {
+      "file": "googlebigquery.svg",
+      "identity": "Google BigQuery",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googlebigquery.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9911daac258359ac5e73916bc8e97f6df03d5f5845b210bdb99c629f8caf0f84"
+    },
+    {
+      "file": "googlecloud.svg",
+      "identity": "Google Cloud",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googlecloud.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "534a0359c2784e152f5c88ce64a56976036d7336c7831775c995977fd3432713"
+    },
+    {
+      "file": "googlegemini.svg",
+      "identity": "Google Gemini",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googlegemini.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "a6228d8846040401e941a39ed17459785e8324dbb7b870ce84233c9b3e9863a0"
+    },
+    {
+      "file": "googlepubsub.svg",
+      "identity": "Google Pub/Sub",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/googlepubsub.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "268e5b71d6cf3a3a25406c12f6705535351c83f62c154b11699b637fb49e4a1a"
+    },
+    {
+      "file": "gradle.svg",
+      "identity": "Gradle",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/gradle.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1ae785093daee910b4bc6ee351742976e441dfcd9bdb13e82a88c0c0ef37022e"
+    },
+    {
+      "file": "grafana.svg",
+      "identity": "Grafana",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/grafana.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "e6da4ab998d25d509e27ce8a1f1afcb2d549907569b6fb1e4065890877cffefa"
+    },
+    {
+      "file": "graphql.svg",
+      "identity": "GraphQL",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/graphql.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "fc8ca4d195a8a79470540edf33677e24f6113b8b8d9b442acc5f62b57a2951cb"
+    },
+    {
+      "file": "grpc.svg",
+      "identity": "grpc",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/grpc/grpc-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "a639a8c1f30d792fcd7473aba22263a14eb0783dc9527e0a2fad6f8b0a64b1d7"
+    },
+    {
+      "file": "grunt.svg",
+      "identity": "Grunt",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/grunt.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "e1f3eac4ff47e4e0a58800063ce66bcfad76914f75ec6c408931b2951354a4b8"
+    },
+    {
+      "file": "hadoop.svg",
+      "identity": "hadoop",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/hadoop/hadoop-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "2ea7379f94bf990c44827d5a8e98b730bf9179bfc7b225c4d5c44b0a1ee27551"
+    },
+    {
+      "file": "helm.svg",
+      "identity": "Helm",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/helm.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "966f1f065a68819418daf146f4ef1acf20f96c3d33ea9ec8bb92ecdb553dac4e"
+    },
+    {
+      "file": "html5.svg",
+      "identity": "HTML5",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/html5.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "dfd65fdd7e4f997c6b163e48793de5ad18c4c99e191807a61752ea702f123d1d"
+    },
+    {
+      "file": "hubspot.svg",
+      "identity": "HubSpot",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/hubspot.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "f96cfb6bba27c8e70a03e782f07d4d649e9f39d2fb8bea7136b370ab2c3f04a9"
+    },
+    {
+      "file": "huggingface.svg",
+      "identity": "Hugging Face",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/huggingface.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "aa81744034eecf4ac6b3fb7108dd71223965c7af3c534932391314563b150109"
+    },
+    {
+      "file": "illustrator.svg",
+      "identity": "illustrator",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/illustrator/illustrator-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "552d64dabfdd9c762048497ae5fd13ee5d745550ea641bf58d9ad6edcf1a124d"
+    },
+    {
+      "file": "ios.svg",
+      "identity": "iOS",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ios.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "99bb1807a71a6c89ce385348e59fb31988b6ee1f9d32cd4da7d72e97abd6e53d"
+    },
+    {
+      "file": "istio.svg",
+      "identity": "Istio",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/istio.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9d727a658f005398b77cb96e1822f534470b655c3f8ede93892775f1f988ad5f"
+    },
+    {
+      "file": "jaeger.svg",
+      "identity": "Jaeger",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/jaeger.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1bc03584440ea837c6ed8208ab85b132c9b325e0cfb60e9dfa1b4fb051b228c3"
+    },
+    {
+      "file": "jasmine.svg",
+      "identity": "Jasmine",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/jasmine.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9ef62cda4b09fa2361a43053ceed4c3895be657c640281ecd0d73bba64fa4b94"
+    },
+    {
+      "file": "java.svg",
+      "identity": "java",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/java/java-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "7b05ebcc538e747d077ed3c3a2491122923d3ec755cccacb670be9372e4bbbc5"
+    },
+    {
+      "file": "javascript.svg",
+      "identity": "JavaScript",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/javascript.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "MIT",
+      "sha256": "c9be35a7a861ebe80ae4ee706d05004b99ee59fc63db69da6dcc10776718434b"
+    },
+    {
+      "file": "jenkins.svg",
+      "identity": "Jenkins",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/jenkins.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-SA-3.0",
+      "sha256": "95ab5d541710c116d939f44e4e72c8b1503e78d04a1c298ad257c4e26d3a1873"
+    },
+    {
+      "file": "jest.svg",
+      "identity": "Jest",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/jest.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "531ee43921c1895fbe6a6554bb774fc07f077ec122b734c1452af8ec77141954"
+    },
+    {
+      "file": "jira.svg",
+      "identity": "Jira",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/jira.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "68f8703698538ee7863bf69b72bf9f0d78a72d218e7eb7e0617237ae43ae5ade"
+    },
+    {
+      "file": "json.svg",
+      "identity": "JSON",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/json.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "8cbb06b00889977af13c20b92c4ff8b1c3913f340db49070abc1d582c1e06d5b"
+    },
+    {
+      "file": "junit.svg",
+      "identity": "junit",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/junit/junit-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "3afe85c75497b74ecd1d610700c6974732193191c451c70753b685308fb24e25"
+    },
+    {
+      "file": "kotlin.svg",
+      "identity": "Kotlin",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/kotlin.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "909d1ba63b4bea5843be4579fa68a398c310c3d4748e8e6ba9ea295403984b3b"
+    },
+    {
+      "file": "kubeflow.svg",
+      "identity": "kubeflow",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/kubeflow/kubeflow-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "d42ad8a7bac57cb4753493f493ec6c345a0f625437b1f7f3d2ac0122444e28c9"
+    },
+    {
+      "file": "kubernetes.svg",
+      "identity": "Kubernetes",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/kubernetes.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ceee2f4e87fa1533600672190c156194039f744fa9b5da10e83f002178e84b47"
+    },
+    {
+      "file": "langchain.svg",
+      "identity": "LangChain",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/langchain.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "7886444fa437debc26c8e9a51fd86943ad2cbc24b0f8185f15421190f48ab362"
+    },
+    {
+      "file": "langgraph.svg",
+      "identity": "LangGraph",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/langgraph.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c0085e105dba047ea61881ebcf6d7f80665c691af5411a7cb48cf719038b8b0e"
+    },
+    {
+      "file": "laravel.svg",
+      "identity": "Laravel",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/laravel.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9d0bb8aa3a9fc069dcc3d92c398a90be3a75fd1b0167b91f56939a18109e9796"
+    },
+    {
+      "file": "lighthouse.svg",
+      "identity": "Lighthouse",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/lighthouse.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4c8def980c5de90ebadcee64d8f6f0329a0c6889e751139d9f4317c05751351b"
+    },
+    {
+      "file": "linux.svg",
+      "identity": "Linux",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/linux.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "7e55f2779ae11a83c9dad2d0414a65d8ca7867d0716ce58bfe41ed299ae1447f"
+    },
+    {
+      "file": "longhorn.svg",
+      "identity": "Longhorn",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/longhorn.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "01242ec013051dc49d2c2b520d77c037fc4f82d07c00e5efc313dc984f94384f"
+    },
+    {
+      "file": "macos.svg",
+      "identity": "macOS",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/macos.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "efcada2b662968540e3c8595ab52cf2bf9390398d96db7c1b0f06d6f5f6161f8"
+    },
+    {
+      "file": "maven.svg",
+      "identity": "maven",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/maven/maven-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "ac29df1e278278f9a7d60609650e72f3de0601929b0a81bce240bff4ea033caa"
+    },
+    {
+      "file": "metabase.svg",
+      "identity": "Metabase",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/metabase.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "28163a9fd4cbe49e39016d99a7eb8f036ecbfd0b57c92d9b3f67ede99ca2f330"
+    },
+    {
+      "file": "microsoftsqlserver.svg",
+      "identity": "microsoftsqlserver",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/microsoftsqlserver/microsoftsqlserver-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "b49115d6dc952690790cea30383a41a7cc8923cd8b7dd070b2e3fb71e1a04d8d"
+    },
+    {
+      "file": "microstation.svg",
+      "identity": "Microstation",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/microstation.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "a01d58ae9f68b380a5b4966dd82e0f5e5b0925cbdc9e894035546126243f19b4"
+    },
+    {
+      "file": "milvus.svg",
+      "identity": "Milvus",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/milvus.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "167dcc6fbaf7a1d6fd9b9a21a0a66141e00212a48cd38ba6e0a1ccf17ffae20b"
+    },
+    {
+      "file": "minitab.svg",
+      "identity": "minitab",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/minitab/minitab-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "59c30fea014cd939e61cab4383a58fa5d500c6d59b5f09a26a6b34a21306995c"
+    },
+    {
+      "file": "mlflow.svg",
+      "identity": "MLflow",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/mlflow.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "686679a10a6bdf1029ec4103bec15d8aec365a2be39f6b840992c597e2c76d45"
+    },
+    {
+      "file": "modelcontextprotocol.svg",
+      "identity": "Model Context Protocol",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/modelcontextprotocol.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4796bc576053cf2ae4724ea1813d9f4ec05bc671154abdd80a18b790613c7d81"
+    },
+    {
+      "file": "mongodb.svg",
+      "identity": "MongoDB",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/mongodb.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6698757ee85997e8167b2eacaff8395d6987954185488f2e90b88ef387fec6c7"
+    },
+    {
+      "file": "mysql.svg",
+      "identity": "MySQL",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/mysql.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "67c144cc3e44ad14062a3f20ebe29c5e7eeb2c2c9c0f43cf48d87fe6291a8b2d"
+    },
+    {
+      "file": "n8n.svg",
+      "identity": "n8n",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/n8n.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "f5a606188c78bf134fe7d85ae3d1310f6f4b7beafcd1d2fbdef2af02c92240a8"
+    },
+    {
+      "file": "nats.svg",
+      "identity": "nats",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/nats/nats-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "405526684cb7e734474258f12646ddc43667c4d3a85e5eb555bfd02785fb96c9"
+    },
+    {
+      "file": "neo4j.svg",
+      "identity": "Neo4j",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/neo4j.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4e30e210a3afe36c2dfa1baa929b1f7a33046bfea2829ba1ded94d07c3162c96"
+    },
+    {
+      "file": "nestjs.svg",
+      "identity": "NestJS",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nestjs.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "903a08f64eedd64fb3f65fb733628353d3d42f9e7525ca9d989936f3e38322ef"
+    },
+    {
+      "file": "netlify.svg",
+      "identity": "Netlify",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/netlify.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "adbe4ef3579ca1ef95e1903ff8599a5a55e5c6531fab3f7edaf2b4adee0f4ef9"
+    },
+    {
+      "file": "nextdotjs.svg",
+      "identity": "Next.js",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nextdotjs.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "593e14da3ddb65be4c8fa6a178f2f48a01a8bd39ea384f679cd7182b520da502"
+    },
+    {
+      "file": "nginx.svg",
+      "identity": "NGINX",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nginx.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "236d53b2b746706df75e2a01668cb84e6f3fc7c8923a9ce824f8534db007a438"
+    },
+    {
+      "file": "nodedotjs.svg",
+      "identity": "Node.js",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nodedotjs.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "021851b758cde7d3e04819c3ac02047d0ff281c712e8387afa0c76a6dac6db6c"
+    },
+    {
+      "file": "nodered.svg",
+      "identity": "Node-RED",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nodered.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "3704244efe4b3d7d11574c3c48ca09fa85c4b8ca51bd6be1fb0fa5bb9e88c7be"
+    },
+    {
+      "file": "nomad.svg",
+      "identity": "Nomad",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nomad.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9548e6b360c413c480ea938c000fb7750a0f640dd4f33315dac76e5c2322c340"
+    },
+    {
+      "file": "npm.svg",
+      "identity": "npm",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/npm.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "00b410dc2c839cfa62910a065eaf28a48cbdb4babe503cf34d475cc94ba03be1"
+    },
+    {
+      "file": "numpy.svg",
+      "identity": "NumPy",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/numpy.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ddbd7d92ab879ceba54f5428f49a703ba8d05d54b93808b7178f5e0afc8373a3"
+    },
+    {
+      "file": "nuxt.svg",
+      "identity": "Nuxt",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/nuxt.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "7058584a5afd4eb2a71938f0401d02ab0f4b993919471c4f2ce588a9cc854e50"
+    },
+    {
+      "file": "oauth.svg",
+      "identity": "oauth",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/oauth/oauth-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "0b386ec6be7a9c579e89b95e24a76279b309830abc59ae56d568df63afe2fa2d",
+      "source_sha256_before_whitespace_normalization": "a975facc12de5e1add0baba1f410cfda0be2fc0c7b8b6d80c9bbca9766f91e52",
+      "local_transformation": "Remove trailing whitespace and CRLF carriage returns; SVG geometry unchanged."
+    },
+    {
+      "file": "objectivec.svg",
+      "identity": "objectivec",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/objectivec/objectivec-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "8ef92e435763fc39f5b66d09d77267383550a22685ceec5ef2783ebb8f3101b6"
+    },
+    {
+      "file": "onnx.svg",
+      "identity": "ONNX",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/onnx.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "531d7a9aad43bc520f7a3a4d8f6c68df5e1b28ec8e91c27d53c63e158ef01eef"
+    },
+    {
       "file": "openai.svg",
       "identity": "OpenAI",
       "source": "https://raw.githubusercontent.com/openai/openai-cookbook/4a85c301/examples/agents_sdk/deployment_manager/frontend/src/openai-logomark.svg",
@@ -99,6 +1175,69 @@
       "revision": "4a85c301",
       "license": "MIT repository license (see OPENAI-COOKBOOK-LICENSE.txt); OpenAI mark subject to OpenAI brand guidelines",
       "sha256": "a41e8e53b14ef686319ed1529066d6a3391aca77d7f6eaaa9f0783acc717375f"
+    },
+    {
+      "file": "opensearch.svg",
+      "identity": "OpenSearch",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/opensearch.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "592db3a9af1d67d31831a9973ad311ef6e958071084cf2134cc2703db1750ecb"
+    },
+    {
+      "file": "opentelemetry.svg",
+      "identity": "OpenTelemetry",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/opentelemetry.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-4.0",
+      "sha256": "1e93836eeedaf02fb985130ed05c4d692c66ff56269f50af8478a219645ee741"
+    },
+    {
+      "file": "oracle.svg",
+      "identity": "oracle",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/oracle/oracle-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "6afd3872d2ecb9a619fc10048b6a18bc3b948dfd7c97d1a694af26c6a7153cbf"
+    },
+    {
+      "file": "packer.svg",
+      "identity": "Packer",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/packer.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1abe4d36bbe170e3b37eda59064112ba0633e1a07b60d6842673e2ca34f6dde4"
+    },
+    {
+      "file": "pandas.svg",
+      "identity": "pandas",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/pandas.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "0246b1e34e3760b719bac711184671df5a2cb7a332d3091d49c2a383a2b72b2e"
+    },
+    {
+      "file": "photoshop.svg",
+      "identity": "photoshop",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/photoshop/photoshop-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "62add74734a3b53db711a8a4c4fa79c65c2355a6fd24361ebd166e3d6aa41648"
+    },
+    {
+      "file": "php.svg",
+      "identity": "PHP",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/php.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-SA-4.0",
+      "sha256": "cd1beaa0dde7e765b5d2cbae786c1f6db967f72073eb7b9f9bbc63da55b9d0f6"
     },
     {
       "file": "pinecone.svg",
@@ -110,6 +1249,654 @@
       "sha256": "02b4bf8630b32d56290e695ef7f25fe57c2b3ac034e42f8f731d6de5c8cd862e"
     },
     {
+      "file": "pino.svg",
+      "identity": "pino",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/pino.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "bb43100f2c5c22179a6e25258c18a3ea26fe64e063677ed7a592b79c0a57c747"
+    },
+    {
+      "file": "playwright.svg",
+      "identity": "playwright",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/playwright/playwright-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "2d7ec3edf5dd794fc5e0983413edf192228933c360f02225a01c50b64f901fad"
+    },
+    {
+      "file": "postgresql.svg",
+      "identity": "PostgreSQL",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/postgresql.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c8ccadbd88c9312c2ad3734c4861b31d3485ce179ee91d64793143f83cfa745c"
+    },
+    {
+      "file": "powershell.svg",
+      "identity": "powershell",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/powershell/powershell-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "7ec3ab9c6ce2e8f93b93bc727fa253c409d61a8311cfe85d4374d388bddad2ef"
+    },
+    {
+      "file": "prefect.svg",
+      "identity": "Prefect",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/prefect.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "3bf1928838632541fd4058fce5feaf1993adedfc2b459c0061adcb5c75dc427b"
+    },
+    {
+      "file": "prisma.svg",
+      "identity": "Prisma",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/prisma.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "5715775538af3789425a7d0a9231473429f065ec9f1bf8bec589e906af65d7be"
+    },
+    {
+      "file": "prometheus.svg",
+      "identity": "Prometheus",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/prometheus.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6dd2480e57936b879f7626b7c71dcd51163da700d8510843516a66316bf8f379"
+    },
+    {
+      "file": "proxmox.svg",
+      "identity": "Proxmox",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/proxmox.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "95b5f2bce5447030acfc03c326c396c6b768b5c95b64e53c17f8a6910e6b3df7"
+    },
+    {
+      "file": "pulumi.svg",
+      "identity": "Pulumi",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/pulumi.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c134e6820dd2cf5a8ca8e0b83284f48b5d1d4467df0b800dd9b721aa12db741b"
+    },
+    {
+      "file": "puppet.svg",
+      "identity": "Puppet",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/puppet.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ca720ac1b1286841308bf9f445b8f379aa54c7be1507d65210fa28cfd491686c"
+    },
+    {
+      "file": "pusher.svg",
+      "identity": "Pusher",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/pusher.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "0a897b5bd8418a4b9b599c4f808eeba3ad298ec3fd0b53013d6708fdb7579f3f"
+    },
+    {
+      "file": "python.svg",
+      "identity": "Python",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/python.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ad9468e1c4903f73ae7eebfbe980f0f727a10db695be3d914e7d8bd25356a862"
+    },
+    {
+      "file": "pytorch.svg",
+      "identity": "PyTorch",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/pytorch.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4dd3f3d3e4102f3bee391fcb3d8ac960a14c48e6655d43b23f7b386d5da36d01"
+    },
+    {
+      "file": "qdrant.svg",
+      "identity": "Qdrant",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/qdrant.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c5fbbbf771648975f22973627b4eb5620c68a4f81ccfb6c21633bb1d04f9fdf1"
+    },
+    {
+      "file": "rabbitmq.svg",
+      "identity": "RabbitMQ",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/rabbitmq.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "f4669bdce6518e330b7430501e07df8d7d01dc60fdd9a52b2bc6dd1cbd975263"
+    },
+    {
+      "file": "ray.svg",
+      "identity": "Ray",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ray.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "cffc8b6122f70be8557b834406465f4b9b4ac7719c4b6c5d0b6c5f643e31b074"
+    },
+    {
+      "file": "react.svg",
+      "identity": "React",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/react.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ab9136a1a4a8be72ac6743e1bdd1912d878bd68d57787ea7a6c6838e3b23c01c"
+    },
+    {
+      "file": "reactivex.svg",
+      "identity": "ReactiveX",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/reactivex.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "d33423bf85f275d3564e95932c391620c0f7eebc29f10a181742cfe2cc79b11b"
+    },
+    {
+      "file": "redhat.svg",
+      "identity": "Red Hat",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/redhat.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "3d0e1854a9dad1a8ad11132843f522f948197ec0e0ee49b7a51d5fdf44230568"
+    },
+    {
+      "file": "redis.svg",
+      "identity": "Redis",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/redis.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "428b86deb14c8bdacdcdf75987fe454f367bcd078a7e4ae3f84de29aa5bdf136"
+    },
+    {
+      "file": "redux.svg",
+      "identity": "Redux",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/redux.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "deb8a2ce3bca057d0f9b94c3a0d30f2e5f7d637e5369e08ddbc6c5dd4205569b"
+    },
+    {
+      "file": "remix.svg",
+      "identity": "Remix",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/remix.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ab1174e86a6cfa3eaa6f1d6b43421032743c9046715cfc386f96b3f73238e319"
+    },
+    {
+      "file": "rocksdb.svg",
+      "identity": "RocksDB",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/rocksdb.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-4.0",
+      "sha256": "463bd8b376d0fc3a2ede03ee392930a32f83a570a1d8d99c03fce84abcb93001"
+    },
+    {
+      "file": "rollup.svg",
+      "identity": "rollup",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/rollup/rollup-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "6b51adfc797f8f85fe218889abea91ad4744484102ab15f7461d461991c3373d"
+    },
+    {
+      "file": "rook.svg",
+      "identity": "Rook",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/rook.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "Apache-2.0",
+      "sha256": "a6236befe8b8415ae200a2050edc242964f363396e9ae972ed3516aab49ec670"
+    },
+    {
+      "file": "ros.svg",
+      "identity": "ROS",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ros.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "5bc0cdb4aefedb6469366d79eb642ea3e0438fdbb3cb053dc54941e0423d7491"
+    },
+    {
+      "file": "ruby.svg",
+      "identity": "Ruby",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/ruby.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-SA-2.5",
+      "sha256": "956992a81b988b916efdd6f7a78b9f19fe352b5c04f2019af2ce1a89e390ac9d"
+    },
+    {
+      "file": "rubyonrails.svg",
+      "identity": "Ruby on Rails",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/rubyonrails.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "8070695727273ed648663d6b008a5547631890aa89824e588d637edf3d1afe42"
+    },
+    {
+      "file": "rust.svg",
+      "identity": "Rust",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/rust.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-SA-4.0",
+      "sha256": "95a291d8887610d103704adcc5c5f2cbfa4c80a96f8e72b00531d5691beb67a8"
+    },
+    {
+      "file": "salesforce.svg",
+      "identity": "salesforce",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/salesforce/salesforce-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "97f04edfe58e79df20ce28359753be46b62cb17372731bee0a4c288887fce7ee"
+    },
+    {
+      "file": "sanity.svg",
+      "identity": "Sanity",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/sanity.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "MIT",
+      "sha256": "7c94e59b8458db8de5c47df1ce498b3df2d681cadb46c282a60c476e1985196f"
+    },
+    {
+      "file": "sass.svg",
+      "identity": "sass",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/sass/sass-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "c5cfd1072695faba7d5c23ee4c4e373dad16463cb55980e8118002d445bd764e"
+    },
+    {
+      "file": "scala.svg",
+      "identity": "Scala",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/scala.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "5202637eaff2e7362af3743313c21f6c074d4ff80ab6335ca5e87608b7a12a21"
+    },
+    {
+      "file": "scikitlearn.svg",
+      "identity": "scikit-learn",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/scikitlearn.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ebaf97475ff5e6af3d6a4799a164a3a385e902e442d012cc19c47237cecb2be8"
+    },
+    {
+      "file": "scipy.svg",
+      "identity": "SciPy",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/scipy.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "5ec415714cccb3de34bb6e795367e9bcce071ed3feab3390fcedf48c1c8f47f9"
+    },
+    {
+      "file": "scylladb.svg",
+      "identity": "ScyllaDB",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/scylladb.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "a8ffaec78d11b55c8a53e97ff7e07e0242313b28d1a693122315041b3d5c261c"
+    },
+    {
+      "file": "selenium.svg",
+      "identity": "Selenium",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/selenium.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6d90c907424762e335d06b878087e8db84cbd8a4dbd48c627f877cae63f605a0"
+    },
+    {
+      "file": "sentry.svg",
+      "identity": "Sentry",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/sentry.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "8ba32902ffbac503784607374f57df5e3cbcf57a99d0adff03e735575500adc6"
+    },
+    {
+      "file": "serverless.svg",
+      "identity": "Serverless",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/serverless.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "457817bb22809e9a7bab0088a67914b5b5d52df132a6d1b0fbfd60da8624e96e"
+    },
+    {
+      "file": "shopify.svg",
+      "identity": "Shopify",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/shopify.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "a5ea31f53511bb0b3663cb73ff96eaa8d0451fe9cad586625adfc02b729e4d4d"
+    },
+    {
+      "file": "sketch.svg",
+      "identity": "Sketch",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/sketch.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "8657fd9aef98e8f55a23a4f102f25541ae333c77a6356d7982cfa58655ecc0fa"
+    },
+    {
+      "file": "slack.svg",
+      "identity": "slack",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/slack/slack-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "ce3a6b34d32134a4af7e03a7cff30addb95dee43acca34385479949740074a92"
+    },
+    {
+      "file": "snowflake.svg",
+      "identity": "Snowflake",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/snowflake.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "75690c4c666a406278286284f89896e8ef55dd0bfbc791acb910ce40e4a46aa9"
+    },
+    {
+      "file": "socketdotio.svg",
+      "identity": "Socket.io",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/socketdotio.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "0d7bf5517b3d783a6f9c6ce3575efe238981747f52dc72b3c4360c9c64b8e63b"
+    },
+    {
+      "file": "sonarqubeserver.svg",
+      "identity": "SonarQube Server",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/sonarqubeserver.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "c1ac466493a31c1432e04899e8fa5d7468ce4b94aa8c5783b2e0d98b9e06d0e4"
+    },
+    {
+      "file": "spring.svg",
+      "identity": "Spring",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/spring.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "44f55b1c7e9db0fab5bbb9b91247844986a39995b6eadf0aa3ca6edf47c1097e"
+    },
+    {
+      "file": "springboot.svg",
+      "identity": "Spring Boot",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/springboot.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1b4bb8d7522fa0742a9fc40685b3efe3e089c5d07e4d3eebf4b4dbb28f827ad3"
+    },
+    {
+      "file": "ssh.svg",
+      "identity": "ssh",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/ssh/ssh-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "36466ed8dbbb431134869121279f3253e31f3ff083a1100b08b2020bea95d377"
+    },
+    {
+      "file": "storybook.svg",
+      "identity": "Storybook",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/storybook.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "MIT",
+      "sha256": "2529655d47de7de698f24dae9d60110099eed456c64eac63d3cc866cd773c9c6"
+    },
+    {
+      "file": "styledcomponents.svg",
+      "identity": "styled-components",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/styledcomponents.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6621a53023a5e93d923aa9a6921139700f0a778133a075efa340eec62fd6415c"
+    },
+    {
+      "file": "svelte.svg",
+      "identity": "Svelte",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/svelte.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "a38cef0f4fc36bc63519ce34d24a91022f19ec6998ea402c5e155c7479a46f4c"
+    },
+    {
+      "file": "symfony.svg",
+      "identity": "Symfony",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/symfony.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6016d087671c1d421d86e95904e826045a660340698239373b3a55bce8781e79"
+    },
+    {
+      "file": "tailwindcss.svg",
+      "identity": "Tailwind CSS",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/tailwindcss.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "5d4ede3c95da824f543c6eefbe7c78b45ecce6796f6633de196dd712a7841140"
+    },
+    {
+      "file": "teamcity.svg",
+      "identity": "TeamCity",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/teamcity.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "0a397c8f3d0e04319dcb12744c5456fde74921c95d92496b91510c9aab3fec4c"
+    },
+    {
+      "file": "temporal.svg",
+      "identity": "Temporal",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/temporal.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "3f3b564e7b1e7f5390fdd9bdf1c3714634bbb02640c91b8051146811cf4cf177"
+    },
+    {
+      "file": "tensorflow.svg",
+      "identity": "TensorFlow",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/tensorflow.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4c828afb17cd35786d7dd336f78d3111a7c730af54011cc2b20988866bdd8665"
+    },
+    {
+      "file": "terraform.svg",
+      "identity": "Terraform",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/terraform.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9c3737d360a174afec8fa0208332a3991f087ea0b7bacb1eea16598883e1a730"
+    },
+    {
+      "file": "thanos.svg",
+      "identity": "Thanos",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/thanos.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "d7f0a55371e379001d557d1091b69d515e37ee57808127557168cd54457858a2"
+    },
+    {
+      "file": "travisci.svg",
+      "identity": "Travis CI",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/travisci.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1c9051c057536fc90762c3835daea03bb31929ba9a7096b6f414ab012786eb90"
+    },
+    {
+      "file": "trpc.svg",
+      "identity": "tRPC",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/trpc.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "ae396c5bca7875128f50ebf6fef959eb70c3b09d15037c98c8c97ad36e1b7ad5"
+    },
+    {
+      "file": "twilio.svg",
+      "identity": "twilio",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/twilio/twilio-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "b81b3fccdd3655d84cddc15aabbaada618b8a26eba4f835d70e3425c93aef6d4"
+    },
+    {
+      "file": "typescript.svg",
+      "identity": "TypeScript",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/typescript.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "7f023e8d1e767370306ec9437d2de5d5af97491d6208dd7799a3808a7c10a36a"
+    },
+    {
+      "file": "unix.svg",
+      "identity": "unix",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/unix/unix-original.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "f7f9316edad946395cd4fb7478f08f28ca110022d5356df4e513ddc102e3d4e7"
+    },
+    {
+      "file": "vagrant.svg",
+      "identity": "Vagrant",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vagrant.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9bde1c213070effa1f4c613c5c10335f9a4bdf2972898c112b518f04e98c1f34"
+    },
+    {
+      "file": "vault.svg",
+      "identity": "Vault",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vault.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "92bea9266b1fa330db6d9f322030784e54bd60c10f49937fe79a222f62ed7b8c"
+    },
+    {
+      "file": "vercel.svg",
+      "identity": "Vercel",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vercel.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "57f1e4135486c566e9878fddd259f7f6bf8ec43f31e7e6e38a36d9e814a1c0e0"
+    },
+    {
+      "file": "vite.svg",
+      "identity": "Vite",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vite.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "642bb261d6476ddf326b8ed7757543b3443a93a77fef1e434021fc201defa21c"
+    },
+    {
+      "file": "vitest.svg",
+      "identity": "Vitest",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vitest.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "216ef31fa83484d7c42fa9caae00a857d3756cb6158516dd395799f2b6631d5c"
+    },
+    {
+      "file": "vllm.svg",
+      "identity": "vLLM",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vllm.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1b55a37f4deae2956f4a9e3a7b6eea50f73ee1b056e0e4e86060c25f48f546f8"
+    },
+    {
+      "file": "vmware.svg",
+      "identity": "VMware",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vmware.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "4c3970bf3955a3e95c7d9eef7f4f45528c487dffa92092ce9273913f8271029a"
+    },
+    {
+      "file": "vscode.svg",
+      "identity": "vscode",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/vscode/vscode-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "f32260c35adeb7a6c0936342f1e28be66e33dc9de111dd684e1c32a9c8ca2f1f"
+    },
+    {
+      "file": "vuedotjs.svg",
+      "identity": "Vue.js",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/vuedotjs.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC-BY-NC-SA-4.0",
+      "sha256": "2a57b59bd3ff2880f971f7f6cce2378d20bdfb1a54150a0a7ca9fd2fe1bfa781"
+    },
+    {
       "file": "weaviate.svg",
       "identity": "Weaviate",
       "source": "https://raw.githubusercontent.com/weaviate/weaviate-io/b8b5f9725fd0f017e74a65c8ce529909eb6e5313/static/img/site/2026/weaviate-arrow-2026.svg",
@@ -117,6 +1904,87 @@
       "revision": "b8b5f9725fd0f017e74a65c8ce529909eb6e5313",
       "license": "Official brand asset; no separate redistribution license located in the pinned source repository; Weaviate retains ownership of its mark",
       "sha256": "58dfc5da332ff69fcdaad179364bb5ba686eccf9987fedd894e3fe477f888540"
+    },
+    {
+      "file": "webpack.svg",
+      "identity": "Webpack",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/webpack.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "custom",
+      "sha256": "008cdbfc39bf3658a8d69d941361917023e93b45e7a87769009dee4e4b014b16"
+    },
+    {
+      "file": "webrtc.svg",
+      "identity": "WebRTC",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/webrtc.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "f0ce3026c37ba075ddb00bb51591f6c261f13fc78b821a70942c0ed143420e19"
+    },
+    {
+      "file": "weightsandbiases.svg",
+      "identity": "Weights & Biases",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/weightsandbiases.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "92301c77a1466722947118da495537dd2e7d75833dab5cc41accca7a2678c348"
+    },
+    {
+      "file": "windsurf.svg",
+      "identity": "Windsurf",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/windsurf.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "6a084cb5c1a82bbf3eeda54e3bf450bf8d4a9368d80b815db22116b6b00a2aae"
+    },
+    {
+      "file": "xml.svg",
+      "identity": "XML",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/xml.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "9526558cd1adb53a041d321e1ade11eea6b4068b355a57df1e3ff7f61965dc1c"
+    },
+    {
+      "file": "xyflow.svg",
+      "identity": "xyflow",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/xyflow.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "95440c1330b66516337cdc881194f0f97530ffbadb32faa3a86e79e8b8120d40"
+    },
+    {
+      "file": "yaml.svg",
+      "identity": "YAML",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/yaml.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "1b76155a5dce1e412ba98b5ef4081bcce729efe1e7fa68bf783f6559d7d56e64"
+    },
+    {
+      "file": "zapier.svg",
+      "identity": "Zapier",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/777807a262bb7384ff406fd4b35fdcd02e9514c3/icons/zapier.svg",
+      "source_kind": "Simple Icons",
+      "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+      "license": "CC0-1.0",
+      "sha256": "51fa9cca6198c74f924600e6972520541261e2f74ff80b6bec5bbd60a4bdcc73"
+    },
+    {
+      "file": "zustand.svg",
+      "identity": "zustand",
+      "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/zustand/zustand-plain.svg",
+      "source_kind": "Devicon",
+      "revision": "v2.17.0",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
+      "sha256": "bf772f25b6cdc5feb2af053cba78ae0bfec9506548e48718838ad266213518aa"
     }
   ]
 }

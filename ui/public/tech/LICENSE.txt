@@ -1,11 +1,24 @@
 Asset provenance and byte hashes are recorded in PROVENANCE.json.
 
-Simple Icons assets are pinned to commit
-777807a262bb7384ff406fd4b35fdcd02e9514c3.
+Simple Icons assets and license metadata are pinned to commit
+777807a262bb7384ff406fd4b35fdcd02e9514c3. Simple Icons' catalog is released
+under CC0, but its disclaimer states that this does not imply every included
+icon is CC0. PROVENANCE.json records the license declared for each asset.
 https://github.com/simple-icons/simple-icons
-CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+Pinned disclaimer:
+https://github.com/simple-icons/simple-icons/blob/777807a262bb7384ff406fd4b35fdcd02e9514c3/DISCLAIMER.md
 
-AWS and Azure assets come from Devicon v2.17.0.
+The 155 assets whose individual provenance record says CC0-1.0 use:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The other 20 Simple Icons assets have per-asset license links, attribution,
+source, and modification statements in SIMPLE-ICONS-ATTRIBUTION.json. Exact
+MIT notices are reproduced in the referenced *-LICENSE.txt files. The exact
+Apache License 2.0 text is reproduced in APACHE-2.0-LICENSE.txt. In particular,
+the Vue.js artwork is subject to Attribution-NonCommercial-ShareAlike 4.0 and
+the pinned upstream extra conditions; it is not presented as unrestricted.
+
+Devicon assets are pinned to v2.17.0.
 https://github.com/devicons/devicon/tree/v2.17.0
 The pinned MIT notice is reproduced verbatim in DEVICON-LICENSE.txt.
 https://github.com/devicons/devicon/blob/v2.17.0/LICENSE

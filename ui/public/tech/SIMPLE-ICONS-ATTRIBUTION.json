@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "simple_icons_revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
+  "license_metadata_source": "https://github.com/simple-icons/simple-icons/blob/777807a262bb7384ff406fd4b35fdcd02e9514c3/data/simple-icons.json",
+  "assets": [
+    {
+      "file": "android.svg",
+      "identity": "Android",
+      "license": "CC-BY-3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "upstream_source": "https://partnermarketinghub.withgoogle.com/brands/android/visual-identity/visual-identity/logo-lock-ups",
+      "attribution": "The Android robot is reproduced from work created and shared by Google and used according to the Creative Commons 3.0 Attribution License. Android is a trademark of Google LLC.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "angular.svg",
+      "identity": "Angular",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "upstream_source": "https://angular.dev/press-kit",
+      "attribution": "Angular graphics from the official Angular press kit.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "apachekafka.svg",
+      "identity": "Apache Kafka",
+      "license": "Apache-2.0",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "upstream_source": "https://www.apache.org/logos/",
+      "attribution": "Apache Kafka and the Apache Kafka logo are trademarks of The Apache Software Foundation.",
+      "notice": "APACHE-2.0-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "apachespark.svg",
+      "identity": "Apache Spark",
+      "license": "Apache-2.0",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "upstream_source": "https://www.apache.org/logos/",
+      "attribution": "Apache Spark and the Apache Spark logo are trademarks of The Apache Software Foundation.",
+      "notice": "APACHE-2.0-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "fluentd.svg",
+      "identity": "Fluentd",
+      "license": "Apache-2.0",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "upstream_source": "https://docs.fluentd.org/quickstart/logo",
+      "attribution": "Fluentd project artwork; Fluentd is a CNCF project.",
+      "notice": "APACHE-2.0-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "flux.svg",
+      "identity": "Flux",
+      "license": "custom",
+      "license_url": "https://www.linuxfoundation.org/legal/trademark-usage",
+      "upstream_source": "https://github.com/cncf/artwork/blob/c2e619cdf85e8bac090ceca7c0834c5cfedf9426/projects/flux/icon/black/flux-icon-black.svg",
+      "attribution": "Flux project mark from the CNCF artwork repository; trademark use remains subject to The Linux Foundation policy.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "git.svg",
+      "identity": "Git",
+      "license": "CC-BY-3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "upstream_source": "https://git-scm.com/community/logos",
+      "attribution": "Git Logo by Jason Long.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "githubcopilot.svg",
+      "identity": "GitHub Copilot",
+      "license": "MIT",
+      "license_url": "https://github.com/primer/octicons/blob/6220ff87f3ddd923b05ffdac7e2d9cb714213205/LICENSE",
+      "upstream_source": "https://github.com/primer/octicons/blob/6220ff87f3ddd923b05ffdac7e2d9cb714213205/icons/copilot-24.svg",
+      "attribution": "Copyright (c) 2026 GitHub Inc.",
+      "notice": "GITHUB-OCTICONS-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "javascript.svg",
+      "identity": "JavaScript",
+      "license": "MIT",
+      "license_url": "https://github.com/voodootikigod/logo.js/blob/1544bdeed6d618a6cfe4f0650d04ab8d9cfa76d9/LICENSE",
+      "upstream_source": "https://github.com/voodootikigod/logo.js/blob/1544bdeed6d618a6cfe4f0650d04ab8d9cfa76d9/js.svg",
+      "attribution": "Copyright (c) 2011 Christopher Williams <chris@iterativedesigns.com>.",
+      "notice": "LOGO-JS-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "jenkins.svg",
+      "identity": "Jenkins",
+      "license": "CC-BY-SA-3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "upstream_source": "https://get.jenkins.io/art/",
+      "attribution": "Jenkins project artwork. Jenkins is a registered trademark of LF Charities Inc.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "opentelemetry.svg",
+      "identity": "OpenTelemetry",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "upstream_source": "https://github.com/cncf/artwork/blob/c2e619cdf85e8bac090ceca7c0834c5cfedf9426/projects/opentelemetry/icon/black/opentelemetry-icon-black.svg",
+      "attribution": "OpenTelemetry project artwork; OpenTelemetry is a CNCF project.",
+      "guidelines": "https://github.com/cncf/artwork/blob/c2e619cdf85e8bac090ceca7c0834c5cfedf9426/LICENSE.md",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "php.svg",
+      "identity": "PHP",
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "upstream_source": "https://www.php.net/download-logos.php",
+      "attribution": "PHP logo from The PHP Group.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "rocksdb.svg",
+      "identity": "RocksDB",
+      "license": "CC-BY-4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "upstream_source": "https://github.com/facebook/rocksdb/blob/9ed96703d11a1cf4af0e1c1db0e4a6057a8e5d42/docs/static/logo.svg",
+      "attribution": "RocksDB project artwork.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "rook.svg",
+      "identity": "Rook",
+      "license": "Apache-2.0",
+      "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+      "upstream_source": "https://github.com/rook/artwork/blob/d252db9f43753e6abf64db0ce12d38916a5de464/logo/Rook_Icon.svg",
+      "attribution": "Rook project artwork; Rook is a CNCF project.",
+      "notice": "APACHE-2.0-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "ruby.svg",
+      "identity": "Ruby",
+      "license": "CC-BY-SA-2.5",
+      "license_url": "https://creativecommons.org/licenses/by-sa/2.5/",
+      "upstream_source": "https://www.ruby-lang.org/en/about/logo/",
+      "attribution": "Ruby logo Copyright (c) 2006, Yukihiro Matsumoto.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "rust.svg",
+      "identity": "Rust",
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "upstream_source": "https://www.rust-lang.org/policies/media-guide",
+      "attribution": "Rust project artwork.",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "sanity.svg",
+      "identity": "Sanity",
+      "license": "MIT",
+      "license_url": "https://github.com/sanity-io/logos/blob/e298a1ac2757c83910fe08b496a115bc9aef06bd/LICENSE",
+      "upstream_source": "https://github.com/sanity-io/logos/blob/e298a1ac2757c83910fe08b496a115bc9aef06bd/src/sanityMonogram.tsx",
+      "attribution": "Copyright (c) 2025 Sanity.io.",
+      "notice": "SANITY-LOGOS-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "storybook.svg",
+      "identity": "Storybook",
+      "license": "MIT",
+      "license_url": "https://github.com/storybookjs/brand/blob/6f4d67f65f8275c53c310a73a8da6c6e96c8488c/LICENSE",
+      "upstream_source": "https://github.com/storybookjs/brand/tree/6f4d67f65f8275c53c310a73a8da6c6e96c8488c",
+      "attribution": "Copyright (c) 2017 Storybooks.",
+      "notice": "STORYBOOK-BRAND-LICENSE.txt",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "vuedotjs.svg",
+      "identity": "Vue.js",
+      "license": "CC-BY-NC-SA-4.0",
+      "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "upstream_source": "https://github.com/vuejs/art/blob/a1c78b74569b70a25300925b4eacfefcc143b8f6/logo.svg",
+      "attribution": "Vue.js artworks by Evan You (https://evanyou.me).",
+      "restrictions": "Attribution-NonCommercial-ShareAlike 4.0 plus the extra conditions in the pinned upstream README; commercial use is not unrestricted.",
+      "guidelines": "https://github.com/vuejs/art/blob/a1c78b74569b70a25300925b4eacfefcc143b8f6/README.md",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    },
+    {
+      "file": "webpack.svg",
+      "identity": "Webpack",
+      "license": "custom",
+      "license_url": "https://js.foundation/about/governance/trademark-policy",
+      "upstream_source": "https://webpack.js.org/branding/",
+      "attribution": "Webpack project mark; use remains subject to the linked trademark policy and official branding guidance.",
+      "guidelines": "https://webpack.js.org/branding/",
+      "modifications": "None; local bytes match the pinned Simple Icons SVG."
+    }
+  ]
+}
