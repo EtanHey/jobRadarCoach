@@ -22,7 +22,7 @@ spec:
                 - --max-pages
                 - "1"
                 - --jd-fetch-cap
-                - "0"
+                - "40"
                 - --no-annotate
                 - --sources
                 - comeet,greenhouse,lever,workable
