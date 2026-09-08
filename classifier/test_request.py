@@ -189,6 +189,9 @@ def test_request_keeps_global_literals_local_and_requires_neutral_wording() -> N
     )
     assert "do not repeat the posting's specialty or title" in prompt
     assert "cite concrete verified candidate work" in prompt
+    assert "For non-preferences comparison reasons and fit_line" in prompt
+    assert "The preferences key is the only withheld-evidence slot" in prompt
+    assert WITHHELD_ABSTENTION_DETAIL in prompt
     assert 'posting specialty labels only as "this role"' in prompt
     assert "including in negative comparisons" in prompt
 
