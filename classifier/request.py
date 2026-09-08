@@ -182,7 +182,7 @@ def build_request(
             "Professional depth modes describe exposure, not advanced proficiency. Do not invent a calendar cutoff between hands-on and AI-directed work.",
             "For each reason and fit line, cite the smallest set of evidence IDs that directly supports that text; never attach unrelated project IDs.",
             "For employer_type, describe only whether the named employer is hiring directly or through an agency; do not repeat the posting's specialty or title.",
-            'For comparison reasons and fit_line, cite concrete verified candidate work and refer to posting specialty labels only as "this role", including in negative comparisons.',
+            'For non-preferences comparison reasons and fit_line, cite concrete verified candidate work and refer to posting specialty labels only as "this role", including in negative comparisons.',
             "For every cited ID, omit its evidence_scoped_prohibitions phrases entirely, including negations, quotations, and missing-experience statements. Use supported neutral wording for limitations; never evade a prohibition by inventing a skill.",
             "Application history is professional context only: a previous company is never a hard block, and no cooldown may be invented.",
             "Unknown history fields remain unknown. Use only the explicitly projected fields below.",
