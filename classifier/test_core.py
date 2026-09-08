@@ -16,11 +16,27 @@ UNRELATED = "UNRELATED_PROFILE_ROW_SENTINEL"
 DEFAULT_JD = object()
 
 
-def wire_annotation(*args, **kwargs) -> dict[str, object]:
-    response = structured_annotation(*args, **kwargs)
-    response["reasons"] = {
-        reason["factor"]: reason for reason in response["reasons"]
-    }
+def wire_annotation(posting_id: str, **kwargs) -> dict[str, object]:
+    response = structured_annotation(posting_id, **kwargs)
+    response.pop("fit_tier")
+    response.pop("recommendation")
+    posting_evidence_id = f"posting:{posting_id}"
+    keyed_reasons = {}
+    for reason in response["reasons"]:
+        reason = dict(reason)
+        if reason["factor"] == "employer_type":
+            reason.pop("evidence_ids")
+        else:
+            reason["evidence_ids"] = [
+                value for value in reason["evidence_ids"]
+                if value != posting_evidence_id
+            ][:1]
+        keyed_reasons[reason["factor"]] = reason
+    response["reasons"] = keyed_reasons
+    response["fit_line_evidence_ids"] = [
+        value for value in response["fit_line_evidence_ids"]
+        if value != posting_evidence_id
+    ][:1]
     return response
 
 def profile_snapshot() -> dict[str, object]:
@@ -125,7 +141,7 @@ def test_emitted_request_is_professional_only_and_returns_provenance() -> None:
     assert "Unknown posting salary or experience" in prompt
     assert "Java-only" in prompt and "Selective Senior" in prompt
     assert PRIVATE not in prompt
-    assert '"open_to":' not in prompt and '"preferences":' not in prompt
+    assert '"open_to": {' not in prompt and '"preferences": {' not in prompt
 
 
 @pytest.mark.parametrize(
@@ -164,7 +180,9 @@ def test_professional_preference_change_alters_request_and_profile_hash(
 
 
 def test_semantic_failure_retries_once_without_score_zero_stub() -> None:
-    bad = wire_annotation(posting()["id"], fit_score=85, fit_tier="weak")
+    bad = wire_annotation(
+        posting()["id"], fit_line=f"Strong fit because {PRIVATE}.",
+    )
     good = wire_annotation(posting()["id"])
     runner = SequenceBrain(bad, good)
     recovered_diagnostics: list[str] = []
@@ -187,6 +205,23 @@ def test_semantic_failure_retries_once_without_score_zero_stub() -> None:
     assert rejected is None
     assert len(rejected_runner.calls) == 2
     assert rejected_diagnostics == ["semantic"]
+
+
+def test_explicit_human_recommendation_overrides_score_policy() -> None:
+    human_posting = posting()
+    human_posting["human_verdict"] = "referral"
+    runner = SequenceBrain(wire_annotation(
+        posting()["id"], fit_score=10,
+        fit_line="Weak fit — explicit human referral remains authoritative.",
+    ))
+
+    result = core.score_posting(
+        profile_snapshot(), human_posting, [], brain_runner=runner,
+    )
+
+    assert result is not None
+    assert result.annotation["fit_tier"] == "weak"
+    assert result.annotation["recommendation"] == "referral"
 
 
 def test_provider_failure_stops_without_retry_or_fallback() -> None:

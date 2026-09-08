@@ -3,17 +3,17 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import re
 from uuid import UUID, uuid4
 
 import pytest
 
 from classifier import persistence
 from classifier.test_core import profile_snapshot, wire_annotation
-from scraper.annotate import RECOMMENDATIONS
 from scraper.brain import BrainResult, BrainTransportError
 
 psycopg = pytest.importorskip("psycopg")
-from test_support.postgres import DatabaseUnavailable, migrated_database
+from test_support.postgres import DatabaseUnavailable, migrated_database  # noqa: E402
 
 RAW_JD = "Build a Full-stack TypeScript and React product with Node.js. " * 12
 MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
@@ -88,20 +88,16 @@ def seed(connection, *, status: str = "saved") -> str:
     return posting_id
 
 
-def runner_for(recommendation: str, *, fit_score: int = 72, fit_tier: str = "good"):
+def runner_for(*, fit_score: int = 72):
     def accepted(request, _profile):
-        posting_id = request.output_schema["properties"]["reasons"]["properties"][
-            "product_role_match"
-        ]["properties"]["evidence_ids"]["items"]["enum"][0].removeprefix("posting:")
-        response = wire_annotation(
-            posting_id,
-            recommendation=recommendation,
-            fit_score=fit_score,
-            fit_tier=fit_tier,
-        )
+        match = re.search(r'"posting:([0-9a-f-]{36})"', request.prompt)
+        assert match is not None
+        response = wire_annotation(match.group(1), fit_score=fit_score)
         response["reasons"]["product_role_match"]["detail"] = (
             "The validated evidence supports a full-stack product role."
         )
+        if fit_score < 40:
+            response["fit_line"] = "Weak fit — limited alignment for this role."
         return BrainResult(
             response, "codex", "configured:gpt-5.6-luna", request=request
         )
@@ -109,7 +105,7 @@ def runner_for(recommendation: str, *, fit_score: int = 72, fit_tier: str = "goo
     return accepted
 
 
-runner = runner_for("apply")
+runner = runner_for()
 
 
 def score_state(connection, posting_id: str):
@@ -208,27 +204,20 @@ def test_migration_preserves_a_genuine_pre_migration_score() -> None:
         pytest.skip(str(error))
 
 
-@pytest.mark.parametrize("recommendation", sorted(RECOMMENDATIONS))
-def test_every_actual_recommendation_persists(connection, recommendation: str) -> None:
+@pytest.mark.parametrize(
+    ("fit_score", "recommendation"), [(0, "skip"), (40, "review"), (60, "apply")]
+)
+def test_score_derived_recommendation_persists(
+    connection, fit_score: int, recommendation: str,
+) -> None:
     posting_id = seed(connection)
     assert (
         persistence.score_and_persist(
-            connection, posting_id, brain_runner=runner_for(recommendation)
+            connection, posting_id, brain_runner=runner_for(fit_score=fit_score)
         )
         == "stored"
     )
     assert score_state(connection, posting_id)[9]["recommendation"] == recommendation
-
-
-def test_consider_is_rejected_before_persistence(connection) -> None:
-    posting_id = seed(connection)
-    assert (
-        persistence.score_and_persist(
-            connection, posting_id, brain_runner=runner_for("consider")
-        )
-        == "failed"
-    )
-    assert score_state(connection, posting_id) is None
 
 
 def test_actual_stretch_tier_persists(connection) -> None:
@@ -237,7 +226,7 @@ def test_actual_stretch_tier_persists(connection) -> None:
         persistence.score_and_persist(
             connection,
             posting_id,
-            brain_runner=runner_for("review", fit_score=50, fit_tier="stretch"),
+            brain_runner=runner_for(fit_score=50),
         )
         == "stored"
     )
