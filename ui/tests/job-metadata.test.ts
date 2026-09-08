@@ -21,3 +21,13 @@ test("experience quotes requirements and does not turn company age into experien
   assert.equal(experiencePhrase("Our company is 25 years old."), null);
   assert.equal(experiencePhrase(null), null);
 });
+
+test("experience requires applicant context and rejects company, negated, and wishful prose", () => {
+  assert.equal(experiencePhrase("Our company has 20 years of experience serving customers."), null);
+  assert.equal(experiencePhrase("No 5 years of experience required; strong projects are enough."), null);
+  assert.equal(experiencePhrase("It would be nice to have 4 years of relevant experience."), null);
+  assert.equal(experiencePhrase("Our company has at least 20 years of experience serving customers."), null);
+  assert.equal(experiencePhrase("5 years of experience is not required."), null);
+  assert.equal(experiencePhrase("Minimum of 2 years commercial experience."), "2 years commercial experience");
+  assert.equal(experiencePhrase("Requirements:\n- 3+ years of hands-on experience building APIs"), "3+ years of hands-on experience");
+});
