@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
+import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { relativeAge } from "@/lib/job-display";
-import { groupDuplicateJobs, relatedDuplicateJobs } from "@/lib/job-dedup";
-import { filterJobs, type ViewOptions } from "@/lib/job-filters";
+import { relatedDuplicateJobs } from "@/lib/job-dedup";
+import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
@@ -17,10 +18,10 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
 }
 
 export function JobBoard() {
-  const [filter, setFilter] = useState<Filter>("new-for-me");
-  const [view, setView] = useState<ViewOptions>({search: "", source: "", location: "", seniority: "", fit: "recommended", sort: "fit"});
+  const [preferences, setPreferences] = useState(defaultBoardPreferences);
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  const { filter, view } = preferences;
   const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,6 +37,7 @@ export function JobBoard() {
   const [refreshWarning, setRefreshWarning] = useState("");
   const detailRequestRef = useRef<AbortController | null>(null);
   const visitCohortRef = useRef<JobSummary[] | null>(null);
+  const preferenceStorageRef = useRef<Storage | null>(null);
   const filterRef = useRef<Filter>(filter);
   const hasLoadedRef = useRef(false);
   const openerRef = useRef<HTMLButtonElement | null>(null);
@@ -48,8 +50,44 @@ export function JobBoard() {
     // Keep the previous body intact during the sheet closing transition.
     if (id !== null) { setDetail(null); setDetailError(""); setRejecting(false); setReason(""); }
   }
-  function chooseFilter(value: Filter) { if (value === filter) return; filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); setView((current) => ({ ...current, fit: value === "new-for-me" ? "recommended" : "" })); setFilter(value); }
+  function chooseFilter(value: Filter) { if (value === filter) return; filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); setPreferences((current) => ({ filter: value, view: { ...current.view, fit: value === "new-for-me" ? "recommended" : "" } })); }
+  function changeView(next: ViewOptions) { setPreferences((current) => ({ ...current, view: next })); }
+  function setSearch(search: string) { setPreferences((current) => ({ ...current, view: { ...current.view, search } })); }
+  function resetView() {
+    const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
+    if (storage) clearBoardPreferences(storage);
+    const next = defaultBoardPreferences();
+    if (filter !== next.filter) {
+      filterRef.current = next.filter;
+      visitCohortRef.current = null;
+      hasLoadedRef.current = false;
+      setLoadedUpdatedAt(null);
+      setLoading(true);
+      setJobs([]);
+      setError("");
+      setRefreshWarning("");
+    }
+    setPreferences(next);
+  }
 
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const storage = boardPreferenceStorage(window);
+      preferenceStorageRef.current = storage;
+      const restored = storage ? readBoardPreferences(storage) : defaultBoardPreferences();
+      filterRef.current = restored.filter;
+      setPreferences(restored);
+      setPreferencesReady(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const storage = preferenceStorageRef.current;
+    if (preferencesReady && storage) writeBoardPreferences(storage, preferences);
+  }, [preferences, preferencesReady]);
 
   useEffect(() => {
     const events = new EventSource("/api/events");
@@ -74,13 +112,14 @@ export function JobBoard() {
   }, [detailCoordinator, requestRefresh]);
 
   useEffect(() => {
+    if (!preferencesReady) return undefined;
     const controller = new AbortController();
     request(`/api/jobs?filter=${filter}&limit=1000`, { signal: controller.signal })
       .then((body) => { if (!controller.signal.aborted) { const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs); const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; hasLoadedRef.current = true; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
       .catch((cause: unknown) => { if (!controller.signal.aborted) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [filter, revision]);
+  }, [filter, preferencesReady, revision]);
 
   useEffect(() => {
     if (!selected) return undefined;
@@ -140,7 +179,12 @@ export function JobBoard() {
       return false;
     } finally { setSaving(false); }
   }
-  const visible = filterJobs(jobs, {...view, search});
+  if (!preferencesReady) return <div className="min-h-screen bg-background text-foreground">
+    <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
+    <main className="grid min-h-[35rem] place-items-center px-4 py-16"><p role="status" className="text-sm text-muted-foreground">Restoring saved view…</p></main>
+  </div>;
+
+  const groups = filterJobGroups(jobs, view);
   const relatedId = selected ?? detail?.id;
   const relatedJobs = relatedId ? relatedDuplicateJobs(jobs, relatedId, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
@@ -148,8 +192,8 @@ export function JobBoard() {
   return <div className="min-h-screen bg-background text-foreground">
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="w-full px-4 py-4 sm:px-6 lg:px-8">
-      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1><span className="rounded-full bg-muted px-2 py-1">{groupDuplicateJobs(visible).length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={setView} />} />
+      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1><span className="rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
+      <JobsPanel {...{filter, jobs, groups, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} search={view.search} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer {...{selected, relatedJobs, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />

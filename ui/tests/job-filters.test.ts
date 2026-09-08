@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { filterJobs, levelGroup, locationGroup, type ViewOptions } from "../lib/job-filters";
+import { filterJobGroups, filterJobs, levelGroup, locationGroup, sourceFilterValues, type ViewOptions } from "../lib/job-filters";
 import { JobSummarySchema } from "../lib/contracts";
 import { technologyMentions } from "../lib/job-metadata";
 const options: ViewOptions = {search:"",source:"",location:"",seniority:"",fit:"",sort:"fit"};
@@ -42,4 +42,39 @@ test("recommendation filtering composes with location without hiding stretch rev
 test("country codes alone cannot masquerade as US states",()=>{
   for (const location of ["Toronto, CA", "Hyderabad, IN", "Unknown City, CA", "Bremen, DE"]) assert.equal(locationGroup(location),"other",location);
   for (const location of ["San Francisco, CA", "Fortville, IN", "Chicago, IL", "Washington, DC", "Austin, Texas Metropolitan Area"]) assert.equal(locationGroup(location),"united-states",location);
+});
+
+test("a restored source absent from current jobs remains a visible selected option", () => {
+  assert.deepEqual(
+    sourceFilterValues([{ source: "linkedin" }, { source: "workable" }], "greenhouse"),
+    ["greenhouse", "linkedin", "workable"],
+  );
+});
+
+test("filtered best-fit groups sort by the displayed newest representative", () => {
+  const unique78 = { ...job(20, 78, null, "Israel"), title: "Frontend Developer" };
+  const duplicateHigh = { ...job(21, 76, null, "Israel"), title: "Fullstack Engineer", company: "Academy", posted_at: "2026-09-01T00:00:00Z" };
+  const unique74 = { ...job(22, 74, null, "Israel"), title: "Data Product Engineer" };
+  const duplicateNewest = { ...job(23, 68, null, "Israel"), title: "Fullstack Engineer", company: "Academy", posted_at: "2026-09-08T00:00:00Z" };
+
+  const displayed = filterJobGroups(
+    [unique78, duplicateHigh, unique74, duplicateNewest],
+    { ...options, location: "israel" },
+  );
+
+  assert.deepEqual(displayed.map(({ job: row }) => row.score), [78, 74, 68]);
+});
+
+test("every sort mode orders duplicate groups by the displayed representative", () => {
+  const duplicateOld = { ...job(30, 99, "Senior", "Israel"), title: "Grouped role", company: "Grouped Co", posted_at: "2026-09-01T00:00:00Z", first_seen_at: "2026-09-01T00:00:00Z" };
+  const duplicateNewest = { ...job(31, 50, "Senior", "Israel"), title: "Grouped role", company: "Grouped Co", posted_at: "2026-09-04T00:00:00Z", first_seen_at: "2026-09-04T00:00:00Z" };
+  const junior = { ...job(32, 74, "Junior", "Israel"), title: "Junior unique", posted_at: "2026-09-03T00:00:00Z", first_seen_at: "2026-09-03T00:00:00Z" };
+  const mid = { ...job(33, 78, "Mid-level", "Israel"), title: "Mid unique", posted_at: "2026-09-02T00:00:00Z", first_seen_at: "2026-09-02T00:00:00Z" };
+  const rows = [duplicateOld, junior, mid, duplicateNewest];
+
+  const ids = (sort: ViewOptions["sort"]) => filterJobGroups(rows, { ...options, location: "israel", sort }).map(({ job: row }) => row.id);
+  assert.deepEqual(ids("fit"), [mid.id, junior.id, duplicateNewest.id]);
+  assert.deepEqual(ids("found"), [duplicateNewest.id, junior.id, mid.id]);
+  assert.deepEqual(ids("posted"), [duplicateNewest.id, junior.id, mid.id]);
+  assert.deepEqual(ids("seniority"), [junior.id, mid.id, duplicateNewest.id]);
 });
