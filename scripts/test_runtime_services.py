@@ -1,14 +1,30 @@
 import scripts.runtime_services as subject
 
 
-def test_process_identity_requires_exact_argv_tokens(monkeypatch):
-    context = object()
-    monkeypatch.setattr(subject, "_listener", lambda *_args: (7, "whisper-server --port 89120"))
-    monkeypatch.setattr(subject, "_http", lambda *_args: True)
-    probe = subject._identified_http_process(
-        context, 8912, "http://127.0.0.1:8912/", "whisper-server", "--port", "8912",
-    )
-    assert not probe.healthy
+def test_whisper_identity_rejects_ambiguous_or_unsafe_argv():
+    valid = "whisper-server -m /tmp/model.bin --host 127.0.0.1 --port 8912 -l en".split()
+    assert subject._whisper_argv(valid, 8912)
+    invalid = [
+        valid + ["--port", "89120"],
+        [*valid[:3], "--host", "0.0.0.0", *valid[5:]],
+        valid + ["--unknown", "value"],
+    ]
+    assert not any(subject._whisper_argv(argv, 8912) for argv in invalid)
+
+
+def test_port_forward_identity_accepts_only_known_loopback_shapes():
+    own = "kubectl --context orbstack -n job-radar-coach port-forward service/ui 3410:3000".split()
+    installed = (
+        "/opt/homebrew/bin/kubectl --context orbstack --namespace job-radar-coach "
+        "port-forward --address 127.0.0.1 service/ui 3410:3000"
+    ).split()
+    assert subject._port_forward_argv(own) and subject._port_forward_argv(installed)
+    invalid = [
+        installed + ["--pod-running-timeout", "1s"],
+        [*installed[:6], "--address", "0.0.0.0", *installed[8:]],
+        [*installed[:5], "-n", "job-radar-coach", *installed[5:]],
+    ]
+    assert not any(subject._port_forward_argv(argv) for argv in invalid)
 
 
 def test_qa_mode_fails_before_any_service_start(tmp_path):

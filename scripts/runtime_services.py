@@ -73,6 +73,47 @@ def _listener(context: RuntimeContext, port: int) -> tuple[int, str] | None:
     return int(pid), argv.stdout.strip()
 
 
+def _whisper_argv(parts: Sequence[str], port: int) -> bool:
+    if not parts or Path(parts[0]).name != "whisper-server":
+        return False
+    allowed = {"-m", "--host", "--port", "-l"}
+    values: dict[str, str] = {}
+    arguments = list(parts[1:])
+    while arguments:
+        if len(arguments) < 2 or arguments[0] not in allowed or arguments[0] in values:
+            return False
+        values[arguments[0]] = arguments[1]
+        arguments = arguments[2:]
+    return (
+        set(values) == allowed
+        and bool(values["-m"] and values["-l"])
+        and values["--host"] == "127.0.0.1"
+        and values["--port"] == str(port)
+    )
+
+
+def _port_forward_argv(parts: Sequence[str]) -> bool:
+    if not parts or Path(parts[0]).name != "kubectl" or parts.count("port-forward") != 1:
+        return False
+    command_at = parts.index("port-forward")
+    options = list(parts[1:command_at])
+    values: dict[str, str] = {}
+    aliases = {"--context": "context", "-n": "namespace", "--namespace": "namespace"}
+    while options:
+        if len(options) < 2 or options[0] not in aliases or aliases[options[0]] in values:
+            return False
+        values[aliases[options[0]]] = options[1]
+        options = options[2:]
+    if values != {"context": "orbstack", "namespace": "job-radar-coach"}:
+        return False
+    positionals = list(parts[command_at + 1:])
+    if positionals[:1] == ["--address"]:
+        if positionals[1:2] != ["127.0.0.1"]:
+            return False
+        positionals = positionals[2:]
+    return positionals == ["service/ui", "3410:3000"]
+
+
 class RequirementService:
     """A shared prerequisite that this supervisor must never start or stop."""
 
@@ -179,17 +220,14 @@ def _deployment(name: str, *, livekit: bool = False) -> Callable[[RuntimeContext
 
 
 def _identified_http_process(
-    context: RuntimeContext, port: int, url: str, *tokens: str,
+    context: RuntimeContext, port: int, url: str, validator: Callable[[Sequence[str]], bool],
 ) -> Probe:
     listener = _listener(context, port)
     try:
         parts = [] if listener is None else shlex.split(listener[1])
     except ValueError:
         parts = []
-    healthy = bool(
-        parts and Path(parts[0]).name == tokens[0]
-        and all(token in parts[1:] for token in tokens[1:]) and _http(context, url)
-    )
+    healthy = bool(validator(parts) and _http(context, url))
     return Probe(healthy, "identified listener healthy" if healthy else f"port {port} is absent or unfamiliar")
 
 
@@ -264,12 +302,17 @@ def build_services(context: RuntimeContext) -> Sequence[Service]:
         SafeProcessService(
             "whisper",
             ("/opt/homebrew/bin/whisper-server", "-m", str(whisper_model), "--host", "127.0.0.1", "--port", str(whisper_port), "-l", os.environ.get("VOICE_STT_LANGUAGE", "en")),
-            lambda ctx: _identified_http_process(ctx, whisper_port, f"http://127.0.0.1:{whisper_port}/", "whisper-server", "--port", str(whisper_port)),
+            lambda ctx: _identified_http_process(
+                ctx, whisper_port, f"http://127.0.0.1:{whisper_port}/",
+                lambda parts: _whisper_argv(parts, whisper_port),
+            ),
             conflict=_port_conflict(whisper_port),
         ),
         SafeProcessService(
             "ui-forward", (*KUBECTL, "port-forward", "service/ui", "3410:3000"),
-            lambda ctx: _identified_http_process(ctx, 3410, "http://127.0.0.1:3410/api/jobs?limit=1", "kubectl", "port-forward", "service/ui", "3410:3000"),
+            lambda ctx: _identified_http_process(
+                ctx, 3410, "http://127.0.0.1:3410/api/jobs?limit=1", _port_forward_argv,
+            ),
             conflict=_port_conflict(3410),
         ),
         SafeProcessService(
