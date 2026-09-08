@@ -63,9 +63,13 @@ class _MarkupWriter:
         if tag == "strong" and self.strong_depth:
             self.strong_depth -= 1
             if not self.strong_depth:
-                lines = [re.sub(r"\s+", " ", line).strip()
-                         for line in "".join(self.strong_parts).split("\n")]
-                self.parts.append("\n".join(f"**{line}**" if line else "" for line in lines))
+                lines = [
+                    re.sub(r"\s+", " ", line).strip()
+                    for line in "".join(self.strong_parts).split("\n")
+                ]
+                self.parts.append(
+                    "\n".join(f"**{line}**" if line else "" for line in lines)
+                )
                 self.strong_parts = []
             return
         if self.strong_depth:
