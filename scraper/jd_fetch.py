@@ -17,7 +17,6 @@ BROWSER_USER_AGENT = (
 )
 MIN_PLAUSIBLE_JD_CHARS = 200
 SKIPPED_TAGS = {"button", "script", "style", "svg"}
-SHOW_CONTROL_PATTERN = re.compile(r"^Show\s+(?:more|less)$", re.IGNORECASE)
 BLOCK_TAGS = {"article", "p", "section", "ul", "ol"}
 HEADING_TAGS = {f"h{level}": level for level in range(1, 7)}
 
@@ -151,8 +150,6 @@ def _normalize(parts: list[str]) -> str:
     lines: list[str] = []
     for raw_line in text.split("\n"):
         line = raw_line.strip()
-        if line and SHOW_CONTROL_PATTERN.fullmatch(line):
-            continue
         if line:
             if line.startswith("- ") and lines[-1:] == [""] and len(lines) > 1:
                 if lines[-2].startswith("- "):
