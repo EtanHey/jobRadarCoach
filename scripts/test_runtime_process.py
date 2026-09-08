@@ -90,3 +90,45 @@ def test_qa_environment_overrides_stale_values_for_run_and_children(tmp_path, mo
             assert marker.read_text() == expected
         finally:
             service.stop(context, identity)
+
+
+def test_replaced_descendant_command_is_not_signaled(tmp_path):
+    trigger, marker = tmp_path / "exec-now", tmp_path / "child.pid"
+    descendant = (
+        "import os,pathlib,sys,time; p=pathlib.Path(sys.argv[1]); "
+        "pathlib.Path(sys.argv[2]).write_text(str(os.getpid())); "
+        "exec(\"while not p.exists(): time.sleep(.02)\"); "
+        "os.execv(sys.executable,[sys.executable,'-c','import time; time.sleep(25)'])"
+    )
+    leader_code = "import subprocess,sys,time; subprocess.Popen(sys.argv[1:]); time.sleep(30)"
+    service = ProcessService(
+        "replace", [sys.executable, "-c", leader_code, sys.executable, "-c", descendant,
+                    str(trigger), str(marker)],
+        lambda _context: Probe(marker.exists()), startup_timeout=3, shutdown_timeout=1,
+    )
+    context = RuntimeContext(Path.cwd(), tmp_path / "state")
+    identity = service.start(context)
+    leader = service._children[int(identity["pid"])]
+    child_pid = int(marker.read_text())
+    original = process_snapshot(child_pid)
+    try:
+        trigger.touch()
+        wait_for(lambda: (process_snapshot(child_pid) or {}).get("argv") != original["argv"])
+        leader.terminate()
+        leader.wait(timeout=2)
+        assert not service.owns(context, identity)
+        try:
+            service.stop(context, identity)
+        except RuntimeError as error:
+            assert "refusing to signal" in str(error)
+        else:
+            raise AssertionError("replaced descendant command accepted")
+        assert process_snapshot(child_pid) is not None
+    finally:
+        # This test directly spawned the group and retains ownership of both commands.
+        try:
+            os.killpg(int(identity["pgid"]), 15)
+        except ProcessLookupError:
+            pass
+        leader.wait(timeout=2)
+        wait_for(lambda: process_snapshot(child_pid) is None)
