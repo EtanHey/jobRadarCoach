@@ -7,17 +7,20 @@ CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
 
 AWS and Azure assets come from Devicon v2.17.0.
 https://github.com/devicons/devicon/tree/v2.17.0
-MIT: https://github.com/devicons/devicon/blob/v2.17.0/LICENSE
+The pinned MIT notice is reproduced verbatim in DEVICON-LICENSE.txt.
+https://github.com/devicons/devicon/blob/v2.17.0/LICENSE
 
 The OpenAI asset comes from the official OpenAI Cookbook at commit 4a85c301.
 https://github.com/openai/openai-cookbook
-MIT: https://github.com/openai/openai-cookbook/blob/main/LICENSE
+The pinned MIT notice is reproduced verbatim in OPENAI-COOKBOOK-LICENSE.txt.
+https://github.com/openai/openai-cookbook/blob/4a85c301/LICENSE
 Use of the OpenAI mark is also subject to OpenAI brand guidelines.
 
 The Weaviate asset comes from the official Weaviate website repository at
 commit b8b5f9725fd0f017e74a65c8ce529909eb6e5313.
 https://github.com/weaviate/weaviate-io
-BSD 3-Clause: https://github.com/weaviate/weaviate-io/blob/main/LICENSE
+No separate redistribution license was located for the mark in that pinned
+repository tree.
 
 The Pinecone asset was retrieved from Pinecone's official website on
 2026-09-08. No separate redistribution license was located for the mark.

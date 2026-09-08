@@ -79,7 +79,7 @@
       "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/amazonwebservices/amazonwebservices-original-wordmark.svg",
       "source_kind": "Devicon",
       "revision": "v2.17.0",
-      "license": "MIT; brand marks remain property of their owners",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
       "sha256": "5b4d8371d79a5c0d3a27ea4e929f772e68d47f7d267496bf9211d5f60fcf8084"
     },
     {
@@ -88,7 +88,7 @@
       "source": "https://raw.githubusercontent.com/devicons/devicon/v2.17.0/icons/azure/azure-original.svg",
       "source_kind": "Devicon",
       "revision": "v2.17.0",
-      "license": "MIT; brand marks remain property of their owners",
+      "license": "MIT (see DEVICON-LICENSE.txt); brand marks remain property of their owners",
       "sha256": "7923db83e3f9755bd412241a683fa996fb7a9d0259b5084de449e6be92f7ca20"
     },
     {
@@ -97,7 +97,7 @@
       "source": "https://raw.githubusercontent.com/openai/openai-cookbook/4a85c301/examples/agents_sdk/deployment_manager/frontend/src/openai-logomark.svg",
       "source_kind": "Official OpenAI Cookbook",
       "revision": "4a85c301",
-      "license": "MIT repository license; OpenAI mark subject to OpenAI brand guidelines",
+      "license": "MIT repository license (see OPENAI-COOKBOOK-LICENSE.txt); OpenAI mark subject to OpenAI brand guidelines",
       "sha256": "a41e8e53b14ef686319ed1529066d6a3391aca77d7f6eaaa9f0783acc717375f"
     },
     {
@@ -106,7 +106,7 @@
       "source": "https://www.pinecone.io/images/pinecone-logo.svg",
       "source_kind": "Official Pinecone website",
       "revision": "retrieved-2026-09-08",
-      "license": "Official brand asset; Pinecone retains ownership of its mark",
+      "license": "Official brand asset; no separate redistribution license located; Pinecone retains ownership of its mark",
       "sha256": "02b4bf8630b32d56290e695ef7f25fe57c2b3ac034e42f8f731d6de5c8cd862e"
     },
     {
@@ -115,7 +115,7 @@
       "source": "https://raw.githubusercontent.com/weaviate/weaviate-io/b8b5f9725fd0f017e74a65c8ce529909eb6e5313/static/img/site/2026/weaviate-arrow-2026.svg",
       "source_kind": "Official Weaviate website repository",
       "revision": "b8b5f9725fd0f017e74a65c8ce529909eb6e5313",
-      "license": "BSD-3-Clause repository license; Weaviate retains ownership of its mark",
+      "license": "Official brand asset; no separate redistribution license located in the pinned source repository; Weaviate retains ownership of its mark",
       "sha256": "58dfc5da332ff69fcdaad179364bb5ba686eccf9987fedd894e3fe477f888540"
     }
   ]
