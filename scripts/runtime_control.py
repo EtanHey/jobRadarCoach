@@ -80,6 +80,17 @@ class Supervisor:
             "supervisor": supervisor, "qa_mode": self.context.qa_mode, "services": entries,
         })
 
+    def _wait_for_locked_mode(self, timeout: float = 0.75) -> bool | None:
+        deadline = time.monotonic() + timeout
+        while True:
+            state = self._read_state() or {}
+            owner, mode = state.get("supervisor"), state.get("qa_mode")
+            if isinstance(owner, dict) and isinstance(mode, bool) and _same_process(owner):
+                return mode
+            if time.monotonic() >= deadline:
+                return None
+            time.sleep(0.02)
+
     def up(self) -> int:
         self.context.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         lock = self.lock_path.open("a+")
@@ -87,8 +98,11 @@ class Supervisor:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            state = self._read_state() or {}
-            if state.get("qa_mode") is self.context.qa_mode:
+            mode = self._wait_for_locked_mode()
+            if mode is None:
+                print("supervisor initialization state unknown; retry shortly", file=sys.stderr)
+                return 1
+            if mode is self.context.qa_mode:
                 print("supervisor already running in requested mode")
                 return 0
             print("supervisor mode differs; run './run down' before changing mode", file=sys.stderr)
