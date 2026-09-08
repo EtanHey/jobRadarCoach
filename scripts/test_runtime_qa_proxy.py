@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -52,16 +53,22 @@ export async function startQaProxy(options) {
     verifier.write_text("""
 import json, os, pathlib, sys
 mode = pathlib.Path(os.environ['FIXTURE_CONTROL']).read_text().strip()
+if sys.argv[1:] != ['--require-mode', 'qa', os.environ['QA_RECEIPT_PATH']]:
+    print(json.dumps({'status':'NOT_READY','reason':'arguments_invalid'})); raise SystemExit(1)
 if os.environ.get('VOICE_QA_MODE') != '1' or os.environ.get('LIVEKIT_URL') != 'ws://expected:7880':
     print('NOT_READY environment_mismatch fixture', file=sys.stderr); raise SystemExit(1)
-if mode == 'ready': print(json.dumps({'status':'READY','worker_id':'AW_fixture'}, separators=(',', ':')))
-else: print('NOT_READY registered_worker_absent fixture', file=sys.stderr); raise SystemExit(1)
+if mode == 'ready': print(json.dumps({'worker_id':'AW_fixture','status':'READY','mode':'qa'}, separators=(',', ':')))
+else: print(json.dumps({'status':'NOT_READY','reason':'registered_worker_absent'})); raise SystemExit(1)
 """)
     return module, verifier, control
 
 
 def launch(tmp_path, module, verifier, control, extra=None):
     marker = tmp_path / "marker.json"
+    extra_environment = extra or {}
+    expected_hash = extra_environment.get("QA_EXPECTED_VERIFIER_SHA256")
+    if expected_hash is None:
+        expected_hash = hashlib.sha256(verifier.read_bytes()).hexdigest()
     environment = {
         **os.environ, "VOICE_QA_MODE": "1", "LIVEKIT_API_KEY": "private-key",
         "LIVEKIT_API_SECRET": "private-secret", "QA_SESSION_ID": str(uuid.uuid4()),
@@ -73,8 +80,10 @@ def launch(tmp_path, module, verifier, control, extra=None):
         "QA_PROXY_PORT": "4567", "QA_PUBLIC_LIVEKIT_URL": "wss://voice.test",
         "QA_SUPERVISOR_PID": str(os.getpid()), "QA_VERIFY_INTERVAL_MS": "250",
         "QA_PYTHON": sys.executable, "FIXTURE_CONTROL": str(control),
+        "NODE_ENV": "test",
+        "QA_EXPECTED_VERIFIER_SHA256": expected_hash,
     }
-    environment.update(extra or {})
+    environment.update(extra_environment)
     child = subprocess.Popen(
         ("node", str(LAUNCHER)), env=environment, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
@@ -106,6 +115,67 @@ def test_exact_verifier_output_is_required_before_proxy_import(tmp_path):
     assert wait_for(marker, "NOT_READY")["reason"] == "verifier_output_invalid"
 
 
+def test_legacy_v1_ready_does_not_qualify(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    verifier.write_text("print('{\"status\":\"READY\",\"worker_id\":\"AW_fixture\"}')\n")
+    child, marker = launch(tmp_path, module, verifier, control)
+    assert child.wait(timeout=5) != 0
+    assert wait_for(marker, "NOT_READY")["reason"] == "verifier_output_invalid"
+
+
+def test_normal_mode_ready_never_qualifies_for_qa(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    verifier.write_text(
+        "print('{\"worker_id\":\"AW_fixture\",\"mode\":\"normal\",\"status\":\"READY\"}')\n"
+    )
+    child, marker = launch(tmp_path, module, verifier, control)
+    assert child.wait(timeout=5) != 0
+    assert wait_for(marker, "NOT_READY")["reason"] == "verifier_output_invalid"
+
+
+def test_structured_verifier_failure_reason_is_preserved(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    verifier.write_text(
+        "import json\n"
+        "print(json.dumps({'status':'NOT_READY','reason':'threshold_unknown'}))\n"
+        "raise SystemExit(1)\n"
+    )
+    child, marker = launch(tmp_path, module, verifier, control)
+    assert child.wait(timeout=5) != 0
+    assert wait_for(marker, "NOT_READY")["reason"] == "threshold_unknown"
+
+
+def test_changed_verifier_source_fails_closed(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    child, marker = launch(
+        tmp_path, module, verifier, control,
+        {"QA_EXPECTED_VERIFIER_SHA256": "0" * 64},
+    )
+    assert child.wait(timeout=5) != 0
+    assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_changed"
+
+
+def test_verifier_receives_required_qa_mode_arguments(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    argv_file = tmp_path / "argv.json"
+    verifier.write_text(
+        "import json,os,pathlib,sys\n"
+        "pathlib.Path(os.environ['FIXTURE_ARGV']).write_text(json.dumps(sys.argv[1:]))\n"
+        "print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'}))\n"
+    )
+    child, marker = launch(
+        tmp_path, module, verifier, control, {"FIXTURE_ARGV": str(argv_file)},
+    )
+    try:
+        assert wait_for(marker, "READY")["status"] == "READY"
+        assert json.loads(argv_file.read_text()) == [
+            "--require-mode", "qa", str(tmp_path / "receipt.json"),
+        ]
+    finally:
+        child.terminate()
+        child.wait(timeout=5)
+
+
 def test_proxy_mutation_revocation_marks_run_not_ready(tmp_path):
     module, verifier, control = fixtures(tmp_path)
     child, marker = launch(tmp_path, module, verifier, control, {"FIXTURE_MUTATE": "1"})
@@ -129,7 +199,7 @@ if count >= 3:
     pathlib.Path(os.environ['FIXTURE_PENDING']).touch()
     time.sleep(.75)
     pathlib.Path(os.environ['FIXTURE_COMPLETED']).touch()
-print(json.dumps({'status':'READY','worker_id':'AW_fixture'}, separators=(',', ':')))
+print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'}, separators=(',', ':')))
 """)
     child, marker = launch(tmp_path, module, verifier, control, {
         "FIXTURE_COUNT": str(counter), "FIXTURE_PENDING": str(pending),
@@ -171,7 +241,7 @@ counter = pathlib.Path(os.environ['FIXTURE_COUNT'])
 count = int(counter.read_text()) + 1 if counter.exists() else 1
 counter.write_text(str(count))
 if count == 1:
-    print(json.dumps({'status':'READY','worker_id':'AW_fixture'}, separators=(',', ':')))
+    print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'}, separators=(',', ':')))
 else:
     print('NOT_READY registered_worker_absent fixture', file=sys.stderr)
     raise SystemExit(1)
@@ -258,6 +328,30 @@ def test_sighup_during_initial_verifier_reaps_detached_child(tmp_path):
                 pass
 
 
+def test_fifo_verifier_refuses_without_waiting_for_writer_or_starting_proxy(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    started = tmp_path / "proxy-started"
+    source = module.read_text().replace(
+        "import { existsSync }", "import { existsSync, writeFileSync }")
+    source = source.replace("export async function startQaProxy(options) {",
+                            "export async function startQaProxy(options) {\n"
+                            f"writeFileSync({json.dumps(str(started))}, 'started');")
+    module.write_text(source)
+    verifier.unlink()
+    os.mkfifo(verifier)
+    child, marker = launch(tmp_path, module, verifier, control, {
+        "QA_EXPECTED_VERIFIER_SHA256": "0" * 64,
+    })
+    try:
+        assert child.wait(timeout=2) != 0
+        assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_invalid"
+        assert not started.exists()
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
+
+
 def test_completed_verifier_reaps_same_group_descendant(tmp_path):
     module, verifier, control = fixtures(tmp_path)
     pid_file = tmp_path / "descendant.pid"
@@ -266,7 +360,7 @@ def test_completed_verifier_reaps_same_group_descendant(tmp_path):
         "child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],"
         "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
         f"pathlib.Path({str(pid_file)!r}).write_text(str(child.pid))\n"
-        "print(json.dumps({'status':'READY','worker_id':'AW_fixture'},separators=(',',':')))\n"
+        "print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'},separators=(',',':')))\n"
     )
     child, marker = launch(tmp_path, module, verifier, control)
     try:
@@ -291,7 +385,7 @@ def test_unconfirmed_verifier_cleanup_fails_closed(tmp_path):
         "child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],"
         "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
         f"pathlib.Path({str(pid_file)!r}).write_text(str(child.pid))\n"
-        "print(json.dumps({'status':'READY','worker_id':'AW_fixture'},separators=(',',':')))\n"
+        "print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'},separators=(',',':')))\n"
     )
     hook.write_text(
         "const original=process.kill.bind(process);\n"
@@ -333,7 +427,7 @@ try: fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
 except FileExistsError:
     print('NOT_READY verifier_overlap fixture', file=sys.stderr); raise SystemExit(1)
 try:
-    time.sleep(.1); print(json.dumps({'status':'READY','worker_id':'AW_fixture'}, separators=(',', ':')))
+    time.sleep(.1); print(json.dumps({'status':'READY','mode':'qa','worker_id':'AW_fixture'}, separators=(',', ':')))
 finally:
     os.close(fd); lock.unlink()
 """)
@@ -347,3 +441,27 @@ finally:
     finally:
         child.terminate()
         child.wait(timeout=5)
+
+
+def test_replacing_verifier_before_exec_cannot_substitute_unverified_source(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    verified, substituted = tmp_path / "verified", tmp_path / "substituted"
+    source = f"from pathlib import Path; Path({str(verified)!r}).touch()\n" + verifier.read_text()
+    verifier.write_text(source)
+    replacement = f"from pathlib import Path; Path({str(substituted)!r}).touch()\n" + source
+    interpreter = tmp_path / "python-wrapper"
+    interpreter.write_text(
+        f"#!{sys.executable}\nimport os,sys\nfrom pathlib import Path\n"
+        f"Path({str(verifier)!r}).write_text({replacement!r})\n"
+        f"os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])\n")
+    interpreter.chmod(0o700)
+    child, marker = launch(tmp_path, module, verifier, control, {"QA_PYTHON": str(interpreter)})
+    try:
+        assert child.wait(timeout=5) != 0
+        assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_changed"
+        assert verified.exists()
+        assert not substituted.exists()
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)

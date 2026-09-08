@@ -3,7 +3,8 @@
 
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
-import { chmod, rename, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { chmod, open, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -12,7 +13,12 @@ const required = name => {
   if (!value) throw new Error(`QA NOT READY: ${name.toLowerCase()}_missing`);
   return value;
 };
-const stableReason = stderr => {
+const RELEASED_VERIFIER_SHA256 = '0c35e739ccaab2f3c9000098f51854ea209f2095ec7e46674e28a8a313928f8d';
+const stableReason = (stdout, stderr) => {
+  try {
+    const value = JSON.parse(stdout);
+    if (value?.status === 'NOT_READY' && /^[a-z0-9_]+$/.test(value.reason)) return value.reason;
+  } catch {}
   const match = /^NOT_READY ([a-z0-9_]+)/m.exec(stderr);
   return match?.[1] ?? 'verifier_failed';
 };
@@ -32,6 +38,8 @@ async function main() {
   const sessionId = required('QA_SESSION_ID');
   const expectedWorker = required('QA_EXPECTED_WORKER_ID');
   const verifier = required('QA_VERIFIER_PATH');
+  const expectedVerifierHash = process.env.NODE_ENV === 'test'
+    ? required('QA_EXPECTED_VERIFIER_SHA256') : RELEASED_VERIFIER_SHA256;
   const receiptPath = required('QA_RECEIPT_PATH');
   const expectedServer = required('QA_EXPECTED_LIVEKIT_URL');
   const markerPath = required('QA_RUNTIME_STATE_FILE');
@@ -86,11 +94,35 @@ async function main() {
     });
     return publishQueue;
   };
-  const runVerifier = () => {
+  const runVerifier = async () => {
     if (closing || revoked) return Promise.resolve(false);
+    let source;
+    try {
+      const handle = await open(verifier, constants.O_RDONLY | constants.O_NONBLOCK);
+      try {
+        if (!(await handle.stat()).isFile()) {
+          if (!revoked) reason = 'verifier_source_invalid';
+          return false;
+        }
+        source = await handle.readFile();
+      } finally {
+        await handle.close();
+      }
+      const sourceHash = crypto.createHash('sha256').update(source).digest('hex');
+      if (sourceHash !== expectedVerifierHash) {
+        if (!revoked) reason = 'verifier_source_changed';
+        return false;
+      }
+    } catch {
+      if (!revoked) reason = 'verifier_unavailable';
+      return false;
+    }
+    if (closing || revoked) return false;
     return new Promise(resolve => {
     const env = { ...process.env, LIVEKIT_URL: expectedServer, VOICE_QA_MODE: '1' };
-    const child = spawn(process.env.QA_PYTHON ?? 'python3', [verifier, receiptPath], {
+    const child = spawn(process.env.QA_PYTHON ?? 'python3', [
+      '-c', source.toString('utf8'), '--require-mode', 'qa', receiptPath,
+    ], {
       detached: true, env, stdio: ['ignore', 'pipe', 'pipe'],
     });
     verifierChildren.add(child);
@@ -118,15 +150,16 @@ async function main() {
       if (reason === 'verifier_timeout') return finish(false);
       try {
         const value = JSON.parse(stdout);
-        const exact = value && Object.keys(value).length === 2
-          && value.status === 'READY' && value.worker_id === expectedWorker;
+        const exact = value && Object.keys(value).length === 3
+          && value.status === 'READY' && value.mode === 'qa'
+          && value.worker_id === expectedWorker;
         if (code === 0 && exact) {
           if (!revoked && !closing) reason = '';
           return finish(true);
         }
-        if (!revoked) reason = code === 0 ? 'verifier_output_invalid' : stableReason(stderr);
+        if (!revoked) reason = code === 0 ? 'verifier_output_invalid' : stableReason(stdout, stderr);
       } catch {
-        if (!revoked) reason = code === 0 ? 'verifier_output_invalid' : stableReason(stderr);
+        if (!revoked) reason = code === 0 ? 'verifier_output_invalid' : stableReason(stdout, stderr);
       }
       finish(false);
     });
