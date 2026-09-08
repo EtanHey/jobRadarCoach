@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeft, ArrowRight, GripVertical } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { moveProfileItem } from "@/lib/profile-ordering";
 
 type ProfileListFieldProps = {
   id: string;
@@ -36,6 +38,7 @@ export function ProfileListField({
   onSave,
 }: ProfileListFieldProps) {
   const [pending, setPending] = useState("");
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   function addPending() {
     const next = appendEntries(value, pending);
@@ -48,16 +51,56 @@ export function ProfileListField({
     onSave(addPending());
   }
 
+  function move(fromIndex: number, toIndex: number) {
+    onChange(moveProfileItem(value, fromIndex, toIndex));
+  }
+
   return <fieldset className="rounded-xl border p-4" disabled={busy}>
     <legend className="sr-only">{label} editor</legend>
     <label htmlFor={id} className="text-sm font-medium">{label}</label>
     <p id={`${id}-description`} className="mt-1 text-xs text-muted-foreground">{description}</p>
     <div className="mt-3 flex min-h-9 flex-wrap gap-2" aria-live="polite">
-      {value.map((item) => <span key={item} className="inline-flex items-center gap-1 rounded-full border bg-muted px-2.5 py-1 text-sm text-foreground">
-        {item}
+      {value.map((item, index) => <span
+        key={item}
+        draggable={!busy}
+        onDragStart={(event) => {
+          setDraggedIndex(index);
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", item);
+        }}
+        onDragOver={(event) => {
+          if (draggedIndex !== null && draggedIndex !== index) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          if (draggedIndex !== null) move(draggedIndex, index);
+          setDraggedIndex(null);
+        }}
+        onDragEnd={() => setDraggedIndex(null)}
+        className="inline-flex items-center gap-0.5 rounded-full border bg-muted px-1.5 py-1 text-sm text-foreground"
+      >
+        <GripVertical className="size-3.5 cursor-grab text-muted-foreground" aria-hidden="true" />
+        <span className="px-1">{item}</span>
         <button
           type="button"
-          className="rounded-full px-1 text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-full p-1 text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30"
+          aria-label={`Move ${item} earlier in ${label.toLowerCase()}`}
+          onClick={() => move(index, index - 1)}
+          disabled={index === 0}
+        ><ArrowLeft className="size-3.5" aria-hidden="true" /></button>
+        <button
+          type="button"
+          className="rounded-full p-1 text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30"
+          aria-label={`Move ${item} later in ${label.toLowerCase()}`}
+          onClick={() => move(index, index + 1)}
+          disabled={index === value.length - 1}
+        ><ArrowRight className="size-3.5" aria-hidden="true" /></button>
+        <button
+          type="button"
+          className="rounded-full p-1 text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label={`Remove ${item} from ${label.toLowerCase()}`}
           onClick={() => onChange(value.filter((entry) => entry !== item))}
         >×</button>
@@ -91,7 +134,7 @@ export function ProfileListField({
       />
       <Button type="button" variant="outline" onClick={addPending} disabled={!pending.trim()}>Add</Button>
     </div>
-    <p className="mt-2 text-xs text-muted-foreground">Press Enter or comma to add an item.</p>
+    <p className="mt-2 text-xs text-muted-foreground">Press Enter or comma to add an item. Drag items or use their arrow controls to set priority order.</p>
     <Button type="button" variant="outline" className="mt-3" onClick={save}>Save {label.toLowerCase()}</Button>
   </fieldset>;
 }
