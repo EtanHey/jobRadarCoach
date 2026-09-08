@@ -1,11 +1,19 @@
 import scripts.runtime_services as subject
+from scripts.runtime_control import Probe, RuntimeContext, Supervisor
 
 
-class Result:
-    returncode = 0
+class Sentinel:
+    def __init__(self, name):
+        self.name = name
+        self.probes = self.starts = 0
 
-    def __init__(self, stdout):
-        self.stdout = stdout
+    def probe(self, _context):
+        self.probes += 1
+        return Probe(True, "fixture")
+
+    def start(self, _context):
+        self.starts += 1
+        return {}
 
 
 def test_whisper_identity_rejects_ambiguous_or_unsafe_argv():
@@ -34,19 +42,15 @@ def test_port_forward_identity_accepts_only_known_loopback_shapes():
     assert not any(subject._port_forward_argv(argv) for argv in invalid)
 
 
-def test_qa_mode_fails_before_any_service_start(tmp_path):
+def test_qa_mode_dispatches_to_qa_stack(monkeypatch, tmp_path):
+    import scripts.runtime_qa_stack as qa_stack
+
     context = type("Context", (), {
         "repo_root": tmp_path, "state_dir": tmp_path / "state", "qa_mode": True,
     })()
-    services = subject.build_services(context)
-    assert [service.name for service in services] == ["qa-runtime"]
-    assert not services[0].probe(context).healthy
-    try:
-        services[0].start(context)
-    except RuntimeError as error:
-        assert "room-mode agent receipt" in str(error)
-    else:
-        raise AssertionError("QA prerequisite unexpectedly started")
+    expected = [object()]
+    monkeypatch.setattr(qa_stack, "build_qa_stack", lambda received: expected if received is context else [])
+    assert subject.build_services(context) is expected
 
 
 def test_bridge_requires_known_argv_and_same_pid(monkeypatch, tmp_path):
@@ -62,17 +66,53 @@ def test_bridge_requires_known_argv_and_same_pid(monkeypatch, tmp_path):
     assert subject._bridge_probe(context).healthy
 
 
-def test_service_order_and_agent_database_env(monkeypatch, tmp_path):
-    monkeypatch.setattr(subject, "_json", lambda *_args: {"DB_URL": "postgres://private"})
+def test_normal_order_uses_room_agent_after_forwards_and_mic_gate(monkeypatch, tmp_path):
     monkeypatch.setenv("VOICE_STT_PORT", "8999")
-    context = type("Context", (), {"repo_root": tmp_path, "state_dir": tmp_path / "state"})()
+    context = type("Context", (), {
+        "repo_root": tmp_path, "state_dir": tmp_path / "state", "qa_mode": False,
+    })()
     services = subject.build_services(context)
     assert [service.name for service in services] == [
         "kubernetes", "supabase", "ollama", "kokoro", "livekit", "ui", "whisper",
-        "ui-forward", "livekit-bridge", "tailscale-serve", "agent",
+        "ui-forward", "livekit-bridge", "tailscale-serve", "livekit-forward", "room-ui",
+        "room-agent",
     ]
-    assert services[-1].env["DATABASE_URL"] == "postgres://private"
-    assert services[-1].env["STT_URL"] == "http://127.0.0.1:8999/inference"
+    assert services[-3].command == (
+        "kubectl", "--context", "orbstack", "-n", "job-radar-coach", "port-forward",
+        "--address", "127.0.0.1", "svc/livekit", "7880:7880",
+    )
+    assert all(service.name != "agent" for service in services)
+
+
+def test_mic_probe_requires_exact_200(monkeypatch, tmp_path):
+    context = object()
+    monkeypatch.setattr(
+        subject, "_result",
+        lambda *_args, **_kwargs: type("Result", (), {"returncode": 0, "stdout": "200"})(),
+    )
+    assert subject._mic_ui(context).healthy
+    monkeypatch.setattr(
+        subject, "_result",
+        lambda *_args, **_kwargs: type("Result", (), {"returncode": 0, "stdout": "302"})(),
+    )
+    assert not subject._mic_ui(context).healthy
+
+
+def test_normal_mic_failure_occurs_after_forwards_and_before_room_agent(monkeypatch, tmp_path):
+    import scripts.runtime_room_agent as room_agent
+
+    earlier = Sentinel("ui-forward")
+    forward = Sentinel("livekit-forward")
+    agent = Sentinel("room-agent")
+    monkeypatch.setattr(subject, "_shared_services", lambda _context: [earlier])
+    monkeypatch.setattr(subject, "_livekit_forward_service", lambda: forward)
+    monkeypatch.setattr(subject, "_mic_ui", lambda _context: Probe(False, "fixture /mic failure"))
+    monkeypatch.setattr(room_agent, "RoomAgentService", lambda: agent)
+    context = RuntimeContext(tmp_path, tmp_path / "state")
+    supervisor = Supervisor(context, subject._normal_services(context))
+    assert supervisor.up() == 1
+    assert earlier.probes == forward.probes == 1
+    assert agent.probes == agent.starts == 0
 
 
 def test_bridge_rejects_extra_node_flags_and_script_arguments(monkeypatch, tmp_path):
@@ -100,6 +140,13 @@ def test_ollama_requires_exact_serve_arguments(monkeypatch):
         assert not subject._ollama(None).healthy
     monkeypatch.setattr(subject, "_processes", lambda *_args: [(7, "/opt/homebrew/bin/ollama serve")])
     assert subject._ollama(None).healthy
+
+
+class Result:
+    returncode = 0
+
+    def __init__(self, stdout):
+        self.stdout = stdout
 
 
 def test_kokoro_requires_exact_approved_container_name(monkeypatch):
