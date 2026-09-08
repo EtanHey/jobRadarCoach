@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import psycopg
 import pytest
 
-psycopg = pytest.importorskip("psycopg")
-from test_support.postgres import DatabaseUnavailable, migrated_database  # noqa: E402
-
+from test_support.postgres import DatabaseUnavailable, migrated_database
 
 ROOT = Path(__file__).parents[1]
 MIGRATIONS = ROOT / "supabase/migrations"
