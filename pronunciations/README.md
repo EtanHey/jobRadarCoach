@@ -10,15 +10,14 @@ The API-derived QA snapshot pass projected only public professional fields (`com
 
 ## Pronunciation provenance
 
-Three spellings have explicit first-party pronunciation guidance:
+Two spellings have explicit first-party pronunciation guidance:
 
 - `PostgreSQL` follows the PostgreSQL Press FAQ: `post-GRES-que-ell`. <https://www.postgresql.org/about/press/faq/>
-- `NGINX` follows the NGINX project naming guidance: `engine x`. <https://blog.nginx.org/about-the-nginx-name>
 - `Django` follows the Django FAQ: `JANG-oh`, with a silent `D`. <https://docs.djangoproject.com/en/5.2/faq/general/>
 
 The requested company names are confirmed against their first-party sites, but those pages do not publish phonetic guidance: [Guidde](https://www.guidde.com/), [Cyera](https://www.cyera.com/), [Sett](https://www.sett.ai/), and [Nagomi Security](https://nagomisecurity.com/). Their entries—and the other company/place phonetics—are practical English approximations, not vendor-confirmed or engine-auditioned. A later voice QA pass should treat these as the review set rather than as verified pronunciations.
 
-The remaining entries use conventional English letter names or readable respellings. `SQL` is intentionally spelled out as `S Q L`; callers needing a house style such as “sequel” can override it. Exact observed variants such as `Nginx`/`NGINX` are separate keys because lookup is case-sensitive; aliases may intentionally share a spoken value.
+The remaining entries, including `NGINX` / `engine X`, use conventional English letter names or readable respellings without a first-party verification claim. `SQL` is intentionally spelled out as `S Q L`; callers needing a house style such as “sequel” can override it. Exact observed variants such as `Nginx`/`NGINX` are separate keys because lookup is case-sensitive; aliases may intentionally share a spoken value.
 
 ## Inventory accounting
 
