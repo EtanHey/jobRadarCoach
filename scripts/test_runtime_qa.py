@@ -1,4 +1,6 @@
+import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 
@@ -18,14 +20,101 @@ def configured(monkeypatch):
         monkeypatch.setenv(key, value)
 
 
-def test_actual_verifier_refuses_missing_receipt_before_start(monkeypatch, tmp_path):
+def pin_verifier(monkeypatch, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("# synthetic released verifier\n")
+    monkeypatch.setattr(subject, "_VERIFIER_SHA256", hashlib.sha256(path.read_bytes()).hexdigest())
+
+
+def test_verifier_refuses_missing_receipt_before_start(monkeypatch, tmp_path):
     configured(monkeypatch)
-    repo = Path(__file__).resolve().parents[1]
+    repo = tmp_path
+    verifier = repo / "scripts/verify_agent_qa_receipt.py"
+    pin_verifier(monkeypatch, verifier)
+    verifier.write_text(
+        "import json\nprint(json.dumps({'status':'NOT_READY','reason':'receipt_missing'},"
+        "separators=(',', ':')))\nraise SystemExit(1)\n"
+    )
+    monkeypatch.setattr(subject, "_VERIFIER_SHA256", hashlib.sha256(verifier.read_bytes()).hexdigest())
     monkeypatch.setenv("VOICE_QA_RECEIPT_FILE", str(tmp_path / "absent.json"))
+    monkeypatch.setenv("VOICE_QA_VERIFIER_FILE", str(verifier))
     context = RuntimeContext(repo_root=repo, state_dir=tmp_path / "state", qa_mode=True)
     with pytest.raises(RuntimeError, match="QA NOT READY: receipt_missing"):
         subject.QaRuntimeService().start(context)
     assert not (context.state_dir / "qa-runtime.json").exists()
+
+
+def test_verifier_v2_mode_reason_hash_and_command_contract(monkeypatch, tmp_path):
+    verifier = tmp_path / "verifier.py"
+    pin_verifier(monkeypatch, verifier)
+    receipt = tmp_path / "receipt.json"
+    service, context = subject.QaRuntimeService(), FakeContext(tmp_path)
+    responses = iter([
+        subprocess.CompletedProcess((), 0,
+            '{"status":"READY","mode":"qa","worker_id":"AW_fixture"}\n', ""),
+        subprocess.CompletedProcess((), 0,
+            '{"status":"READY","mode":"normal","worker_id":"AW_fixture"}\n', ""),
+        subprocess.CompletedProcess((), 1,
+            '{"status":"NOT_READY","reason":"wrong_mode"}\n',
+            "NOT_READY verifier_failed legacy\n"),
+        subprocess.CompletedProcess((), 1, "", "NOT_READY worker_not_registered legacy\n"),
+    ])
+
+    def run(command, **kwargs):
+        context.commands.append((tuple(command), kwargs))
+        return next(responses)
+
+    context.run = run
+    assert service._verify(context, verifier, receipt, "ws://local") == ("AW_fixture", "")
+    assert service._verify(context, verifier, receipt, "ws://local") == (
+        None, "verifier_output_invalid",
+    )
+    assert service._verify(context, verifier, receipt, "ws://local") == (None, "wrong_mode")
+    assert service._verify(context, verifier, receipt, "ws://local") == (
+        None, "worker_not_registered",
+    )
+    assert all(call[0][1:4] == (str(verifier), "--require-mode", "qa") for call in context.commands)
+    monkeypatch.setattr(subject, "_VERIFIER_SHA256", "0" * 64)
+    assert service._verify(context, verifier, receipt, "ws://local") == (
+        None, "verifier_hash_mismatch",
+    )
+    assert len(context.commands) == 4
+
+
+def test_probe_reverifies_instead_of_trusting_ready_marker(monkeypatch, tmp_path):
+    configured(monkeypatch)
+    context = FakeContext(tmp_path)
+    context.state_dir.mkdir(parents=True)
+    marker = {
+        "status": "READY", "reason": None, "session_id": "session",
+        "worker_id": "AW_fixture", "supervisor_pid": os.getpid(), "qa_url": "http://qa.test",
+    }
+    (context.state_dir / "qa-runtime.json").write_text(json.dumps(marker))
+    service = subject.QaRuntimeService(receipt_provider=lambda _context: tmp_path / "receipt.json")
+    service._session_id = "session"
+    answers = iter([("AW_fixture", ""), (None, "worker_not_registered")])
+    calls = []
+
+    def verify(*args):
+        calls.append(args)
+        return next(answers)
+
+    monkeypatch.setattr(service, "_verify", verify)
+    assert service.probe(context).healthy
+    second = service.probe(context)
+    assert not second.healthy and second.detail == "QA NOT READY: worker_not_registered"
+    assert len(calls) == 2
+
+
+def test_equal_qa_and_normal_receipt_paths_refuse_before_config(monkeypatch, tmp_path):
+    shared = tmp_path / "shared.json"
+    monkeypatch.setenv("VOICE_QA_RECEIPT_FILE", shared.name)
+    monkeypatch.setenv("AGENT_NORMAL_RECEIPT_FILE", str(shared.parent / "." / shared.name))
+    service = subject.QaRuntimeService()
+    monkeypatch.setattr(service, "_config", lambda _context: pytest.fail("config read ran"))
+
+    with pytest.raises(RuntimeError, match="receipt_path_conflict"):
+        service.start(FakeContext(tmp_path))
 
 
 def test_receipt_provider_selects_receipt_without_changing_default_fallback(monkeypatch, tmp_path):

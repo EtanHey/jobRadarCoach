@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
 import json
 import os
 from pathlib import Path
@@ -10,6 +12,7 @@ import socket
 import subprocess
 import sys
 import uuid
+import re
 from typing import Any, Callable, Sequence
 
 from scripts.runtime_control import PartialStartError, Service
@@ -19,16 +22,55 @@ from scripts.runtime_qa_config import resolve_qa_urls
 
 KUBECTL = ("kubectl", "--context", "orbstack", "-n", "job-radar-coach")
 _MAPPING_UNKNOWN = "<status-unavailable>"
+_VERIFIER_SHA256 = "0c35e739ccaab2f3c9000098f51854ea209f2095ec7e46674e28a8a313928f8d"
+_REASON = re.compile(r"[a-z0-9_]+")
 
 
 def _not_ready(result: subprocess.CompletedProcess[str] | None) -> str:
     if result is None:
         return "verifier_unavailable"
-    for line in result.stderr.splitlines():
-        fields = line.split()
-        if len(fields) >= 2 and fields[0] == "NOT_READY":
-            return fields[1]
+    if result.returncode:
+        try:
+            value = json.loads(result.stdout)
+            reason = value.get("reason") if set(value) == {"status", "reason"} else None
+            if value.get("status") == "NOT_READY" and isinstance(reason, str) and _REASON.fullmatch(reason):
+                return reason
+        except (AttributeError, TypeError, json.JSONDecodeError):
+            pass
+        for line in result.stderr.splitlines():
+            fields = line.split(maxsplit=2)
+            if len(fields) >= 2 and fields[0] == "NOT_READY" and _REASON.fullmatch(fields[1]):
+                return fields[1]
     return "verifier_output_invalid" if result.returncode == 0 else "verifier_failed"
+
+
+def _verifier_integrity(path: Path) -> str | None:
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return "verifier_missing" if not path.is_file() else "verifier_unavailable"
+    return None if hmac.compare_digest(digest, _VERIFIER_SHA256) else "verifier_hash_mismatch"
+
+
+def _ready_worker(stdout: str) -> str | None:
+    try:
+        value = json.loads(stdout)
+        worker = value.get("worker_id")
+        if not isinstance(worker, str) or not worker:
+            return None
+        legacy = {"status": "READY", "worker_id": worker}
+        current = {"status": "READY", "mode": "qa", "worker_id": worker}
+        if value not in (legacy, current):
+            return None
+        expected = json.dumps(value, separators=(",", ":")) + "\n"
+        return worker if stdout == expected else None
+    except (AttributeError, TypeError, json.JSONDecodeError):
+        return None
+
+
+def _resolved_path(context: RuntimeContext, path: Path) -> Path:
+    expanded = path.expanduser()
+    return (expanded if expanded.is_absolute() else context.repo_root / expanded).resolve()
 
 
 def _secret(context: RuntimeContext, name: str) -> dict[str, str]:
@@ -60,6 +102,38 @@ class QaRuntimeService:
         self._process: ProcessService | None = None
         self._session_id: str | None = None
         self._receipt_provider = receipt_provider
+        self._selected_receipt: Path | None = None
+        self._selected_verifier: Path | None = None
+        self._selected_server: str | None = None
+
+    def _receipt_path(self, context: RuntimeContext) -> Path:
+        if self._selected_receipt is not None:
+            return self._selected_receipt
+        if self._receipt_provider:
+            return _resolved_path(context, self._receipt_provider(context))
+        return _resolved_path(context, Path(os.environ.get(
+            "VOICE_QA_RECEIPT_FILE",
+            context.repo_root / "docs.local/voice-qa-agent-receipt.json",
+        )))
+
+    @staticmethod
+    def _normal_receipt_path(context: RuntimeContext) -> Path:
+        return _resolved_path(context, Path(os.environ.get(
+            "AGENT_NORMAL_RECEIPT_FILE",
+            context.repo_root / "docs.local/voice-normal-agent-receipt.json",
+        )))
+
+    def _receipt_paths_separate(self, context: RuntimeContext, receipt: Path) -> bool:
+        return _resolved_path(context, receipt) != self._normal_receipt_path(context)
+
+    def _verifier_path(self, context: RuntimeContext) -> Path:
+        selected = self._selected_verifier or Path(os.environ.get(
+            "VOICE_QA_VERIFIER_FILE", context.repo_root / "scripts/verify_agent_qa_receipt.py",
+        ))
+        return _resolved_path(context, selected)
+
+    def _expected_server(self, context: RuntimeContext) -> str:
+        return self._selected_server or resolve_qa_urls(context).expected_livekit_url
 
     @staticmethod
     def _marker_path(context: RuntimeContext) -> Path:
@@ -100,30 +174,44 @@ class QaRuntimeService:
         process_ok = current_start or (active and same_process(identity["process"]))
         mapping = identity.get("mapping") if active else None
         mapping_ok = not isinstance(mapping, dict) or self._mapping_target(context, mapping) == mapping.get("target")
-        ready = marker.get("status") == "READY" and process_ok and mapping_ok
-        reason = "tailnet_mapping_changed" if not mapping_ok else (marker.get("reason") or "receipt_unverified")
+        try:
+            receipt = Path(identity["receipt"]) if active and isinstance(identity.get("receipt"), str) else self._receipt_path(context)
+            if not self._receipt_paths_separate(context, receipt):
+                verified_worker, verification_reason = None, "receipt_path_conflict"
+            else:
+                verified_worker, verification_reason = self._verify(
+                    context, self._verifier_path(context), receipt, self._expected_server(context),
+                )
+        except Exception as error:
+            verified_worker = None
+            verification_reason = getattr(error, "code", "verification_configuration_failed")
+        worker_ok = verified_worker is not None and verified_worker == marker.get("worker_id")
+        if verified_worker is not None and not worker_ok:
+            verification_reason = "receipt_worker_mismatch"
+        ready = marker.get("status") == "READY" and process_ok and mapping_ok and worker_ok
+        reason = (
+            "tailnet_mapping_changed" if not mapping_ok else
+            verification_reason if not worker_ok else
+            (marker.get("reason") or "receipt_unverified")
+        )
         detail = marker.get("qa_url") if ready else f"QA NOT READY: {reason}"
         return Probe(ready, str(detail))
 
     def _verify(self, context: RuntimeContext, verifier: Path, receipt: Path,
                 expected_server: str) -> tuple[str | None, str]:
-        if not verifier.is_file():
-            return None, "verifier_missing"
+        integrity_error = _verifier_integrity(verifier)
+        if integrity_error:
+            return None, integrity_error
         try:
             result = context.run(
-                (sys.executable, str(verifier), str(receipt)),
+                (sys.executable, str(verifier), "--require-mode", "qa", str(receipt)),
                 env={"LIVEKIT_URL": expected_server}, timeout=20,
             )
         except (OSError, subprocess.SubprocessError):
             return None, "verifier_unavailable"
-        try:
-            value = json.loads(result.stdout)
-            exact = set(value) == {"status", "worker_id"}
-            worker = value["worker_id"] if exact and value["status"] == "READY" else None
-            if result.returncode == 0 and isinstance(worker, str) and worker:
-                return worker, ""
-        except (KeyError, TypeError, json.JSONDecodeError):
-            pass
+        worker = _ready_worker(result.stdout)
+        if result.returncode == 0 and result.stderr == "" and worker is not None:
+            return worker, ""
         return None, _not_ready(result)
 
     def _config(self, context: RuntimeContext) -> dict[str, str]:
@@ -196,16 +284,17 @@ class QaRuntimeService:
     def start(self, context: RuntimeContext) -> dict[str, Any]:
         if not context.qa_mode:
             raise RuntimeError("QA NOT READY: qa_mode_not_requested")
+        receipt = self._receipt_path(context)
+        if not self._receipt_paths_separate(context, receipt):
+            raise RuntimeError("QA NOT READY: receipt_path_conflict")
         config = self._config(context)
-        verifier = Path(os.environ.get(
-            "VOICE_QA_VERIFIER_FILE", context.repo_root / "scripts/verify_agent_qa_receipt.py",
-        ))
-        receipt = self._receipt_provider(context) if self._receipt_provider else Path(os.environ.get(
-            "VOICE_QA_RECEIPT_FILE", context.repo_root / "docs.local/voice-qa-agent-receipt.json",
-        ))
+        verifier = self._verifier_path(context)
         worker, reason = self._verify(context, verifier, receipt, config["QA_EXPECTED_LIVEKIT_URL"])
         if worker is None:
             raise RuntimeError(f"QA NOT READY: {reason}")
+        self._selected_receipt = receipt
+        self._selected_verifier = verifier
+        self._selected_server = config["QA_EXPECTED_LIVEKIT_URL"]
         self._session_id = str(uuid.uuid4())
         marker = self._marker_path(context)
         marker.unlink(missing_ok=True)
