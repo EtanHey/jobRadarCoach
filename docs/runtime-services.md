@@ -4,7 +4,7 @@
 
 Supabase, Ollama, Kokoro, the OrbStack VM/Kubernetes node, and the deployed UI and LiveKit resources are shared prerequisites. The supervisor reports them as borrowed when their exact health and identity checks pass. It never starts or stops them.
 
-The supervisor may own foreground Whisper, the UI `kubectl port-forward`, the tracked loopback LiveKit bridge, and the console agent. Process cleanup is guarded by PID, process group, operating-system start identity, and observed argv. Existing listeners must match the expected executable and exact arguments; unfamiliar listeners cause startup to fail.
+The supervisor may own foreground Whisper, the UI `kubectl port-forward`, the tracked loopback LiveKit bridge, and the console agent. Process cleanup is guarded by PID, process group, session ID, and operating-system start identity. Existing listeners must match the expected executable and exact arguments; unfamiliar listeners cause startup to fail.
 
 The Tailscale adapter preserves existing matching mappings and records only mappings it creates. Cleanup re-reads each target and removes it only while it still matches the recorded target. It never resets Tailscale Serve or enables Funnel.
 
