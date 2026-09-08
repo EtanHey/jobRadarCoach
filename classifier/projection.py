@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import date
+import math
 import re
 
 from scraper.annotate import MCP_EVIDENCE_IDS
@@ -14,6 +15,13 @@ MIN_JD_CHARS = 200
 MAX_HISTORY_ENTRIES = 20
 MAX_HISTORY_TEXT_CHARS = 500
 DEPTH_MODES = frozenset({"hands-on", "directed-AI", "studied-with-AI"})
+PROFESSIONAL_PREFERENCE_FIELDS = {
+    "roles", "stacks", "levels", "salary_floor", "red_flag_words", "free_text"
+}
+MAX_PROFESSIONAL_PREFERENCE_ITEMS = 50
+MAX_PROFESSIONAL_PREFERENCE_ITEM_CHARS = 200
+MAX_PROFESSIONAL_PREFERENCE_TEXT_CHARS = 2000
+MAX_SALARY_FLOOR = 100_000_000
 
 
 def _text(value: object, field: str) -> str:
@@ -40,6 +48,38 @@ def _string_list(
     return normalized
 
 
+def _professional_preference_list(value: object, field: str) -> list[str]:
+    values = _string_list(value, f"professional preference {field}", allow_empty=True)
+    if len(values) > MAX_PROFESSIONAL_PREFERENCE_ITEMS or any(
+        len(item) > MAX_PROFESSIONAL_PREFERENCE_ITEM_CHARS for item in values
+    ):
+        raise ValueError(f"professional preference {field} exceeds its size limit")
+    return values
+
+
+def _validate_professional_preferences(value: object) -> None:
+    if not isinstance(value, dict) or set(value) != PROFESSIONAL_PREFERENCE_FIELDS:
+        raise ValueError("professional preferences must contain the exact supported fields")
+    for field in ("roles", "stacks", "levels", "red_flag_words"):
+        _professional_preference_list(value[field], field)
+    salary_floor = value["salary_floor"]
+    valid_salary = (
+        salary_floor is None
+        or type(salary_floor) is int
+        and 0 <= salary_floor <= MAX_SALARY_FLOOR
+        or type(salary_floor) is float
+        and math.isfinite(salary_floor)
+        and 0 <= salary_floor <= MAX_SALARY_FLOOR
+    )
+    if not valid_salary:
+        raise ValueError("professional preference salary_floor is invalid")
+    free_text = value["free_text"]
+    if free_text is not None and len(
+        _text(free_text, "professional preference free_text")
+    ) > MAX_PROFESSIONAL_PREFERENCE_TEXT_CHARS:
+        raise ValueError("professional preference free_text exceeds its size limit")
+
+
 def _validate_candidate(candidate: object) -> None:
     if not isinstance(candidate, dict):
         raise ValueError("candidate must be an object")
@@ -48,6 +88,7 @@ def _validate_candidate(candidate: object) -> None:
     if type(tenure) not in {int, float} or not 0 <= float(tenure) <= 100:
         raise ValueError("candidate.tenure_years is invalid")
     _string_list(candidate.get("fit_terms"), "candidate.fit_terms")
+    _validate_professional_preferences(candidate.get("professional_preferences"))
     depth = candidate.get("professional_depth", {})
     if not isinstance(depth, dict):
         raise ValueError("candidate.professional_depth must be an object")

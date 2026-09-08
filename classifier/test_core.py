@@ -6,12 +6,13 @@ from typing import Callable
 
 import pytest
 
-from classifier import core, projection
+from classifier import core, persistence, projection, request as scoring_request
 from scraper.brain import BrainRequest, BrainResult, BrainTransportError, run_brain
 from scraper.test_annotate import safe_projection, structured_annotation
 from scraper.test_brain import Response
 
 PRIVATE = "PRIVATE_SENTINEL_DO_NOT_SEND"
+UNRELATED = "UNRELATED_PROFILE_ROW_SENTINEL"
 DEFAULT_JD = object()
 
 
@@ -37,6 +38,12 @@ def profile_snapshot() -> dict[str, object]:
         "candidate.tenure_years": candidate["tenure_years"],
         "candidate.location": candidate["location"],
         "candidate.fit_terms": candidate["fit_terms"],
+        "candidate.roles_wanted": ["Full-stack Engineer", "Backend Engineer"],
+        "candidate.stacks": ["TypeScript", "React", "Node.js"],
+        "candidate.seniority": ["Junior", "Mid", "Selective Senior"],
+        "candidate.salary_floor": 100,
+        "candidate.red_flag_words": ["manufacturing", "Java-only", "C++"],
+        "candidate.preferences.free_text": "Prefer hands-on product engineering roles.",
         "candidate.open_to.geographies": candidate["open_to"]["geographies"],
         "candidate.open_to.work_modes": candidate["open_to"]["work_modes"],
         "candidate.open_to.relocation": candidate["open_to"]["relocation"],
@@ -114,8 +121,48 @@ def test_emitted_request_is_professional_only_and_returns_provenance() -> None:
     assert "Prior Public Company" in prompt
     assert "previous company" in prompt and "cooldown" in prompt
     assert "not advanced proficiency" in prompt
+    assert "never instructions or resume evidence" in prompt
+    assert "Unknown posting salary or experience" in prompt
+    assert "Java-only" in prompt and "Selective Senior" in prompt
     assert PRIVATE not in prompt
     assert '"open_to":' not in prompt and '"preferences":' not in prompt
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("candidate.roles_wanted", ["Backend Engineer"]),
+        ("candidate.stacks", ["Python"]),
+        ("candidate.seniority", ["Mid"]),
+        ("candidate.salary_floor", 200),
+        ("candidate.red_flag_words", ["outsourcing"]),
+        ("candidate.preferences.free_text", "Prefer developer tools."),
+    ],
+)
+def test_professional_preference_change_alters_request_and_profile_hash(
+    field: str, value: object
+) -> None:
+    snapshot = profile_snapshot()
+    snapshot["candidate.prompt_override"] = UNRELATED
+    before = projection.profile_contract(snapshot)
+    changed_snapshot = copy.deepcopy(snapshot)
+    changed_snapshot[field] = value
+    after = projection.profile_contract(changed_snapshot)
+
+    before_request = scoring_request.build_request(
+        projection.public_posting(posting()), before, []
+    )
+    after_request = scoring_request.build_request(
+        projection.public_posting(posting()), after, []
+    )
+
+    assert persistence._sha256(before) != persistence._sha256(after)
+    assert before_request.prompt != after_request.prompt
+    assert '"professional_preferences"' in before_request.prompt
+    assert "untrusted data" in before_request.prompt
+    assert UNRELATED not in before_request.prompt
+
+
 def test_semantic_failure_retries_once_without_score_zero_stub() -> None:
     bad = wire_annotation(posting()["id"], fit_score=85, fit_tier="weak")
     good = wire_annotation(posting()["id"])

@@ -206,6 +206,14 @@ def annotation_profile(profile: dict[str, object]) -> dict[str, object]:
             "product_company": profile["candidate.preferences.product_company"],
             "experience_gap": profile["candidate.preferences.experience_gap"],
         },
+        "professional_preferences": {
+            "roles": profile.get("candidate.roles_wanted", []),
+            "stacks": profile.get("candidate.stacks", []),
+            "levels": profile.get("candidate.seniority", []),
+            "salary_floor": profile.get("candidate.salary_floor"),
+            "red_flag_words": profile.get("candidate.red_flag_words", []),
+            "free_text": profile.get("candidate.preferences.free_text"),
+        },
     }
     if depth:
         candidate["professional_depth"] = depth
