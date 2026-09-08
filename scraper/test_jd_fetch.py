@@ -49,10 +49,12 @@ def test_extracts_real_saved_guest_markup_without_show_controls() -> None:
     description = jd_fetch.extract_full_jd(FIXTURE_PATH.read_text(encoding="utf-8"))
 
     assert description.startswith(
-        "abra professional services is seeking a talented Full Stack Developer"
+        "**abra professional services is seeking a talented Full Stack Developer"
     )
     assert "Proven experience with C# .NET – Mandatory" in description
     assert "Experience with AngularJS – Advantage" in description
+    assert description.count("\n- ") == 5
+    assert "**Requirements:**" in description
     assert "Show more" not in description
     assert "Show less" not in description
     assert "  " not in description
@@ -71,7 +73,29 @@ def test_falls_back_to_description_text_container_and_normalizes_whitespace() ->
     """
 
     assert jd_fetch.extract_full_jd(html) == (
-        "First line with spacing. Second nested line."
+        "First line with spacing.\n\nSecond **nested** line."
+    )
+
+
+def test_preserves_only_explicit_source_emphasis_and_list_structure() -> None:
+    jd_fetch = load_jd_fetch_module()
+    html = """
+    <div class="show-more-less-html__markup">
+      <strong>What You Need To Succeed<br><br></strong>
+      <ul>
+        <li>Five years of backend experience.</li>
+        <li>Production Python experience.</li>
+      </ul>
+      A Capitalized Sentence Is Still Prose.
+      <a href="https://example.com/private">Visible link text</a>
+    </div>
+    """
+
+    assert jd_fetch.extract_full_jd(html) == (
+        "**What You Need To Succeed**\n\n"
+        "- Five years of backend experience.\n"
+        "- Production Python experience.\n\n"
+        "A Capitalized Sentence Is Still Prose. Visible link text"
     )
 
 
@@ -95,7 +119,7 @@ def test_unbalanced_list_markup_stays_inside_description_container() -> None:
 
     description = jd_fetch.extract_full_jd(html)
 
-    assert description == "Real JD start. Item one Item two"
+    assert description == "Real JD start.\n\n- Item one\n- Item two"
     assert "FOOTER GARBAGE" not in description
     assert "trackingPayload" not in description
 
@@ -195,3 +219,13 @@ def test_fetch_full_jd_rejects_login_wall_and_malformed_url_without_raising() ->
     assert malformed["jd_text"] == ""
     assert malformed["jd_chars"] == 0
     assert malformed["fetch_error"]
+
+
+def test_preserves_visible_control_like_prose_outside_buttons() -> None:
+    jd_fetch = load_jd_fetch_module()
+    html = (
+        '<div class="show-more-less-html__markup">'
+        "<p>Show more</p><p>Show less</p><ul><li>Show less</li></ul>"
+        "<button>Show more</button></div>"
+    )
+    assert jd_fetch.extract_full_jd(html) == "Show more\n\nShow less\n\n- Show less"
