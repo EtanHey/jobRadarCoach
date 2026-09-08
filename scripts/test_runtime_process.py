@@ -95,7 +95,8 @@ def test_qa_environment_overrides_stale_values_for_run_and_children(tmp_path, mo
 
 
 @pytest.mark.parametrize("extra_child", [False, True])
-def test_replaced_descendant_command_is_not_signaled(tmp_path, extra_child):
+@pytest.mark.parametrize("leader_exits", [False, True])
+def test_owned_descendant_exec_is_cleaned(tmp_path, extra_child, leader_exits):
     trigger, marker = tmp_path / "exec-now", tmp_path / "child.pid"
     descendant = (
         "import os,pathlib,sys,time; p=pathlib.Path(sys.argv[1]); "
@@ -120,16 +121,12 @@ def test_replaced_descendant_command_is_not_signaled(tmp_path, extra_child):
     try:
         trigger.touch()
         wait_for(lambda: (process_snapshot(child_pid) or {}).get("argv") != original["argv"])
-        leader.terminate()
-        leader.wait(timeout=2)
-        assert not service.owns(context, identity)
-        try:
-            service.stop(context, identity)
-        except RuntimeError as error:
-            assert "refusing to signal" in str(error)
-        else:
-            raise AssertionError("replaced descendant command accepted")
-        assert process_snapshot(child_pid) is not None
+        if leader_exits:
+            leader.terminate()
+            leader.wait(timeout=2)
+        assert service.owns(context, identity)
+        service.stop(context, identity)
+        wait_for(lambda: process_snapshot(child_pid) is None)
     finally:
         # This test directly spawned the group and retains ownership of both commands.
         try:
