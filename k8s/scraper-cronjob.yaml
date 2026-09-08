@@ -10,6 +10,7 @@ spec:
   concurrencyPolicy: Forbid
   jobTemplate: # layer 2: the Job
     spec:
+      ttlSecondsAfterFinished: 3600
       activeDeadlineSeconds: 900
       backoffLimit: 0
       template: # layer 3: the Pod

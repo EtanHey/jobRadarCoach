@@ -172,6 +172,7 @@ python3 scripts/run_batch.py --limit 1 --timeout-seconds 120
 ```
 
 The scraper CronJob must remain suspended. The coordinator prints one receipt covering fetched, matched, new, extracted, and scored counts. An empty observed cohort safely skips both model jobs.
+Every generated Job keeps its Job and pod available for logs for one hour after completion, then Kubernetes removes them through `ttlSecondsAfterFinished: 3600`. Keep that TTL on any new or ad-hoc validation Job so completed resources do not accumulate.
 
 ### Optional Codex batch brain
 

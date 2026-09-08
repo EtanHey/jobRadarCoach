@@ -4,6 +4,7 @@ metadata:
   name: classifier-batch-lane4c-review
   namespace: job-radar-coach
 spec:
+  ttlSecondsAfterFinished: 3600
   activeDeadlineSeconds: 900
   backoffLimit: 0
   template:
