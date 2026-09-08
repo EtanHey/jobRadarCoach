@@ -95,7 +95,7 @@ test("falls back to first-seen and uses it to break equal published dates", () =
 });
 
 test("keeps loaded peers reachable after the selected listing leaves the view", () => {
-  const selected = job(20, { status: "saved" });
+  const selected = job(20, { status: "worth_checking" });
   const peer = job(21, { status: "new" });
   const unrelated = job(22, { company: "Other Labs", status: "new" });
 

@@ -138,7 +138,7 @@ export function getApiStore(): ApiStore {
     },
     async setStatus(input) {
       const db = client();
-      if (input.status === "seen") {
+      if (input.status === "seen" && input.automatic) {
         const seeded = await db.from("posting_status").upsert(
           { posting_id: input.posting_id, status: "seen", reason: null },
           { onConflict: "posting_id", ignoreDuplicates: true },
@@ -155,7 +155,7 @@ export function getApiStore(): ApiStore {
       }
       const value = await data(db.rpc("set_status", {
         posting_id: input.posting_id, status: input.status,
-        reason: input.status === "rejected" ? input.reason : null,
+        reason: input.status === "rejected" || input.status === "not_relevant" ? input.reason ?? null : null,
       }).single());
       const row = checked(statusRowSchema, value);
       return { status: row.status, reason: row.reason };

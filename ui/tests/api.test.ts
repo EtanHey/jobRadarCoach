@@ -5,7 +5,7 @@ import { makeGetJob } from "../app/api/jobs/[id]/route";
 import { makePatchStatus } from "../app/api/jobs/[id]/status/route";
 import { GET as getJobs, makeGetJobs } from "../app/api/jobs/route";
 import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
-import { type JobDetail, type JobSummary } from "../lib/contracts";
+import { JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
 import type { ApiStore } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
@@ -60,7 +60,7 @@ function store(overrides: Partial<ApiStore> = {}): ApiStore {
     getJob: () => Promise.resolve(detail),
     setStatus: (input) => Promise.resolve({
       status: input.status,
-      reason: input.status === "rejected" ? input.reason : null,
+      reason: input.status === "rejected" || input.status === "not_relevant" ? input.reason ?? null : null,
     }),
     getProfile: () => Promise.resolve(profile),
     updateProfile: () => Promise.resolve(profile),
@@ -72,7 +72,7 @@ function store(overrides: Partial<ApiStore> = {}): ApiStore {
 function mutation(path: string, body: unknown, headers: HeadersInit = {}): Request {
   return new Request(`http://localhost${path}`, {
     method: "PATCH",
-    headers: { "content-type": "application/json", ...headers },
+    headers: { "content-type": "application/json", "x-job-radar-status-version": "2", ...headers },
     body: JSON.stringify(body),
   });
 }
@@ -125,7 +125,7 @@ test("mutations require JSON and reject a supplied foreign Origin", async () => 
     body: "{}",
   });
   assert.equal((await handler(wrongType, { params: Promise.resolve({ id: ID }) })).status, 415);
-  const foreign = mutation(`/api/jobs/${ID}/status`, { status: "saved" }, {
+  const foreign = mutation(`/api/jobs/${ID}/status`, { status: "worth_checking" }, {
     origin: "https://foreign.example",
   });
   assert.equal((await handler(foreign, { params: Promise.resolve({ id: ID }) })).status, 403);
@@ -138,7 +138,7 @@ test("malformed job UUIDs are rejected for reads and writes", async () => {
     400,
   );
   assert.equal(
-    (await makePatchStatus(store())(mutation("/api/jobs/not-a-uuid/status", { status: "saved" }), context)).status,
+    (await makePatchStatus(store())(mutation("/api/jobs/not-a-uuid/status", { status: "worth_checking" }), context)).status,
     400,
   );
 });
@@ -165,7 +165,7 @@ test("successful detail/status/profile responses honor their public shapes", asy
     mutation(`/api/jobs/${ID}/status`, { status: "rejected", reason: "  Not aligned  " }),
     { params: Promise.resolve({ id: ID }) },
   );
-  assert.deepEqual(await statusResponse.json(), { status: "rejected", reason: "Not aligned" });
+  assert.deepEqual(await statusResponse.json(), { status: "rejected", reason: "  Not aligned  " });
   const profileResponse = await makeGetProfile(store())();
   assert.deepEqual(await profileResponse.json(), {
     profile,
@@ -182,12 +182,12 @@ test("detail GET is read-only and seen is an explicit status mutation", async ()
 
   let received: unknown;
   const response = await makePatchStatus(store({
-    setStatus: (input) => { received = input; return Promise.resolve({ status: "saved", reason: null }); },
+    setStatus: (input) => { received = input; return Promise.resolve({ status: "worth_checking", reason: null }); },
   }))(mutation(`/api/jobs/${ID}/status`, { status: "seen" }), {
     params: Promise.resolve({ id: ID }),
   });
   assert.deepEqual(received, { posting_id: ID, status: "seen" });
-  assert.deepEqual(await response.json(), { status: "saved", reason: null });
+  assert.deepEqual(await response.json(), { status: "worth_checking", reason: null });
 });
 
 test("non-http external URLs fail the output boundary", async () => {
@@ -223,4 +223,31 @@ test("missing server configuration is returned as a safe unavailable response", 
     if (key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     else process.env.SUPABASE_SERVICE_ROLE_KEY = key;
   }
+});
+
+
+test("every pipeline state filters and saves, preserving rejection wording", async () => {
+  for (const status of JobStatusSchema.options) {
+    const reason = status === "rejected" || status === "not_relevant" ? "  Exact owner wording  " : undefined;
+    const response = await makePatchStatus(store())(mutation(`/api/jobs/${ID}/status`, {status, ...(reason ? {reason} : {})}), {params:Promise.resolve({id:ID})});
+    assert.equal(response.status, 200, status);
+    assert.deepEqual(await response.json(), {status,reason:reason ?? null});
+    const list = await makeGetJobs(store())(new Request(`http://localhost/api/jobs?filter=${status}`));
+    assert.equal(list.status, 200, status);
+  }
+});
+test("stale clients cannot reinterpret their old rejection action", async () => {
+  let calls = 0;
+  const handler = makePatchStatus(store({setStatus: async () => {calls++; return {status:"rejected",reason:"old"};}}));
+  const response = await handler(mutation(`/api/jobs/${ID}/status`, {status:"rejected",reason:"old"}, {"x-job-radar-status-version":"1"}), {params:Promise.resolve({id:ID})});
+  assert.equal(response.status,409);
+  assert.equal(calls,0);
+});
+test("automatic seen intent is distinct from explicit backward edits", async () => {
+  const inputs: unknown[] = [];
+  const handler = makePatchStatus(store({setStatus: async input => {inputs.push(input); return {status:"seen",reason:null};}}));
+  for (const body of [{status:"seen",automatic:true},{status:"seen"}]) {
+    assert.equal((await handler(mutation(`/api/jobs/${ID}/status`,body),{params:Promise.resolve({id:ID})})).status,200);
+  }
+  assert.deepEqual(inputs,[{posting_id:ID,status:"seen",automatic:true},{posting_id:ID,status:"seen"}]);
 });
