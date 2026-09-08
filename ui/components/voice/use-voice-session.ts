@@ -41,6 +41,29 @@ export interface VoiceQaState {
 const initialMic: MicClientState = {
   phase: "closed", ready: false, owner: null, revision: null, error: null,
 };
+const qaBoundaryFailures = new Set<MicClientState["error"]>([
+  "claim_failed", "release_failed", "stream_lost",
+]);
+
+export function handleMicStateForSession(
+  next: MicClientState,
+  effects: {
+    qaMode: boolean;
+    isCurrent(): boolean;
+    publish(state: MicClientState): void;
+    closeSession(): void;
+    revokeQa(): void;
+  },
+) {
+  if (!effects.isCurrent()) return;
+  effects.publish(next);
+  if (!effects.qaMode || !qaBoundaryFailures.has(next.error)) return;
+  queueMicrotask(() => {
+    if (!effects.isCurrent()) return;
+    effects.closeSession();
+    effects.revokeQa();
+  });
+}
 
 interface TranscriptReader extends AsyncIterable<string> {
   info: { topic: string; id: string; attributes?: Record<string, string> };
@@ -262,7 +285,17 @@ export function useVoiceSession() {
       if (!isCurrent()) { void room.disconnect(true); return; }
       room.remoteParticipants.forEach(pinAgent);
       session.mic = createMicClient({ clientId, capture });
-      session.mic.subscribe(setMic);
+      session.mic.subscribe((next) => handleMicStateForSession(next, {
+        qaMode: qa.mode,
+        isCurrent,
+        publish: setMic,
+        closeSession: () => closeSession(),
+        revokeQa: () => {
+          setQa((current) => ({ ...current, status: "error" }));
+          setRoomPhase("error");
+          setError("QA voice session verification was lost. Recheck before connecting again.");
+        },
+      }));
       setMic(session.mic.getState()); setRoomPhase("connected");
       setSoundBlocked(!room.canPlaybackAudio); void room.startAudio().catch(() => setSoundBlocked(true));
     } catch {
