@@ -4,6 +4,8 @@ import subprocess
 import sys
 import time
 
+import pytest
+
 from scripts.runtime_process import Probe, ProcessService, RuntimeContext, process_snapshot
 
 
@@ -92,7 +94,8 @@ def test_qa_environment_overrides_stale_values_for_run_and_children(tmp_path, mo
             service.stop(context, identity)
 
 
-def test_replaced_descendant_command_is_not_signaled(tmp_path):
+@pytest.mark.parametrize("extra_child", [False, True])
+def test_replaced_descendant_command_is_not_signaled(tmp_path, extra_child):
     trigger, marker = tmp_path / "exec-now", tmp_path / "child.pid"
     descendant = (
         "import os,pathlib,sys,time; p=pathlib.Path(sys.argv[1]); "
@@ -100,7 +103,10 @@ def test_replaced_descendant_command_is_not_signaled(tmp_path):
         "exec(\"while not p.exists(): time.sleep(.02)\"); "
         "os.execv(sys.executable,[sys.executable,'-c','import time; time.sleep(25)'])"
     )
-    leader_code = "import subprocess,sys,time; subprocess.Popen(sys.argv[1:]); time.sleep(30)"
+    leader_code = "import subprocess,sys,time; "
+    if extra_child:
+        leader_code += "subprocess.Popen([sys.executable,'-c','import time; time.sleep(30)']); "
+    leader_code += "subprocess.Popen(sys.argv[1:]); time.sleep(30)"
     service = ProcessService(
         "replace", [sys.executable, "-c", leader_code, sys.executable, "-c", descendant,
                     str(trigger), str(marker)],
@@ -132,3 +138,13 @@ def test_replaced_descendant_command_is_not_signaled(tmp_path):
             pass
         leader.wait(timeout=2)
         wait_for(lambda: process_snapshot(child_pid) is None)
+
+
+def test_permission_denied_group_probe_is_not_reported_stopped(monkeypatch):
+    from scripts.runtime_process import _group_exists
+
+    def denied(*_args):
+        raise PermissionError("group still exists")
+
+    monkeypatch.setattr(os, "killpg", denied)
+    assert _group_exists(123)

@@ -108,6 +108,8 @@ def _group_exists(pgid: int) -> bool:
         return True
     except ProcessLookupError:
         return False
+    except PermissionError:
+        return True
 
 
 def _identity_state(identity: Identity) -> str:
@@ -127,7 +129,7 @@ def _identity_state(identity: Identity) -> str:
         for item in identity.get("members", []) if isinstance(item, dict)
     }
     current = {(item["pid"], item["start"], item["argv"]) for item in _group_snapshots(pgid)}
-    return "group" if recorded & current else "mismatch"
+    return "group" if current and current <= recorded else "mismatch"
 
 
 class ProcessService:
