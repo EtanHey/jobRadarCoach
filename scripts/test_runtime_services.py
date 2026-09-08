@@ -84,3 +84,12 @@ def test_bridge_rejects_extra_node_flags_and_script_arguments(monkeypatch, tmp_p
             assert not subject._bridge_probe(context).healthy
         monkeypatch.setattr(subject, "_listener", lambda *_args, script=script: (7, f"node {script}"))
         assert subject._bridge_probe(context).healthy
+
+
+def test_ollama_requires_exact_serve_arguments(monkeypatch):
+    monkeypatch.setattr(subject, "_http", lambda *_args: True)
+    for argv in ("ollama serve --extra", "ollama run serve"):
+        monkeypatch.setattr(subject, "_processes", lambda *_args, argv=argv: [(7, argv)])
+        assert not subject._ollama(None).healthy
+    monkeypatch.setattr(subject, "_processes", lambda *_args: [(7, "/opt/homebrew/bin/ollama serve")])
+    assert subject._ollama(None).healthy
