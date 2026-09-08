@@ -127,8 +127,18 @@ def pod_url(name, schemes):
     return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
 
 origin = urlsplit(os.environ["UI_ORIGIN"])
-if origin.scheme != "https" or not origin.hostname or origin.port != 8445:
+try:
+    origin_port = origin.port
+except ValueError:
+    raise SystemExit("UI_ORIGIN has an invalid port") from None
+if (
+    origin.scheme != "https" or not origin.hostname or origin_port != 8445
+    or origin.username is not None or origin.password is not None
+    or origin.path not in {"", "/"} or origin.query or origin.fragment
+):
     raise SystemExit("UI_ORIGIN must be a full HTTPS origin on port 8445")
+livekit_host = f"[{origin.hostname}]" if ":" in origin.hostname else origin.hostname
+livekit_public_url = urlunsplit(("wss", f"{livekit_host}:8446", "", "", ""))
 
 def secret(name, values):
     return {
@@ -146,6 +156,7 @@ document = {
             "SUPABASE_URL": pod_url("API_URL", {"http", "https"}),
             "SUPABASE_SERVICE_ROLE_KEY": required("SERVICE_ROLE_KEY"),
             "UI_ORIGIN": os.environ["UI_ORIGIN"],
+            "LIVEKIT_PUBLIC_URL": livekit_public_url,
         }),
     ],
 }
