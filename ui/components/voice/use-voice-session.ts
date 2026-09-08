@@ -210,7 +210,9 @@ export function useVoiceSession() {
         if (!participant || !pinAgent(participant)) throw new OpenJobProtocolError();
         rpcHandler ??= createOpenJobRpcHandler({
           trustedAgentIdentity: participant.identity,
-          fetchJob: (input, init) => fetch(input, { ...init, signal: abort.signal }),
+          fetchJob: (input, init) => fetch(input, { ...init,
+            signal: init?.signal ? AbortSignal.any([abort.signal, init.signal]) : abort.signal,
+          }),
           openWindow: (url, target, features) => {
             if (!isCurrent() || abort.signal.aborted) throw new OpenJobProtocolError();
             flushSync(() => setApplicationLink((current) => ({
