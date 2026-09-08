@@ -15,6 +15,7 @@ from scripts.runtime_tailnet import TailscaleServeService
 
 
 KUBECTL = ("kubectl", "--context", "orbstack", "-n", "job-radar-coach")
+KOKORO_CONTAINER_NAME = "kokoro"
 
 
 def _result(context: RuntimeContext, command: Sequence[str], *, timeout: float = 5):
@@ -178,7 +179,10 @@ def _supabase(context: RuntimeContext) -> Probe:
 
 
 def _ollama(context: RuntimeContext) -> Probe:
-    known = _processes(context, "ollama", "serve")
+    known = [
+        process for process in _processes(context, "ollama", "serve")
+        if len(shlex.split(process[1])) == 2 and shlex.split(process[1])[1] == "serve"
+    ]
     healthy = len(known) == 1 and _http(context, "http://127.0.0.1:11434/api/tags")
     return Probe(healthy, "shared Ollama healthy" if healthy else "shared Ollama is absent or unidentified")
 
@@ -187,8 +191,13 @@ def _kokoro(context: RuntimeContext) -> Probe:
     result = _result(context, (
         "docker", "ps", "--filter", "publish=8881", "--format", "{{json .}}",
     ))
-    rows = [] if result is None or result.returncode else result.stdout.lower().splitlines()
-    known = len(rows) == 1 and "kokoro" in rows[0]
+    rows = []
+    if result is not None and not result.returncode:
+        try:
+            rows = [json.loads(line) for line in result.stdout.splitlines()]
+        except (json.JSONDecodeError, TypeError):
+            rows = []
+    known = len(rows) == 1 and isinstance(rows[0], dict) and rows[0].get("Names") == KOKORO_CONTAINER_NAME
     healthy = known and _http(context, "http://127.0.0.1:8881/v1/models")
     return Probe(healthy, "shared Kokoro healthy" if healthy else "shared Kokoro container is absent or unidentified")
 

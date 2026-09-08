@@ -1,6 +1,13 @@
 import scripts.runtime_services as subject
 
 
+class Result:
+    returncode = 0
+
+    def __init__(self, stdout):
+        self.stdout = stdout
+
+
 def test_whisper_identity_rejects_ambiguous_or_unsafe_argv():
     valid = "whisper-server -m /tmp/model.bin --host 127.0.0.1 --port 8912 -l en".split()
     assert subject._whisper_argv(valid, 8912)
@@ -84,3 +91,27 @@ def test_bridge_rejects_extra_node_flags_and_script_arguments(monkeypatch, tmp_p
             assert not subject._bridge_probe(context).healthy
         monkeypatch.setattr(subject, "_listener", lambda *_args, script=script: (7, f"node {script}"))
         assert subject._bridge_probe(context).healthy
+
+
+def test_ollama_requires_exact_serve_arguments(monkeypatch):
+    monkeypatch.setattr(subject, "_http", lambda *_args: True)
+    for argv in ("ollama serve --extra", "ollama run serve"):
+        monkeypatch.setattr(subject, "_processes", lambda *_args, argv=argv: [(7, argv)])
+        assert not subject._ollama(None).healthy
+    monkeypatch.setattr(subject, "_processes", lambda *_args: [(7, "/opt/homebrew/bin/ollama serve")])
+    assert subject._ollama(None).healthy
+
+
+def test_kokoro_requires_exact_approved_container_name(monkeypatch):
+    monkeypatch.setattr(subject, "_http", lambda *_args: True)
+    records = [
+        ('{"Names":"not-kokoro","Image":"ghcr.io/remsky/kokoro-fastapi-cpu:latest"}', False),
+        ('{"Names":"impostor","Labels":"service=kokoro"}', False),
+        ('malformed\n{"Names":"kokoro"}', False),
+        ('null\n{"Names":"kokoro"}', False),
+        ('{"Names":"kokoro"}\n{"Names":"other"}', False),
+        ('{"Names":"kokoro","Image":"ghcr.io/remsky/kokoro-fastapi-cpu:latest"}', True),
+    ]
+    for output, expected in records:
+        monkeypatch.setattr(subject, "_result", lambda *_args, output=output: Result(output))
+        assert subject._kokoro(None).healthy is expected

@@ -166,9 +166,10 @@ class Supervisor:
             print(f"startup failed: {error}", file=sys.stderr, flush=True)
             exit_code = 1
         finally:
-            failures = self._cleanup(entries)
+            retained, failures = self._cleanup(entries)
             if failures:
                 state = self._read_state() or {}
+                state["services"] = retained
                 state["cleanup_failures"] = failures
                 _atomic_json(self.state_path, state)
             else:
@@ -179,8 +180,11 @@ class Supervisor:
                 exit_code = 1
         return exit_code
 
-    def _cleanup(self, entries: list[dict[str, Any]]) -> list[str]:
+    def _cleanup(
+        self, entries: list[dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], list[str]]:
         by_name = {service.name: service for service in self.services}
+        retained: list[dict[str, Any]] = []
         failures: list[str] = []
         for entry in reversed(entries):
             if entry.get("mode") != "owned":
@@ -193,10 +197,11 @@ class Supervisor:
                 service.stop(self.context, identity)
                 print(f"{entry['name']}: stopped", flush=True)
             except Exception as error:
+                retained.insert(0, entry)
                 message = f"{entry.get('name', '?')}: cleanup failed: {error}"
                 failures.append(message)
                 print(message, file=sys.stderr, flush=True)
-        return failures
+        return retained, failures
 
     def status(self) -> int:
         state = self._read_state() or {}
@@ -222,8 +227,7 @@ class Supervisor:
             return 0
         failures = state.get("cleanup_failures", []) if state else []
         if failures:
-            print("supervisor: cleanup failed: " + "; ".join(failures), file=sys.stderr)
-            return 1
+            return self._retry_cleanup()
         if not _same_process(identity):
             print("supervisor: stale state; refusing to signal", file=sys.stderr)
             return 1
@@ -242,6 +246,62 @@ class Supervisor:
         print("supervisor: stop timed out", file=sys.stderr)
         return 1
 
+    def _retry_cleanup(self) -> int:
+        self.context.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with self.lock_path.open("a+") as lock:
+            os.chmod(self.lock_path, 0o600)
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                print("supervisor: cleanup retry locked by running supervisor", file=sys.stderr)
+                return 1
+            state = self._read_state()
+            if not state:
+                print("supervisor: stopped")
+                return 0
+            failures = state.get("cleanup_failures", [])
+            if not failures:
+                print("supervisor: cleanup retry state changed; retry down", file=sys.stderr)
+                return 1
+            owner = state.get("supervisor")
+            if isinstance(owner, dict) and _same_process(owner):
+                print("supervisor: cleanup still owned by running supervisor", file=sys.stderr)
+                return 1
+            entries = state.get("services", [])
+            if not isinstance(entries, list):
+                print("supervisor: invalid retained cleanup state", file=sys.stderr)
+                return 1
+            interrupted_signal: int | None = None
+
+            def defer_interrupt(signum: int, _frame: Any) -> None:
+                nonlocal interrupted_signal
+                interrupted_signal = interrupted_signal or signum
+
+            old_int = signal.signal(signal.SIGINT, defer_interrupt)
+            old_term = signal.signal(signal.SIGTERM, defer_interrupt)
+            try:
+                retained, retry_failures = self._cleanup(entries)
+                if retry_failures:
+                    state["services"] = retained
+                    state["cleanup_failures"] = retry_failures
+                    _atomic_json(self.state_path, state)
+                    print(
+                        "supervisor: cleanup failed: " + "; ".join(retry_failures),
+                        file=sys.stderr,
+                    )
+                    if interrupted_signal is not None:
+                        print("supervisor: interrupted; cleanup state retained", file=sys.stderr)
+                    return 1
+                self.state_path.unlink(missing_ok=True)
+                if interrupted_signal is not None:
+                    print("supervisor: cleanup completed after interrupt", file=sys.stderr)
+                    return 1
+                print("supervisor: stopped")
+                return 0
+            finally:
+                signal.signal(signal.SIGINT, old_int)
+                signal.signal(signal.SIGTERM, old_term)
+
 
 def _load_services(module_name: str, context: RuntimeContext) -> Sequence[Service]:
     module = importlib.import_module(module_name)
@@ -259,9 +319,12 @@ def main(*, repo_root: Path, argv: Sequence[str]) -> int:
     args = parser.parse_args(argv)
     state_dir = Path(os.environ.get("RUN_SUPERVISOR_STATE_DIR", repo_root / ".run-state"))
     qa_mode = args.qa
+    recorded_state: dict[str, Any] | None = None
     if args.command != "up":
         try:
-            recorded = json.loads((state_dir / "state.json").read_text()).get("qa_mode")
+            value = json.loads((state_dir / "state.json").read_text())
+            recorded_state = value if isinstance(value, dict) else None
+            recorded = recorded_state.get("qa_mode") if recorded_state else None
             if isinstance(recorded, bool):
                 qa_mode = recorded
         except (OSError, json.JSONDecodeError, AttributeError):
@@ -270,7 +333,14 @@ def main(*, repo_root: Path, argv: Sequence[str]) -> int:
     if args.command == "up" and qa_mode:
         print("*** READ-ONLY QA MODE REQUESTED: adapters must enforce read-only behavior ***", flush=True)
     try:
-        services = [] if args.command == "down" else _load_services(args.services_module, context)
+        cleanup_retry = (
+            args.command == "down" and recorded_state is not None
+            and bool(recorded_state.get("cleanup_failures"))
+        )
+        services = (
+            _load_services(args.services_module, context)
+            if args.command != "down" or cleanup_retry else []
+        )
         supervisor = Supervisor(context, services)
         return getattr(supervisor, args.command)()
     except Exception as error:

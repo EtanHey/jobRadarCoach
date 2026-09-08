@@ -118,3 +118,35 @@ def test_cleanup_rechecks_each_mapping_before_removal(monkeypatch):
     with pytest.raises(RuntimeError, match="mapping https:8445 changed"):
         service._remove(context, ["https:8445", "https:8446"])
     assert off_keys == ["https:8446"]
+
+
+def test_creation_rechecks_later_mapping_and_rolls_back_only_owned(monkeypatch):
+    context, service = FakeContext(), subject.TailscaleServeService()
+    targets = {key: None for key in service.desired}
+    attempted = []
+
+    def snapshot(_context):
+        if targets["https:8445"] == service.desired["https:8445"]:
+            targets["https:8446"] = "http://127.0.0.1:9999"
+        return dict(targets)
+
+    def result(_context, command):
+        flag = next(item for item in command if item.startswith(("--https=", "--tcp=")))
+        key = flag[2:].replace("=", ":")
+        attempted.append((key, command[-1]))
+        if command[-1] == "off":
+            targets[key] = None
+        elif targets[key] is None:
+            targets[key] = service.desired[key]
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(service, "_targets", snapshot)
+    monkeypatch.setattr(subject, "_result", result)
+    with pytest.raises(RuntimeError, match="refusing to replace mapping: https:8446"):
+        service.start(context)
+    assert attempted == [
+        ("https:8445", service.desired["https:8445"]),
+        ("https:8445", "off"),
+    ]
+    assert targets["https:8445"] is None
+    assert targets["https:8446"] == "http://127.0.0.1:9999"
