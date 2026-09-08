@@ -55,13 +55,13 @@ function client(): SupabaseClient {
 
 async function data(result: PromiseLike<{ data: unknown; error: unknown }>): Promise<unknown> {
   const response = await result;
-  if (response.error) throw new HttpError(503, "Database request failed.");
+  if (response.error) throw new HttpError(503, "Database request failed.", "database");
   return response.data;
 }
 
 function checked<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw new HttpError(500, "Database returned an invalid response.");
+  if (!parsed.success) throw new HttpError(500, "Database returned an invalid response.", "invalid_response");
   return parsed.data;
 }
 
@@ -144,7 +144,7 @@ export function getApiStore(): ApiStore {
           { onConflict: "posting_id", ignoreDuplicates: true },
         );
         if (seeded.error?.code === "23503") throw new HttpError(404, "Job not found.");
-        if (seeded.error) throw new HttpError(503, "Database request failed.");
+        if (seeded.error) throw new HttpError(503, "Database request failed.", "database");
         const changed = await data(db.from("posting_status").update({ status: "seen", reason: null })
           .eq("posting_id", input.posting_id).eq("status", "new").select("status,reason").maybeSingle());
         if (changed !== null) return checked(StatusResultSchema, changed);

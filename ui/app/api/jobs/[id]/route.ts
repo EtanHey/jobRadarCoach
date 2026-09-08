@@ -10,7 +10,7 @@ export function makeGetJob(store: ApiStore) {
     const job = await store.getJob(id);
     if (!job) throw new HttpError(404, "Job not found.");
     return output(JobDetailResponseSchema, { job });
-  });
+  }, "job_detail");
 }
 
 export function GET(request: Request, context: Context): Promise<Response> {
