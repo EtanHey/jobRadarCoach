@@ -84,7 +84,7 @@ def assert_not_ready(code, operation):
 
 def test_valid_ready_receipt_and_pool(monkeypatch):
     install_live_seams(monkeypatch)
-    receipt = subject.validate_receipt(ready_receipt())
+    receipt = subject.validate_v1_receipt(ready_receipt())
     subject.verify_pool(receipt)
 
 
@@ -103,14 +103,14 @@ def test_stale_or_reused_process_is_rejected(monkeypatch, failure):
             lambda _pid: {"source": "ps_lstart", "value": "different birth"},
         )
         code = "stale_process_identity"
-    assert_not_ready(code, lambda: subject.validate_receipt(ready_receipt()))
+    assert_not_ready(code, lambda: subject.validate_v1_receipt(ready_receipt()))
 
 
 def test_non_qa_receipt_is_rejected(monkeypatch):
     install_live_seams(monkeypatch)
     receipt = ready_receipt()
     receipt["startup"]["voice_qa_mode"] = "0"
-    assert_not_ready("qa_mode_missing", lambda: subject.validate_receipt(receipt))
+    assert_not_ready("qa_mode_missing", lambda: subject.validate_v1_receipt(receipt))
 
 
 def test_unknown_automatic_worker_is_rejected(monkeypatch):
@@ -118,8 +118,8 @@ def test_unknown_automatic_worker_is_rejected(monkeypatch):
         monkeypatch,
         logs=registration_logs("worker-owned", "worker-unknown"),
     )
-    receipt = subject.validate_receipt(ready_receipt())
-    assert_not_ready("unknown_automatic_workers", lambda: subject.verify_pool(receipt))
+    receipt = subject.validate_v1_receipt(ready_receipt())
+    assert_not_ready("unexpected_automatic_worker", lambda: subject.verify_pool(receipt))
 
 
 @pytest.mark.parametrize(
@@ -131,38 +131,47 @@ def test_absent_or_rotated_logs_are_rejected(monkeypatch, logs):
     assert_not_ready("pool_history_incomplete", subject.registration_pool)
 
 
-def test_cli_ready_exit_and_compact_stdout(monkeypatch, tmp_path, capsys):
+def test_cli_v1_fails_closed_without_threshold(monkeypatch, tmp_path, capsys):
     install_live_seams(monkeypatch)
     receipt_path = tmp_path / "receipt.json"
     receipt_path.write_text(json.dumps(ready_receipt()))
-    monkeypatch.setattr(sys, "argv", ["verify_agent_qa_receipt.py", str(receipt_path)])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["verify_agent_qa_receipt.py", "--require-mode", "qa", str(receipt_path)],
+    )
 
-    assert subject.main() == 0
+    assert subject.main() == 1
     output = capsys.readouterr()
-    assert output.out == '{"status":"READY","worker_id":"worker-owned"}\n'
-    assert output.err == ""
+    assert output.out == '{"status":"NOT_READY","reason":"threshold_unknown"}\n'
+    assert output.err.startswith("NOT_READY threshold_unknown ")
 
 
 def test_cli_missing_receipt_is_nonzero(monkeypatch, tmp_path, capsys):
     missing = Path(tmp_path, "missing.json")
-    monkeypatch.setattr(sys, "argv", ["verify_agent_qa_receipt.py", str(missing)])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["verify_agent_qa_receipt.py", "--require-mode", "qa", str(missing)],
+    )
     assert subject.main() == 1
     output = capsys.readouterr()
-    assert output.out == ""
+    assert output.out == '{"status":"NOT_READY","reason":"receipt_missing"}\n'
     assert output.err.startswith("NOT_READY receipt_missing ")
 
 
-@pytest.mark.parametrize("failure", ["qa_mode_missing", "unknown_automatic_workers"])
-def test_cli_rejection_gate_has_nonzero_stderr_contract(monkeypatch, tmp_path, capsys, failure):
-    logs = registration_logs("worker-owned", "worker-unknown") if failure == "unknown_automatic_workers" else None
-    install_live_seams(monkeypatch, logs=logs)
+def test_cli_rejection_gate_has_json_stdout_and_detail(monkeypatch, tmp_path, capsys):
+    install_live_seams(monkeypatch)
     receipt = ready_receipt()
-    if failure == "qa_mode_missing":
-        receipt["startup"]["voice_qa_mode"] = "0"
+    receipt["startup"]["voice_qa_mode"] = "0"
     receipt_path = tmp_path / "receipt.json"
     receipt_path.write_text(json.dumps(receipt))
-    monkeypatch.setattr(sys, "argv", ["verify_agent_qa_receipt.py", str(receipt_path)])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["verify_agent_qa_receipt.py", "--require-mode", "qa", str(receipt_path)],
+    )
     assert subject.main() == 1
     output = capsys.readouterr()
-    assert output.out == ""
-    assert output.err.startswith(f"NOT_READY {failure} ")
+    assert output.out == '{"status":"NOT_READY","reason":"qa_mode_missing"}\n'
+    assert output.err.startswith("NOT_READY qa_mode_missing ")

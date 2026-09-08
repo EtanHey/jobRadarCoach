@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Fail-closed, read-only verifier for a Job Radar voice-QA agent receipt."""
+"""Fail-closed, read-only verifier for Job Radar voice-agent receipts."""
 
 import argparse
 import json
+import math
 import os
 import subprocess
 import sys
@@ -12,6 +13,7 @@ from urllib.parse import urlsplit
 
 
 REQUIRED_TABLES = ("posting_status", "profile", "active_mic")
+V2_ADDITIONAL_FIELDS = {"mode", "worker_load_threshold", "host_load_at_startup"}
 
 
 class NotReady(RuntimeError):
@@ -49,6 +51,16 @@ def process_start_time(pid: int) -> dict[str, str]:
     return {"source": "ps_lstart", "value": value}
 
 
+def host_load_per_cpu() -> float:
+    # os.getloadavg() raises OSError where load average is unobtainable. Without this,
+    # main() emits a traceback instead of the contracted compact NOT_READY JSON.
+    try:
+        load = os.getloadavg()[0]
+    except (OSError, AttributeError) as exc:
+        fail("load_unavailable", f"host load sampling failed: {exc}")
+    return load / (os.cpu_count() or 1)
+
+
 def require_object(value: object, path: str) -> dict[str, object]:
     if not isinstance(value, dict):
         fail("invalid_receipt", f"{path} must be an object")
@@ -71,7 +83,7 @@ def require_keys(
         )
 
 
-def validate_receipt(payload: object) -> dict[str, object]:
+def validate_v1_receipt(payload: object) -> dict[str, object]:
     receipt = require_object(payload, "receipt")
     require_keys(
         receipt,
@@ -207,6 +219,176 @@ def validate_receipt(payload: object) -> dict[str, object]:
     return receipt
 
 
+def validate_availability(receipt: dict[str, object]) -> None:
+    threshold = receipt.get("worker_load_threshold")
+    startup_load = receipt.get("host_load_at_startup")
+    if (
+        not isinstance(threshold, (int, float))
+        or isinstance(threshold, bool)
+        or not math.isfinite(threshold)
+        or threshold <= 0
+    ):
+        fail("invalid_receipt", "worker_load_threshold must be a positive number")
+    if (
+        not isinstance(startup_load, (int, float))
+        or isinstance(startup_load, bool)
+        or not math.isfinite(startup_load)
+        or startup_load < 0
+    ):
+        fail("invalid_receipt", "host_load_at_startup must be a non-negative number")
+
+
+def verify_live_load(receipt: dict[str, object]) -> None:
+    threshold = receipt.get("worker_load_threshold")
+    if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+        fail("threshold_unknown", "worker load threshold is unavailable")
+    if host_load_per_cpu() >= threshold:
+        fail(
+            "over_load_threshold",
+            "current host load is at or above worker_load_threshold",
+        )
+
+
+def validate_v2_normal_receipt(receipt: dict[str, object]) -> dict[str, object]:
+    if receipt.get("status") != "ready":
+        fail("receipt_not_ready", f"status is {receipt.get('status')!r}")
+    if receipt.get("reason") is not None or "error_type" in receipt:
+        fail("invalid_receipt", "a ready receipt cannot carry failure fields")
+    written_at = receipt.get("written_at")
+    if not isinstance(written_at, str):
+        fail("invalid_receipt", "written_at must be a date-time string")
+    try:
+        datetime.fromisoformat(written_at.replace("Z", "+00:00"))
+    except ValueError:
+        fail("invalid_receipt", "written_at must be an RFC 3339 date-time")
+
+    process = require_object(receipt.get("process"), "process")
+    require_keys(process, required={"pid", "start_time"}, path="process")
+    pid = process.get("pid")
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        fail("invalid_receipt", "process.pid must be a positive integer")
+    expected_start = require_object(process.get("start_time"), "process.start_time")
+    require_keys(expected_start, required={"source", "value"}, path="process.start_time")
+    if process_start_time(pid) != expected_start:
+        fail("stale_process_identity", "PID start identity does not match receipt")
+
+    startup = require_object(receipt.get("startup"), "startup")
+    require_keys(
+        startup,
+        required={
+            "voice_qa_mode",
+            "command_mode",
+            "room_mode",
+            "livekit_agent_name",
+        },
+        path="startup",
+    )
+    if startup.get("voice_qa_mode") not in {None, "", "0"}:
+        fail(
+            "normal_mode_missing",
+            "startup.voice_qa_mode must be unset, empty, or equal '0'",
+        )
+    if (
+        startup.get("command_mode") not in {"dev", "start"}
+        or startup.get("room_mode") is not True
+    ):
+        fail("not_room_mode", "agent did not start in dev/start room mode")
+    if startup.get("livekit_agent_name") != "":
+        fail("not_automatic_registration", "LIVEKIT_AGENT_NAME is not empty")
+
+    registration = require_object(receipt.get("registration"), "registration")
+    require_keys(
+        registration,
+        required={"server_url", "worker_id", "automatic", "effective_agent_name"},
+        path="registration",
+    )
+    if (
+        registration.get("automatic") is not True
+        or registration.get("effective_agent_name") != ""
+    ):
+        fail("not_automatic_registration", "effective registration is named")
+    worker_id = registration.get("worker_id")
+    if not isinstance(worker_id, str) or not worker_id.strip():
+        fail("registration_missing", "registered worker_id is empty")
+    server_url = registration.get("server_url")
+    if not isinstance(server_url, str):
+        fail("server_url_missing", "registration.server_url is missing")
+    parsed_url = urlsplit(server_url)
+    if (
+        parsed_url.scheme not in {"ws", "wss"}
+        or not parsed_url.hostname
+        or parsed_url.username is not None
+        or parsed_url.password is not None
+        or parsed_url.query
+        or parsed_url.fragment
+    ):
+        fail(
+            "unsafe_server_url",
+            "registration.server_url is not a credential-free ws/wss URL",
+        )
+    expected_url = os.environ.get("LIVEKIT_URL")
+    if not expected_url:
+        fail(
+            "expected_server_missing",
+            "LIVEKIT_URL must identify the runner's expected server",
+        )
+    if server_url != expected_url:
+        fail("wrong_server", "receipt server URL differs from LIVEKIT_URL")
+    if receipt.get("database") is not None:
+        fail("normal_database_evidence_present", "database must be null in normal mode")
+    return receipt
+
+
+def validate_v2_receipt(
+    receipt: dict[str, object], *, require_mode: str
+) -> dict[str, object]:
+    require_keys(
+        receipt,
+        required={
+            "schema_version",
+            "mode",
+            "worker_load_threshold",
+            "host_load_at_startup",
+            "status",
+            "process",
+            "startup",
+            "registration",
+            "database",
+            "reason",
+            "written_at",
+        },
+        optional={"error_type"},
+        path="receipt",
+    )
+    mode = receipt.get("mode")
+    if mode not in {"normal", "qa"}:
+        fail("invalid_receipt", "mode must be 'normal' or 'qa'")
+    if mode != require_mode:
+        fail("wrong_mode", f"receipt mode is {mode!r}, required {require_mode!r}")
+    validate_availability(receipt)
+    if mode == "normal":
+        return validate_v2_normal_receipt(receipt)
+
+    legacy_projection = {
+        key: value for key, value in receipt.items() if key not in V2_ADDITIONAL_FIELDS
+    }
+    legacy_projection["schema_version"] = 1
+    validate_v1_receipt(legacy_projection)
+    return receipt
+
+
+def validate_receipt(payload: object, *, require_mode: str) -> dict[str, object]:
+    receipt = require_object(payload, "receipt")
+    schema_version = receipt.get("schema_version")
+    if schema_version == 1:
+        if require_mode != "qa":
+            fail("wrong_mode", "schema version 1 receipts are QA-only")
+        return validate_v1_receipt(receipt)
+    if schema_version == 2:
+        return validate_v2_receipt(receipt, require_mode=require_mode)
+    fail("unsupported_schema", "schema_version must be 1 or 2")
+
+
 def kubectl_json(arguments: list[str]) -> object:
     command = ["kubectl", *arguments]
     try:
@@ -327,46 +509,67 @@ def verify_pool(receipt: dict[str, object]) -> None:
     registration = require_object(receipt["registration"], "registration")
     expected_worker = registration["worker_id"]
     pool = registration_pool()
+    if expected_worker not in pool:
+        fail(
+            "worker_not_registered",
+            "receipt worker is not in the current LiveKit registration pool",
+        )
+    expected_record = pool[expected_worker]
+    if (
+        expected_record.get("agentName") != ""
+        or expected_record.get("jobType") != "JT_ROOM"
+    ):
+        fail(
+            "wrong_dispatch_mode",
+            "receipt worker is not registered for automatic room dispatch",
+        )
     automatic_room_workers = {
         worker_id: record
         for worker_id, record in pool.items()
         if record.get("agentName") == "" and record.get("jobType") == "JT_ROOM"
     }
-    if expected_worker not in automatic_room_workers:
-        fail(
-            "registered_worker_absent",
-            "receipt worker is not in the current automatic room pool",
-        )
     unknown = sorted(set(automatic_room_workers) - {expected_worker})
     if unknown:
         fail(
-            "unknown_automatic_workers",
+            "unexpected_automatic_worker",
             f"{len(unknown)} additional automatic room worker(s) are registered",
         )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--require-mode", required=True, choices=("normal", "qa"))
     parser.add_argument("receipt", type=Path)
     args = parser.parse_args()
     try:
         with args.receipt.open(encoding="utf-8") as handle:
-            receipt = validate_receipt(json.load(handle))
+            receipt = validate_receipt(json.load(handle), require_mode=args.require_mode)
+        if receipt["schema_version"] == 1:
+            fail(
+                "threshold_unknown",
+                "schema version 1 has no worker_load_threshold",
+            )
+        verify_live_load(receipt)
         verify_pool(receipt)
     except FileNotFoundError:
+        print('{"status":"NOT_READY","reason":"receipt_missing"}')
         print("NOT_READY receipt_missing receipt file does not exist", file=sys.stderr)
         return 1
     except json.JSONDecodeError:
+        print('{"status":"NOT_READY","reason":"invalid_receipt"}')
         print("NOT_READY invalid_receipt receipt is not valid JSON", file=sys.stderr)
         return 1
     except NotReady as exc:
+        print(json.dumps({"status": "NOT_READY", "reason": exc.code}, separators=(",", ":")))
         print(f"NOT_READY {exc.code} {exc}", file=sys.stderr)
         return 1
 
     worker_id = require_object(receipt["registration"], "registration")["worker_id"]
-    print(
-        json.dumps({"status": "READY", "worker_id": worker_id}, separators=(",", ":"))
-    )
+    output = {"status": "READY"}
+    if receipt["schema_version"] == 2:
+        output["mode"] = receipt["mode"]
+    output["worker_id"] = worker_id
+    print(json.dumps(output, separators=(",", ":")))
     return 0
 
 
