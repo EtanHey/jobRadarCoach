@@ -17,7 +17,7 @@ test("seniority is explicit title evidence; unspecified titles stay unknown", ()
 
 test("experience quotes requirements and does not turn company age into experience", () => {
   assert.equal(experiencePhrase("Founded 20 years ago. You need 3+ years of experience in TypeScript."), "3+ years of experience");
-  assert.equal(experiencePhrase("5–7 years professional experience"), "5–7 years professional experience");
+  assert.equal(experiencePhrase("5–7 years professional experience"), null);
   assert.equal(experiencePhrase("Our company is 25 years old."), null);
   assert.equal(experiencePhrase(null), null);
 });
@@ -30,4 +30,13 @@ test("experience requires applicant context and rejects company, negated, and wi
   assert.equal(experiencePhrase("5 years of experience is not required."), null);
   assert.equal(experiencePhrase("Minimum of 2 years commercial experience."), "2 years commercial experience");
   assert.equal(experiencePhrase("Requirements:\n- 3+ years of hands-on experience building APIs"), "3+ years of hands-on experience");
+});
+
+test("bare company-tenure prose stays unknown unless an applicant heading is active", () => {
+  assert.equal(experiencePhrase("20 years of experience serving customers."), null);
+  assert.equal(experiencePhrase("- 20 years of experience serving customers."), null);
+  assert.equal(experiencePhrase("## Requirements\n- 3+ years of experience building APIs"), "3+ years of experience");
+  assert.equal(experiencePhrase("## Requirements\nStrong communication\n## Our story\n20 years of experience serving customers."), null);
+  assert.equal(experiencePhrase("Qualifications:\n- 5–7 years professional experience"), "5–7 years professional experience");
+  assert.equal(experiencePhrase("Requirements:\nStrong communication\nAbout Company\n20 years of experience serving customers."), null);
 });
