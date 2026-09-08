@@ -26,9 +26,28 @@ export function createDetailCoordinator() {
   };
 }
 
+export function uniqueJobsById<T extends { id: string }>(jobs: T[]): T[] {
+  const indexes = new Map<string, number>();
+  const unique: T[] = [];
+  for (const job of jobs) {
+    const index = indexes.get(job.id);
+    if (index === undefined) {
+      indexes.set(job.id, unique.length);
+      unique.push(job);
+    } else {
+      unique[index] = job;
+    }
+  }
+  return unique.length === jobs.length ? jobs : unique;
+}
+
 export function retainVisitCohort<T extends { id: string }>(current: T[] | null, incoming: T[]): T[] {
-  if (current === null) return incoming;
-  const incomingById = new Map(incoming.map((job) => [job.id, job]));
-  const retainedIds = new Set(current.map((job) => job.id));
-  return current.map((job) => incomingById.get(job.id) ?? job).concat(incoming.filter((job) => !retainedIds.has(job.id)));
+  const uniqueIncoming = uniqueJobsById(incoming);
+  if (current === null) return uniqueIncoming;
+  const uniqueCurrent = uniqueJobsById(current);
+  const incomingById = new Map(uniqueIncoming.map((job) => [job.id, job]));
+  const retainedIds = new Set(uniqueCurrent.map((job) => job.id));
+  return uniqueCurrent
+    .map((job) => incomingById.get(job.id) ?? job)
+    .concat(uniqueIncoming.filter((job) => !retainedIds.has(job.id)));
 }

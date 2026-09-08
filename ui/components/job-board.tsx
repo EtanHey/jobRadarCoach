@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
-import { createDetailCoordinator, retainVisitCohort } from "@/lib/job-board-state";
+import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
+import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobs, type ViewOptions } from "@/lib/job-filters";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
@@ -72,7 +73,7 @@ export function JobBoard() {
   useEffect(() => {
     const controller = new AbortController();
     request(`/api/jobs?filter=${filter}&limit=1000`, { signal: controller.signal })
-      .then((body) => { if (!controller.signal.aborted) { const next = JobListResponseSchema.parse(body).jobs; const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; hasLoadedRef.current = true; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
+      .then((body) => { if (!controller.signal.aborted) { const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs); const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; hasLoadedRef.current = true; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
       .catch((cause: unknown) => { if (!controller.signal.aborted) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -135,6 +136,7 @@ export function JobBoard() {
     } finally { setSaving(false); }
   }
   const visible = filterJobs(jobs, {...view, search});
+  const relatedJobs = selected ? relatedDuplicateJobs(jobs, selected, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   return <div className="min-h-screen bg-background text-foreground">
@@ -145,6 +147,6 @@ export function JobBoard() {
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
       <p className="mt-5 text-xs text-muted-foreground">Scores are a starting point. Open a role to see the reasoning and original description.</p>
     </main>
-    <JobDrawer {...{selected, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
+    <JobDrawer {...{selected, relatedJobs, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
   </div>;
 }
