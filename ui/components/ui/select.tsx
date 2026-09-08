@@ -19,7 +19,7 @@ export function AppSelect({ label, value, options, onValueChange }: {
     </Select.Trigger>
     <Select.Portal>
       <Select.Positioner align="start" alignItemWithTrigger={false} sideOffset={5} className="z-50 outline-none">
-        <Select.Popup className="max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] origin-[var(--transform-origin)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg outline-none transition-[transform,opacity] duration-100 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+        <Select.Popup className="max-h-[min(20rem,var(--available-height))] min-w-[var(--anchor-width)] origin-[var(--transform-origin)] overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg outline-none transition-[transform,opacity] duration-100 motion-reduce:transition-none data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
           <Select.List>
             {options.map((option) => <Select.Item key={option.value} value={option.value} className="grid cursor-default grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 rounded-md px-2 py-2 text-sm outline-none data-highlighted:bg-accent data-highlighted:text-accent-foreground">
               <Select.ItemIndicator><Check aria-hidden="true" size={14} /></Select.ItemIndicator>

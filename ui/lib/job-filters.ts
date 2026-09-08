@@ -25,7 +25,7 @@ function knownUnitedStatesCity(location: string): boolean {
   return !!match && !!UNITED_STATES_CITIES[match[2]]?.some((city) => city.toLowerCase() === match[1].trim().toLowerCase());
 }
 const UNITED_STATES_METRO = /^(?:san francisco bay area|new york city metropolitan area|greater (?:cleveland|chicago area)|(?:austin|san antonio), texas metropolitan area|columbia, south carolina metropolitan area)$/i;
-const REMOTE_ONLY = /^(?:remote|hybrid|on[- ]?site|worldwide|anywhere)(?:\s+(?:role|position|work))?$/i;
+const REMOTE_ONLY = /^(?:remote|hybrid|on[- ]?site|worldwide|anywhere)(?:\s+(?:role|position|work))?(?:(?:\s*[/|,·—–\-]\s*|\s+or\s+|\s+)(?:remote|hybrid|on[- ]?site|worldwide|anywhere)(?:\s+(?:role|position|work))?)*$/i;
 export function locationGroup(value: string | null): LocationGroup {
   const location = value?.trim() ?? "";
   if (!location || REMOTE_ONLY.test(location)) return "unknown";
