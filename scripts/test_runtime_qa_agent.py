@@ -136,6 +136,7 @@ def test_non_qa_or_unknown_agent_blocks_start(monkeypatch, tmp_path, processes):
 
 
 def test_owned_start_uses_private_env_and_binds_receipt_pid(monkeypatch, tmp_path):
+    monkeypatch.setenv("VOICE_STT_PORT", "8923")
     context = FakeContext(tmp_path)
     owned_receipt = context.state_dir / "qa-agent-receipt.json"
     context.responses.update({
@@ -185,6 +186,7 @@ def test_owned_start_uses_private_env_and_binds_receipt_pid(monkeypatch, tmp_pat
         "LIVEKIT_API_KEY": "synthetic-key", "LIVEKIT_API_SECRET": "synthetic-secret",
         "VOICE_QA_RECEIPT_FILE": str(owned_receipt),
         "AGENT_LOG_FILE": str(context.state_dir / "qa-agent.log"),
+        "STT_URL": "http://127.0.0.1:8923/inference",
     }
     assert service.receipt_path(context) == owned_receipt
     assert service.owns(context, identity)

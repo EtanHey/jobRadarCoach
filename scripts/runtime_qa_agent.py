@@ -245,6 +245,8 @@ class QaAgentService:
             "LIVEKIT_URL": expected_url, "VOICE_QA_RECEIPT_FILE": str(receipt),
             "AGENT_LOG_FILE": str(log),
         }
+        if "VOICE_STT_PORT" in os.environ:
+            env["STT_URL"] = f"http://127.0.0.1:{int(os.environ['VOICE_STT_PORT'])}/inference"
         self._process = ProcessService(
             self.name,
             (str(context.repo_root / ".venv-agent/bin/python"), "agent/main.py", "dev"),
