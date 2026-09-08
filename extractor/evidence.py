@@ -3,8 +3,38 @@
 from __future__ import annotations
 
 import re
+from typing import Literal
 
 from scraper.brain_contract import BrainValidationError
+
+ExtractionFailureCategory = Literal[
+    "evidence_quote",
+    "location_context",
+    "remote_consistency",
+    "stack_uniqueness",
+]
+ExtractionFailureField = Literal["location", "remote", "seniority", "salary", "stack"]
+_FAILURE_CATEGORIES = frozenset(
+    {"evidence_quote", "location_context", "remote_consistency", "stack_uniqueness"}
+)
+_FAILURE_FIELDS = frozenset({"location", "remote", "seniority", "salary", "stack"})
+
+
+class ExtractionValidationError(BrainValidationError):
+    """Evidence rejection carrying only bounded diagnostic metadata."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        category: ExtractionFailureCategory,
+        field: ExtractionFailureField,
+    ) -> None:
+        if category not in _FAILURE_CATEGORIES or field not in _FAILURE_FIELDS:
+            raise ValueError("invalid extraction failure metadata")
+        super().__init__(message)
+        self.category = category
+        self.field = field
 
 
 _REMOTE_WORD = r"\bremote(?:ly)?\b"
@@ -47,23 +77,35 @@ _REMOTE_NEGATED_AFTER_RE = re.compile(
 
 
 def _validate_quote(
-    field: str,
+    field: ExtractionFailureField,
     value: object,
     quote: object,
     raw_jd: str,
 ) -> None:
     if value is None:
         if quote is not None:
-            raise BrainValidationError(f"unknown {field} cannot cite evidence")
+            raise ExtractionValidationError(
+                f"unknown {field} cannot cite evidence",
+                category="evidence_quote",
+                field=field,
+            )
         return
     if not isinstance(quote, str) or not quote.strip() or quote not in raw_jd:
-        raise BrainValidationError(f"{field} evidence must be an exact nonblank quote")
+        raise ExtractionValidationError(
+            f"{field} evidence must be an exact nonblank quote",
+            category="evidence_quote",
+            field=field,
+        )
     if isinstance(value, str) and (
         not value.strip() or not re.search(
             rf"(?<!\w){re.escape(value)}(?!\w)", quote, re.IGNORECASE
         )
     ):
-        raise BrainValidationError(f"{field} value must occur in its evidence quote")
+        raise ExtractionValidationError(
+            f"{field} value must occur in its evidence quote",
+            category="evidence_quote",
+            field=field,
+        )
 
 
 def _remote_quote_value(quote: str) -> bool | None:
@@ -126,7 +168,11 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
                  if (position := raw_jd.find(boundary, start + len(quote))) >= 0]
         context = raw_jd[before + 1:min(after, default=len(raw_jd))]
         if _NON_ROLE_LOCATION_RE.search(context):
-            raise BrainValidationError("company geography does not establish job location")
+            raise ExtractionValidationError(
+                "company geography does not establish job location",
+                category="location_context",
+                field="location",
+            )
         offset = start + len(quote)
 
 
@@ -147,7 +193,11 @@ def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
         quote_value = _remote_quote_value(remote_quote)
         source_values = _remote_source_values(remote_quote, raw_jd)
         if quote_value is not remote_value or source_values != {remote_value}:
-            raise BrainValidationError("remote value conflicts with its evidence quote")
+            raise ExtractionValidationError(
+                "remote value conflicts with its evidence quote",
+                category="remote_consistency",
+                field="remote",
+            )
 
     stack = facts["stack"]
     assert isinstance(stack, list)
@@ -160,5 +210,9 @@ def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
         assert isinstance(value, str)
         normalized = value.strip().casefold()
         if normalized in seen:
-            raise BrainValidationError("stack facts must be unique")
+            raise ExtractionValidationError(
+                "stack facts must be unique",
+                category="stack_uniqueness",
+                field="stack",
+            )
         seen.add(normalized)
