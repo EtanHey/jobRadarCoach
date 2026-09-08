@@ -1,15 +1,24 @@
 import { z } from "zod";
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public category: "database" | "invalid_response" | "request" = "request") {
     super(message);
   }
 }
 
-export async function safely(run: () => Promise<Response>): Promise<Response> {
+export async function safely(run: () => Promise<Response>, operation?: "job_detail"): Promise<Response> {
   try {
     return await run();
   } catch (error) {
+    const status = error instanceof HttpError ? error.status : 500;
+    if (operation) {
+      // Fixed fields only: never log database messages, payloads, URLs or credentials.
+      const requestId = crypto.randomUUID();
+      console.error(JSON.stringify({ event: "request_failed", operation, requestId, status, category: error instanceof HttpError ? error.category : "unexpected" }));
+      const response = json({ error: error instanceof HttpError ? error.message : "Unexpected server error." }, status);
+      response.headers.set("x-request-id", requestId);
+      return response;
+    }
     if (error instanceof HttpError) return json({ error: error.message }, error.status);
     return json({ error: "Unexpected server error." }, 500);
   }
@@ -21,7 +30,7 @@ export function json(value: unknown, status = 200): Response {
 
 export function output<T>(schema: z.ZodType<T>, value: unknown, status = 200): Response {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw new HttpError(500, "Database returned an invalid response.");
+  if (!parsed.success) throw new HttpError(500, "Database returned an invalid response.", "invalid_response");
   return json(parsed.data, status);
 }
 

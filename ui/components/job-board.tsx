@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
+import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
+import { loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
@@ -28,6 +29,7 @@ export function JobBoard() {
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<JobDetail | null>(null);
   const [detailError, setDetailError] = useState("");
+  const [detailRevision, setDetailRevision] = useState(0);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
@@ -49,6 +51,13 @@ export function JobBoard() {
     setSelected(id);
     // Keep the previous body intact during the sheet closing transition.
     if (id !== null) { setDetail(null); setDetailError(""); setRejecting(false); setReason(""); }
+  }
+  function retryDetail() {
+    if (!selected || saving) return;
+    detailRequestRef.current?.abort();
+    detailCoordinator.select(selected);
+    setDetailError("");
+    setDetailRevision((value) => value + 1);
   }
   function prepareListSource(value: Filter) { filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); }
   function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value); setPreferences((current) => preferencesForBoardFilter(current, value)); }
@@ -105,9 +114,9 @@ export function JobBoard() {
       if (!id) return;
       const controller = new AbortController();
       detailRequestRef.current = controller;
-      request(`/api/jobs/${id}`, { signal: controller.signal }).then((body) => {
-        if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) { setDetail(JobDetailResponseSchema.parse(body).job); setDetailError(""); }
-      }).catch(() => { if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) setDetailError("Could not refresh this job. Close and reopen to retry."); });
+      loadJobDetail(id, controller.signal).then((job) => {
+        if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) { setDetail(job); setDetailError(""); }
+      }).catch((cause) => { if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) setDetailError(cause instanceof Error ? cause.message : "Could not refresh this job. Try again."); });
     }
     function queueRefresh() { clearTimeout(timer); timer = setTimeout(refreshListAndDetail, 150); }
     events.addEventListener("ready", () => { setConnection("Live updates connected"); queueRefresh(); });
@@ -135,7 +144,7 @@ export function JobBoard() {
     let patchStarted = false;
     async function open() {
       try {
-        const job = JobDetailResponseSchema.parse(await request(`/api/jobs/${selected}`, { signal: controller.signal })).job;
+        const job = await loadJobDetail(selected!, controller.signal);
         if (controller.signal.aborted) return;
         if (detailCoordinator.acceptRead(read)) setDetail(job);
         patchStarted = true;
@@ -157,7 +166,7 @@ export function JobBoard() {
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, selected, requestRefresh]);
+  }, [detailCoordinator, selected, detailRevision, requestRefresh]);
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
@@ -201,6 +210,6 @@ export function JobBoard() {
       <JobsPanel {...{filter, jobs, groups, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} search={view.search} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
-    <JobDrawer {...{selected, relatedJobs, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
+    <JobDrawer retryDetail={retryDetail} selectedJob={jobs.find((job) => job.id === selected)} {...{selected, relatedJobs, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
   </div>;
 }
