@@ -1,6 +1,6 @@
 # Agent receipt verifier
 
-Released verifier SHA-256: `a1a94bfb4d379a95fe0bd3ec9960d4abf83744d1938971cb88c5b8c521feafa2`.
+Released verifier SHA-256: `0c35e739ccaab2f3c9000098f51854ea209f2095ec7e46674e28a8a313928f8d`.
 Pinned consumers must upgrade their invocation and output parser together when adopting this release.
 
 Before creating a voice room, verify the agent receipt against the live process, current host load,
@@ -41,3 +41,5 @@ Failure exits nonzero, prints a stable reason as compact JSON on stdout, and wri
 ```
 
 Treat every nonzero exit as a closed gate; do not create a room from that receipt.
+
+If the host cannot supply a load sample, readiness fails closed with `load_unavailable`.
