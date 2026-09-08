@@ -92,7 +92,7 @@ def test_qa_mode_and_symlinked_jrc_are_visible_and_guarded(tmp_path):
         symlink.symlink_to(ROOT / "jrc")
         status = run_entry(symlink, env, "status")
         normal_up = run_entry(ROOT / "run", env, "up")
-        qa_up = run_entry(ROOT / "run", env, "up", "--qa")
+        qa_up = run_entry(symlink, env, "run", "--qa")
         assert '"qa_mode": true' in state.read_text()
         assert status.returncode == 0 and "mode=QA" in status.stdout
         unavailable_env = {**env, "RUN_SERVICES_MODULE": "missing_test_adapter"}
