@@ -38,6 +38,24 @@ def _log(**fields: object) -> None:
     print(json.dumps(fields, ensure_ascii=True, separators=(",", ":"), sort_keys=True), flush=True)
 
 
+def _assignment_fields(
+    posting_ids: Sequence[str], selected_ids: Sequence[str], limit: int,
+) -> dict[str, object]:
+    requested = list(dict.fromkeys(posting_ids))
+    selected = list(selected_ids)
+    if not requested or len(requested) > limit:
+        return {}
+    if len(selected) != len(set(selected)) or not set(selected) <= set(requested):
+        return {}
+    selected_set = set(selected)
+    skipped = [item for item in requested if item not in selected_set]
+    return {
+        "skipped": len(skipped),
+        "selected_posting_ids": selected,
+        "skipped_posting_ids": skipped,
+    }
+
+
 def load_runtime_profile(connection: Connection) -> dict[str, object]:
     """Capture only the committed provider-selection field needed by extraction."""
 
@@ -110,6 +128,9 @@ def run_batch(
              failure=UnsupportedBrainError.__name__)
         return 1
     postings = select_postings(connection, limit=limit, posting_ids=posting_ids)
+    assignment = _assignment_fields(
+        posting_ids, [str(posting["id"]) for posting in postings], limit,
+    )
     _log(selected=len(postings), provider=provider)
     extracted = failed = 0
     for posting in postings:
@@ -131,7 +152,10 @@ def run_batch(
         except Exception as error:  # Keep later rows eligible; emit only the safe type.
             failed += 1
             _log(posting_id=posting_id, provider=provider, failure=type(error).__name__)
-    _log(selected=len(postings), extracted=extracted, failed=failed, provider=provider)
+    _log(
+        selected=len(postings), extracted=extracted, failed=failed,
+        provider=provider, **assignment,
+    )
     return 1 if failed else 0
 
 

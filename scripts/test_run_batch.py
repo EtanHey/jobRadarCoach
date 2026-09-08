@@ -3,14 +3,16 @@ from pathlib import Path
 
 import pytest
 from scripts.run_batch import (
-    BatchConfig, CoordinatorError, _scraper_summary, build_parser, run_cohort,
+    BatchConfig, CoordinatorError, _model_summary, _scraper_summary, build_parser,
+    run_cohort,
 )
 IDS = ("00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002")
 class FakeKubectl:
-    def __init__(self, observed=IDS, extractor_exit=0, stage_exits=None):
+    def __init__(self, observed=IDS, extractor_exit=0, stage_exits=None, stage_selected=None):
         self.calls, self.created, self.created_by_name = [], [], {}
         self.observed, self.extractor_exit = observed, extractor_exit
         self.stage_exits = stage_exits or {}
+        self.stage_selected = stage_selected or {}
         self.cron = {"kind": "CronJob", "metadata": {"name": "scraper"}, "spec": {
             "suspend": True, "jobTemplate": {"spec": {"template": {"spec": {
                 "containers": [{"name": "scraper", "image": "job-radar:dev"}]
@@ -71,10 +73,24 @@ class FakeKubectl:
             self.extractor_exit if stage == "extractor" else 0,
         )))
         model_args = job["spec"]["template"]["spec"]["containers"][0]["args"]
-        selected = sum(value == "--posting-id" for value in model_args)
+        requested = [model_args[index + 1] for index, value in enumerate(model_args)
+                     if value == "--posting-id"]
+        limit = int(model_args[model_args.index("--limit") + 1])
+        selected_ids = list(self.stage_selected.get(
+            (stage, int(chunk) if chunk is not None else None), requested[:limit],
+        ))
+        selected = len(selected_ids)
         outcome = "extracted" if stage == "extractor" else "scored"
-        return json.dumps({"selected": selected, outcome: selected - failed,
-                           "failed": failed}) + "\n"
+        summary = {"selected": selected, outcome: selected - failed, "failed": failed}
+        if len(set(requested)) <= limit:
+            skipped_ids = [item for item in dict.fromkeys(requested)
+                           if item not in selected_ids]
+            summary.update(
+                skipped=len(skipped_ids),
+                selected_posting_ids=selected_ids,
+                skipped_posting_ids=skipped_ids,
+            )
+        return json.dumps(summary) + "\n"
 
 @pytest.mark.parametrize("checkout_dir", ["repo", "classifier-copy"])
 def test_correlates_all_ids_and_continues_after_extractor_failure(monkeypatch, checkout_dir):
@@ -147,7 +163,7 @@ def test_retains_created_job_identity_when_logs_fail():
     assert receipt["jobs"]["extractor"]["job_uid"].startswith("uid-extractor-")
     assert receipt["jobs"]["extractor"]["exit_code"] == 0
     assert receipt["extracted"] is None
-    assert receipt["scored"] == 2
+    assert receipt["scored"] == 1
 
 
 def test_rejects_inconsistent_insertion_count():
@@ -169,11 +185,12 @@ def test_all_observed_chunks_every_id_once_and_aggregates_failures():
 
     assert receipt["mode"] == "all_observed" and receipt["chunk_count"] == 3
     assert receipt["selected_counts"] == {"extractor": 7, "classifier": 7}
+    assert receipt["skipped_counts"] == {"extractor": 0, "classifier": 0}
     assert (receipt["extracted"], receipt["scored"]) == (6, 7)
     assert receipt["aggregate_receipts"] == {
-        "extractor": {"selected": 7, "completed": 6, "failed": 1,
+        "extractor": {"selected": 7, "completed": 6, "failed": 1, "skipped": 0,
                       "reported_chunks": 3, "chunk_count": 3, "complete": True},
-        "classifier": {"selected": 7, "completed": 7, "failed": 0,
+        "classifier": {"selected": 7, "completed": 7, "failed": 0, "skipped": 0,
                        "reported_chunks": 3, "chunk_count": 3, "complete": True},
     }
     assert receipt["failures"] == [
@@ -200,6 +217,76 @@ def test_all_observed_cli_is_explicit_and_keeps_default_off():
     assert BatchConfig(**vars(build_parser().parse_args([]))).all_observed is False
     configured = BatchConfig(**vars(build_parser().parse_args(["--all-observed", "--limit", "3"])))
     assert configured.all_observed is True and configured.limit == 3
+
+
+def test_all_current_assignment_is_terminal_success_with_exact_skips():
+    skipped = {(stage, 0): () for stage in ("extractor", "classifier")}
+    receipt = run_cohort(
+        BatchConfig(limit=2, all_observed=True),
+        kubectl=FakeKubectl(stage_selected=skipped), run_id="funnel-all-current",
+    )
+
+    assert receipt["failures"] == []
+    assert receipt["selected_counts"] == {"extractor": 0, "classifier": 0}
+    assert receipt["skipped_counts"] == {"extractor": 2, "classifier": 2}
+    assert receipt["extracted"] == receipt["scored"] == 0
+
+
+def test_mixed_selected_skipped_and_failed_assignment_is_fully_accounted():
+    fake = FakeKubectl(
+        stage_exits={("extractor", 0): 1},
+        stage_selected={("extractor", 0): (IDS[0],)},
+    )
+    receipt = run_cohort(
+        BatchConfig(limit=2, all_observed=True), kubectl=fake,
+        run_id="funnel-mixed-accounting",
+    )
+
+    assert receipt["aggregate_receipts"]["extractor"] == {
+        "selected": 1, "completed": 0, "failed": 1, "skipped": 1,
+        "reported_chunks": 1, "chunk_count": 1, "complete": True,
+    }
+    assert receipt["skipped_counts"]["extractor"] == 1
+    assert receipt["failures"] == [
+        {"stage": "extractor", "failure": "JobFailed", "chunk": 0}
+    ]
+
+
+@pytest.mark.parametrize(
+    "mutation", [
+        "missing", "overlap", "outside", "duplicate", "wrong_count", "boolean_count",
+    ],
+)
+def test_complete_assignment_rejects_invalid_identity_partitions(mutation):
+    value = {
+        "selected": 1, "scored": 1, "failed": 0, "skipped": 1,
+        "selected_posting_ids": [IDS[0]], "skipped_posting_ids": [IDS[1]],
+    }
+    if mutation == "missing":
+        value.pop("skipped_posting_ids")
+    elif mutation == "overlap":
+        value["skipped_posting_ids"] = list(IDS)
+    elif mutation == "outside":
+        value["skipped_posting_ids"] = ["00000000-0000-0000-0000-000000000099"]
+    elif mutation == "duplicate":
+        value["skipped_posting_ids"] = [IDS[1], IDS[1]]
+    elif mutation == "wrong_count":
+        value["skipped"] = 0
+    else:
+        value["skipped"] = True
+    with pytest.raises(CoordinatorError, match="IncompleteReceipt"):
+        _model_summary(json.dumps(value), "scored", posting_ids=IDS, limit=2)
+
+
+def test_oversized_legacy_assignment_does_not_require_complete_partition():
+    receipt = run_cohort(
+        BatchConfig(limit=1), kubectl=FakeKubectl(), run_id="funnel-bounded-legacy",
+    )
+    assert receipt["failures"] == []
+    for stage in ("extractor", "classifier"):
+        summary = json.loads(receipt["jobs"][stage]["logs"])
+        assert "selected_posting_ids" not in summary
+        assert "skipped_posting_ids" not in summary
 
 
 @pytest.mark.parametrize("stage,outcome", [("extractor", "extracted"), ("classifier", "scored")])

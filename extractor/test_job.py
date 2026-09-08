@@ -88,7 +88,27 @@ def test_batch_is_bounded_and_second_run_skips_extracted_explicit_ids(capsys) ->
     assert len(calls) == 2
     assert all(call[1:] == ({"runtime.brain": "codex"}, 17) for call in calls)
     assert sum("from public.profile" in query for query in connection.queries) == 2
-    assert all(record["provider"] == "ollama" for record in logs(capsys))
+    records = logs(capsys)
+    assert all(record["provider"] == "ollama" for record in records)
+    summaries = [record for record in records if "extracted" in record]
+    assert summaries[0]["selected_posting_ids"] == list(POSTING_IDS)
+    assert summaries[0]["skipped_posting_ids"] == [] and summaries[0]["skipped"] == 0
+    assert summaries[1]["selected_posting_ids"] == []
+    assert summaries[1]["skipped_posting_ids"] == list(POSTING_IDS)
+    assert summaries[1]["skipped"] == len(POSTING_IDS)
+
+
+def test_oversized_explicit_assignment_does_not_claim_complete_skips(capsys) -> None:
+    job.run_batch(
+        Connection(), limit=1, timeout_seconds=10, posting_ids=POSTING_IDS,
+        env={"BRAIN": "ollama"}, extractor=lambda *_args, **_kwargs: {
+            "brain": "ollama", "model": "model",
+        }, persister=lambda *_args: "stored",
+    )
+
+    summary = [record for record in logs(capsys) if "extracted" in record][-1]
+    assert "selected_posting_ids" not in summary
+    assert "skipped_posting_ids" not in summary
 
 
 @pytest.mark.parametrize(
