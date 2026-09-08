@@ -1,20 +1,21 @@
-import { Code2 } from "lucide-react";
+import { technologyIconFor } from "@/lib/technology-icons";
 
-const icons: Record<string, [string, string]> = {
-  react: ["react", "#149eca"], "react native": ["react", "#149eca"],
-  typescript: ["typescript", "#3178c6"], javascript: ["javascript", "#c9ae08"],
-  "next.js": ["nextdotjs", "currentColor"], nextjs: ["nextdotjs", "currentColor"],
-  "node.js": ["nodedotjs", "#5fa04e"], nodejs: ["nodedotjs", "#5fa04e"],
-  python: ["python", "#3776ab"], postgresql: ["postgresql", "#4169a1"],
-  postgres: ["postgresql", "#4169a1"], docker: ["docker", "#2496ed"],
-  kubernetes: ["kubernetes", "#326ce5"], go: ["go", "#00add8"],
-  vue: ["vuedotjs", "#42b883"], "vue.js": ["vuedotjs", "#42b883"], angular: ["angular", "#dd0031"],
-};
-
-export function TechIcon({ name }: { name: string }) {
-  const icon = icons[name.toLowerCase()];
-  return icon ? <span aria-hidden="true" className="inline-block size-3.5 shrink-0" style={{
-    backgroundColor: icon[1], maskImage: `url(/tech/${icon[0]}.svg)`,
-    maskSize: "contain", maskRepeat: "no-repeat", maskPosition: "center",
-  }} /> : <Code2 size={14} aria-hidden="true" />;
+export function TechIcon({ name, className = "" }: {
+  name: string;
+  className?: string;
+}) {
+  const icon = technologyIconFor(name);
+  if (!icon) return null;
+  return <span
+    aria-hidden="true"
+    data-tech-icon={icon.asset}
+    className={`inline-block h-3.5 shrink-0 ${icon.wide ? "w-5" : "w-3.5"} ${className}`}
+    style={{
+      backgroundColor: icon.color,
+      maskImage: `url(/tech/${icon.asset}.svg)`,
+      maskPosition: "center",
+      maskRepeat: "no-repeat",
+      maskSize: "contain",
+    }}
+  />;
 }
