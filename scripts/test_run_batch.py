@@ -171,6 +171,30 @@ def test_invalid_scraper_cohort_never_starts_models(ids):
     assert len(fake.created) == 1 and receipt["cohort_count"] is None
     assert receipt["failures"] == [{"stage": "scraper", "failure": "InvalidReceipt"}]
 
+
+def test_all_observed_preserves_typed_scraper_poll_failure():
+    fake = FakeKubectl()
+
+    def runner(command, **kwargs):
+        if command[1:3] == ["get", "job/scraper-funnel-poll-failure"]:
+            raise CoordinatorError("KubectlTimeout")
+        return fake(command, **kwargs)
+
+    receipt = run_cohort(
+        BatchConfig(all_observed=True), kubectl=runner,
+        run_id="funnel-poll-failure",
+    )
+
+    assert receipt["mode"] == "all_observed" and receipt["chunk_count"] == 0
+    assert receipt["cohort_count"] is None
+    assert receipt["failures"] == [
+        {"stage": "scraper", "failure": "KubectlTimeout"}
+    ]
+    assert receipt["jobs"]["scraper"]["job_uid"].startswith("uid-scraper-")
+    assert receipt["jobs"]["extractor"] == {"skipped": "scraper_failure"}
+    assert receipt["jobs"]["classifier"] == {"skipped": "scraper_failure"}
+    assert len(fake.created) == 1
+
 def test_rejects_malformed_or_ambiguous_summary_lines():
     with pytest.raises(CoordinatorError):
         _scraper_summary("not-json\n")
