@@ -16,7 +16,7 @@ test("catalog resolves captured names and leaves unknown identities explicit", (
 
 test("verified official logos resolve with matching raster assets and provenance", () => {
   const manifest = JSON.parse(readFileSync(new URL("../public/companies/manifest.json", import.meta.url), "utf8"));
-  for (const company of ["Pagaya Israel", "REAL DEV INC", "Shifters", "Tomax Think Academy"]) {
+  for (const company of ["Pagaya Israel", "REAL DEV INC", "Shifters", "Tomax Think Academy", "Wix", "Moveo Group"]) {
     const entry = manifest.entries.find((item: { canonicalName: string }) => item.canonicalName === canonicalCompanyName(company));
     assert.ok(entry, `${company} is represented in the manifest`);
     assert.equal(entry.source.kind, "official-company-site");
