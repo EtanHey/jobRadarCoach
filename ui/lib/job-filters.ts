@@ -1,8 +1,38 @@
 import type { JobSummary } from "./contracts";
+import { matchesFit } from "./job-fit";
 
 export type JobSort = "found" | "posted" | "fit" | "seniority";
-export type ViewOptions = { search: string; source: string; seniority: string; fit: string; sort: JobSort };
+export type LocationFilter = "" | "israel" | "united-states" | "other";
+export type LocationGroup = Exclude<LocationFilter, ""> | "unknown";
+export type ViewOptions = { search: string; source: string; location: LocationFilter; seniority: string; fit: string; sort: JobSort };
 export const levelOrder = ["Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"];
+const ISRAEL_LOCATION = /\b(israel|tel aviv(?:-yafo)?|jerusalem|haifa|herzliya|petah tikva|ramat gan|ra['’]?anana|yavne|kfar saba|netanya|yokneam|beer sheva|be['’]?er sheva|caesarea|rehovot|hod hasharon|bnei brak)\b/i;
+const UNITED_STATES_LOCATION = /\b(united states(?: of america)?|u\.?s\.?a?\.?)\b/i;
+// A two-letter suffix alone can also be a country code (CA = Canada, IN = India).
+const UNITED_STATES_CITIES: Record<string, readonly string[]> = {
+  CA: ["San Francisco", "Los Angeles", "Cupertino", "Walnut Creek", "Hawthorne", "Fremont", "Mountain View", "Sunnyvale", "Calabasas"],
+  NY: ["New York", "Medina", "Albany", "Brooklyn"], WA: ["Seattle", "Redmond", "Bellevue"],
+  TX: ["Bastrop", "San Antonio", "Austin"], FL: ["Tampa", "Jacksonville", "Miami"],
+  IL: ["Chicago", "Deer Park", "Lisle"], VA: ["McLean", "Reston"], OH: ["Celina", "West Chester", "Dayton"],
+  PA: ["Philadelphia", "Williamsport", "Lititz", "Linden", "Wayne"], MI: ["Rochester Hills", "Whitehall", "Troy"],
+  WI: ["Pound", "Madison"], CO: ["Denver", "Colorado Springs"], MA: ["Cambridge", "Boston"],
+  MN: ["Maple Plain"], CT: ["Greenwich"], AR: ["Conway"], IN: ["Fortville"], GA: ["Atlanta"],
+  NC: ["Charlotte"], NJ: ["South Plainfield"], WY: ["Cheyenne"], SC: ["Aiken"], TN: ["Memphis"],
+  VT: ["South Burlington"], AZ: ["Scottsdale"], MD: ["Columbia"], DC: ["Washington"],
+};
+function knownUnitedStatesCity(location: string): boolean {
+  const match = /^([^,]+),\s*([A-Z]{2})$/.exec(location);
+  return !!match && !!UNITED_STATES_CITIES[match[2]]?.some((city) => city.toLowerCase() === match[1].trim().toLowerCase());
+}
+const UNITED_STATES_METRO = /^(?:san francisco bay area|new york city metropolitan area|greater (?:cleveland|chicago area)|(?:austin|san antonio), texas metropolitan area|columbia, south carolina metropolitan area)$/i;
+const REMOTE_ONLY = /^(?:remote|hybrid|on[- ]?site|worldwide|anywhere)(?:\s+(?:role|position|work))?(?:(?:\s*[/|,·—–\-]\s*|\s+or\s+|\s+)(?:remote|hybrid|on[- ]?site|worldwide|anywhere)(?:\s+(?:role|position|work))?)*$/i;
+export function locationGroup(value: string | null): LocationGroup {
+  const location = value?.trim() ?? "";
+  if (!location || REMOTE_ONLY.test(location)) return "unknown";
+  if (ISRAEL_LOCATION.test(location)) return "israel";
+  if (UNITED_STATES_LOCATION.test(location) || knownUnitedStatesCity(location) || UNITED_STATES_METRO.test(location)) return "united-states";
+  return "other";
+}
 export function levelGroup(value: string | null): string {
   if (!value) return "Unknown";
   if (/intern/i.test(value)) return "Intern";
@@ -19,8 +49,9 @@ export function filterJobs(jobs: JobSummary[], options: ViewOptions): JobSummary
   return jobs.filter((job) =>
     (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
     (!options.source || job.source === options.source) &&
+    (!options.location || locationGroup(job.location) === options.location) &&
     (!options.seniority || (options.seniority === "non-senior" ? !["Senior", "Lead / Manager", "Staff / Principal"].includes(levelGroup(job.seniority)) : levelGroup(job.seniority) === options.seniority)) &&
-    (!options.fit || (options.fit === "unscored" ? job.score === null : options.fit === "scored" ? job.score !== null : job.score !== null && job.score >= 60)),
+    matchesFit(job, options.fit),
   ).sort((a, b) => {
     if (options.sort === "fit") return (b.score ?? -1) - (a.score ?? -1) || timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
     if (options.sort === "seniority") return levelOrder.indexOf(levelGroup(a.seniority)) - levelOrder.indexOf(levelGroup(b.seniority)) || a.title.localeCompare(b.title);
