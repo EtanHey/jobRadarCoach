@@ -6,7 +6,7 @@ const nonblank = text.trim().min(1).max(2_000);
 const stringList = z.array(text.trim().min(1).max(200)).max(100);
 const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL(value).protocol));
 
-export const JobStatusSchema = z.enum(["new", "seen", "saved", "applied", "rejected"]);
+export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
 export const JobIdSchema = z.uuid();
 
@@ -68,14 +68,17 @@ export const JobDetailSchema = JobSummarySchema.extend({
 
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 export const JobListQuerySchema = z.object({
-  filter: z.enum(["all", "new-for-me", "seen", "saved", "applied", "rejected"]),
+  filter: z.enum(["all", "new-for-me", ...JobStatusSchema.options]),
   limit,
 }).strict();
 
-const ordinaryStatus = z.enum(["new", "seen", "saved", "applied"]);
+const ordinaryStatus = JobStatusSchema.exclude(["seen", "rejected", "not_relevant"]);
+const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);
 export const StatusPatchSchema = z.discriminatedUnion("status", [
   z.object({ status: ordinaryStatus }).strict(),
-  z.object({ status: z.literal("rejected"), reason: nonblank }).strict(),
+  z.object({ status: z.literal("seen"), automatic: z.literal(true).optional() }).strict(),
+  z.object({ status: z.literal("rejected"), reason: verbatimReason }).strict(),
+  z.object({ status: z.literal("not_relevant"), reason: verbatimReason.optional() }).strict(),
 ]);
 
 const profileVariants = [

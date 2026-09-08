@@ -94,7 +94,7 @@ export function JobBoard() {
         if (detailCoordinator.acceptRead(read)) setDetail(job);
         patchStarted = true;
         const status = StatusResponseSchema.parse(await request(`/api/jobs/${selected}/status`, {
-          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "seen" }), signal: controller.signal,
+          method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal: controller.signal,
         }));
         if (controller.signal.aborted) return;
         if (detailCoordinator.commitMutation(identity)) {
@@ -114,13 +114,13 @@ export function JobBoard() {
   }, [detailCoordinator, selected, requestRefresh]);
 
   async function changeStatus(patch: StatusPatch) {
-    if (!detail || saving) return;
+    if (!detail || saving) return false;
     const id = detail.id;
     const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
     try {
       const result = StatusResponseSchema.parse(await request(`/api/jobs/${id}/status`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch),
+        method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify(patch),
       }));
       if (identity.id === id && detailCoordinator.commitMutation(identity)) {
         detailRequestRef.current?.abort();
@@ -132,8 +132,10 @@ export function JobBoard() {
         setJobs((current) => current.filter((job) => job.id !== id));
       }
       requestRefresh();
+      return true;
     } catch (cause) {
       if (detailCoordinator.current().id === id) setDetailError(cause instanceof Error ? cause.message : "Could not update status.");
+      return false;
     } finally { setSaving(false); }
   }
   const visible = filterJobs(jobs, {...view, search});
