@@ -109,6 +109,7 @@ def test_kokoro_requires_exact_approved_container_name(monkeypatch):
         ('{"Names":"impostor","Labels":"service=kokoro"}', False),
         ('malformed\n{"Names":"kokoro"}', False),
         ('null\n{"Names":"kokoro"}', False),
+        ('{"Names":"kokoro"}\n{"Names":"other"}', False),
         ('{"Names":"kokoro","Image":"ghcr.io/remsky/kokoro-fastapi-cpu:latest"}', True),
     ]
     for output, expected in records:
