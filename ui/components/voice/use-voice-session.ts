@@ -42,6 +42,26 @@ const initialMic: MicClientState = {
   phase: "closed", ready: false, owner: null, revision: null, error: null,
 };
 
+interface TranscriptReader extends AsyncIterable<string> {
+  info: { topic: string; id: string; attributes?: Record<string, string> };
+}
+
+export async function readTranscriptStream(
+  reader: TranscriptReader,
+  isCurrent: () => boolean,
+  receive: (text: string, chunkIndex: number, attributes: Record<string, string>) => void,
+) {
+  let chunkIndex = 0;
+  for await (const text of reader) {
+    if (!isCurrent()) return;
+    receive(text, chunkIndex++, reader.info.attributes ?? {});
+  }
+  if (chunkIndex > 0 && isCurrent()
+      && reader.info.attributes?.["lk.transcription_final"] === "true") {
+    receive("", chunkIndex, reader.info.attributes);
+  }
+}
+
 export function useVoiceSession() {
   const [clientId] = useState(() => crypto.randomUUID());
   const [qa, setQa] = useState<VoiceQaState>({ mode: false, status: "checking", sessionId: null });
@@ -177,17 +197,12 @@ export function useVoiceSession() {
         const participant = room.remoteParticipants.get(participantInfo.identity);
         const role: TranscriptRole = participantInfo.identity === room.localParticipant.identity ? "user" : "agent";
         if (role === "agent" && (!participant || !pinAgent(participant))) return;
-        void (async () => {
-          let chunkIndex = 0;
-          for await (const text of reader) {
-            if (!isCurrent()) return;
-            setTranscript((current) => reduceTranscript(current, {
-              topic: reader.info.topic, senderIdentity: participantInfo.identity, role,
-              streamId: reader.info.id, chunkIndex: chunkIndex++, text,
-              attributes: reader.info.attributes ?? {},
-            }));
-          }
-        })().catch(() => { if (isCurrent()) setError("The live transcript was interrupted."); });
+        void readTranscriptStream(reader, isCurrent, (text, chunkIndex, attributes) => {
+          setTranscript((current) => reduceTranscript(current, {
+            topic: reader.info.topic, senderIdentity: participantInfo.identity, role,
+            streamId: reader.info.id, chunkIndex, text, attributes,
+          }));
+        }).catch(() => { if (isCurrent()) setError("The live transcript was interrupted."); });
       });
       room.registerRpcMethod(OPEN_JOB_RPC_METHOD, async (data: RpcInvocationData) => {
         if (!isCurrent() || abort.signal.aborted) throw new OpenJobProtocolError();
