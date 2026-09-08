@@ -375,6 +375,8 @@ def run_cohort(
     if len(run_id) > 45 or RUN_ID_PATTERN.fullmatch(run_id) is None:
         raise ValueError("run ID must be a lowercase Kubernetes label value")
     client, receipt = Kubectl(kubectl), _receipt(run_id)
+    if config.all_observed:
+        receipt.update(mode="all_observed", chunk_count=0)
     try:
         cron = client.json(["get", "cronjob/scraper", "-n", NAMESPACE, "-o", "json"])
         job = _scraper_job(cron, run_id, config.scraper_image)
@@ -394,9 +396,6 @@ def run_cohort(
         cohort_count=len(observed), fetched=summary["fetched_count"],
         matched=summary["matched_count"], new=summary["new_count"],
     )
-    if config.all_observed:
-        receipt["mode"] = "all_observed"
-        receipt["chunk_count"] = 0
     if not observed:
         receipt.update(extracted=0, scored=0)
         receipt["selected_counts"] = {"extractor": 0, "classifier": 0}
