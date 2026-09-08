@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-08T08:09:26.106Z",
-  "sourcePostingCount": 256,
-  "uniqueCompanyCount": 149,
-  "coveredCompanyCount": 146,
-  "coveredPostingCount": 253,
+  "generatedAt": "2026-09-08T14:26:15.607138+00:00",
+  "sourcePostingCount": 287,
+  "uniqueCompanyCount": 170,
+  "coveredCompanyCount": 148,
+  "coveredPostingCount": 261,
   "entries": [
     {
       "canonicalName": "180 engineering",
@@ -1399,6 +1399,25 @@
       }
     },
     {
+      "canonicalName": "moveo group",
+      "companyNames": [
+        "Moveo Group"
+      ],
+      "file": "moveo-group-1f5c04032f.png",
+      "mimeType": "image/png",
+      "bytes": 2150,
+      "sha256": "1f5c04032fb35895d374b632874bc61d30e9a8d8def58e2f1167e114a6108a70",
+      "source": {
+        "kind": "official-company-site",
+        "url": "https://www.moveo.group/apple-icon.png?apple-icon.3lby4iws_633r.png",
+        "page": "https://www.moveo.group/",
+        "pageSha256": "a507cc94f6207252dc49449bdbf9414e5db80597f5ad20c920d25344ad1e8856",
+        "alt": "Moveo Group",
+        "sourceBytes": 2150,
+        "sourceSha256": "1f5c04032fb35895d374b632874bc61d30e9a8d8def58e2f1167e114a6108a70"
+      }
+    },
+    {
       "canonicalName": "moveo source",
       "companyNames": [
         "Moveo Source"
@@ -2680,6 +2699,25 @@
         "alt": "WeDev",
         "sourceBytes": 26753,
         "sourceSha256": "cb505970ba60c78e408d95dac5a1350a4d53f4ed627d6a3f076b94dad8419ac7"
+      }
+    },
+    {
+      "canonicalName": "wix",
+      "companyNames": [
+        "Wix"
+      ],
+      "file": "wix-295a1f6f92.png",
+      "mimeType": "image/png",
+      "bytes": 3477,
+      "sha256": "295a1f6f927fd11a3842a4c9f508b4152eca150cb4c54d6cfb64736fad659b80",
+      "source": {
+        "kind": "official-company-site",
+        "url": "https://www.wix.com/favicon.ico",
+        "page": "https://www.wix.com/about/design-assets",
+        "pageSha256": "0e071bc32d42c159e55acd86c18ab81d413a7088950eb5f625a0c9805f660efd",
+        "alt": "Wix",
+        "sourceBytes": 3477,
+        "sourceSha256": "295a1f6f927fd11a3842a4c9f508b4152eca150cb4c54d6cfb64736fad659b80"
       }
     },
     {
