@@ -41,10 +41,11 @@ def _wait_for_port(port, process):
     raise AssertionError(f"bridge did not listen on {port}")
 
 
-def _round_trip(port, payload):
-    with socket.create_connection(("127.0.0.1", port), timeout=1) as client:
-        client.sendall(payload)
-        assert client.recv(len(payload)) == payload
+def _open_client(port, payload):
+    client = socket.create_connection(("127.0.0.1", port), timeout=1)
+    client.sendall(payload)
+    assert client.recv(len(payload)) == payload
+    return client
 
 
 def test_real_bridge_relays_both_routes_and_sigterm_releases_sockets(tmp_path):
@@ -72,17 +73,33 @@ def test_real_bridge_relays_both_routes_and_sigterm_releases_sockets(tmp_path):
         ["node", str(bridge)], env=env, text=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
+    clients = []
     try:
         for port in local_ports:
             _wait_for_port(port, process)
-        _round_trip(local_ports[0], b"signaling")
-        _round_trip(local_ports[1], b"rtc-data")
+        clients = [
+            _open_client(local_ports[0], b"signaling"),
+            _open_client(local_ports[1], b"rtc-data"),
+        ]
         process.send_signal(signal.SIGTERM)
+        for client in clients:
+            client.settimeout(1)
+            try:
+                closed = client.recv(1) == b""
+            except ConnectionError:
+                closed = True
+            assert closed, "active relay stayed open after SIGTERM"
         assert process.wait(timeout=5) == 0
+        for client in clients:
+            client.close()
+        clients.clear()
         for port in local_ports:
             with socket.socket() as listener:
+                listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 listener.bind(("127.0.0.1", port))
     finally:
+        for client in clients:
+            client.close()
         if process.poll() is None:
             process.kill()
             process.wait(timeout=2)
