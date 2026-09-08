@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { makeGetMicEvents, type MicEventDependencies } from "../app/api/livekit/events/route";
+import { createClient } from "@supabase/supabase-js";
+import {
+  closeOwnedRealtimeClient, makeGetMicEvents, type MicEventDependencies,
+} from "../app/api/livekit/events/route";
 import type { MicState } from "../lib/voice/mic-server";
 
 const CLIENT_A = "a15ce2ae-6ef8-4ce2-b1e4-9255bc08e61f";
@@ -100,4 +103,23 @@ test("stream cancellation and channel failure each clean subscription and heartb
   assert.doesNotMatch(text, /database|active_mic|private/i);
   await Promise.resolve();
   assert.deepEqual(failed.cleanup, { subscriptions: 1, heartbeats: 1 });
+});
+
+test("owned Realtime cleanup tears down and disconnects when channel leave returns error", async () => {
+  const db = createClient("http://127.0.0.1:54321", "synthetic-service-key", {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const channel = db.channel("synthetic-failed-leave");
+  let teardownCalls = 0;
+  let disconnectCalls = 0;
+  const teardown = channel.teardown.bind(channel);
+
+  channel.unsubscribe = async () => "error";
+  channel.teardown = () => { teardownCalls += 1; teardown(); };
+  db.realtime.disconnect = async () => { disconnectCalls += 1; return "ok"; };
+
+  await closeOwnedRealtimeClient(db);
+
+  assert.equal(teardownCalls, 1);
+  assert.equal(disconnectCalls, 1);
 });
