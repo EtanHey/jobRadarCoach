@@ -142,6 +142,7 @@ def test_borrow_requires_verifier_and_sole_matching_receipt_process(monkeypatch,
 
 
 def test_owned_start_is_normal_automatic_start_and_cleanup_is_exact(monkeypatch, tmp_path):
+    monkeypatch.setenv("VOICE_STT_PORT", "8923")
     context = FakeContext(tmp_path)
     processes = {}
     captured = {}
@@ -178,6 +179,7 @@ def test_owned_start_is_normal_automatic_start_and_cleanup_is_exact(monkeypatch,
     assert captured["cwd"] == tmp_path
     assert captured["env"]["LIVEKIT_AGENT_NAME"] == ""
     assert "VOICE_QA_MODE" not in captured["env"]
+    assert captured["env"]["STT_URL"] == "http://127.0.0.1:8923/inference"
     assert captured["env"]["AGENT_NORMAL_RECEIPT_FILE"] == str(
         context.state_dir / "room-agent-receipt.json",
     )
