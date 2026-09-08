@@ -87,21 +87,27 @@ async function main() {
     };
     const terminate = signal => { try { process.kill(-child.pid, signal); } catch {} };
     const timeout = setTimeout(() => {
-      reason = 'verifier_timeout'; terminate('SIGTERM');
+      if (!revoked) reason = 'verifier_timeout';
+      terminate('SIGTERM');
       killTimer = setTimeout(() => { if (!settled) terminate('SIGKILL'); }, 500);
     }, Number(process.env.QA_VERIFIER_TIMEOUT_MS ?? '20000'));
     child.stdout.on('data', chunk => { if (stdout.length < 4096) stdout += chunk; });
     child.stderr.on('data', chunk => { if (stderr.length < 4096) stderr += chunk; });
-    child.on('error', () => { reason = 'verifier_unavailable'; finish(false); });
+    child.on('error', () => { if (!revoked) reason = 'verifier_unavailable'; finish(false); });
     child.on('close', code => {
       if (reason === 'verifier_timeout') return finish(false);
       try {
         const value = JSON.parse(stdout);
         const exact = value && Object.keys(value).length === 2
           && value.status === 'READY' && value.worker_id === expectedWorker;
-        if (code === 0 && exact) { reason = ''; return finish(true); }
-        reason = code === 0 ? 'verifier_output_invalid' : stableReason(stderr);
-      } catch { reason = code === 0 ? 'verifier_output_invalid' : stableReason(stderr); }
+        if (code === 0 && exact) {
+          if (!revoked && !closing) reason = '';
+          return finish(true);
+        }
+        if (!revoked) reason = code === 0 ? 'verifier_output_invalid' : stableReason(stderr);
+      } catch {
+        if (!revoked) reason = code === 0 ? 'verifier_output_invalid' : stableReason(stderr);
+      }
       finish(false);
     });
     });
@@ -114,8 +120,9 @@ async function main() {
   const gate = async () => {
     if (revoked || closing) return false;
     const ready = await verify();
-    if (!ready || revoked || closing) {
-      revoked = true;
+    if (closing) return false;
+    if (!ready || revoked) {
+      if (!revoked) revoked = true;
       if (proxy) {
         proxy.invalidateQa();
         await publish('NOT_READY');
@@ -137,7 +144,7 @@ async function main() {
       await verificationQueue;
       try { await proxyStartup; } catch {}
       await closeProxy();
-      reason = 'stopped';
+      if (!revoked) reason = 'stopped';
       await publish('STOPPED');
     })();
     return closePromise;
@@ -177,8 +184,10 @@ async function main() {
     if (serialized === lastReceipt) return;
     lastReceipt = serialized;
     if (receipt.revoked || receipt.mutationAttempts > 0) {
-      revoked = true;
-      reason = receipt.mutationAttempts > 0 ? 'browser_mutation_attempt' : 'proxy_revoked';
+      if (!revoked) {
+        reason = receipt.mutationAttempts > 0 ? 'browser_mutation_attempt' : 'proxy_revoked';
+        revoked = true;
+      }
       proxy.invalidateQa();
       await publish('NOT_READY');
     } else {
