@@ -219,3 +219,13 @@ def test_fetch_full_jd_rejects_login_wall_and_malformed_url_without_raising() ->
     assert malformed["jd_text"] == ""
     assert malformed["jd_chars"] == 0
     assert malformed["fetch_error"]
+
+
+def test_preserves_visible_control_like_prose_outside_buttons() -> None:
+    jd_fetch = load_jd_fetch_module()
+    html = (
+        '<div class="show-more-less-html__markup">'
+        "<p>Show more</p><p>Show less</p><ul><li>Show less</li></ul>"
+        "<button>Show more</button></div>"
+    )
+    assert jd_fetch.extract_full_jd(html) == "Show more\n\nShow less\n\n- Show less"
