@@ -70,6 +70,8 @@ test("technology aliases stay explicit and avoid prose and substring collisions"
     ["React Native", "Node.js", "Kubernetes", "AWS", "GCP", "Go", "MongoDB", "Redis", "Kafka", "Terraform", "GitHub Actions", "Linux"],
   );
   assert.deepEqual(technologyMentions("Go to our website. JavaScript experience required."), ["JavaScript"]);
+  assert.deepEqual(technologyMentions("Please (go) to the next step."), []);
+  assert.deepEqual(technologyMentions("Python, Go, Rust"), ["Python", "Go", "Rust"]);
   assert.deepEqual(technologyMentions("Programming languages: Go, JavaScript and Java."), ["JavaScript", "Go", "Java"]);
   assert.deepEqual(technologyMentions("Please express interest this spring."), []);
   assert.deepEqual(technologyMentions("Backend services use Spring Boot and Express.js."), ["Spring", "Express"]);

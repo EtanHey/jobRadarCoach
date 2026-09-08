@@ -65,7 +65,7 @@ export function technologyMentions(description: string | null): string[] {
     ["PostgreSQL", /\bpostgres(?:ql)?\b/i], ["Docker", /\bdocker\b/i],
     ["Kubernetes", /\b(?:kubernetes|k8s)\b/i], ["AWS", /\b(?:aws|amazon web services)\b/i],
     ["Azure", /\b(?:azure|microsoft cloud)\b/i], ["GCP", /\b(?:gcp|google cloud(?: platform)?)\b/i],
-    ["Go", /\bgolang\b|\b(?:experience|proficiency|expertise|development)\s+(?:with|in|using)\s+go\b|\b(?:tech(?:nology)?\s+stack|programming\s+languages?|languages?)\s*:?[^.\n]{0,80}\bgo\b|(?:^|[,(;/|])\s*go\s*(?=\s*(?:[,);/|]|$))/im], ["Java", /\bjava\b/i],
+    ["Go", /\bgolang\b|\b(?:experience|proficiency|expertise|development)\s+(?:with|in|using)\s+go\b|\b(?:tech(?:nology)?\s+stack|programming\s+languages?|languages?)\s*:?[^.\n]{0,80}\bgo\b|(?:^|[,;/|])\s*go\s*(?=\s*(?:[,);/|]|$))/im], ["Java", /\bjava\b/i],
     ["Vue", /\bvue(?:\.js|js)?\b/i], ["Angular", /\bangular\b/i],
     ["C#", /\bc#(?=\W|$)/i], ["C++", /\bc\+\+(?=\W|$)/i],
     ["MongoDB", /\bmongodb\b/i], ["Redis", /\bredis\b/i], ["Kafka", /\bkafka\b/i],
