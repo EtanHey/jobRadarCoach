@@ -15,6 +15,12 @@ export interface MicEventDependencies {
   clearHeartbeat?(token: unknown): void;
 }
 
+export async function closeOwnedRealtimeClient(
+  db: Pick<ReturnType<typeof getVoiceDatabase>, "removeAllChannels">,
+): Promise<void> {
+  await db.removeAllChannels();
+}
+
 function frame(name: "ready" | "ownership" | "error", data: unknown): Uint8Array {
   return encoder.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
 }
@@ -34,7 +40,7 @@ function defaultDependencies(): MicEventDependencies {
         (payload) => onRow(payload.new),
       );
       channel.subscribe(onStatus);
-      return { close: () => db.removeChannel(channel).then(() => undefined) };
+      return { close: () => closeOwnedRealtimeClient(db) };
     },
   };
 }
