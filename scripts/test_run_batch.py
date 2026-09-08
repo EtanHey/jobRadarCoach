@@ -220,3 +220,6 @@ def test_all_observed_partial_summary_is_incomplete(stage, outcome):
     assert receipt["selected_counts"][stage] is None
     assert receipt[outcome] is None
     assert receipt["failures"] == [{"stage": stage, "failure": "IncompleteReceipt", "chunk": 0}]
+    other, other_outcome = ("classifier", "scored") if stage == "extractor" else ("extractor", "extracted")
+    assert receipt["aggregate_receipts"][other]["complete"] is True
+    assert receipt["selected_counts"][other] == receipt[other_outcome] == len(IDS)
