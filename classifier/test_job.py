@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from classifier import job
+from classifier import core, job
 from scraper.brain_contract import BrainTransportError
 
 
@@ -101,6 +101,8 @@ def test_failures_return_nonzero_without_raw_detail(capsys, failure, expected_ty
     def score(*_args, **_kwargs):
         if failure == "provider":
             raise BrainTransportError("private failure detail")
+        if failure == "failed":
+            assert core.score_posting({}, {}, []) is None
         return failure
 
     result = job.run_batch(
@@ -115,6 +117,9 @@ def test_failures_return_nonzero_without_raw_detail(capsys, failure, expected_ty
 
     assert result == 1
     assert any(record.get("failure") == expected_type for record in records)
+    if failure == "failed":
+        failed_record = next(record for record in records if record.get("failure") == expected_type)
+        assert failed_record["failure_category"] == "projection"
     assert "private failure detail" not in json.dumps(records)
     assert records[-1]["scored"] == 0
     assert records[-1]["failed"] == 1
