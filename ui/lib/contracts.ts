@@ -36,6 +36,11 @@ export const JobSummarySchema = z.object({
   id: JobIdSchema,
   title: text,
   company: text,
+  source: text,
+  last_seen_at: text,
+  experience: nullableText,
+  seniority_origin: z.enum(["extracted", "title", "unknown"]),
+  extraction_state: z.enum(["not-extracted", "extracted"]),
   location: nullableText,
   remote: z.boolean().nullable(),
   seniority: nullableText,
@@ -60,7 +65,7 @@ export const JobDetailSchema = JobSummarySchema.extend({
   scored_at: nullableText,
 }).strict();
 
-const limit = z.coerce.number().int().min(1).max(250).default(50);
+const limit = z.coerce.number().int().min(1).max(1000).default(50);
 export const JobListQuerySchema = z.object({
   filter: z.enum(["all", "new-for-me", "seen", "saved", "applied", "rejected"]),
   limit,
@@ -97,7 +102,7 @@ export const ProfileSchema = z.object({
   "runtime.brain": z.enum(["ollama", "codex"]),
 }).strict();
 
-export const JobListResponseSchema = z.object({ jobs: z.array(JobSummarySchema).max(250) }).strict();
+export const JobListResponseSchema = z.object({ jobs: z.array(JobSummarySchema).max(1000) }).strict();
 export const JobDetailResponseSchema = z.object({ job: JobDetailSchema }).strict();
 export const StatusResultSchema = z.object({
   status: JobStatusSchema,
