@@ -106,7 +106,10 @@ def test_correlates_all_ids_and_continues_after_extractor_failure(monkeypatch, c
     assert len({job["metadata"]["name"] for job in fake.created}) == 3
     for job in fake.created:
         assert (job["metadata"]["namespace"], job["spec"]["activeDeadlineSeconds"],
-                job["spec"]["backoffLimit"], job["spec"]["template"]["spec"]["restartPolicy"]) == ("job-radar-coach", 900, 0, "Never")
+                job["spec"]["backoffLimit"], job["spec"]["ttlSecondsAfterFinished"],
+                job["spec"]["template"]["spec"]["restartPolicy"]) == (
+                    "job-radar-coach", 900, 0, 3600, "Never",
+                )
     for job in fake.created[1:]:
         args = job["spec"]["template"]["spec"]["containers"][0]["args"]
         assert [args[index + 1] for index, value in enumerate(args) if value == "--posting-id"] == list(IDS)
@@ -114,6 +117,29 @@ def test_correlates_all_ids_and_continues_after_extractor_failure(monkeypatch, c
     assert {item["name"]: item.get("value") for item in fake.created[2]["spec"]["template"]["spec"]["containers"][0]["env"]}["BRAIN"] == "codex"
     assert not any(call[0][1] in {"patch", "delete", "replace"} for call in fake.calls)
     _assert_lifecycle(fake.calls)
+
+
+def test_all_tracked_job_templates_retain_receipts_for_one_hour():
+    templates = [
+        path for path in sorted((Path(__file__).parents[1] / "k8s").glob("*.yaml"))
+        if not path.name.startswith("livekit")
+    ]
+    batch_templates = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in templates
+        if path.read_text(encoding="utf-8").startswith("apiVersion: batch/v1\n")
+    }
+
+    assert set(batch_templates) == {
+        "classifier-job.yaml", "extractor-job.yaml", "scraper-cronjob.yaml",
+    }
+    for name in ("classifier-job.yaml", "extractor-job.yaml"):
+        assert "\nspec:\n  ttlSecondsAfterFinished: 3600\n" in batch_templates[name]
+    assert (
+        "  jobTemplate: # layer 2: the Job\n"
+        "    spec:\n"
+        "      ttlSecondsAfterFinished: 3600\n"
+    ) in batch_templates["scraper-cronjob.yaml"]
 
 def _assert_lifecycle(calls):
     lifecycle = []

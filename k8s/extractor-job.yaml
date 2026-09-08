@@ -4,6 +4,7 @@ metadata:
   name: extractor-batch-lane3e-review
   namespace: job-radar-coach
 spec:
+  ttlSecondsAfterFinished: 3600
   activeDeadlineSeconds: 900
   backoffLimit: 0
   template:

@@ -17,6 +17,7 @@ from typing import Any
 from uuid import UUID, uuid4
 NAMESPACE = "job-radar-coach"
 STAGE_DEADLINE = 900
+JOB_TTL_SECONDS = 3600
 RUN_DEADLINE = 2800
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_ID_PATTERN = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
@@ -109,7 +110,11 @@ def _prepare_job(
         "name": f"{stage}-{run_id}{suffix}", "namespace": NAMESPACE, "labels": labels,
     }
     spec = job.setdefault("spec", {})
-    spec.update(activeDeadlineSeconds=STAGE_DEADLINE, backoffLimit=0)
+    spec.update(
+        activeDeadlineSeconds=STAGE_DEADLINE,
+        backoffLimit=0,
+        ttlSecondsAfterFinished=JOB_TTL_SECONDS,
+    )
     template = spec.setdefault("template", {})
     template["metadata"] = {"labels": labels}
     template.setdefault("spec", {})["restartPolicy"] = "Never"
