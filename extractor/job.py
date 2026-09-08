@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
-from functools import partial
-from collections.abc import Callable, Mapping, Sequence
 import json
 import os
+from collections.abc import Callable, Mapping, Sequence
+from functools import partial
 from typing import Protocol
 from uuid import UUID
 
@@ -16,10 +16,14 @@ from extractor.core import (
     MIN_RAW_JD_CHARS,
     extract_posting,
 )
+from extractor.evidence import ExtractionValidationError
 from extractor.persistence import persist_extraction
 from scraper.brain import run_brain
-from scraper.brain_contract import UnsupportedBrainError, resolve_brain
-
+from scraper.brain_contract import (
+    BrainValidationError,
+    UnsupportedBrainError,
+    resolve_brain,
+)
 
 MAX_BATCH_SIZE = 30
 IMPLEMENTED_BRAINS = frozenset({"ollama", "codex"})
@@ -36,6 +40,14 @@ class Connection(Protocol):
 
 def _log(**fields: object) -> None:
     print(json.dumps(fields, ensure_ascii=True, separators=(",", ":"), sort_keys=True), flush=True)
+
+
+def _safe_validation_diagnostic(error: Exception) -> dict[str, str]:
+    if isinstance(error, ExtractionValidationError):
+        return {"failure_category": error.category, "failure_field": error.field}
+    if isinstance(error, BrainValidationError):
+        return {"failure_category": "provider_schema", "failure_field": "unknown"}
+    return {}
 
 
 def _assignment_fields(
@@ -151,7 +163,17 @@ def run_batch(
                  outcome=outcome)
         except Exception as error:  # Keep later rows eligible; emit only the safe type.
             failed += 1
-            _log(posting_id=posting_id, provider=provider, failure=type(error).__name__)
+            failure = (
+                BrainValidationError.__name__
+                if isinstance(error, BrainValidationError)
+                else type(error).__name__
+            )
+            _log(
+                posting_id=posting_id,
+                provider=provider,
+                failure=failure,
+                **_safe_validation_diagnostic(error),
+            )
     _log(
         selected=len(postings), extracted=extracted, failed=failed,
         provider=provider, **assignment,

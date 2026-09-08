@@ -5,10 +5,11 @@ import json
 import pytest
 
 from extractor import job
-from scraper.brain_contract import BrainTransportError
-
+from extractor.evidence import validate_facts
+from scraper.brain_contract import BrainTransportError, BrainValidationError
 
 RAW_JD = "Senior backend engineer. " + "Build reliable TypeScript services. " * 3
+REMOTE_SENTINEL = "SENTINEL unsupported flexibility claim"
 POSTING_IDS = (
     "00000000-0000-0000-0000-000000003e01",
     "00000000-0000-0000-0000-000000003e02",
@@ -142,6 +143,47 @@ def test_provider_and_stale_failures_return_nonzero(capsys, failure, expected_ty
     assert "private failure detail" not in json.dumps(records)
     assert records[-1]["extracted"] == 0
     assert records[-1]["failed"] == 1
+
+
+def test_remote_rejection_logs_only_bounded_category_and_field(capsys) -> None:
+    def extract(posting, *_args, **_kwargs):
+        facts = {
+            field: {"value": None, "evidence_quote": None}
+            for field in ("location", "seniority", "salary")
+        }
+        facts["remote"] = {"value": True, "evidence_quote": REMOTE_SENTINEL}
+        facts["stack"] = []
+        raw_jd = f'{posting["raw_jd"]} {REMOTE_SENTINEL}'
+        validate_facts(facts, raw_jd)
+        pytest.fail("unsupported remote fact passed validation")
+
+    result = job.run_batch(Connection(), limit=1, timeout_seconds=10,
+                           extractor=extract, persister=lambda *_args: "stored")
+    output = capsys.readouterr().out
+    failure = next(record for record in map(json.loads, output.splitlines())
+                   if record.get("failure") == "BrainValidationError")
+
+    assert result == 1
+    assert failure["failure_category"] == "remote_consistency"
+    assert failure["failure_field"] == "remote"
+    assert REMOTE_SENTINEL not in output
+    assert "remote value conflicts with its evidence quote" not in output
+
+
+def test_generic_validation_error_uses_safe_fallback(capsys) -> None:
+    def extract(*_args, **_kwargs):
+        raise BrainValidationError("SENTINEL private provider schema detail")
+
+    result = job.run_batch(Connection(), limit=1, timeout_seconds=10,
+                           extractor=extract, persister=lambda *_args: "stored")
+    output = capsys.readouterr().out
+    failure = next(record for record in map(json.loads, output.splitlines())
+                   if record.get("failure") == "BrainValidationError")
+
+    assert result == 1
+    assert failure["failure_category"] == "provider_schema"
+    assert failure["failure_field"] == "unknown"
+    assert "SENTINEL" not in output
 
 
 def test_optional_provider_is_explicitly_unsupported(capsys) -> None:
