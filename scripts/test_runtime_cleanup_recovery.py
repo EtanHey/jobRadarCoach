@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import time
 
 from test_support.runtime_cli_support import ROOT, environment, is_alive, run_entry, wait_for
 from test_support.runtime_supervisor_services import _service
@@ -29,8 +30,16 @@ class _CountingStop:
     def stop(self, context, identity):
         count = int(self.counter.read_text()) + 1 if self.counter.exists() else 1
         self.counter.write_text(str(count))
-        if self.fail_once and count == 1:
+        interrupt_cleanup = bool(os.environ.get("TEST_INTERRUPT_CLEANUP"))
+        fail_first = self.fail_once or interrupt_cleanup
+        if fail_first and count == 1:
             raise RuntimeError("synthetic first stop failure")
+        if self.name == "first" and count == 2 and interrupt_cleanup:
+            gate = Path(os.environ["TEST_INTERRUPT_CLEANUP"])
+            deadline = time.monotonic() + 4
+            while not gate.exists() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            raise RuntimeError("synthetic interrupted retry failure")
         self.service.stop(context, identity)
 
 
@@ -102,3 +111,56 @@ def test_cleanup_retry_refuses_stale_owned_identity_without_stopping_process(tmp
         if is_alive(first_pid):
             os.kill(first_pid, signal.SIGTERM)
             wait_for(lambda: not is_alive(first_pid))
+
+
+def test_sigint_during_retry_finishes_cleanup_before_exit(tmp_path):
+    gate = tmp_path / "continue-cleanup"
+    env = environment(tmp_path)
+    env.update(
+        RUN_SERVICES_MODULE="scripts.test_runtime_cleanup_recovery",
+        TEST_INTERRUPT_CLEANUP=str(gate),
+    )
+    output_path = tmp_path / "supervisor.log"
+    with output_path.open("w") as output:
+        owner = subprocess.Popen(
+            [str(ROOT / "run"), "up", "--qa"], cwd=ROOT, env=env,
+            stdout=output, stderr=subprocess.STDOUT, text=True,
+        )
+    state_path = tmp_path / "state/state.json"
+    wait_for(lambda: state_path.exists() and len(json.loads(state_path.read_text())["services"]) == 2)
+    identities = {
+        row["name"]: row["identity"] for row in json.loads(state_path.read_text())["services"]
+    }
+    owner.send_signal(signal.SIGTERM)
+    owner.wait(timeout=5)
+    pids = [int(identity["pid"]) for identity in identities.values()]
+    try:
+        assert [row["name"] for row in json.loads(state_path.read_text())["services"]] == [
+            "first", "second",
+        ]
+        with (tmp_path / "retry.log").open("w") as output:
+            retry = subprocess.Popen(
+                [str(ROOT / "run"), "down"], cwd=ROOT, env=env,
+                stdout=output, stderr=subprocess.STDOUT, text=True,
+            )
+        wait_for(lambda: not is_alive(int(identities["second"]["pid"])))
+        retry.send_signal(signal.SIGINT)
+        gate.touch()
+        retry.wait(timeout=5)
+        assert retry.returncode == 1
+        assert [row["name"] for row in json.loads(state_path.read_text())["services"]] == [
+            "first",
+        ]
+        assert is_alive(int(identities["first"]["pid"]))
+        assert not is_alive(int(identities["second"]["pid"]))
+        final_retry = run_entry(ROOT / "run", env, "down")
+        assert final_retry.returncode == 0 and not state_path.exists()
+        assert all(not is_alive(pid) for pid in pids)
+        assert (tmp_path / "first.stops").read_text() == "3"
+        assert (tmp_path / "second.stops").read_text() == "2"
+    finally:
+        gate.touch()
+        for pid in pids:
+            if is_alive(pid):
+                os.kill(pid, signal.SIGTERM)
+                wait_for(lambda pid=pid: not is_alive(pid))
