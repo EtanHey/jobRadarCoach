@@ -328,22 +328,24 @@ def test_sighup_during_initial_verifier_reaps_detached_child(tmp_path):
                 pass
 
 
-def test_shutdown_during_verifier_source_read_does_not_spawn(tmp_path):
+def test_fifo_verifier_refuses_without_waiting_for_writer_or_starting_proxy(tmp_path):
     module, verifier, control = fixtures(tmp_path)
+    started = tmp_path / "proxy-started"
+    source = module.read_text().replace(
+        "import { existsSync }", "import { existsSync, writeFileSync }")
+    source = source.replace("export async function startQaProxy(options) {",
+                            "export async function startQaProxy(options) {\n"
+                            f"writeFileSync({json.dumps(str(started))}, 'started');")
+    module.write_text(source)
     verifier.unlink()
     os.mkfifo(verifier)
     child, marker = launch(tmp_path, module, verifier, control, {
         "QA_EXPECTED_VERIFIER_SHA256": "0" * 64,
     })
     try:
-        time.sleep(0.1)
-        if child.poll() is None:
-            child.terminate()
-        returncode = child.wait(timeout=2)
-        if returncode == 0:
-            assert wait_for(marker, "STOPPED")["status"] == "STOPPED"
-        else:
-            assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_invalid"
+        assert child.wait(timeout=2) != 0
+        assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_invalid"
+        assert not started.exists()
     finally:
         if child.poll() is None:
             child.kill()
