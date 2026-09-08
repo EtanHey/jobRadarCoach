@@ -22,6 +22,12 @@ def profile_snapshot() -> dict[str, object]:
         "candidate.tenure_years": candidate["tenure_years"],
         "candidate.location": candidate["location"],
         "candidate.fit_terms": candidate["fit_terms"],
+        "candidate.roles_wanted": ["Full-stack Engineer"],
+        "candidate.stacks": ["TypeScript", "React"],
+        "candidate.seniority": ["Junior", "Mid"],
+        "candidate.salary_floor": None,
+        "candidate.red_flag_words": ["manufacturing"],
+        "candidate.preferences.free_text": "Prefer product engineering.",
         "candidate.open_to.geographies": candidate["open_to"]["geographies"],
         "candidate.open_to.work_modes": candidate["open_to"]["work_modes"],
         "candidate.open_to.relocation": candidate["open_to"]["relocation"],
@@ -65,8 +71,39 @@ def test_profile_contract_preserves_only_validated_annotation_projection() -> No
     assert validated["candidate"]["professional_depth"] == {
         "TypeScript": ["hands-on"]
     }
+    assert validated["candidate"]["professional_preferences"] == {
+        "roles": ["Full-stack Engineer"],
+        "stacks": ["TypeScript", "React"],
+        "levels": ["Junior", "Mid"],
+        "salary_floor": None,
+        "red_flag_words": ["manufacturing"],
+        "free_text": "Prefer product engineering.",
+    }
     assert validated["fit_signals"]
     assert PRIVATE not in repr(validated)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("candidate.roles_wanted", ["x" * 201]),
+        ("candidate.stacks", [str(index) for index in range(51)]),
+        ("candidate.seniority", "Senior"),
+        ("candidate.salary_floor", float("inf")),
+        ("candidate.salary_floor", True),
+        ("candidate.salary_floor", 10**1000),
+        ("candidate.red_flag_words", ["duplicate", "duplicate"]),
+        ("candidate.preferences.free_text", "x" * 2001),
+    ],
+)
+def test_profile_contract_bounds_professional_preferences(
+    field: str, value: object
+) -> None:
+    snapshot = profile_snapshot()
+    snapshot[field] = value
+
+    with pytest.raises(ValueError, match="professional preference"):
+        projection.profile_contract(snapshot)
 
 
 @pytest.mark.parametrize("mutation", ["blank", "bad-depth", "unverified"])
