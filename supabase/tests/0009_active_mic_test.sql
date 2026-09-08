@@ -74,8 +74,11 @@ select ok(
   'service role can execute all active-mic RPCs');
 select ok(
   not has_function_privilege('anon','public.claim_active_mic(uuid)','execute')
+  and not has_function_privilege('authenticated','public.claim_active_mic(uuid)','execute')
+  and not has_function_privilege('anon','public.release_active_mic(uuid)','execute')
   and not has_function_privilege('authenticated','public.release_active_mic(uuid)','execute')
-  and not has_function_privilege('anon','public.get_active_mic()','execute'),
+  and not has_function_privilege('anon','public.get_active_mic()','execute')
+  and not has_function_privilege('authenticated','public.get_active_mic()','execute'),
   'browser roles cannot execute active-mic RPCs');
 select ok(not exists(
   select 1 from pg_catalog.pg_proc p
