@@ -62,6 +62,8 @@ conversation.
 ## Voice agent tools (D4, Etan builds; workers only prepare the SQL functions they call)
 
 - `list_new_for_me()` — ranked unseen postings since last visit.
+- `list_jobs(seen=false, max=5, min_score?, location?, seniority?, query?)` — bounded
+  best-fit jobs across full history; `seen=null` includes new and handled rows, including unknown dates.
 - `set_status(posting_id, status, reason?)` — writes `posting_status`.
 - `update_profile(field, value)` — voice edits the profile rows.
 - `open_job(posting_id)` — sends a message over the LiveKit data channel; the mic page opens the tab.
