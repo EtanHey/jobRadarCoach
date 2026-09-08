@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-08T07:15:24.643Z",
+  "generatedAt": "2026-09-08T08:09:26.106Z",
   "sourcePostingCount": 256,
   "uniqueCompanyCount": 149,
-  "coveredCompanyCount": 142,
-  "coveredPostingCount": 243,
+  "coveredCompanyCount": 146,
+  "coveredPostingCount": 253,
   "entries": [
     {
       "canonicalName": "180 engineering",
@@ -1585,6 +1585,26 @@
       }
     },
     {
+      "canonicalName": "pagaya israel",
+      "companyNames": [
+        "Pagaya Israel"
+      ],
+      "file": "pagaya-israel-617fae43c9.png",
+      "mimeType": "image/png",
+      "bytes": 3939,
+      "sha256": "617fae43c97a496bd6c662e5c73f63c0ed2c59759454459724621aa0404a3515",
+      "source": {
+        "kind": "official-company-site",
+        "url": "https://pagaya.com/icons/pagaya-logo.svg?v=2",
+        "page": "https://pagaya.com/",
+        "pageSha256": "127348d9fe985006466c6d29f52089f95b24b8810b8b3acf01628652d431ce8d",
+        "postingId": "0d1fe3b2-c576-4eba-9909-b04a268232e8",
+        "alt": "Pagaya Israel",
+        "sourceBytes": 2391,
+        "sourceSha256": "79ce80bbedddef36161a73ce28e6d0d58ec8b4c95c51c13ea11670d186113e1e"
+      }
+    },
+    {
       "canonicalName": "palantir",
       "companyNames": [
         "Palantir"
@@ -1851,6 +1871,26 @@
       }
     },
     {
+      "canonicalName": "real dev inc",
+      "companyNames": [
+        "REAL DEV INC"
+      ],
+      "file": "real-dev-inc-15a1499120.png",
+      "mimeType": "image/png",
+      "bytes": 2057,
+      "sha256": "15a1499120180f85095f61e46e42947e5394def8ef80b2f4bd81c6efb345b677",
+      "source": {
+        "kind": "official-company-site",
+        "url": "https://www.real.dev/icon-192.png",
+        "page": "https://www.real.dev/company",
+        "pageSha256": "e53a31ad98f268453d6591d9620546c4a75378e60ea83534755ef29d37e2950e",
+        "postingId": "3d2d4e6a-cb2d-43be-9e32-387884635b6e",
+        "alt": "REAL DEV INC",
+        "sourceBytes": 2618,
+        "sourceSha256": "ff0caf20909cd9d33fd82ef28e02fe14d811f3a751adc4cc4f5d45c3ff719742"
+      }
+    },
+    {
       "canonicalName": "resilience",
       "companyNames": [
         "Resilience"
@@ -2020,6 +2060,26 @@
         "pageSha256": "86485108c50c21a61264ee10aca2f705227e5aa42591284c201ff0c74c813ca4",
         "postingId": "58be104a-2c24-41b3-9f5f-6c8cdd0db70a",
         "alt": "SentinelOne"
+      }
+    },
+    {
+      "canonicalName": "shifters",
+      "companyNames": [
+        "Shifters"
+      ],
+      "file": "shifters-827592a2d1.png",
+      "mimeType": "image/png",
+      "bytes": 6846,
+      "sha256": "827592a2d1a2dfc6f7df4424160c910771ba262d80a1f4a389f779b8c2f1185b",
+      "source": {
+        "kind": "official-company-site",
+        "url": "https://www.shiftersai.com/favicon.svg",
+        "page": "https://www.shiftersai.com/",
+        "pageSha256": "a51b749d607c4dec2e7b0eeed7388e005a34553ef5e4a8e7c1cc0071034c3f44",
+        "postingId": "19839819-cb9b-4368-bce4-e83eea9f0682",
+        "alt": "Shifters",
+        "sourceBytes": 1121,
+        "sourceSha256": "b0bb0446cf64cb369bd7a698ad4b4a250fe793f1042abafb97ecc3a1e0e69dd7"
       }
     },
     {
@@ -2469,6 +2529,26 @@
       }
     },
     {
+      "canonicalName": "tomax think academy",
+      "companyNames": [
+        "Tomax Think Academy"
+      ],
+      "file": "tomax-think-academy-3ae3a34fd1.png",
+      "mimeType": "image/png",
+      "bytes": 3709,
+      "sha256": "3ae3a34fd190c61813bc80e33bed85dee33139275b7a441f2b22d78c620341c0",
+      "source": {
+        "kind": "official-company-site",
+        "url": "https://www.tomax.io/images/logos/full-logo.svg",
+        "page": "https://tomax.io/",
+        "pageSha256": "636cba6cbd66f231a4fe689fe1f52df096e377a0946403a4d6e797ca675885e5",
+        "postingId": "4f736c7b-16c9-4361-8751-72a4dbd49ff6",
+        "alt": "Tomax Think Academy",
+        "sourceBytes": 13992,
+        "sourceSha256": "7a71728fac54af71f3325e3fdf11c482d369686139b1e704ce35093d2f4d7d4e"
+      }
+    },
+    {
       "canonicalName": "trace3",
       "companyNames": [
         "Trace3"
@@ -2680,11 +2760,7 @@
   "unresolved": [
     "confidential",
     "gigfinder.ai",
-    "my team",
-    "pagaya israel",
-    "real dev inc",
-    "shifters",
-    "tomax think academy"
+    "my team"
   ],
   "skipped": [
     {
@@ -2693,27 +2769,7 @@
       "reason": "linkedin-logo-not-found"
     },
     {
-      "company": "Pagaya Israel",
-      "source": "greenhouse",
-      "reason": "attributable-ats-logo-not-found"
-    },
-    {
       "company": "my team",
-      "source": "workable",
-      "reason": "attributable-ats-logo-not-found"
-    },
-    {
-      "company": "REAL DEV INC",
-      "source": "workable",
-      "reason": "attributable-ats-logo-not-found"
-    },
-    {
-      "company": "Shifters",
-      "source": "workable",
-      "reason": "attributable-ats-logo-not-found"
-    },
-    {
-      "company": "Tomax Think Academy",
       "source": "workable",
       "reason": "attributable-ats-logo-not-found"
     },
