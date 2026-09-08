@@ -8,6 +8,7 @@ import {
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
+import { postingUrl, titleSeniority, experiencePhrase } from "./job-metadata";
 import { HttpError } from "./http";
 
 export interface ApiStore {
@@ -28,6 +29,8 @@ const scoreSchema = z.object({
   score_payload: z.unknown().nullable(), scored_at: z.string(),
 });
 const rawSummarySchema = z.object({
+  source: z.string(), last_seen_at: z.string(), raw_jd: z.string().nullable(),
+  posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
   remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),
@@ -38,9 +41,9 @@ const rawSummarySchema = z.object({
 const rawDetailSchema = rawSummarySchema.extend({ raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const SUMMARY = "source,last_seen_at,raw_jd,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = `${SUMMARY},raw_jd`;
+const DETAIL = SUMMARY;
 
 function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -64,11 +67,16 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 
 function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const base = checked(rawSummarySchema, row);
-  const { posting_scores: score, posting_status: status, ...posting } = base;
+  const { posting_scores: score, posting_status: status, posting_extractions: extraction, raw_jd, ...posting } = base;
+  const level = posting.seniority ?? titleSeniority(posting.title);
   const payload = score?.score_payload;
   const fit = payload && typeof payload === "object" ? payload : null;
   return checked(JobSummarySchema, {
-    ...posting, status: status?.status ?? "new", status_reason: status?.reason ?? null,
+    ...posting, url: postingUrl(posting.url),
+    apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
+    seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
+    experience: experiencePhrase(raw_jd), extraction_state: extraction ? "extracted" : "not-extracted",
+    status: status?.status ?? "new", status_reason: status?.reason ?? null,
     score: score?.score ?? null,
     fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
     recommendation: fit && "recommendation" in fit ? fit.recommendation : null,
@@ -77,20 +85,19 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
 
 async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
   if (input.filter === "new-for-me") {
-    const ids = checked(z.array(z.object({ posting_id: JobIdSchema })), await data(
-      db.rpc("list_new_for_me").limit(input.limit),
-    )).map((row) => row.posting_id);
-    if (!ids.length) return [];
-    const rows = checked(z.array(rawSummarySchema), await data(db.from("postings").select(SUMMARY).in("id", ids)));
-    const byId = new Map(rows.map((row) => [row.id, summary(row)]));
-    return ids.map((id) => {
-      const job = byId.get(id);
-      if (!job) throw new HttpError(500, "Database returned an invalid response.");
-      return job;
-    });
+    const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
+      db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
+    ));
+    let fresh = db.from("postings").select(STATUS_SUMMARY)
+      .eq("posting_status.status", "new").order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+    if (visit?.last_visit_at) {
+      const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
+      fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
+    }
+    return checked(z.array(rawSummarySchema), await data(fresh)).map(summary);
   }
   let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY)
-    .order("posted_at", { ascending: false, nullsFirst: false }).order("id").limit(input.limit);
+    .order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   if (input.filter !== "all") query = query.eq("posting_status.status", input.filter);
   return checked(z.array(rawSummarySchema), await data(query)).map(summary);
 }
