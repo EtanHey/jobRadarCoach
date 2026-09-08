@@ -228,3 +228,21 @@ def test_repository_verifier_matches_normal_consumer_contract(tmp_path, monkeypa
     output = capsys.readouterr().out
     assert json.loads(output) == {"status": "READY", "mode": "normal", "worker_id": "AW_contract"}
     assert subject._verifier_result(subprocess.CompletedProcess([], 0, output, "")).healthy
+
+
+def test_process_scan_accepts_verified_framework_python_alias(tmp_path):
+    (tmp_path / ".venv-agent/bin").mkdir(parents=True)
+    launcher = tmp_path / ".venv-agent/bin/python"
+    launcher.touch()
+    framework = tmp_path / "Python"
+    framework.touch()
+    (tmp_path / "agent").mkdir()
+    (tmp_path / "agent/main.py").touch()
+    responses = {
+        ("ps", "-axo", "pid=,command="): result(f"51 {framework} agent/main.py start\n"),
+        ("lsof", "-a", "-p", "51", "-d", "cwd", "-Fn"): result(f"p51\nn{tmp_path}\n"),
+        (str(launcher), "-c", subject._INTERPRETER_IDENTITY): result(str(framework) + "\n"),
+    }
+    assert subject._agent_processes(FakeContext(tmp_path, responses)) == {51: True}
+    responses[(str(launcher), "-c", subject._INTERPRETER_IDENTITY)] = result(str(tmp_path / "unrelated") + "\n")
+    assert subject._agent_processes(FakeContext(tmp_path, responses)) == {51: False}

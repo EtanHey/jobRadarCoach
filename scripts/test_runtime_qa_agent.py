@@ -211,3 +211,18 @@ def test_strict_verifier_stdout_and_owned_pid_binding(monkeypatch, tmp_path):
     service._selected_receipt = receipt
     service._process = type("Owned", (), {"_children": {99: object()}})()
     assert service.probe(context) == Probe(False, "QA NOT READY: receipt_pid_mismatch")
+
+
+def test_qa_process_scan_accepts_framework_python_capitalization(tmp_path):
+    from scripts.runtime_control import RuntimeContext
+    import subprocess
+
+    class ProcessContext(RuntimeContext):
+        def run(self, command, **kwargs):
+            assert tuple(command) == ("ps", "-axo", "pid=,command=")
+            return subprocess.CompletedProcess(command, 0,
+                "51 /Library/Frameworks/Python.app/Contents/MacOS/Python agent/main.py start\n"
+                "52 /unrelated/node agent/main.py start\n", "")
+
+    context = ProcessContext(tmp_path, tmp_path / "state", qa_mode=True)
+    assert subject._agent_processes(context) == {51: "start", 52: None}

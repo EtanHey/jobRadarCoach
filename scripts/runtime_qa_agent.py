@@ -41,7 +41,7 @@ def _agent_processes(context: RuntimeContext) -> dict[int, str | None] | None:
             continue
         valid = (
             len(parts) == 3
-            and Path(parts[0]).name.startswith("python")
+            and Path(parts[0]).name.casefold().startswith("python")
             and Path(parts[1]) in expected_paths
             and parts[2] in {"dev", "start"}
         )

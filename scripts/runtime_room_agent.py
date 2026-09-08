@@ -18,6 +18,10 @@ from scripts.runtime_qa_config import resolve_qa_urls
 
 KUBECTL = ("kubectl", "--context", "orbstack", "-n", "job-radar-coach")
 VERIFIER_SHA256 = "0c35e739ccaab2f3c9000098f51854ea209f2095ec7e46674e28a8a313928f8d"
+_INTERPRETER_IDENTITY = (
+    "import os, subprocess; "
+    "print(subprocess.check_output(['ps', '-ww', '-o', 'comm=', '-p', str(os.getpid())], text=True).strip())"
+)
 Verifier = Callable[[RuntimeContext, Path, str], Probe]
 
 
@@ -47,7 +51,7 @@ def _agent_processes(context: RuntimeContext) -> dict[int, bool] | None:
             parts = command.split()
         if (
             not pid_text.isdigit() or len(parts) < 2
-            or not Path(parts[0]).name.startswith("python")
+            or not Path(parts[0]).name.casefold().startswith("python")
             or Path(parts[1]).name != "main.py"
         ):
             continue
@@ -72,6 +76,19 @@ def _agent_processes(context: RuntimeContext) -> dict[int, bool] | None:
             known_script = candidate_script.samefile(script)
         except OSError:
             known_interpreter = known_script = False
+        if not known_interpreter and known_script:
+            # macOS framework launchers exec a distinct Python.app binary.
+            # Ask the configured interpreter for its real process executable;
+            # accepting a matching basename alone would trust an unrelated Python.
+            try:
+                identity = context.run((str(interpreter), "-c", _INTERPRETER_IDENTITY), timeout=5)
+                executable = Path(identity.stdout.strip())
+                known_interpreter = (
+                    identity.returncode == 0 and executable.is_absolute()
+                    and candidate_interpreter.samefile(executable)
+                )
+            except (OSError, ValueError, subprocess.SubprocessError):
+                known_interpreter = False
         found[pid] = (
             len(parts) == 3 and known_interpreter and known_script
             and parts[2] in {"dev", "start"}
