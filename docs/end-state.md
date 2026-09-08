@@ -102,3 +102,21 @@ Withheld from workers: anything under `k8s/livekit*`, `agent/`, and the mic page
 - Voice sessions (Etan, 2026-09-07 evening): one LiveKit room per web client (Mac tab, phone tab). Mic is
   sticky push-to-talk: tap opens, tap closes; opening the mic on any client closes any other open mic for the
   same user. No always-open mic. `ui` and `livekit` are the only Services; Jobs/CronJobs get none.
+
+## Owner amendment — 2026-09-08: voice is how the profile is maintained
+
+Etan, after using the UI: "once we finish setting up the livekit side it'll be much more useful as I'll be
+able to word out why some things dont match and some do, with the nitpicks and the ai would be able to find
+what to edit in the prefrences instead of me giving short answers to the reject and steering filtering too much."
+
+This is the product thesis. It has three consequences:
+
+1. **Rejection reasons are stored verbatim**, as the user said them, in free text. Never as a category from a
+   fixed list. The accumulated reasons are the corpus the agent reasons over; a label destroys the signal.
+2. **`update_profile` is not a setter.** The voice tool accepts what the user actually said and the model
+   derives which preference rows that implies. It must state the intended change back to the user in words
+   before writing. A tool that takes (field, value) recreates filter-steering by voice and misses the point.
+3. **Guard against overfitting.** The agent proposes a preference change only after it observes a PATTERN
+   across several rejections, names the pattern aloud, and every edit it has made is listed, attributed, and
+   individually undoable in the profile drawer. A profile that silently narrows until good roles stop
+   appearing is the failure mode this rule exists to prevent.
