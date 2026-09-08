@@ -27,11 +27,13 @@ export function experiencePhrase(description: string | null): string | null {
     const boundary = Math.max(description.lastIndexOf(".", index - 1), description.lastIndexOf("!", index - 1), description.lastIndexOf("?", index - 1), description.lastIndexOf("\n", index - 1));
     const context = description.slice(boundary + 1, index).trim();
     const negative = /\b(?:no|not|without|ideally|preferably|bonus|wish|would|nice to have)\b/i.test(context);
-    const standalone = /^(?:[-*•]\s*)?(?:(?:required\s+)?experience|qualifications?|requirements?)?\s*:?\s*$/i.test(context);
-    const required = /^(?:[-*•]\s*)?(?:at least|minimum(?: of)?|you (?:need|have|bring)|we require|requires?|required|must have|looking for|seeking)\s*(?:a|an)?\s*$/i.test(context);
+    const required = /^(?:[-*•]\s*)?(?:(?:requirements?|qualifications?)\s*:\s*)?(?:at least|minimum(?: of)?|you (?:need|have|bring)|we require|requires?|required|must have|looking for|seeking)\s*(?:a|an)?\s*$/i.test(context);
+    const headings = description.slice(0, index).matchAll(/^[ \t]*(?:#{1,6}[ \t]+([^\n]+)|((?:requirements?|qualifications?|what you bring|about(?: the)? company|about us|company|responsibilities|what you(?:'|’)ll do|the role|benefits))[ \t]*:?)[ \t]*$/gim);
+    let applicantSection = false;
+    for (const heading of headings) applicantSection = /^(?:requirements?|qualifications?|what you bring)$/i.test((heading[1] ?? heading[2]).replace(/[:#*]+$/, "").trim());
     const suffix = description.slice(index + match[0].length).split(/[.!?\n]/, 1)[0];
     const optional = /\b(?:not required|not necessary|optional|nice to have|bonus|preferred)\b/i.test(suffix);
-    if (!negative && !optional && (standalone || required)) return match[0];
+    if (!negative && !optional && (required || (applicantSection && /^(?:[-*•]\s*)?$/.test(context)))) return match[0];
   }
   return null;
 }
