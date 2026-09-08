@@ -222,6 +222,71 @@ def test_signal_during_initial_verifier_reaps_detached_child(tmp_path):
         os.kill(verifier_pid, 0)
 
 
+def test_completed_verifier_reaps_same_group_descendant(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    pid_file = tmp_path / "descendant.pid"
+    verifier.write_text(
+        "import json,os,pathlib,subprocess,sys\n"
+        "child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],"
+        "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+        f"pathlib.Path({str(pid_file)!r}).write_text(str(child.pid))\n"
+        "print(json.dumps({'status':'READY','worker_id':'AW_fixture'},separators=(',',':')))\n"
+    )
+    child, marker = launch(tmp_path, module, verifier, control)
+    try:
+        assert wait_for(marker, "READY")["status"] == "READY"
+        descendant_pid = int(pid_file.read_text())
+        child.terminate()
+        assert child.wait(timeout=5) == 0
+        assert wait_for(marker, "STOPPED")["status"] == "STOPPED"
+        with pytest.raises(ProcessLookupError):
+            os.kill(descendant_pid, 0)
+    finally:
+        if child.poll() is None:
+            child.terminate()
+            child.wait(timeout=5)
+
+
+def test_unconfirmed_verifier_cleanup_fails_closed(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    pid_file, hook = tmp_path / "descendant.pid", tmp_path / "deny-kill.mjs"
+    verifier.write_text(
+        "import json,pathlib,subprocess,sys\n"
+        "child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(30)'],"
+        "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\n"
+        f"pathlib.Path({str(pid_file)!r}).write_text(str(child.pid))\n"
+        "print(json.dumps({'status':'READY','worker_id':'AW_fixture'},separators=(',',':')))\n"
+    )
+    hook.write_text(
+        "const original=process.kill.bind(process);\n"
+        "process.kill=(pid,signal)=>{if(pid<0&&signal==='SIGKILL'){"
+        "const error=new Error('fixture denied');error.code='EPERM';throw error;}"
+        "return original(pid,signal);};\n"
+    )
+    child, marker = launch(
+        tmp_path, module, verifier, control, {"NODE_OPTIONS": f"--import={hook}"},
+    )
+    descendant_pid = None
+    try:
+        assert child.wait(timeout=5) != 0
+        descendant_pid = int(pid_file.read_text())
+        residual_pgid = os.getpgid(descendant_pid)
+        failed = wait_for(marker, "NOT_READY")
+        assert failed["reason"] == "verifier_cleanup_failed"
+        assert failed["verifier_pgids"] == [residual_pgid]
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
+        if descendant_pid is None and pid_file.exists():
+            descendant_pid = int(pid_file.read_text())
+        if descendant_pid is not None:
+            try:
+                os.kill(descendant_pid, 9)
+            except ProcessLookupError:
+                pass
+
+
 def test_concurrent_gate_calls_run_verifier_serially(tmp_path):
     module, verifier, control = fixtures(tmp_path)
     lock = tmp_path / "verifier.lock"
