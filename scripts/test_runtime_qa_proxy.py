@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 import time
@@ -220,6 +221,41 @@ def test_signal_during_initial_verifier_reaps_detached_child(tmp_path):
     assert wait_for(marker, "STOPPED")["status"] == "STOPPED"
     with pytest.raises(ProcessLookupError):
         os.kill(verifier_pid, 0)
+
+
+def test_sighup_during_initial_verifier_reaps_detached_child(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    pid_file = tmp_path / "verifier.pid"
+    verifier.write_text(
+        "import os,pathlib,time\n"
+        f"pathlib.Path({str(pid_file)!r}).write_text(str(os.getpid()))\n"
+        "time.sleep(30)\n"
+    )
+    child, marker = launch(
+        tmp_path, module, verifier, control, {"QA_VERIFIER_TIMEOUT_MS": "30000"},
+    )
+    verifier_pid = None
+    try:
+        deadline = time.monotonic() + 5
+        while not pid_file.exists() and time.monotonic() < deadline:
+            time.sleep(0.025)
+        verifier_pid = int(pid_file.read_text())
+        os.kill(child.pid, signal.SIGHUP)
+        assert child.wait(timeout=5) == 0
+        assert wait_for(marker, "STOPPED")["status"] == "STOPPED"
+        with pytest.raises(ProcessLookupError):
+            os.kill(verifier_pid, 0)
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
+        if verifier_pid is None and pid_file.exists():
+            verifier_pid = int(pid_file.read_text())
+        if verifier_pid is not None:
+            try:
+                os.kill(verifier_pid, 9)
+            except ProcessLookupError:
+                pass
 
 
 def test_completed_verifier_reaps_same_group_descendant(tmp_path):
