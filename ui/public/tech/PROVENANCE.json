@@ -3,7 +3,9 @@
   "catalogs": {
     "simple_icons": {
       "revision": "777807a262bb7384ff406fd4b35fdcd02e9514c3",
-      "metadata_sha256": "8b78e2fa06f18ca8f72c5dc93f4ebdce1df4324382e005dde91fdead8e349de1"
+      "metadata_sha256": "8b78e2fa06f18ca8f72c5dc93f4ebdce1df4324382e005dde91fdead8e349de1",
+      "license_metadata_source": "https://github.com/simple-icons/simple-icons/blob/777807a262bb7384ff406fd4b35fdcd02e9514c3/data/simple-icons.json",
+      "disclaimer_source": "https://github.com/simple-icons/simple-icons/blob/777807a262bb7384ff406fd4b35fdcd02e9514c3/DISCLAIMER.md"
     },
     "devicon": {
       "revision": "v2.17.0",
