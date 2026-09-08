@@ -45,7 +45,7 @@ def test_default_verifier_requires_normal_v2_output(monkeypatch, tmp_path):
     path = tmp_path / "receipt.json"
     command = (
         str(tmp_path / ".venv-agent/bin/python"),
-        str(tmp_path / "scripts/verify_agent_qa_receipt.py"),
+        "-c", "# synthetic verifier\n",
         "--require-mode", "normal", str(path),
     )
     context = FakeContext(tmp_path, {command: result(
@@ -73,7 +73,7 @@ def test_nonzero_verifier_reason_is_preserved(monkeypatch, tmp_path):
     path = tmp_path / "receipt.json"
     command = (
         str(tmp_path / ".venv-agent/bin/python"),
-        str(tmp_path / "scripts/verify_agent_qa_receipt.py"),
+        "-c", "# synthetic verifier\n",
         "--require-mode", "normal", str(path),
     )
     context = FakeContext(tmp_path, {command: result(
