@@ -111,13 +111,13 @@ export function JobBoard() {
   const query = search.trim().toLocaleLowerCase();
   const visible = jobs.filter((job) => [job.title, job.company, job.location, ...job.stack].join(" ").toLocaleLowerCase().includes(query));
 
-  return <div className="min-h-screen bg-[#f5f6f3] text-[#17332b]">
+  return <div className="min-h-screen bg-background text-foreground">
     <BoardHeader />
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
       <BoardHero><ProfileDrawer onUpdated={reload} /></BoardHero>
       <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, reload}} />
-      <p role="status" className="mt-4 text-xs text-[#687d6e]">{connection}</p>
-      <p className="mt-5 text-xs text-[#82907f]">Scores are a starting point. Open a role to see the reasoning and original description.</p>
+      <p role="status" className="mt-4 text-xs text-muted-foreground">{connection}</p>
+      <p className="mt-5 text-xs text-muted-foreground">Scores are a starting point. Open a role to see the reasoning and original description.</p>
     </main>
     <JobDrawer {...{selected, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
   </div>;

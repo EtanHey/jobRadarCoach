@@ -12,6 +12,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 RUN addgroup -S -g 1001 radar && adduser -S -u 1001 -G radar radar
 COPY --from=build --chown=radar:radar /app/.next/standalone ./
 COPY --from=build --chown=radar:radar /app/.next/static ./.next/static
+COPY --from=build --chown=radar:radar /app/public ./public
 USER radar
 EXPOSE 3000
 CMD ["node", "server.js"]
