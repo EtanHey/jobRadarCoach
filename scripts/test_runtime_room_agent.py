@@ -203,3 +203,28 @@ def test_normal_and_qa_receipt_paths_must_differ(monkeypatch, tmp_path):
     monkeypatch.setenv("VOICE_QA_RECEIPT_FILE", str(same))
     service = subject.RoomAgentService(url_provider=lambda _context: "ws://expected:7880")
     assert not service.probe(FakeContext(tmp_path)).healthy
+
+
+def test_repository_verifier_matches_normal_consumer_contract(tmp_path, monkeypatch, capsys):
+    import sys
+    from pathlib import Path
+    import scripts.verify_agent_qa_receipt as verifier
+
+    source = Path(verifier.__file__)
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == subject.VERIFIER_SHA256
+    receipt = tmp_path / "synthetic-contract.json"
+    receipt.write_text("{}")
+    monkeypatch.setattr(sys, "argv", [str(source), "--require-mode", "normal", str(receipt)])
+
+    def validate(value, *, require_mode):
+        assert require_mode == "normal"
+        return {"schema_version": 2, "mode": require_mode,
+                "registration": {"worker_id": "AW_contract"}}
+
+    monkeypatch.setattr(verifier, "validate_receipt", validate)
+    monkeypatch.setattr(verifier, "verify_live_load", lambda value: None)
+    monkeypatch.setattr(verifier, "verify_pool", lambda value: None)
+    assert verifier.main() == 0
+    output = capsys.readouterr().out
+    assert json.loads(output) == {"status": "READY", "mode": "normal", "worker_id": "AW_contract"}
+    assert subject._verifier_result(subprocess.CompletedProcess([], 0, output, "")).healthy
