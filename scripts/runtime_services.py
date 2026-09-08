@@ -178,7 +178,10 @@ def _supabase(context: RuntimeContext) -> Probe:
 
 
 def _ollama(context: RuntimeContext) -> Probe:
-    known = _processes(context, "ollama", "serve")
+    known = [
+        process for process in _processes(context, "ollama", "serve")
+        if len(shlex.split(process[1])) == 2 and shlex.split(process[1])[1] == "serve"
+    ]
     healthy = len(known) == 1 and _http(context, "http://127.0.0.1:11434/api/tags")
     return Probe(healthy, "shared Ollama healthy" if healthy else "shared Ollama is absent or unidentified")
 
