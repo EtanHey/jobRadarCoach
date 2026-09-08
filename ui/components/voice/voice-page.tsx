@@ -31,6 +31,7 @@ export function VoicePage() {
   const {
     qa, roomPhase, mic, transcript, agentIdentity, agentConnected, soundBlocked,
     error, applicationLink, audioHostRef, connect, disconnect, tapMic, enableSound,
+    retryQaVerification,
   } = useVoiceSession();
   const feedRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
@@ -179,9 +180,15 @@ export function VoicePage() {
           </button>
         </div>
         {(error || qa.status === "error") && (
-          <p role="alert" className="mx-auto mt-2 max-w-3xl text-sm text-destructive">
-            {qa.status === "error" ? "QA NOT READY: the server did not attest this read-only session." : error}
-          </p>
+          <div role="alert" className="mx-auto mt-2 flex max-w-3xl items-center justify-center gap-2 text-sm text-destructive">
+            <p>{qa.status === "error" ? "QA NOT READY: the server did not attest this read-only session." : error}</p>
+            {qa.status === "error" && qa.sessionId && (
+              <button type="button" onClick={retryQaVerification}
+                className="shrink-0 rounded-lg border border-destructive/40 px-2 py-1 font-medium hover:bg-destructive/10 focus-visible:outline-2 focus-visible:outline-offset-2">
+                Retry QA verification
+              </button>
+            )}
+          </div>
         )}
         {soundBlocked && (
           <button type="button" onClick={enableSound}

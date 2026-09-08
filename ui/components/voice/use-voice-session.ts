@@ -45,6 +45,7 @@ const initialMic: MicClientState = {
 export function useVoiceSession() {
   const [clientId] = useState(() => crypto.randomUUID());
   const [qa, setQa] = useState<VoiceQaState>({ mode: false, status: "checking", sessionId: null });
+  const [qaAttempt, setQaAttempt] = useState(0);
   const [roomPhase, setRoomPhase] = useState<VoiceRoomPhase>("idle");
   const [mic, setMic] = useState<MicClientState>(initialMic);
   const [transcript, setTranscript] = useState<readonly TranscriptSegment[]>([]);
@@ -117,7 +118,7 @@ export function useVoiceSession() {
       })
       .catch(() => { if (!controller.signal.aborted) setQa({ mode: true, status: "error", sessionId: parsed.data }); });
     return () => controller.abort();
-  }, []);
+  }, [qaAttempt]);
 
   useEffect(() => {
     const leave = () => closeSession(false);
@@ -250,6 +251,7 @@ export function useVoiceSession() {
     } catch {
       if (abort.signal.aborted) return;
       closeSession(false); setRoomPhase("error");
+      if (qa.mode) setQa((current) => ({ ...current, status: "error" }));
       setError(qa.mode ? "QA voice session is not verified or available." : "Voice room is unavailable. Try connecting again.");
     }
   }, [clearAudio, clientId, closeSession, qa]);
@@ -263,9 +265,11 @@ export function useVoiceSession() {
   const enableSound = useCallback(() => {
     void sessionRef.current?.room.startAudio().then(() => setSoundBlocked(false)).catch(() => setSoundBlocked(true));
   }, []);
+  const retryQaVerification = useCallback(() => setQaAttempt((current) => current + 1), []);
 
   return {
     clientId, qa, roomPhase, mic, transcript, agentIdentity, agentConnected, soundBlocked,
     error, applicationLink, audioHostRef, connect, disconnect: closeSession, tapMic, enableSound,
+    retryQaVerification,
   };
 }
