@@ -227,8 +227,20 @@ These transport steps require an installed LiveKit Deployment and Service with t
 API Secret configured. Verify their readiness and the tracked bridge source before exposing voice ports:
 
 ```zsh
+set -euo pipefail
 kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
-kubectl --context orbstack -n job-radar-coach get service/livekit
+python3 - 3< <(kubectl --context orbstack -n job-radar-coach get service/livekit -o json) <<'PY'
+import json
+
+service = json.load(open(3))
+ports = {
+    (item.get("port"), item.get("targetPort"), item.get("protocol", "TCP"))
+    for item in service.get("spec", {}).get("ports", [])
+}
+required = {(7880, 7880, "TCP"), (7881, 7881, "TCP")}
+if not required <= ports:
+    raise SystemExit("service/livekit must expose numeric TCP 7880->7880 and 7881->7881")
+PY
 node --check scripts/livekit_bridge.cjs
 lsof -nP -iTCP:17880 -sTCP:LISTEN -t || true
 lsof -nP -iTCP:17881 -sTCP:LISTEN -t || true
