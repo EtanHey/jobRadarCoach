@@ -3,7 +3,8 @@
 
 import { spawn } from 'node:child_process';
 import crypto from 'node:crypto';
-import { chmod, readFile, rename, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { chmod, open, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -95,8 +96,19 @@ async function main() {
   };
   const runVerifier = async () => {
     if (closing || revoked) return Promise.resolve(false);
+    let source;
     try {
-      const sourceHash = crypto.createHash('sha256').update(await readFile(verifier)).digest('hex');
+      const handle = await open(verifier, constants.O_RDONLY | constants.O_NONBLOCK);
+      try {
+        if (!(await handle.stat()).isFile()) {
+          if (!revoked) reason = 'verifier_source_invalid';
+          return false;
+        }
+        source = await handle.readFile();
+      } finally {
+        await handle.close();
+      }
+      const sourceHash = crypto.createHash('sha256').update(source).digest('hex');
       if (sourceHash !== expectedVerifierHash) {
         if (!revoked) reason = 'verifier_source_changed';
         return false;
