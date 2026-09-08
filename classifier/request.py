@@ -137,6 +137,8 @@ def build_request(
             "The preferences key is the only withheld-evidence slot; its assessment and detail are fixed by the schema.",
             "The local adapter copies the five keyed reasons into canonical order, then applies the unchanged semantic validator.",
             "Professional depth modes describe exposure, not advanced proficiency. Do not invent a calendar cutoff between hands-on and AI-directed work.",
+            "For each reason and fit line, cite the smallest set of evidence IDs that directly supports that text; never attach unrelated project IDs.",
+            "For every cited ID, omit its evidence_scoped_prohibitions phrases entirely, including negations, quotations, and missing-experience statements. Use supported neutral wording for limitations; never evade a prohibition by inventing a skill.",
             "Application history is professional context only: a previous company is never a hard block, and no cooldown may be invented.",
             "Unknown history fields remain unknown. Use only the explicitly projected fields below.",
             "Additional allowed application-history evidence IDs:",
