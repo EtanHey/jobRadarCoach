@@ -14,6 +14,8 @@ const openJobSchema = z.object({
 const jobResponseSchema = z.object({
   job: z.object({ id: uuid, apply_url: z.string().nullable(), url: z.string() }),
 }).strict();
+const boundedCount = z.number().int().min(1).max(1_000);
+const requestTimeout = z.number().int().min(1).max(60_000);
 
 export type OpenJobAcknowledgement =
   | { version: 1; request_id: string; status: "opened" }
@@ -33,6 +35,7 @@ export interface OpenJobRpcOptions {
   openWindow: OpenWindow;
   renderFallback: (input: { href: string; requestId: string }) => void | Promise<void>;
   maxRememberedRequests?: number;
+  requestTimeoutMs?: number;
 }
 
 export interface OpenJobInvocation {
@@ -84,8 +87,27 @@ function parseInvocation(payload: string) {
   return { requestId: requestId.data, request: openJobSchema.safeParse(raw) };
 }
 
+function createDeadline(milliseconds: number) {
+  const controller = new AbortController();
+  let expired = false;
+  let rejectTimeout!: (reason: OpenJobProtocolError) => void;
+  const timeout = new Promise<never>((_resolve, reject) => { rejectTimeout = reject; });
+  const timer = setTimeout(() => {
+    expired = true;
+    controller.abort();
+    rejectTimeout(new OpenJobProtocolError());
+  }, milliseconds);
+  return {
+    signal: controller.signal,
+    expired: () => expired,
+    wait: <T>(work: Promise<T>): Promise<T> => Promise.race([work, timeout]),
+    close: () => clearTimeout(timer),
+  };
+}
+
 export function createOpenJobRpcHandler(options: OpenJobRpcOptions) {
-  const limit = z.number().int().min(1).max(1_000).parse(options.maxRememberedRequests ?? 100);
+  const limit = boundedCount.parse(options.maxRememberedRequests ?? 100);
+  const timeoutMs = requestTimeout.parse(options.requestTimeoutMs ?? 10_000);
   const inFlight = new Map<string, Promise<string>>();
   const completed = new Map<string, string>();
 
@@ -94,20 +116,29 @@ export function createOpenJobRpcHandler(options: OpenJobRpcOptions) {
     const request = parsed.request.data;
     if (!isPublicHttpsUrl(request.apply_url)) return rejected(parsed.requestId, "not_https");
 
-    let response: Response;
+    const deadline = createDeadline(timeoutMs);
+    let grounded: z.infer<typeof jobResponseSchema>;
     try {
-      response = await options.fetchJob(`/api/jobs/${encodeURIComponent(request.posting_id)}`, {
-        method: "GET", headers: { accept: "application/json" }, cache: "no-store",
-      });
-    } catch { throw new OpenJobProtocolError(); }
-    if (response.status === 404) return rejected(parsed.requestId, "posting_not_found");
-    if (!response.ok) throw new OpenJobProtocolError();
+      let response: Response;
+      try {
+        response = await deadline.wait(options.fetchJob(`/api/jobs/${encodeURIComponent(request.posting_id)}`, {
+          method: "GET", headers: { accept: "application/json" }, cache: "no-store", signal: deadline.signal,
+        }));
+      } catch { throw new OpenJobProtocolError(); }
+      if (deadline.expired()) throw new OpenJobProtocolError();
+      if (response.status === 404) return rejected(parsed.requestId, "posting_not_found");
+      if (!response.ok) throw new OpenJobProtocolError();
 
-    let body: unknown;
-    try { body = await response.json(); } catch { throw new OpenJobProtocolError(); }
-    const grounded = jobResponseSchema.safeParse(body);
-    if (!grounded.success || grounded.data.job.id !== request.posting_id) throw new OpenJobProtocolError();
-    const canonicalUrl = grounded.data.job.apply_url ?? grounded.data.job.url;
+      let body: unknown;
+      try { body = await deadline.wait(response.json()); } catch { throw new OpenJobProtocolError(); }
+      if (deadline.expired()) throw new OpenJobProtocolError();
+      const parsedBody = jobResponseSchema.safeParse(body);
+      if (!parsedBody.success || parsedBody.data.job.id !== request.posting_id) throw new OpenJobProtocolError();
+      grounded = parsedBody.data;
+    } finally {
+      deadline.close();
+    }
+    const canonicalUrl = grounded.job.apply_url ?? grounded.job.url;
     if (!isPublicHttpsUrl(canonicalUrl)) return rejected(parsed.requestId, "not_https");
     if (request.apply_url !== canonicalUrl) return rejected(parsed.requestId, "url_mismatch");
 
@@ -126,6 +157,7 @@ export function createOpenJobRpcHandler(options: OpenJobRpcOptions) {
     if (cached !== undefined) return cached;
     const pending = inFlight.get(parsed.requestId);
     if (pending) return pending;
+    // Never evict a completed ID: forgetting it could open the same request in a second tab.
     if (completed.size + inFlight.size >= limit) throw new OpenJobProtocolError();
     const task = execute(parsed).then((result) => { completed.set(parsed.requestId, result); return result; })
       .finally(() => inFlight.delete(parsed.requestId));
@@ -165,6 +197,7 @@ const transcriptChunkSchema = z.object({
 export function reduceTranscript(
   segments: readonly TranscriptSegment[], chunk: TranscriptChunk, maxSegments = 200,
 ): readonly TranscriptSegment[] {
+  const limit = boundedCount.parse(maxSegments);
   if (chunk.topic !== TRANSCRIPTION_TOPIC) return segments;
   const parsed = transcriptChunkSchema.safeParse(chunk);
   if (!parsed.success) return segments;
@@ -180,7 +213,7 @@ export function reduceTranscript(
       senderIdentity: chunk.senderIdentity, role: chunk.role, segmentId, trackId,
       streamId: chunk.streamId, lastChunkIndex: chunk.chunkIndex, text: chunk.text, final,
     }];
-    return next.slice(-z.number().int().min(1).max(1_000).parse(maxSegments));
+    return next.slice(-limit);
   }
   const current = segments[index];
   if (current.final && current.streamId !== chunk.streamId) return segments;
