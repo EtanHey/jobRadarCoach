@@ -19,6 +19,8 @@ export function isSafeDescriptionUrl(value: string): boolean {
   }
 }
 
+const listItemPattern = /^\s*[-*+•‣]\s+(.+)$/;
+
 export function parseDescriptionBlocks(text: string): DescriptionBlock[] {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const blocks: DescriptionBlock[] = [];
@@ -37,11 +39,11 @@ export function parseDescriptionBlocks(text: string): DescriptionBlock[] {
       continue;
     }
 
-    const firstItem = lines[index].match(/^\s*[-*+]\s+(.+)$/);
+    const firstItem = lines[index].match(listItemPattern);
     if (firstItem) {
       const items: string[] = [];
       while (index < lines.length) {
-        const item = lines[index].match(/^\s*[-*+]\s+(.+)$/);
+        const item = lines[index].match(listItemPattern);
         if (!item) break;
         items.push(item[1]);
         index += 1;
@@ -52,7 +54,7 @@ export function parseDescriptionBlocks(text: string): DescriptionBlock[] {
 
     const paragraph: string[] = [];
     while (index < lines.length && lines[index].trim()) {
-      if (paragraph.length > 0 && (/^(#{1,6})[ \t]+/.test(lines[index]) || /^\s*[-*+]\s+/.test(lines[index]))) break;
+      if (paragraph.length > 0 && (/^(#{1,6})[ \t]+/.test(lines[index]) || listItemPattern.test(lines[index]))) break;
       paragraph.push(lines[index]);
       index += 1;
     }
