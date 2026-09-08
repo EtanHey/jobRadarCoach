@@ -25,8 +25,8 @@ test("technology badges quote explicit words, not Go prose or Java inside JavaSc
   assert.deepEqual(technologyMentions(null),[]);
 });
 test("location filters keep countryless remote roles unknown",()=>{
-  const rows=[job(1,null,null,"Tel Aviv, Israel"),job(2,null,null,"Remote, United States"),job(3,null,null,"London, UK"),job(4,null,null,"Remote"),job(5,null,null,"San Francisco, CA"),job(6,null,null,"Denver, CO"),job(7,null,null,"Bastrop, TX"),job(8,null,null,"San Francisco Bay Area")];
-  assert.deepEqual(rows.map((row)=>locationGroup(row.location)),["israel","united-states","other","unknown","united-states","united-states","united-states","united-states"]);
+  const rows=[job(1,null,null,"Tel Aviv, Israel"),job(2,null,null,"Remote, United States"),job(3,null,null,"London, UK"),job(4,null,null,"Remote"),job(5,null,null,"San Francisco, CA"),job(6,null,null,"Denver, CO"),job(7,null,null,"Bastrop, TX"),job(8,null,null,"San Francisco Bay Area"),job(9,null,null,"Remote / Anywhere"),job(10,null,null,"Remote - Worldwide")];
+  assert.deepEqual(rows.map((row)=>locationGroup(row.location)),["israel","united-states","other","unknown","united-states","united-states","united-states","united-states","unknown","unknown"]);
   assert.deepEqual(filterJobs(rows,{...options,location:"israel"}).map((row)=>row.id),[rows[0].id]);
   assert.deepEqual(filterJobs(rows,{...options,location:"united-states"}).map((row)=>row.id),[rows[1].id,rows[4].id,rows[5].id,rows[6].id,rows[7].id]);
   assert.deepEqual(filterJobs(rows,{...options,location:"other"}).map((row)=>row.id),[rows[2].id]);

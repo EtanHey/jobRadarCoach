@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
+import { createDetailCoordinator, retainVisitCohort } from "@/lib/job-board-state";
 import { filterJobs, type ViewOptions } from "@/lib/job-filters";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
@@ -29,90 +30,108 @@ export function JobBoard() {
   const [rejecting, setRejecting] = useState(false);
   const [revision, setRevision] = useState(0);
   const [connection, setConnection] = useState("Connecting live updates…");
-  const selectedRef = useRef(selected);
-  const detailVersion = useRef(0);
+  const [detailCoordinator] = useState(createDetailCoordinator);
+  const [refreshWarning, setRefreshWarning] = useState("");
+  const detailRequestRef = useRef<AbortController | null>(null);
+  const visitCohortRef = useRef<JobSummary[] | null>(null);
+  const filterRef = useRef<Filter>(filter);
   const hasLoadedRef = useRef(false);
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const requestRefresh = useCallback(() => { setError(""); setRevision((value) => value + 1); }, []);
-  const retry = useCallback(() => { setLoading(true); requestRefresh(); }, [requestRefresh]);
+  const retry = useCallback(() => { visitCohortRef.current = null; hasLoadedRef.current = false; setJobs([]); setLoadedUpdatedAt(null); setRefreshWarning(""); setLoading(true); requestRefresh(); }, [requestRefresh]);
   function selectJob(id: string | null) {
-    detailVersion.current += 1;
-    selectedRef.current = id;
+    detailRequestRef.current?.abort();
+    detailCoordinator.select(id);
     setSelected(id); setDetail(null); setDetailError(""); setRejecting(false); setReason("");
   }
-  function chooseFilter(value: Filter) { if (value === filter) return; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setView((current) => ({ ...current, fit: value === "new-for-me" ? "recommended" : "" })); setFilter(value); }
+  function chooseFilter(value: Filter) { if (value === filter) return; filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); setView((current) => ({ ...current, fit: value === "new-for-me" ? "recommended" : "" })); setFilter(value); }
 
 
   useEffect(() => {
     const events = new EventSource("/api/events");
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let detailRequest: AbortController | undefined;
     function refreshListAndDetail() {
       requestRefresh();
-      detailRequest?.abort();
-      const id = selectedRef.current;
+      detailRequestRef.current?.abort();
+      const read = detailCoordinator.beginRead();
+      const id = read.selection.id;
       if (!id) return;
-      const version = ++detailVersion.current;
       const controller = new AbortController();
-      detailRequest = controller;
+      detailRequestRef.current = controller;
       request(`/api/jobs/${id}`, { signal: controller.signal }).then((body) => {
-        if (!controller.signal.aborted && selectedRef.current === id && detailVersion.current === version) { setDetail(JobDetailResponseSchema.parse(body).job); setDetailError(""); }
-      }).catch(() => { if (!controller.signal.aborted && selectedRef.current === id && detailVersion.current === version) setDetailError("Could not refresh this job. Close and reopen to retry."); });
+        if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) { setDetail(JobDetailResponseSchema.parse(body).job); setDetailError(""); }
+      }).catch(() => { if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) setDetailError("Could not refresh this job. Close and reopen to retry."); });
     }
     function queueRefresh() { clearTimeout(timer); timer = setTimeout(refreshListAndDetail, 150); }
     events.addEventListener("ready", () => { setConnection("Live updates connected"); queueRefresh(); });
     events.addEventListener("refresh", queueRefresh);
     events.addEventListener("error", () => setConnection("Reconnecting live updates…"));
-    return () => { events.close(); clearTimeout(timer); detailRequest?.abort(); };
-  }, [requestRefresh]);
+    return () => { events.close(); clearTimeout(timer); detailRequestRef.current?.abort(); };
+  }, [detailCoordinator, requestRefresh]);
 
   useEffect(() => {
     const controller = new AbortController();
     request(`/api/jobs?filter=${filter}&limit=1000`, { signal: controller.signal })
-      .then((body) => { if (!controller.signal.aborted) { const next = JobListResponseSchema.parse(body).jobs; hasLoadedRef.current = true; setJobs(next); setLoadedUpdatedAt(next.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
-      .catch((cause: unknown) => { if (!controller.signal.aborted) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setConnection(`${message} Showing previous results.`); else setError(message); } })
+      .then((body) => { if (!controller.signal.aborted) { const next = JobListResponseSchema.parse(body).jobs; const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; hasLoadedRef.current = true; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
+      .catch((cause: unknown) => { if (!controller.signal.aborted) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [filter, revision]);
 
   useEffect(() => {
     if (!selected) return undefined;
-    const version = ++detailVersion.current;
+    const identity = detailCoordinator.current();
+    if (identity.id !== selected) return undefined;
+    const read = detailCoordinator.beginRead();
     const controller = new AbortController();
+    let patchStarted = false;
     async function open() {
       try {
         const job = JobDetailResponseSchema.parse(await request(`/api/jobs/${selected}`, { signal: controller.signal })).job;
         if (controller.signal.aborted) return;
-        if (detailVersion.current === version) setDetail(job);
+        if (detailCoordinator.acceptRead(read)) setDetail(job);
+        patchStarted = true;
         const status = StatusResponseSchema.parse(await request(`/api/jobs/${selected}/status`, {
           method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "seen" }), signal: controller.signal,
         }));
         if (controller.signal.aborted) return;
-        if (detailVersion.current === version) setDetail({ ...job, status: status.status, status_reason: status.reason });
+        if (detailCoordinator.commitMutation(identity)) {
+          detailRequestRef.current?.abort();
+          const updateStatus = (current: JobSummary) => current.id === selected ? { ...current, status: status.status, status_reason: status.reason } : current;
+          visitCohortRef.current = visitCohortRef.current?.map(updateStatus) ?? null;
+          setJobs((current) => current.map(updateStatus));
+          setDetail({ ...job, status: status.status, status_reason: status.reason });
+        }
         requestRefresh();
       } catch (cause) {
-        if (!controller.signal.aborted && detailVersion.current === version) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
+        if (!controller.signal.aborted && detailCoordinator.isCurrent(identity) && (patchStarted || detailCoordinator.acceptRead(read))) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
       }
     }
     open();
     return () => controller.abort();
-  }, [selected, requestRefresh]);
+  }, [detailCoordinator, selected, requestRefresh]);
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving) return;
     const id = detail.id;
+    const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
     try {
       const result = StatusResponseSchema.parse(await request(`/api/jobs/${id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch),
       }));
-      if (selectedRef.current === id) {
+      if (identity.id === id && detailCoordinator.commitMutation(identity)) {
+        detailRequestRef.current?.abort();
         setDetail((current) => current?.id === id ? { ...current, status: result.status, status_reason: result.reason } : current);
         setRejecting(false);
       }
+      if (filterRef.current === "new-for-me") {
+        visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
+        setJobs((current) => current.filter((job) => job.id !== id));
+      }
       requestRefresh();
     } catch (cause) {
-      if (selectedRef.current === id) setDetailError(cause instanceof Error ? cause.message : "Could not update status.");
+      if (detailCoordinator.current().id === id) setDetailError(cause instanceof Error ? cause.message : "Could not update status.");
     } finally { setSaving(false); }
   }
   const visible = filterJobs(jobs, {...view, search});
@@ -123,7 +142,7 @@ export function JobBoard() {
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
       <BoardHero><ProfileDrawer onUpdated={requestRefresh} /></BoardHero>
       <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={setView} />} />
-      <p role="status" className="mt-4 text-xs text-muted-foreground">{connection}</p>
+      <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
       <p className="mt-5 text-xs text-muted-foreground">Scores are a starting point. Open a role to see the reasoning and original description.</p>
     </main>
     <JobDrawer {...{selected, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
