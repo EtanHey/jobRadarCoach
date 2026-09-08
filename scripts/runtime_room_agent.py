@@ -12,6 +12,7 @@ import shlex
 import subprocess
 from typing import Callable
 
+from scripts.runtime_verifier_source import read_verifier_source
 from scripts.runtime_process import Identity, Probe, ProcessService, RuntimeContext
 from scripts.runtime_qa_config import resolve_qa_urls
 
@@ -146,7 +147,7 @@ class RoomAgentService:
     def _default_verify(self, context: RuntimeContext, receipt: Path, expected_url: str) -> Probe:
         verifier_path = context.repo_root / "scripts/verify_agent_qa_receipt.py"
         try:
-            if hashlib.sha256(verifier_path.read_bytes()).hexdigest() != VERIFIER_SHA256:
+            if hashlib.sha256(read_verifier_source(verifier_path)).hexdigest() != VERIFIER_SHA256:
                 return Probe(False, "normal NOT READY: verifier_hash_mismatch")
         except OSError:
             return Probe(False, "normal verifier unavailable")

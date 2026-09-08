@@ -14,6 +14,7 @@ import shlex
 import subprocess
 from typing import Callable
 
+from scripts.runtime_verifier_source import read_verifier_source
 from scripts.runtime_process import Identity, Probe, ProcessService, RuntimeContext
 from scripts.runtime_qa_config import resolve_qa_urls
 
@@ -78,7 +79,7 @@ def _not_ready(result: subprocess.CompletedProcess[str] | None) -> str:
 
 def _verifier_integrity(path: Path) -> str | None:
     try:
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = hashlib.sha256(read_verifier_source(path)).hexdigest()
     except OSError:
         return "verifier_missing" if not path.is_file() else "verifier_unavailable"
     return None if hmac.compare_digest(digest, _VERIFIER_SHA256) else "verifier_hash_mismatch"
