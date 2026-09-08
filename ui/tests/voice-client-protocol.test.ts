@@ -28,7 +28,10 @@ test("deduplicates concurrent and completed requests before one grounded noopene
     fetchJob: async (input, init) => {
       fetches += 1;
       assert.equal(input, `/api/jobs/${POSTING}`);
-      assert.deepEqual(init, { method: "GET", headers: { accept: "application/json" }, cache: "no-store" });
+      assert.deepEqual({ ...init, signal: undefined }, {
+        method: "GET", headers: { accept: "application/json" }, cache: "no-store", signal: undefined,
+      });
+      assert.ok(init?.signal instanceof AbortSignal);
       await gate;
       return job();
     },
@@ -128,6 +131,50 @@ test("does not cache a transient GET failure or open from malformed API data", a
   assert.equal(parsed(await missing(invocation(payload(requestId(24))))).reason, "posting_not_found");
 });
 
+test("bounds response and JSON waits, aborts work, and never opens from late results", async () => {
+  let resolveFetch!: (response: Response) => void;
+  const lateFetch = new Promise<Response>((resolve) => { resolveFetch = resolve; });
+  const signals: AbortSignal[] = [];
+  let fetches = 0;
+  let opens = 0;
+  const handler = createOpenJobRpcHandler({
+    trustedAgentIdentity: AGENT,
+    fetchJob: (_input, init) => {
+      signals.push(init!.signal!); fetches += 1;
+      return fetches === 1 ? lateFetch : Promise.resolve(job());
+    },
+    openWindow: () => { opens += 1; return {} as Window; },
+    renderFallback: () => assert.fail("fallback was not expected"),
+    requestTimeoutMs: 10,
+  });
+  await assert.rejects(handler(invocation()), OpenJobProtocolError);
+  assert.equal(signals[0].aborted, true);
+  resolveFetch(job());
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  assert.equal(opens, 0);
+  assert.equal(parsed(await handler(invocation())).status, "opened");
+  assert.equal(opens, 1);
+
+  let resolveJson!: (value: unknown) => void;
+  const lateJson = new Promise<unknown>((resolve) => { resolveJson = resolve; });
+  let jsonSignal!: AbortSignal;
+  const jsonHandler = createOpenJobRpcHandler({
+    trustedAgentIdentity: AGENT,
+    fetchJob: async (_input, init) => {
+      jsonSignal = init!.signal!;
+      return { status: 200, ok: true, json: () => lateJson } as Response;
+    },
+    openWindow: () => { opens += 1; return {} as Window; },
+    renderFallback: () => assert.fail("fallback was not expected"),
+    requestTimeoutMs: 10,
+  });
+  await assert.rejects(jsonHandler(invocation(payload(requestId(25)))), OpenJobProtocolError);
+  assert.equal(jsonSignal.aborted, true);
+  resolveJson({ job: { id: POSTING, apply_url: APPLY, url: APPLY } });
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  assert.equal(opens, 1);
+});
+
 const chunk = (senderIdentity: string, segmentId: string, streamId: string, chunkIndex: number,
   text: string, final: boolean, role: "user" | "agent" = "user") => ({
   topic: TRANSCRIPTION_TOPIC, senderIdentity, role, streamId, chunkIndex, text,
@@ -155,7 +202,13 @@ test("ignores non-transcription/missing-track input and bounds retained segment 
   const one = chunk("web:1", "one", "s1", 0, "one", true);
   assert.equal(reduceTranscript([], { ...one, topic: "other" }).length, 0);
   assert.equal(reduceTranscript([], { ...one, attributes: { ...one.attributes, "lk.transcribed_track_id": "" } }).length, 0);
+  assert.equal(reduceTranscript([], { ...one, chunkIndex: -1 }).length, 0);
+  assert.equal(reduceTranscript([], { ...one, extra: true } as never).length, 0);
+  assert.equal(reduceTranscript([], {
+    ...one, attributes: { ...one.attributes, "lk.transcription_final": "TRUE" },
+  }).length, 0);
   let state = reduceTranscript([], one, 2);
+  assert.throws(() => reduceTranscript(state, chunk("web:1", "one", "s1", 1, "late", true), 0));
   state = reduceTranscript(state, chunk("web:1", "two", "s2", 0, "two", true), 2);
   state = reduceTranscript(state, chunk("web:1", "three", "s3", 0, "three", true), 2);
   assert.deepEqual(state.map((item) => item.segmentId), ["two", "three"]);
