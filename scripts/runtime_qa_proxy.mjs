@@ -54,12 +54,29 @@ async function main() {
   let closePromise;
   let proxyClosed = false;
   const verifierChildren = new Set();
+  const groupExists = pid => {
+    try { process.kill(-pid, 0); return true; }
+    catch (error) { return error?.code !== 'ESRCH'; }
+  };
+  const settleVerifierGroup = async child => {
+    if (!child.pid) return true;
+    if (!groupExists(child.pid)) return true;
+    try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+    const deadline = Date.now() + 1000;
+    while (groupExists(child.pid) && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    return !groupExists(child.pid);
+  };
   const marker = status => ({
     version: 1, status, reason: status === 'READY' ? null : reason,
     session_id: sessionId, worker_id: expectedWorker,
     supervisor_pid: Number(process.env.QA_SUPERVISOR_PID),
     origin: proxy?.origin ?? null, qa_url: proxy?.qaUrl ?? null,
     proxy_receipt: proxy?.receipt() ?? null,
+    ...(reason === 'verifier_cleanup_failed'
+      ? { verifier_pgids: [...verifierChildren].map(child => child.pid).filter(Number.isInteger) }
+      : {}),
   });
   const publish = status => {
     publishQueue = publishQueue.then(() => {
@@ -80,10 +97,13 @@ async function main() {
     let stdout = ''; let stderr = '';
     let settled = false;
     let killTimer;
-    const finish = value => {
+    const finish = async value => {
       if (settled) return;
       settled = true; clearTimeout(timeout); clearTimeout(killTimer);
-      verifierChildren.delete(child); resolve(value);
+      const cleaned = await settleVerifierGroup(child);
+      if (cleaned) verifierChildren.delete(child);
+      else if (!revoked) reason = 'verifier_cleanup_failed';
+      resolve(cleaned && value);
     };
     const terminate = signal => { try { process.kill(-child.pid, signal); } catch {} };
     const timeout = setTimeout(() => {
@@ -139,21 +159,36 @@ async function main() {
   const close = () => {
     if (closePromise) return closePromise;
     closing = true; clearTimeout(timer); clearInterval(receiptTimer);
-    for (const child of verifierChildren) { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }
     closePromise = (async () => {
+      await Promise.all([...verifierChildren].map(settleVerifierGroup));
       await verificationQueue;
+      for (const child of verifierChildren) {
+        if (await settleVerifierGroup(child)) verifierChildren.delete(child);
+      }
       try { await proxyStartup; } catch {}
       await closeProxy();
+      if (verifierChildren.size > 0) {
+        reason = 'verifier_cleanup_failed';
+        await publish('NOT_READY');
+        throw new Error(`QA NOT READY: ${reason}`);
+      }
       if (!revoked) reason = 'stopped';
       await publish('STOPPED');
     })();
     return closePromise;
   };
-  process.on('SIGINT', () => close().finally(() => process.exit(0)));
-  process.on('SIGTERM', () => close().finally(() => process.exit(0)));
+  const stop = () => close().then(
+    () => process.exit(0),
+    error => { console.error(String(error?.message ?? error)); process.exit(1); },
+  );
+  process.on('SIGINT', stop);
+  process.on('SIGTERM', stop);
   if (!await gate()) {
     if (closing) return;
     await publish('NOT_READY');
+    if (reason === 'verifier_cleanup_failed') {
+      try { await close(); } catch {}
+    }
     throw new Error(`QA NOT READY: ${reason}`);
   }
   try {
