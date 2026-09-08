@@ -8,7 +8,7 @@ import {
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
-import { postingUrl, titleSeniority, experiencePhrase } from "./job-metadata";
+import { postingUrl, titleSeniority, experiencePhrase, technologyMentions } from "./job-metadata";
 import { HttpError } from "./http";
 
 export interface ApiStore {
@@ -74,6 +74,7 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   return checked(JobSummarySchema, {
     ...posting, url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
+    stack: posting.stack.length ? posting.stack : technologyMentions(raw_jd),
     seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
     experience: experiencePhrase(raw_jd), extraction_state: extraction ? "extracted" : "not-extracted",
     status: status?.status ?? "new", status_reason: status?.reason ?? null,

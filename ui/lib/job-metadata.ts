@@ -37,3 +37,19 @@ export function experiencePhrase(description: string | null): string | null {
   }
   return null;
 }
+
+/** Display explicit mentions only; these are not proficiency or must-have claims. */
+export function technologyMentions(description: string | null): string[] {
+  if (!description) return [];
+  const technologies: [string, RegExp][] = [
+    ["React", /\breact(?:\.js|js)?\b/i], ["TypeScript", /\btypescript\b/i],
+    ["JavaScript", /\bjavascript\b/i], ["Next.js", /\bnext\.?js\b/i],
+    ["Node.js", /\bnode\.?js\b/i], ["Python", /\bpython\b/i],
+    ["PostgreSQL", /\bpostgres(?:ql)?\b/i], ["Docker", /\bdocker\b/i],
+    ["Kubernetes", /\bkubernetes\b/i], ["AWS", /\baws\b/i],
+    ["Go", /\bgolang\b/i], ["Java", /\bjava\b/i],
+    ["Vue", /\bvue(?:\.js|js)?\b/i], ["Angular", /\bangular\b/i],
+    ["C#", /\bc#(?=\W|$)/i], ["C++", /\bc\+\+(?=\W|$)/i],
+  ];
+  return technologies.filter(([, pattern]) => pattern.test(description)).map(([name]) => name);
+}

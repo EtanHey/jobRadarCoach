@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
+import { filterJobs, type ViewOptions } from "@/lib/job-filters";
+import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, BoardHero, JobsPanel, JobDrawer, type Filter } from "./job-views";
 
@@ -12,7 +14,9 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
 }
 
 export function JobBoard() {
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("new-for-me");
+  const [view, setView] = useState<ViewOptions>({search: "", source: "", seniority: "", fit: "", sort: "found"});
+  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +38,7 @@ export function JobBoard() {
     selectedRef.current = id;
     setSelected(id); setDetail(null); setDetailError(""); setRejecting(false); setReason("");
   }
-  function chooseFilter(value: Filter) { setLoading(true); setError(""); setFilter(value); }
+  function chooseFilter(value: Filter) { if (value === filter) return; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setFilter(value); }
 
 
   useEffect(() => {
@@ -62,8 +66,8 @@ export function JobBoard() {
 
   useEffect(() => {
     const controller = new AbortController();
-    request(`/api/jobs?filter=${filter}&limit=250`, { signal: controller.signal })
-      .then((body) => setJobs(JobListResponseSchema.parse(body).jobs))
+    request(`/api/jobs?filter=${filter}&limit=1000`, { signal: controller.signal })
+      .then((body) => { if (!controller.signal.aborted) { const next = JobListResponseSchema.parse(body).jobs; setJobs(next); setLoadedUpdatedAt(next.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
       .catch((cause: unknown) => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Could not load jobs."); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
@@ -77,6 +81,7 @@ export function JobBoard() {
       try {
         const job = JobDetailResponseSchema.parse(await request(`/api/jobs/${selected}`, { signal: controller.signal })).job;
         if (controller.signal.aborted) return;
+        if (detailVersion.current === version) setDetail(job);
         const status = StatusResponseSchema.parse(await request(`/api/jobs/${selected}/status`, {
           method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "seen" }), signal: controller.signal,
         }));
@@ -108,14 +113,14 @@ export function JobBoard() {
       if (selectedRef.current === id) setDetailError(cause instanceof Error ? cause.message : "Could not update status.");
     } finally { setSaving(false); }
   }
-  const query = search.trim().toLocaleLowerCase();
-  const visible = jobs.filter((job) => [job.title, job.company, job.location, ...job.stack].join(" ").toLocaleLowerCase().includes(query));
+  const visible = filterJobs(jobs, {...view, search});
+  const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   return <div className="min-h-screen bg-background text-foreground">
     <BoardHeader />
     <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
       <BoardHero><ProfileDrawer onUpdated={reload} /></BoardHero>
-      <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, reload}} />
+      <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, reload, loadedUpdatedAt, sortLabel}} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={setView} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{connection}</p>
       <p className="mt-5 text-xs text-muted-foreground">Scores are a starting point. Open a role to see the reasoning and original description.</p>
     </main>
