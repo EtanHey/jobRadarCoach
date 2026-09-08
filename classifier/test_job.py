@@ -137,3 +137,31 @@ def test_optional_provider_fails_before_selection_or_model(capsys) -> None:
 
     assert result == 1
     assert logs(capsys)[0]["failure"] == "UnsupportedBrainError"
+
+
+@pytest.mark.parametrize(
+    ("settings", "expected_model"),
+    [
+        ({"BRAIN": "codex"}, "gpt-5.6-terra"),
+        ({"BRAIN": "codex", "CODEX_MODEL": "gpt-5.6-luna"}, "gpt-5.6-luna"),
+        ({"BRAIN": "ollama"}, None),
+    ],
+)
+def test_classifier_model_default_preserves_overrides_and_ollama(settings, expected_model):
+    calls = []
+
+    def brain(_request, _profile, *, env, timeout_seconds):
+        calls.append(dict(env))
+        assert timeout_seconds == 120
+        return object()
+
+    def score(_connection, _posting_id, *, brain_runner):
+        brain_runner(object(), {})
+        return "stored"
+
+    assert job.run_batch(
+        Connection(), limit=1, timeout_seconds=120, env=settings,
+        candidate_lister=lambda *_args, **_kwargs: [POSTING_IDS[0]],
+        scorer=score, brain=brain,
+    ) == 0
+    assert calls[0].get("CODEX_MODEL") == expected_model
