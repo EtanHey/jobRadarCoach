@@ -65,6 +65,18 @@ export function handleMicStateForSession(
   });
 }
 
+export function settleForCurrentSession(
+  operation: Promise<unknown>,
+  isCurrent: () => boolean,
+  onFulfilled?: () => void,
+  onRejected?: () => void,
+) {
+  void operation.then(
+    () => { if (isCurrent()) onFulfilled?.(); },
+    () => { if (isCurrent()) onRejected?.(); },
+  );
+}
+
 interface TranscriptReader extends AsyncIterable<string> {
   info: { topic: string; id: string; attributes?: Record<string, string> };
 }
@@ -203,7 +215,7 @@ export function useVoiceSession() {
       let rpcHandler: ReturnType<typeof createOpenJobRpcHandler> | null = null;
       const isCurrent = () => generation === generationRef.current && sessionRef.current === session;
       const pinAgent = (participant: RemoteParticipant) => {
-        if (participant.kind !== ParticipantKind.AGENT) return false;
+        if (!isCurrent() || participant.kind !== ParticipantKind.AGENT) return false;
         if (pinnedAgent === null) { pinnedAgent = participant.identity; setAgentIdentity(participant.identity); }
         if (pinnedAgent !== participant.identity) return false;
         setAgentConnected(true); return true;
@@ -254,6 +266,7 @@ export function useVoiceSession() {
       });
       room.on(RoomEvent.ParticipantConnected, pinAgent);
       room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        if (!isCurrent()) return;
         if (participant.identity === pinnedAgent) setAgentConnected(false);
       });
       room.on(RoomEvent.TrackSubscribed, (track) => {
@@ -262,10 +275,13 @@ export function useVoiceSession() {
         audio.set(track, element); audioHostRef.current?.append(element);
       });
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        if (!isCurrent()) return;
         const element = audio.get(track); if (!element) return;
         track.detach(element); element.remove(); audio.delete(track);
       });
-      room.on(RoomEvent.AudioPlaybackStatusChanged, (playing) => setSoundBlocked(!playing));
+      room.on(RoomEvent.AudioPlaybackStatusChanged, (playing) => {
+        if (isCurrent()) setSoundBlocked(!playing);
+      });
       room.on(RoomEvent.Reconnecting, () => {
         if (!isCurrent()) return;
         void session.mic?.suspend(); setRoomPhase("reconnecting");
@@ -297,7 +313,8 @@ export function useVoiceSession() {
         },
       }));
       setMic(session.mic.getState()); setRoomPhase("connected");
-      setSoundBlocked(!room.canPlaybackAudio); void room.startAudio().catch(() => setSoundBlocked(true));
+      setSoundBlocked(!room.canPlaybackAudio);
+      settleForCurrentSession(room.startAudio(), isCurrent, undefined, () => setSoundBlocked(true));
     } catch {
       if (abort.signal.aborted) return;
       closeSession(false); setRoomPhase("error");
@@ -309,11 +326,18 @@ export function useVoiceSession() {
   const tapMic = useCallback(() => {
     const session = sessionRef.current;
     if (!session || roomPhase !== "connected") return;
-    void session.room.startAudio().catch(() => setSoundBlocked(true));
+    const generation = generationRef.current;
+    const isCurrent = () => generation === generationRef.current && sessionRef.current === session;
+    settleForCurrentSession(session.room.startAudio(), isCurrent, undefined, () => setSoundBlocked(true));
     void session.mic?.tap();
   }, [roomPhase]);
   const enableSound = useCallback(() => {
-    void sessionRef.current?.room.startAudio().then(() => setSoundBlocked(false)).catch(() => setSoundBlocked(true));
+    const session = sessionRef.current;
+    if (!session) return;
+    const generation = generationRef.current;
+    const isCurrent = () => generation === generationRef.current && sessionRef.current === session;
+    settleForCurrentSession(session.room.startAudio(), isCurrent,
+      () => setSoundBlocked(false), () => setSoundBlocked(true));
   }, []);
   const retryQaVerification = useCallback(() => setQaAttempt((current) => current + 1), []);
 
