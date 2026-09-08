@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
@@ -12,13 +12,24 @@ import {
 
 test("requested brand aliases resolve to real local assets", () => {
   const aliases = new Map([
-    ["GPT-5", "openai"], ["Claude", "anthropic"], ["Gemini 2.5", "googlegemini"],
+    ["GraphQL", "graphql"], ["GPT-5", "openai"], ["Codex", "openai"],
+    ["Claude", "claude"], ["Claude Code", "claudecode"], ["Gemini 2.5", "googlegemini"],
     ["Hugging Face", "huggingface"], ["LangChain", "langchain"],
     ["PyTorch", "pytorch"], ["TensorFlow", "tensorflow"],
     ["Pinecone", "pinecone"], ["Weaviate", "weaviate"], ["Qdrant", "qdrant"],
     ["Amazon Web Services", "aws"], ["Google Cloud Platform", "googlecloud"],
     ["Microsoft Azure", "azure"], ["Docker", "docker"],
-    ["K8s", "kubernetes"],
+    ["K8s", "kubernetes"], ["Java", "java"], ["C++", "cplusplus"],
+    ["Git", "git"], ["Terraform", "terraform"], ["Kafka", "apachekafka"],
+    ["Linux", "linux"], ["Redis", "redis"], ["MySQL", "mysql"],
+    ["MongoDB", "mongodb"], ["Rust", "rust"], ["C#", "csharp"],
+    ["GitHub Actions", "githubactions"], ["HTML", "html5"], ["CSS", "css"],
+    ["RabbitMQ", "rabbitmq"], ["LangGraph", "langgraph"],
+    ["OpenTelemetry", "opentelemetry"], ["Snowflake", "snowflake"],
+    ["Helm", "helm"], ["Prometheus", "prometheus"], ["Spark", "apachespark"],
+    ["C", "c"], ["Elasticsearch", "elasticsearch"], ["FastAPI", "fastapi"],
+    ["Grafana", "grafana"], ["JSON", "json"], ["Scala", "scala"],
+    ["Spring Boot", "springboot"],
   ]);
 
   for (const [name, asset] of aliases) {
@@ -35,6 +46,20 @@ test("concepts and unsupported identities stay text instead of borrowing a logo"
   assert.equal(technologyKind("pgvector"), "text");
   assert.equal(technologyIconFor("pgvector"), null);
   assert.equal(technologyKind("Private framework"), "text");
+  for (const ambiguous of ["Apollo", "Make", "NX", "ELK", "RTL", "Radar", "shell", "less", "SolidWorks"]) {
+    assert.equal(technologyKind(ambiguous), "text", ambiguous);
+    assert.equal(technologyIconFor(ambiguous), null, ambiguous);
+  }
+  for (const catalogMiss of ["S3", "EC2", "Lambda"]) {
+    assert.equal(technologyKind(catalogMiss), "text", catalogMiss);
+    assert.equal(technologyIconFor(catalogMiss), null, catalogMiss);
+  }
+});
+
+test("near-black monochrome marks inherit readable foreground color", () => {
+  for (const name of ["GitHub", "Bash", "Express", "Django", "Anthropic", "Kafka"]) {
+    assert.equal(technologyIconFor(name)?.color, "currentColor", name);
+  }
 });
 
 test("chip window trims, deduplicates, caps four, expands, and collapses", () => {
@@ -57,10 +82,15 @@ test("provenance covers every added asset with matching bytes and safe SVGs", ()
     new URL("../public/tech/PROVENANCE.json", import.meta.url), "utf8",
   ));
   assert.equal(provenance.version, 1);
-  assert.equal(provenance.assets.length, 13);
+  assert.equal(provenance.catalogs.simple_icons.revision, "777807a262bb7384ff406fd4b35fdcd02e9514c3");
+  assert.equal(provenance.catalogs.devicon.revision, "v2.17.0");
+  const svgFiles = readdirSync(new URL("../public/tech/", import.meta.url))
+    .filter((file) => file.endsWith(".svg")).sort();
+  assert.deepEqual(provenance.assets.map((entry: { file: string }) => entry.file).sort(), svgFiles);
   for (const entry of provenance.assets) {
     const bytes = readFileSync(new URL(`../public/tech/${entry.file}`, import.meta.url));
     const text = bytes.toString("utf8");
+    assert.match(text, /^\s*(?:<\?xml[^>]*>\s*)?<svg\b/i, entry.file);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), entry.sha256);
     assert.match(entry.source, /^https:\/\//);
     assert.doesNotMatch(text, /<script|<foreignObject|<!DOCTYPE|xlink:href|javascript:|data:|<image|\son[a-z]+\s*=/i);

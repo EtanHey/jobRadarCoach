@@ -5,7 +5,7 @@ Simple Icons assets are pinned to commit
 https://github.com/simple-icons/simple-icons
 CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
 
-AWS and Azure assets come from Devicon v2.17.0.
+Devicon assets are pinned to v2.17.0.
 https://github.com/devicons/devicon/tree/v2.17.0
 The pinned MIT notice is reproduced verbatim in DEVICON-LICENSE.txt.
 https://github.com/devicons/devicon/blob/v2.17.0/LICENSE
