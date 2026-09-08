@@ -52,7 +52,7 @@ export function JobDrawer({ selected, selectedJob, retryDetail, relatedJobs = []
         <div className="flex flex-wrap items-center gap-3">
           {!detail && <Button variant="outline" onClick={retryDetail}>Retry loading role</Button>}
           {detail && <Button variant="outline" disabled={saving} onClick={retryDetail}>Refresh role</Button>}
-          {heading && <a className="underline" href={heading.apply_url ?? heading.url} target="_blank" rel="noopener noreferrer">Open original posting</a>}
+          {heading && <a className="underline" href={heading.url} target="_blank" rel="noopener noreferrer">Open original posting</a>}
         </div>
       </div>}
       <section aria-label="Job description" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-offset-[-2px]">
