@@ -254,7 +254,7 @@ def _bridge_probe(context: RuntimeContext) -> Probe:
         parts = []
     healthy = (
         http is not None and rtc is not None and http[0] == rtc[0]
-        and parts and Path(parts[0]).name == "node"
+        and len(parts) == 2 and Path(parts[0]).name == "node"
         and (
             parts[-1] == "docs.local/collabs/voice-network-bridge.cjs"
             or Path(parts[-1]) == context.repo_root / "scripts" / "livekit_bridge.cjs"

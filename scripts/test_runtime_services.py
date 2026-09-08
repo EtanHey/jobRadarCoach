@@ -66,3 +66,21 @@ def test_service_order_and_agent_database_env(monkeypatch, tmp_path):
     ]
     assert services[-1].env["DATABASE_URL"] == "postgres://private"
     assert services[-1].env["STT_URL"] == "http://127.0.0.1:8999/inference"
+
+
+def test_bridge_rejects_extra_node_flags_and_script_arguments(monkeypatch, tmp_path):
+    context = type("Context", (), {"repo_root": tmp_path})()
+    monkeypatch.setattr(subject, "_http", lambda *_args: True)
+    for script in (
+        "docs.local/collabs/voice-network-bridge.cjs",
+        str(tmp_path / "scripts" / "livekit_bridge.cjs"),
+    ):
+        for argv in (
+            f"node --inspect=0.0.0.0:9229 {script}",
+            f"node --require /tmp/other.cjs {script}",
+            f"node {script} --extra",
+        ):
+            monkeypatch.setattr(subject, "_listener", lambda *_args, command=argv: (7, command))
+            assert not subject._bridge_probe(context).healthy
+        monkeypatch.setattr(subject, "_listener", lambda *_args, script=script: (7, f"node {script}"))
+        assert subject._bridge_probe(context).healthy
