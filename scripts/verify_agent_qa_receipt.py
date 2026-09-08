@@ -52,7 +52,13 @@ def process_start_time(pid: int) -> dict[str, str]:
 
 
 def host_load_per_cpu() -> float:
-    return os.getloadavg()[0] / (os.cpu_count() or 1)
+    # os.getloadavg() raises OSError where load average is unobtainable. Without this,
+    # main() emits a traceback instead of the contracted compact NOT_READY JSON.
+    try:
+        load = os.getloadavg()[0]
+    except (OSError, AttributeError) as exc:
+        fail("load_unavailable", f"host load sampling failed: {exc}")
+    return load / (os.cpu_count() or 1)
 
 
 def require_object(value: object, path: str) -> dict[str, object]:
