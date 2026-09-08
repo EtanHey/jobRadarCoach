@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import base64
-import hashlib
-import hmac
 import json
 import os
 from pathlib import Path
@@ -15,7 +13,7 @@ import uuid
 import re
 from typing import Any, Callable, Sequence
 
-from scripts.runtime_verifier_source import read_verifier_source
+from scripts.runtime_verifier_source import pinned_verifier_source
 from scripts.runtime_control import PartialStartError, Service
 from scripts.runtime_process import ProcessService, Probe, RuntimeContext, same_process
 from scripts.runtime_qa_config import resolve_qa_urls
@@ -46,11 +44,7 @@ def _not_ready(result: subprocess.CompletedProcess[str] | None) -> str:
 
 
 def _verifier_integrity(path: Path) -> str | None:
-    try:
-        digest = hashlib.sha256(read_verifier_source(path)).hexdigest()
-    except OSError:
-        return "verifier_missing" if not path.is_file() else "verifier_unavailable"
-    return None if hmac.compare_digest(digest, _VERIFIER_SHA256) else "verifier_hash_mismatch"
+    return pinned_verifier_source(path, _VERIFIER_SHA256)[1]
 
 
 def _ready_worker(stdout: str) -> str | None:
@@ -200,12 +194,12 @@ class QaRuntimeService:
 
     def _verify(self, context: RuntimeContext, verifier: Path, receipt: Path,
                 expected_server: str) -> tuple[str | None, str]:
-        integrity_error = _verifier_integrity(verifier)
+        source, integrity_error = pinned_verifier_source(verifier, _VERIFIER_SHA256)
         if integrity_error:
             return None, integrity_error
         try:
             result = context.run(
-                (sys.executable, str(verifier), "--require-mode", "qa", str(receipt)),
+                (sys.executable, "-c", source.decode("utf-8"), "--require-mode", "qa", str(receipt)),
                 env={"LIVEKIT_URL": expected_server}, timeout=20,
             )
         except (OSError, subprocess.SubprocessError):

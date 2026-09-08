@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-import hashlib
-import hmac
 import json
 import os
 from pathlib import Path
@@ -14,7 +12,7 @@ import shlex
 import subprocess
 from typing import Callable
 
-from scripts.runtime_verifier_source import read_verifier_source
+from scripts.runtime_verifier_source import pinned_verifier_source
 from scripts.runtime_process import Identity, Probe, ProcessService, RuntimeContext
 from scripts.runtime_qa_config import resolve_qa_urls
 
@@ -78,11 +76,7 @@ def _not_ready(result: subprocess.CompletedProcess[str] | None) -> str:
 
 
 def _verifier_integrity(path: Path) -> str | None:
-    try:
-        digest = hashlib.sha256(read_verifier_source(path)).hexdigest()
-    except OSError:
-        return "verifier_missing" if not path.is_file() else "verifier_unavailable"
-    return None if hmac.compare_digest(digest, _VERIFIER_SHA256) else "verifier_hash_mismatch"
+    return pinned_verifier_source(path, _VERIFIER_SHA256)[1]
 
 
 def _ready_worker(stdout: str) -> str | None:
@@ -154,11 +148,11 @@ class QaAgentService:
 
     def _verify(self, context: RuntimeContext, receipt: Path, expected_url: str) -> tuple[str | None, str]:
         verifier = context.repo_root / "scripts/verify_agent_qa_receipt.py"
-        integrity_error = _verifier_integrity(verifier)
+        source, integrity_error = pinned_verifier_source(verifier, _VERIFIER_SHA256)
         if integrity_error:
             return None, integrity_error
         command = (
-            str(context.repo_root / ".venv-agent/bin/python"), str(verifier),
+            str(context.repo_root / ".venv-agent/bin/python"), "-c", source.decode("utf-8"),
             "--require-mode", "qa", str(receipt),
         )
         try:

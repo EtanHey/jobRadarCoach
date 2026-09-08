@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,7 +11,7 @@ import shlex
 import subprocess
 from typing import Callable
 
-from scripts.runtime_verifier_source import read_verifier_source
+from scripts.runtime_verifier_source import pinned_verifier_source
 from scripts.runtime_process import Identity, Probe, ProcessService, RuntimeContext
 from scripts.runtime_qa_config import resolve_qa_urls
 
@@ -146,14 +145,13 @@ class RoomAgentService:
 
     def _default_verify(self, context: RuntimeContext, receipt: Path, expected_url: str) -> Probe:
         verifier_path = context.repo_root / "scripts/verify_agent_qa_receipt.py"
-        try:
-            if hashlib.sha256(read_verifier_source(verifier_path)).hexdigest() != VERIFIER_SHA256:
-                return Probe(False, "normal NOT READY: verifier_hash_mismatch")
-        except OSError:
-            return Probe(False, "normal verifier unavailable")
+        source, error = pinned_verifier_source(verifier_path, VERIFIER_SHA256)
+        if error:
+            detail = "normal NOT READY: verifier_hash_mismatch" if error == "verifier_hash_mismatch" else "normal verifier unavailable"
+            return Probe(False, detail)
         command = (
             str(context.repo_root / ".venv-agent/bin/python"),
-            str(verifier_path),
+            "-c", source.decode("utf-8"),
             "--require-mode", "normal", str(receipt),
         )
         try:

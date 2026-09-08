@@ -46,7 +46,7 @@ def released_verifier(monkeypatch, tmp_path):
 def verifier_command(context, receipt):
     return (
         str(context.repo_root / ".venv-agent/bin/python"),
-        str(context.repo_root / "scripts/verify_agent_qa_receipt.py"),
+        "-c", "# synthetic released verifier\n",
         "--require-mode", "qa",
         str(receipt),
     )

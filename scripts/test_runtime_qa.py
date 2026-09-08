@@ -73,7 +73,7 @@ def test_verifier_v2_mode_reason_hash_and_command_contract(monkeypatch, tmp_path
     assert service._verify(context, verifier, receipt, "ws://local") == (
         None, "worker_not_registered",
     )
-    assert all(call[0][1:4] == (str(verifier), "--require-mode", "qa") for call in context.commands)
+    assert all(call[0][1:5] == ("-c", verifier.read_text(), "--require-mode", "qa") for call in context.commands)
     monkeypatch.setattr(subject, "_VERIFIER_SHA256", "0" * 64)
     assert service._verify(context, verifier, receipt, "ws://local") == (
         None, "verifier_hash_mismatch",
