@@ -362,3 +362,19 @@ def test_explicit_eligible_id_beyond_general_scan_is_selected(connection) -> Non
     assert persistence.list_scoring_candidates(
         connection, limit=1, posting_ids=[str(uuid4())]
     ) == []
+
+
+def test_raw_description_can_score_without_extraction_and_then_skip(connection) -> None:
+    posting_id = seed(connection, status="new")
+    connection.execute("delete from public.posting_extractions where posting_id=%s", (posting_id,))
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == [posting_id]
+    assert persistence.score_and_persist(connection, posting_id, brain_runner=runner) == "stored"
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []
+    assert connection.execute("select status from public.posting_status where posting_id=%s", (posting_id,)).fetchone() == ("new",)
+
+
+@pytest.mark.parametrize("raw_jd", [None, "", " \t\n", "x" * 199, " \t" + "x" * 199 + "\n "])
+def test_unusable_description_is_not_selected(connection, raw_jd) -> None:
+    posting_id = seed(connection, status="new")
+    connection.execute("update public.postings set raw_jd=%s where id=%s", (raw_jd, posting_id))
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []
