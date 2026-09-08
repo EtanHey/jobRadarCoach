@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobDetailResponseSchema, JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
+import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { relativeAge } from "@/lib/job-display";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
@@ -50,8 +50,13 @@ export function JobBoard() {
     // Keep the previous body intact during the sheet closing transition.
     if (id !== null) { setDetail(null); setDetailError(""); setRejecting(false); setReason(""); }
   }
-  function chooseFilter(value: Filter) { if (value === filter) return; filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); setPreferences((current) => ({ filter: value, view: { ...current.view, fit: value === "new-for-me" ? "recommended" : "" } })); }
-  function changeView(next: ViewOptions) { setPreferences((current) => ({ ...current, view: next })); }
+  function prepareListSource(value: Filter) { filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); }
+  function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value); setPreferences((current) => preferencesForBoardFilter(current, value)); }
+  function changeView(next: ViewOptions) {
+    const nextFilter = next.statuses.length > 0 ? "all" : filter;
+    if (nextFilter !== filter) prepareListSource(nextFilter);
+    setPreferences((current) => preferencesForPipelineStatuses({ ...current, view: next }, next.statuses));
+  }
   function setSearch(search: string) { setPreferences((current) => ({ ...current, view: { ...current.view, search } })); }
   function resetView() {
     const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
