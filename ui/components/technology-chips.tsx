@@ -30,16 +30,15 @@ export function TechnologyChips({ names, limit = 4, presentation = "flow" }: {
     id={listId}
     role="group"
     aria-label="Technologies"
-    className={compact ? "grid min-w-0 max-w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] grid-rows-[1.625rem_1.625rem] gap-1.5" : "flex min-w-0 max-w-full flex-wrap items-center gap-1.5"}
+    className={`flex min-w-0 max-w-full flex-wrap items-start gap-1.5 ${compact ? "h-[3.625rem] content-start" : ""}`}
   >
-    {visibleNames.map((name, index) => {
+    {visibleNames.map((name) => {
       const kind = technologyKind(name);
       return <span
         key={name.toLocaleLowerCase("en-US")}
         data-tech-kind={kind}
         title={name}
-        style={compact ? { gridColumn: index % 2 + 1, gridRow: Math.floor(index / 2) + 1 } : undefined}
-        className={`inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-xs leading-tight ${
+        className={`inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2 py-1 text-xs leading-tight ${compact ? "h-[1.625rem] max-w-[calc(50%_-_2rem)] flex-none" : "max-w-full"} ${
           kind === "concept"
             ? "border-dashed border-primary/30 bg-primary/5 text-foreground"
             : kind === "brand"
@@ -57,8 +56,7 @@ export function TechnologyChips({ names, limit = 4, presentation = "flow" }: {
       aria-expanded="false"
       aria-label={hiddenCount ? `Show ${hiddenCount} more technologies` : "Expand full technology labels"}
       title={hiddenCount ? `Show ${hiddenCount} more technologies` : "Expand full technology labels"}
-      style={compact ? { gridColumn: 3, gridRow: "1 / span 2", alignSelf: "center" } : undefined}
-      className="rounded-full border bg-background px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
+      className="h-[1.625rem] shrink-0 rounded-full border bg-background px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
       onClick={(event) => {
         event.stopPropagation();
         setExpandedFor(signature);
