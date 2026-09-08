@@ -62,7 +62,7 @@ def test_batch_intersects_eligibility_bounds_calls_and_skips_second_run(capsys) 
 
     first = job.run_batch(
         connection,
-        limit=2,
+        limit=3,
         timeout_seconds=17,
         posting_ids=POSTING_IDS,
         env={"BRAIN": "ollama", "PRIVATE_ENV": "sentinel"},
@@ -72,7 +72,7 @@ def test_batch_intersects_eligibility_bounds_calls_and_skips_second_run(capsys) 
     )
     second = job.run_batch(
         connection,
-        limit=2,
+        limit=3,
         timeout_seconds=17,
         posting_ids=POSTING_IDS,
         env={"BRAIN": "ollama", "PRIVATE_ENV": "sentinel"},
@@ -82,12 +82,33 @@ def test_batch_intersects_eligibility_bounds_calls_and_skips_second_run(capsys) 
     )
 
     assert (first, second) == (0, 0)
-    assert eligible_limits == [(2, list(POSTING_IDS)), (2, list(POSTING_IDS))]
+    assert eligible_limits == [(3, list(POSTING_IDS)), (3, list(POSTING_IDS))]
     assert len(brain_calls) == 2
     assert all(call[2]["BRAIN"] == "ollama" and call[3] == 17 for call in brain_calls)
     assert all("PRIVATE_ENV" not in call[2] for call in brain_calls)
     assert connection.profile_reads == 2
-    assert all("private" not in record for record in logs(capsys))
+    records = logs(capsys)
+    assert all("private" not in record for record in records)
+    summaries = [record for record in records if "scored" in record]
+    assert summaries[0]["selected_posting_ids"] == list(POSTING_IDS[:2])
+    assert summaries[0]["skipped_posting_ids"] == [POSTING_IDS[2]]
+    assert summaries[0]["skipped"] == 1
+    assert summaries[1]["selected_posting_ids"] == []
+    assert summaries[1]["skipped_posting_ids"] == list(POSTING_IDS)
+    assert summaries[1]["skipped"] == len(POSTING_IDS)
+
+
+def test_oversized_explicit_assignment_does_not_claim_complete_skips(capsys) -> None:
+    job.run_batch(
+        Connection(), limit=1, timeout_seconds=10, posting_ids=POSTING_IDS,
+        env={"BRAIN": "ollama"},
+        candidate_lister=lambda *_args, **_kwargs: [POSTING_IDS[0]],
+        scorer=lambda *_args, **_kwargs: "stored",
+    )
+
+    summary = [record for record in logs(capsys) if "scored" in record][-1]
+    assert "selected_posting_ids" not in summary
+    assert "skipped_posting_ids" not in summary
 
 
 @pytest.mark.parametrize(

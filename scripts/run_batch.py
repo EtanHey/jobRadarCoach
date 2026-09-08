@@ -214,13 +214,34 @@ def _scraper_summary(logs: str) -> dict[str, Any]:
         raise CoordinatorError("InvalidReceipt")
     return value
 
-def _model_summary(logs: str, outcome: str) -> dict[str, int]:
+def _model_summary(
+    logs: str, outcome: str, *, posting_ids: Sequence[str] = (), limit: int | None = None,
+) -> dict[str, Any]:
     value = _summary(logs, {"selected", outcome, "failed"})
     if any(type(value[key]) is not int or value[key] < 0 for key in
            ("selected", outcome, "failed")):
         raise CoordinatorError("InvalidReceipt")
     if value[outcome] + value["failed"] != value["selected"]:
         raise CoordinatorError("InvalidReceipt")
+    requested = list(dict.fromkeys(posting_ids))
+    if requested and limit is not None and len(requested) <= limit:
+        selected = value.get("selected_posting_ids")
+        skipped = value.get("skipped_posting_ids")
+        try:
+            valid = (
+                isinstance(selected, list) and isinstance(skipped, list)
+                and [str(UUID(item)) for item in selected] == selected
+                and [str(UUID(item)) for item in skipped] == skipped
+                and len(set(selected)) == len(selected) == value["selected"]
+                and type(value.get("skipped")) is int
+                and len(set(skipped)) == len(skipped) == value.get("skipped")
+                and not set(selected) & set(skipped)
+                and set(selected) | set(skipped) == set(requested)
+            )
+        except (ValueError, TypeError, AttributeError):
+            valid = False
+        if not valid:
+            raise CoordinatorError("IncompleteReceipt")
     return value
 
 def _receipt(run_id: str) -> dict[str, Any]:
@@ -228,6 +249,7 @@ def _receipt(run_id: str) -> dict[str, Any]:
         "run_id": run_id, "cohort_count": None, "fetched": None, "matched": None,
         "new": None, "extracted": None, "scored": None,
         "selected_counts": {"extractor": None, "classifier": None},
+        "skipped_counts": {"extractor": None, "classifier": None},
         "failures": [], "jobs": {},
         "count_meanings": {
             "fetched": "scraper ingestion activity before cheap gates",
@@ -258,8 +280,10 @@ def _run_all_observed(
     receipt["chunk_count"] = len(chunks)
     receipt["jobs"].update(extractor=[], classifier=[])
     totals = {
-        "extractor": {"selected": 0, "completed": 0, "failed": 0, "reported_chunks": 0},
-        "classifier": {"selected": 0, "completed": 0, "failed": 0, "reported_chunks": 0},
+        "extractor": {"selected": 0, "completed": 0, "failed": 0,
+                      "skipped": 0, "reported_chunks": 0},
+        "classifier": {"selected": 0, "completed": 0, "failed": 0,
+                       "skipped": 0, "reported_chunks": 0},
     }
     lock = threading.Lock()
 
@@ -289,10 +313,10 @@ def _run_all_observed(
                     chunk=chunk_number,
                 )
                 result = _create_and_wait(client, job, stage, partial)
-                summary = _model_summary(result["logs"], outcome)
-                if summary["selected"] != len(posting_ids):
-                    summary = None
-                    raise CoordinatorError("IncompleteReceipt")
+                summary = _model_summary(
+                    result["logs"], outcome,
+                    posting_ids=posting_ids, limit=len(posting_ids),
+                )
                 if result["exit_code"] != 0:
                     raise CoordinatorError("JobFailed")
             except Exception as error:
@@ -307,6 +331,7 @@ def _run_all_observed(
                     totals[stage]["selected"] += summary["selected"]
                     totals[stage]["completed"] += summary[outcome]
                     totals[stage]["failed"] += summary["failed"]
+                    totals[stage]["skipped"] += summary["skipped"]
                     totals[stage]["reported_chunks"] += 1
                 if failure is not None:
                     _fail(receipt, stage, failure, chunk_number)
@@ -332,6 +357,7 @@ def _run_all_observed(
             **aggregate, "chunk_count": len(chunks), "complete": complete,
         }
         receipt["selected_counts"][stage] = aggregate["selected"] if complete else None
+        receipt["skipped_counts"][stage] = aggregate["skipped"] if complete else None
         receipt[outcome] = aggregate["completed"] if complete else None
     receipt["failures"].sort(key=lambda item: (item.get("chunk", -1), item["stage"]))
 
@@ -369,6 +395,7 @@ def run_cohort(
     if not observed:
         receipt.update(extracted=0, scored=0)
         receipt["selected_counts"] = {"extractor": 0, "classifier": 0}
+        receipt["skipped_counts"] = {"extractor": 0, "classifier": 0}
         receipt["jobs"].update(
             extractor={"skipped": "empty_cohort"}, classifier={"skipped": "empty_cohort"}
         )
@@ -391,8 +418,11 @@ def run_cohort(
             job = _prepare_job(template, stage, run_id, image, model_args, provider)
             result = _create_and_wait(client, job, stage, receipt["jobs"])
             receipt["jobs"][stage] = result
-            summary = _model_summary(result["logs"], outcome)
+            summary = _model_summary(
+                result["logs"], outcome, posting_ids=observed, limit=config.limit,
+            )
             receipt["selected_counts"][stage] = summary["selected"]
+            receipt["skipped_counts"][stage] = summary.get("skipped")
             receipt[outcome] = summary[outcome]
             if result["exit_code"] != 0:
                 raise CoordinatorError("JobFailed")
