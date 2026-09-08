@@ -51,6 +51,7 @@ class RuntimeContext:
 def process_snapshot(pid: int) -> Identity | None:
     try:
         pgid = os.getpgid(pid)
+        sid = os.getsid(pid)
         start = subprocess.run(
             ["ps", "-o", "lstart=", "-p", str(pid)], text=True,
             capture_output=True, timeout=2, check=False,
@@ -62,7 +63,7 @@ def process_snapshot(pid: int) -> Identity | None:
     except (OSError, subprocess.SubprocessError):
         return None
     return {
-        "pid": pid, "pgid": pgid, "start": start, "argv": argv, "argv_verified": True,
+        "pid": pid, "pgid": pgid, "sid": sid, "start": " ".join(start.split()), "argv": argv, "argv_verified": True,
     } if start and argv else None
 
 
@@ -84,8 +85,12 @@ def _group_snapshots(pgid: int) -> list[Identity]:
         except ValueError:
             continue
         if candidate_pgid == pgid:
+            try:
+                sid = os.getsid(pid)
+            except ProcessLookupError:
+                continue
             members.append({
-                "pid": pid, "pgid": candidate_pgid,
+                "pid": pid, "pgid": candidate_pgid, "sid": sid,
                 "start": " ".join(fields[2:7]), "argv": fields[7], "argv_verified": True,
             })
     return members
@@ -96,9 +101,8 @@ def same_process(identity: Identity) -> bool:
         current = process_snapshot(int(identity["pid"]))
     except (KeyError, TypeError, ValueError):
         return False
-    keys = ["pid", "pgid", "start"]
-    if identity.get("argv_verified"):
-        keys.append("argv")
+    # exec changes argv without changing the owned process or session.
+    keys = ["pid", "pgid", "sid", "start"]
     return current is not None and all(current.get(key) == identity.get(key) for key in keys)
 
 
@@ -108,6 +112,8 @@ def _group_exists(pgid: int) -> bool:
         return True
     except ProcessLookupError:
         return False
+    except PermissionError:
+        return True
 
 
 def _identity_state(identity: Identity) -> str:
@@ -118,16 +124,18 @@ def _identity_state(identity: Identity) -> str:
     current = process_snapshot(pid)
     if current is not None:
         return "same" if same_process(identity) else "mismatch"
-    if pgid != pid:
+    if pgid != pid or identity.get("sid") != pid:
         return "mismatch"
     if not _group_exists(pgid):
         return "stopped"
     recorded = {
-        (item.get("pid"), item.get("start"), item.get("argv"))
+        (item.get("pid"), item.get("sid"), item.get("start"))
         for item in identity.get("members", []) if isinstance(item, dict)
     }
-    current = {(item["pid"], item["start"], item["argv"]) for item in _group_snapshots(pgid)}
-    return "group" if recorded & current else "mismatch"
+    current = {(item["pid"], item["sid"], item["start"]) for item in _group_snapshots(pgid)}
+    # One surviving birth identity anchors the original session; later fork/exec
+    # descendants in that group are still ours. No continuity means no signal.
+    return "group" if current & recorded else "mismatch"
 
 
 class ProcessService:
