@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+import os
+from pathlib import Path
+import sys
+
+commands = {"run": "up", "down": "down", "status": "status"}
+if len(sys.argv) < 2 or sys.argv[1] not in commands:
+    print("usage: jrc {run [--qa]|down|status}", file=sys.stderr)
+    raise SystemExit(2)
+target = Path(__file__).resolve().with_name("run")
+os.execv(target, [str(target), commands[sys.argv[1]], *sys.argv[2:]])
