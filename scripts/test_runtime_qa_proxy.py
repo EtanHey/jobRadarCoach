@@ -28,10 +28,18 @@ def wait_for(path, status, timeout=5):
 def fixtures(tmp_path):
     module = tmp_path / "proxy.mjs"
     module.write_text("""
+import { existsSync } from 'node:fs';
 export async function startQaProxy(options) {
   if (await options.verifyAgent() !== true) throw new Error('fixture gate failed');
   let revoked = false; let mutationAttempts = 0;
   if (process.env.FIXTURE_MUTATE === '1') setTimeout(() => { revoked = true; mutationAttempts = 1; }, 50);
+  if (process.env.FIXTURE_MUTATE_TRIGGER) {
+    const watcher = setInterval(() => {
+      if (existsSync(process.env.FIXTURE_MUTATE_TRIGGER)) {
+        clearInterval(watcher); revoked = true; mutationAttempts = 1;
+      }
+    }, 10);
+  }
   return { origin: 'http://127.0.0.1:4567', qaUrl: `http://127.0.0.1:4567/mic?qa=${options.qaSessionId}`,
     receipt: () => ({ rooms: [], revoked, mutationAttempts }), invalidateQa: () => { revoked = true; },
     close: async () => {} };
@@ -102,6 +110,45 @@ def test_proxy_mutation_revocation_marks_run_not_ready(tmp_path):
     child, marker = launch(tmp_path, module, verifier, control, {"FIXTURE_MUTATE": "1"})
     try:
         assert wait_for(marker, "NOT_READY")["reason"] == "browser_mutation_attempt"
+    finally:
+        child.terminate()
+        child.wait(timeout=5)
+
+
+def test_pending_success_cannot_erase_mutation_reason(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    counter, pending = tmp_path / "count", tmp_path / "pending"
+    completed, trigger = tmp_path / "completed", tmp_path / "mutate"
+    verifier.write_text("""
+import json, os, pathlib, time
+counter = pathlib.Path(os.environ['FIXTURE_COUNT'])
+count = int(counter.read_text()) + 1 if counter.exists() else 1
+counter.write_text(str(count))
+if count >= 3:
+    pathlib.Path(os.environ['FIXTURE_PENDING']).touch()
+    time.sleep(.75)
+    pathlib.Path(os.environ['FIXTURE_COMPLETED']).touch()
+print(json.dumps({'status':'READY','worker_id':'AW_fixture'}, separators=(',', ':')))
+""")
+    child, marker = launch(tmp_path, module, verifier, control, {
+        "FIXTURE_COUNT": str(counter), "FIXTURE_PENDING": str(pending),
+        "FIXTURE_COMPLETED": str(completed), "FIXTURE_MUTATE_TRIGGER": str(trigger),
+    })
+    try:
+        deadline = time.monotonic() + 5
+        while not pending.exists() and time.monotonic() < deadline:
+            time.sleep(0.025)
+        assert pending.exists()
+        trigger.touch()
+        assert wait_for(marker, "NOT_READY")["reason"] == "browser_mutation_attempt"
+        first_write = marker.stat().st_mtime_ns
+        while not completed.exists() and time.monotonic() < deadline:
+            time.sleep(0.025)
+        assert completed.exists()
+        while marker.stat().st_mtime_ns == first_write and time.monotonic() < deadline:
+            time.sleep(0.025)
+        assert marker.stat().st_mtime_ns != first_write
+        assert json.loads(marker.read_text())["reason"] == "browser_mutation_attempt"
     finally:
         child.terminate()
         child.wait(timeout=5)
