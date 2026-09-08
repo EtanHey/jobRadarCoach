@@ -173,6 +173,151 @@ The service-role key remains server-side. Never commit Secret output, `profile.y
 
 ## 7. Deploy and run one bounded batch
 
+Bootstrap the repository-owned LiveKit signaling resources before the UI, which reads the same
+`livekit-keys` Secret. Existing keys are reused only when both required values are present; values are
+generated into a pipe and never placed in arguments, files, or terminal output:
+
+```zsh
+set -euo pipefail
+runtime_livekit_ip="$(tailscale ip -4 | python3 -c 'import ipaddress,sys
+lines=[line.strip() for line in sys.stdin if line.strip()]
+if len(lines) != 1: raise SystemExit("tailscale ip -4 must return exactly one address")
+address=ipaddress.ip_address(lines[0])
+if address.version != 4 or address not in ipaddress.ip_network("100.64.0.0/10"):
+    raise SystemExit("tailscale ip -4 did not return a tailnet IPv4 address")
+print(address)')"
+LIVEKIT_NODE_IP="${runtime_livekit_ip}" python3 - <<'PY'
+import base64
+import ipaddress
+import json
+import os
+import secrets
+import subprocess
+
+kubectl = ["kubectl", "--context", "orbstack", "-n", "job-radar-coach"]
+names = ("configmap/livekit-advertise", "configmap/livekit-config",
+         "deployment/livekit", "service/livekit")
+tailnet_ip = ipaddress.ip_address(os.environ["LIVEKIT_NODE_IP"])
+
+def documents(output):
+    decoder, values, offset = json.JSONDecoder(), [], 0
+    while offset < len(output):
+        offset += len(output[offset:]) - len(output[offset:].lstrip())
+        if offset == len(output):
+            break
+        value, offset = decoder.raw_decode(output, offset)
+        values.append(value)
+    return values
+
+def get(name):
+    result = subprocess.run(
+        [*kubectl, "get", name, "-o", "json", "--ignore-not-found"],
+        check=True, capture_output=True, text=True,
+    )
+    return json.loads(result.stdout) if result.stdout.strip() else None
+
+objects = {name: get(name) for name in names}
+present = [name for name, value in objects.items() if value is not None]
+secret = get("secret/livekit-keys")
+desired_config = json.loads(subprocess.run(
+    [*kubectl, "create", "--dry-run=client", "-f", "k8s/livekit-config.yaml", "-o", "json"],
+    check=True, capture_output=True, text=True,
+).stdout)
+desired_workloads = documents(subprocess.run(
+    [*kubectl, "create", "--dry-run=client", "-f", "k8s/livekit.yaml", "-o", "json"],
+    check=True, capture_output=True, text=True,
+).stdout)
+desired = {item.get("kind", "").lower(): item for item in desired_workloads}
+if set(desired) != {"deployment", "service"}:
+    raise SystemExit("tracked k8s/livekit.yaml must contain one Deployment and one Service")
+
+def validate(advertise, config, deployment, service):
+    pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
+    containers = pod_spec.get("containers", [])
+    container = containers[0] if len(containers) == 1 else {}
+    env = {item.get("name"): item.get("valueFrom", {}).get("secretKeyRef")
+           for item in container.get("env", [])}
+    values = {item.get("name"): item.get("value") for item in container.get("env", [])}
+    node_ip = next((item.get("valueFrom", {}).get("configMapKeyRef")
+                    for item in container.get("env", []) if item.get("name") == "NODE_IP"), None)
+    mounts = {item.get("name"): item.get("mountPath") for item in container.get("volumeMounts", [])}
+    container_ports = {(p.get("containerPort"), p.get("protocol", "TCP"))
+                       for p in container.get("ports", [])}
+    service_ports = {(p.get("name"), p.get("port"), p.get("targetPort"), p.get("protocol", "TCP"))
+                     for p in service.get("spec", {}).get("ports", [])}
+    valid = (
+        advertise.get("data") == {"node_ip": str(tailnet_ip)}
+        and config.get("data") == desired_config.get("data")
+        and container.get("env") == desired["deployment"]["spec"]["template"]["spec"]["containers"][0].get("env")
+        and container.get("volumeMounts") == desired["deployment"]["spec"]["template"]["spec"]["containers"][0].get("volumeMounts")
+        and container.get("name") == "livekit"
+        and container.get("image") == "livekit/livekit-server:latest"
+        and container.get("args") == ["--config", "/etc/livekit/livekit.yaml"]
+        and node_ip == {"name": "livekit-advertise", "key": "node_ip"}
+        and env.get("LIVEKIT_API_KEY") == {"name": "livekit-keys", "key": "LIVEKIT_API_KEY"}
+        and env.get("LIVEKIT_API_SECRET") == {"name": "livekit-keys", "key": "LIVEKIT_API_SECRET"}
+        and values.get("LIVEKIT_KEYS") == "$(LIVEKIT_API_KEY): $(LIVEKIT_API_SECRET)"
+        and mounts == {"config": "/etc/livekit"}
+        and {item.get("name"): item.get("configMap", {}).get("name")
+             for item in pod_spec.get("volumes", [])} == {"config": "livekit-config"}
+        and container_ports == {(7880, "TCP"), (7881, "TCP"), (50000, "UDP")}
+        and len(container.get("ports", [])) == 3
+        and service.get("spec", {}).get("selector") == {"app": "livekit"}
+        and service_ports == {
+            ("http", 7880, 7880, "TCP"), ("rtc-tcp", 7881, 7881, "TCP"),
+            ("rtc-udp", 50000, 50000, "UDP"),
+        }
+        and len(service.get("spec", {}).get("ports", [])) == 3
+    )
+    if not valid:
+        raise SystemExit("conflict: LiveKit resources do not match the tracked voice shape")
+
+advertise = {
+    "apiVersion": "v1", "kind": "ConfigMap",
+    "metadata": {"name": "livekit-advertise", "namespace": "job-radar-coach"},
+    "data": {"node_ip": str(tailnet_ip)},
+}
+validate(advertise, desired_config, desired["deployment"], desired["service"])
+if secret is not None:
+    data = secret.get("data", {})
+    for key in ("LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
+        try:
+            value = base64.b64decode(data[key], validate=True)
+        except Exception:
+            raise SystemExit(f"secret/livekit-keys has invalid {key}") from None
+        if not value:
+            raise SystemExit(f"secret/livekit-keys has empty {key}")
+if not present:
+    if secret is None:
+        secret = {
+            "apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+            "metadata": {"name": "livekit-keys", "namespace": "job-radar-coach"},
+            "stringData": {
+                "LIVEKIT_API_KEY": secrets.token_urlsafe(18),
+                "LIVEKIT_API_SECRET": secrets.token_urlsafe(32),
+            },
+        }
+        subprocess.run([*kubectl, "create", "-f", "-"],
+                       input=json.dumps(secret), text=True, check=True)
+    subprocess.run([*kubectl, "create", "-f", "-"], input=json.dumps(advertise), text=True, check=True)
+    subprocess.run([*kubectl, "create", "-f", "k8s/livekit-config.yaml"], check=True)
+    subprocess.run([*kubectl, "create", "-f", "k8s/livekit.yaml"], check=True)
+elif len(present) != len(names):
+    raise SystemExit(f"conflict: partial LiveKit installation exists: {', '.join(present)}")
+else:
+    if secret is None:
+        raise SystemExit("conflict: LiveKit resources exist without secret/livekit-keys")
+    validate(*(objects[name] for name in names))
+    print("reusing identified LiveKit signaling resources")
+PY
+kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
+unset runtime_livekit_ip
+```
+
+This installs the tracked source configuration and signaling base. The bridge, Serve mappings, live
+worker availability, and selected-media proof remain separate voice-readiness checks. TCP Serve does
+not expose the Service's UDP port.
+
 Apply the suspended scraper template and UI. Do not apply the extractor or classifier Job manifests directly; the coordinator reads them with client dry-run and creates uniquely named jobs.
 
 ```zsh
@@ -223,71 +368,12 @@ The foreground port-forward is session-scoped. Restart it after logout, reboot, 
 
 ### Prepare the voice transport
 
-These transport steps require an installed LiveKit Deployment and Service with the `livekit-keys`
-API Secret configured. The tracked Service manifest exposes signaling only, so add the required RTC
-port to that owned Service before starting the bridge. This guarded JSON Patch preserves unrelated
-Service fields, reuses an exact existing mapping, rejects conflicts, and fails if the Service changes
-between inspection and patching:
+Section 7 provisions the current LiveKit configuration and validates its signaling (`7880/TCP`),
+RTC TCP (`7881/TCP`), and UDP (`50000/UDP`) ports. Recheck readiness before starting the bridge;
+these commands read the existing resources and do not patch a borrowed Service:
 
 ```zsh
 set -euo pipefail
-python3 - <<'PY'
-import json
-import subprocess
-
-kubectl = ["kubectl", "--context", "orbstack", "-n", "job-radar-coach"]
-service = json.loads(subprocess.run(
-    [*kubectl, "get", "service/livekit", "-o", "json"], check=True,
-    capture_output=True, text=True,
-).stdout)
-ports = service.get("spec", {}).get("ports", [])
-version = service.get("metadata", {}).get("resourceVersion")
-if not isinstance(ports, list) or not isinstance(version, str) or not version:
-    raise SystemExit("service/livekit identity or ports are unavailable")
-
-def exact(item, port):
-    return (
-        item.get("port") == port and item.get("targetPort") == port
-        and item.get("protocol", "TCP") == "TCP"
-    )
-
-def related(item, port):
-    return item.get("port") == port or item.get("targetPort") == port
-
-http = [(index, item) for index, item in enumerate(ports) if related(item, 7880)]
-rtc = [(index, item) for index, item in enumerate(ports) if related(item, 7881)]
-if len(http) != 1 or not exact(http[0][1], 7880):
-    raise SystemExit("conflict: service/livekit must already expose numeric TCP 7880->7880")
-if len(rtc) > 1 or (rtc and not exact(rtc[0][1], 7881)):
-    raise SystemExit("conflict: service/livekit 7881 has another target")
-
-patch = [{"op": "test", "path": "/metadata/resourceVersion", "value": version}]
-if "name" not in http[0][1]:
-    if any(index != http[0][0] and item.get("name") == "http" for index, item in enumerate(ports)):
-        raise SystemExit("conflict: Service port name http is already used")
-    patch.append({"op": "add", "path": f"/spec/ports/{http[0][0]}/name", "value": "http"})
-if rtc:
-    if "name" not in rtc[0][1]:
-        if any(index != rtc[0][0] and item.get("name") == "rtc-tcp" for index, item in enumerate(ports)):
-            raise SystemExit("conflict: Service port name rtc-tcp is already used")
-        patch.append({"op": "add", "path": f"/spec/ports/{rtc[0][0]}/name", "value": "rtc-tcp"})
-elif any(item.get("name") == "rtc-tcp" for item in ports):
-    raise SystemExit("conflict: Service port name rtc-tcp is already used")
-else:
-    patch.append({
-        "op": "add", "path": "/spec/ports/-",
-        "value": {"name": "rtc-tcp", "port": 7881, "targetPort": 7881, "protocol": "TCP"},
-    })
-if len(patch) == 1:
-    print("service/livekit TCP 7881 mapping: reuse")
-else:
-    subprocess.run(
-        [*kubectl, "patch", "service/livekit", "--type=json", "--patch",
-         json.dumps(patch, separators=(",", ":")), "-o", "name"],
-        check=True,
-    )
-PY
-
 # Fail before bridge or mapping work unless both numeric TCP ports are now present.
 kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
 python3 - 3< <(kubectl --context orbstack -n job-radar-coach get service/livekit -o json) <<'PY'
