@@ -121,7 +121,7 @@ async function main() {
     return new Promise(resolve => {
     const env = { ...process.env, LIVEKIT_URL: expectedServer, VOICE_QA_MODE: '1' };
     const child = spawn(process.env.QA_PYTHON ?? 'python3', [
-      verifier, '--require-mode', 'qa', receiptPath,
+      '-c', source.toString('utf8'), '--require-mode', 'qa', receiptPath,
     ], {
       detached: true, env, stdio: ['ignore', 'pipe', 'pipe'],
     });
