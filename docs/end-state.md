@@ -120,3 +120,17 @@ This is the product thesis. It has three consequences:
    across several rejections, names the pattern aloud, and every edit it has made is listed, attributed, and
    individually undoable in the profile drawer. A profile that silently narrows until good roles stop
    appearing is the failure mode this rule exists to prevent.
+
+### Three tiers, not one (Etan, 2026-09-08)
+
+"Maybe even after a lot of patterns emerge it brings it up to a astra/sol model to give it suggested
+profile/settings edits, then it goes over them with me?"
+
+| Tier | Who | Job |
+|---|---|---|
+| Live | local model (Ollama/MLX), in the voice session | capture the reason verbatim, notice a pattern, say it out loud, read proposals back. Nothing more — this is deliberately small so the voice side stays free and fast. |
+| Advisor | a strong model via the BRAIN adapter (codex: gpt-6-astra / gpt-5.6-sol), batch | a fourth Job alongside extractor and classifier. Weekly or on demand. Reads the whole corpus — verbatim rejection reasons AND what was saved/applied, not the profile alone — and DRAFTS proposed profile edits. Each proposal must cite the specific postings and reasons it came from. It writes proposals to a table; it never writes the profile. |
+| Review | Etan | goes over proposals by voice or in the profile drawer, accepts or rejects each one individually. Nothing auto-applies, ever. |
+
+The advisor tier is also where overfitting gets caught: a bad suggestion shows up as a proposal with thin
+evidence attached, instead of a silent narrowing noticed weeks later when good roles stopped appearing.
