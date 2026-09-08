@@ -6,6 +6,26 @@ import { AccessToken, TrackSource } from 'livekit-server-sdk';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
+const HOP_BY_HOP = new Set([
+  'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+  'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade',
+]);
+
+function endToEndHeaders(headers) {
+  const blocked = new Set(HOP_BY_HOP);
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() !== 'connection' || value === undefined) continue;
+    const values = Array.isArray(value) ? value : [value];
+    for (const item of values) {
+      for (const token of String(item).split(',')) {
+        const nominated = token.trim().toLowerCase();
+        if (nominated) blocked.add(nominated);
+      }
+    }
+  }
+  return Object.fromEntries(Object.entries(headers)
+    .filter(([name, value]) => value !== undefined && !blocked.has(name.toLowerCase())));
+}
 
 function parseOrigin(value, browserFacing = false) {
   const url = new URL(value);
@@ -116,8 +136,10 @@ export async function startQaProxy({ upstream, key, secret, serverUrl, qaSession
       if (path.startsWith('/api/livekit/')) return json(res, 404, { error: 'Unknown QA endpoint' });
       const target = new URL(targetOrigin.origin + req.url);
       const transport = target.protocol === 'https:' ? https : http;
-      const forward = transport.request(target, { method: 'GET', headers: { ...req.headers, host: logicalOrigin.host, origin: logicalOrigin.origin } }, response => {
-        res.writeHead(response.statusCode, response.headers); response.pipe(res);
+      const headers = endToEndHeaders(req.headers);
+      headers.host = logicalOrigin.host; headers.origin = logicalOrigin.origin;
+      const forward = transport.request(target, { method: 'GET', headers }, response => {
+        res.writeHead(response.statusCode, endToEndHeaders(response.headers)); response.pipe(res);
       });
       requests.add(forward);
       forward.on('close', () => requests.delete(forward));
