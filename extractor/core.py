@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
 import hashlib
 import json
+from collections.abc import Callable, Mapping
 
 from extractor.evidence import validate_facts
-
 from scraper.brain import (
     BrainConfigurationError,
     BrainRequest,
@@ -16,8 +15,7 @@ from scraper.brain import (
     run_brain,
 )
 
-
-EXTRACTOR_VERSION = "1.2"
+EXTRACTOR_VERSION = "1.3"
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
 MAX_REQUEST_TIMEOUT_SECONDS = 120
@@ -93,7 +91,9 @@ def _prompt(raw_jd: str) -> str:
         "Be complete: use one stack item per named technology; include explicit seniority terms.",
         "Every non-null fact needs a short exact contiguous evidence_quote from the job description.",
         "For string facts, copy the value text from that evidence quote.",
-        "Remote true requires explicit remote wording; false requires explicit onsite/no-remote wording.",
+        "Remote true requires the same exact evidence_quote to contain explicit remote/remotely wording that applies to this role.",
+        "Remote false requires that quote to contain explicit onsite, office-based, or negated-remote wording.",
+        "Otherwise return null; never cite a different passage or infer remote status from flexibility.",
         "Return only JSON matching the supplied schema.",
         "UNTRUSTED_JOB_DESCRIPTION_JSON:",
         json.dumps(raw_jd, ensure_ascii=True),
@@ -117,7 +117,7 @@ def extract_posting(
     profile_snapshot: Mapping[str, object],
     *,
     runner: Callable[..., BrainResult] = run_brain,
-    timeout_seconds: int | float = 60,
+    timeout_seconds: float = 60,
 ) -> dict[str, object]:
     """Extract supported facts without mutating the harvested posting."""
 

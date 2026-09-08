@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from copy import deepcopy
 import json
 import os
+from copy import deepcopy
 
 import pytest
 
@@ -13,7 +13,6 @@ from scraper.brain import (
     BrainResult,
     BrainValidationError,
 )
-
 
 RAW_JD = """Senior Backend Engineer
 Location: Tel Aviv, Israel. Remote within Israel.
@@ -118,6 +117,23 @@ def test_unknown_facts_remain_null_or_empty() -> None:
     }
     result = core.extract_posting(posting(), {}, runner=runner_for(unknown))
     assert result["facts"] == unknown
+
+
+def test_remote_prompt_requires_same_quote_support_or_null() -> None:
+    prompt = core._prompt(RAW_JD)
+
+    assert (
+        "Remote true requires the same exact evidence_quote to contain explicit "
+        "remote/remotely wording that applies to this role."
+    ) in prompt
+    assert (
+        "Remote false requires that quote to contain explicit onsite, office-based, "
+        "or negated-remote wording."
+    ) in prompt
+    assert (
+        "Otherwise return null; never cite a different passage or infer remote "
+        "status from flexibility."
+    ) in prompt
 
 
 def test_prompt_injection_cannot_expand_the_output_contract() -> None:
