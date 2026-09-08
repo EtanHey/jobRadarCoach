@@ -11,6 +11,13 @@ export function publishedAge(value: string | null, now = Date.now()): string {
   return age ? `Posted ${age}` : "Posted date unavailable";
 }
 
+export function postingDate(postedAt: string | null, firstSeenAt: string | null, now = Date.now()): { label: string; dateTime: string | undefined } {
+  const posted = relativeAge(postedAt, now);
+  if (posted) return { label: `Posted ${posted}`, dateTime: postedAt ?? undefined };
+  const found = relativeAge(firstSeenAt, now);
+  return { label: found ? `Found ${found}` : "Found date unavailable", dateTime: found ? firstSeenAt ?? undefined : undefined };
+}
+
 export function workMode(remote: boolean | null): string {
   return remote === true ? "Remote" : remote === false ? "On-site" : "Work mode unspecified";
 }
