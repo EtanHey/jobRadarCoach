@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { filterJobGroups, filterJobs, levelGroup, locationGroup, sourceFilterValues, type ViewOptions } from "../lib/job-filters";
 import { JobSummarySchema } from "../lib/contracts";
 import { technologyMentions } from "../lib/job-metadata";
-const options: ViewOptions = {search:"",source:"",location:"",seniority:"",fit:"",sort:"fit"};
+const options: ViewOptions = {search:"",source:"",location:"",seniority:"",fit:"",statuses:[],sort:"fit"};
 function job(id: number, score: number | null, seniority: string | null = null, location: string | null = null) {
   return JobSummarySchema.parse({id:`00000000-0000-4000-8000-${String(id).padStart(12,"0")}`,title:"Engineer",company:"Example",location,remote:null,seniority,stack:[],salary:null,url:"https://example.test/",apply_url:null,posted_at:null,first_seen_at:"2026-09-08T00:00:00Z",last_seen_at:"2026-09-08T00:00:00Z",source:"linkedin",experience:null,description_available:true,seniority_origin:"unknown",extraction_state:"not-extracted",status:"new",status_reason:null,score,fit_line:null,recommendation:null});
 }
@@ -37,6 +37,26 @@ test("recommendation filtering composes with location without hiding stretch rev
   assert.deepEqual(filterJobs(rows,{...options,fit:"recommended",location:"israel"}).map(x=>x.id),[rows[0].id]);
   assert.deepEqual(filterJobs(rows,{...options,fit:"skip"}).map(x=>x.id),[rows[1].id]);
   assert.equal(filterJobs(rows,options).length,4);
+});
+
+test("pipeline statuses OR together and AND with the other facets", () => {
+  const rows = [
+    { ...job(1, 78, null, "Israel"), source: "workable", status: "worth_checking" as const },
+    { ...job(2, 74, null, "Israel"), source: "workable", status: "interview_technical" as const },
+    { ...job(3, 72, null, "Israel"), source: "linkedin", status: "worth_checking" as const },
+    { ...job(4, 68, null, "United States"), source: "workable", status: "interview_technical" as const },
+    { ...job(5, 66, null, "Israel"), source: "workable", status: "seen" as const },
+  ];
+
+  assert.deepEqual(
+    filterJobs(rows, {
+      ...options,
+      source: "workable",
+      location: "israel",
+      statuses: ["worth_checking", "interview_technical"],
+    }).map((row) => row.score),
+    [78, 74],
+  );
 });
 
 test("country codes alone cannot masquerade as US states",()=>{
