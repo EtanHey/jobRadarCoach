@@ -15,7 +15,7 @@ const summary: JobSummary = {
   company: "Public Example",
   source: "linkedin",
   last_seen_at: "2026-09-08T10:00:00Z",
-  experience: null,
+  experience: null, description_available: true,
   seniority_origin: "unknown",
   extraction_state: "not-extracted",
   location: null,

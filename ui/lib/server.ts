@@ -76,6 +76,7 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
     stack: posting.stack.length ? posting.stack : technologyMentions(raw_jd),
     seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
+    description_available: Boolean(raw_jd?.trim()),
     experience: experiencePhrase(raw_jd), extraction_state: extraction ? "extracted" : "not-extracted",
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
     score: score?.score ?? null,
