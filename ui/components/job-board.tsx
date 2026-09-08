@@ -147,7 +147,7 @@ export function JobBoard() {
 
   return <div className="min-h-screen bg-background text-foreground">
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
-    <main className="mx-auto max-w-7xl px-4 py-4 sm:px-8">
+    <main className="w-full px-4 py-4 sm:px-6 lg:px-8">
       <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1><span className="rounded-full bg-muted px-2 py-1">{groupDuplicateJobs(visible).length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
       <JobsPanel {...{filter, search, jobs, visible, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={setView} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>

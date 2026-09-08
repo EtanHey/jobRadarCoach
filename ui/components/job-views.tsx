@@ -26,7 +26,7 @@ type ListProps = { filter: Filter; search: string; jobs: JobSummary[]; visible: 
 type BodyProps = { detail: JobDetail | null; detailError: string; saving: boolean; rejecting: boolean; reason: string; setReason: (value: string) => void; setRejecting: (value: boolean) => void; changeStatus: (patch: StatusPatch) => Promise<boolean> };
 type DrawerProps = BodyProps & { relatedJobs?: JobSummary[]; selected: string | null; openerRef: Opener; selectJob: RowProps["selectJob"] };
 
-export function BoardHeader({children}: {children?: ReactNode}) { return <header className="border-b bg-background/90 backdrop-blur"><div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8"><Link href="/" className="flex items-center gap-3 font-semibold tracking-tight"><span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-foreground/10 text-foreground">J</span>Job Radar <span className="hidden font-normal text-muted-foreground sm:inline">/ Coach</span></Link><div className="flex items-center gap-2">{children}<ThemeToggle /></div></div></header> }
+export function BoardHeader({children}: {children?: ReactNode}) { return <header className="border-b bg-background/90 backdrop-blur"><div className="flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"><Link href="/" className="flex items-center gap-3 font-semibold tracking-tight"><span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-foreground/10 text-foreground">J</span>Job Radar <span className="hidden font-normal text-muted-foreground sm:inline">/ Coach</span></Link><div className="flex items-center gap-2">{children}<ThemeToggle /></div></div></header> }
 
 const experienceStatus = (job: ViewJob) => job.experience ?? (job.description_available ? "Check description for experience" : "Description unavailable");
 
@@ -37,11 +37,11 @@ export function JobDrawer({ selected, relatedJobs = [], openerRef, selectJob, ..
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
-        <div className="flex items-center gap-3">{detail && <CompanyLogo company={detail.company} className="size-12" />}<SheetDescription>{detail ? `${detail.company} · Listing ${shortListingId(detail.id)}` : "Loading the role…"}</SheetDescription></div>
-        <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-lg leading-snug">{detail?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
+        <div className="flex items-center gap-3">{detail && <CompanyLogo company={detail.company} className="size-14 sm:size-16" />}<SheetDescription>{detail ? `${detail.company} · Listing ${shortListingId(detail.id)}` : "Loading the role…"}</SheetDescription></div>
+        <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{detail?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {detail && <>
-          <p className="mt-2 text-xs text-muted-foreground">{detail.location ?? "Location unspecified"} · {workMode(detail.remote)}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{detail.location ?? "Location unspecified"} · {workMode(detail.remote)}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
           <div className="mt-3"><TechnologyChips key={detail.id} names={detail.stack} /></div>
         </>}
       </SheetHeader>
