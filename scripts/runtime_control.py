@@ -271,19 +271,36 @@ class Supervisor:
             if not isinstance(entries, list):
                 print("supervisor: invalid retained cleanup state", file=sys.stderr)
                 return 1
-            retained, retry_failures = self._cleanup(entries)
-            if retry_failures:
-                state["services"] = retained
-                state["cleanup_failures"] = retry_failures
-                _atomic_json(self.state_path, state)
-                print(
-                    "supervisor: cleanup failed: " + "; ".join(retry_failures),
-                    file=sys.stderr,
-                )
-                return 1
-            self.state_path.unlink(missing_ok=True)
-            print("supervisor: stopped")
-            return 0
+            interrupted_signal: int | None = None
+
+            def defer_interrupt(signum: int, _frame: Any) -> None:
+                nonlocal interrupted_signal
+                interrupted_signal = interrupted_signal or signum
+
+            old_int = signal.signal(signal.SIGINT, defer_interrupt)
+            old_term = signal.signal(signal.SIGTERM, defer_interrupt)
+            try:
+                retained, retry_failures = self._cleanup(entries)
+                if retry_failures:
+                    state["services"] = retained
+                    state["cleanup_failures"] = retry_failures
+                    _atomic_json(self.state_path, state)
+                    print(
+                        "supervisor: cleanup failed: " + "; ".join(retry_failures),
+                        file=sys.stderr,
+                    )
+                    if interrupted_signal is not None:
+                        print("supervisor: interrupted; cleanup state retained", file=sys.stderr)
+                    return 1
+                self.state_path.unlink(missing_ok=True)
+                if interrupted_signal is not None:
+                    print("supervisor: cleanup completed after interrupt", file=sys.stderr)
+                    return 1
+                print("supervisor: stopped")
+                return 0
+            finally:
+                signal.signal(signal.SIGINT, old_int)
+                signal.signal(signal.SIGTERM, old_term)
 
 
 def _load_services(module_name: str, context: RuntimeContext) -> Sequence[Service]:
