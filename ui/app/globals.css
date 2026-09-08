@@ -121,8 +121,15 @@
 @layer base {
   button:enabled:not([aria-disabled="true"]),
   [role="button"]:not([aria-disabled="true"]),
-  a[href] {
+  a[href]:not([aria-disabled="true"]) {
     cursor: pointer;
+  }
+
+  button:disabled,
+  button[aria-disabled="true"],
+  [role="button"][aria-disabled="true"],
+  a[href][aria-disabled="true"] {
+    cursor: default;
   }
 
   * {
