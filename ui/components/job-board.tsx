@@ -15,7 +15,7 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
 
 export function JobBoard() {
   const [filter, setFilter] = useState<Filter>("new-for-me");
-  const [view, setView] = useState<ViewOptions>({search: "", source: "", location: "", seniority: "", fit: "", sort: "found"});
+  const [view, setView] = useState<ViewOptions>({search: "", source: "", location: "", seniority: "", fit: "recommended", sort: "fit"});
   const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState<JobSummary[]>([]);
@@ -40,7 +40,7 @@ export function JobBoard() {
     selectedRef.current = id;
     setSelected(id); setDetail(null); setDetailError(""); setRejecting(false); setReason("");
   }
-  function chooseFilter(value: Filter) { if (value === filter) return; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setFilter(value); }
+  function chooseFilter(value: Filter) { if (value === filter) return; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setView((current) => ({ ...current, fit: value === "new-for-me" ? "recommended" : "" })); setFilter(value); }
 
 
   useEffect(() => {

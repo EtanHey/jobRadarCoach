@@ -1,4 +1,5 @@
 import type { JobSummary } from "./contracts";
+import { matchesFit } from "./job-fit";
 
 export type JobSort = "found" | "posted" | "fit" | "seniority";
 export type LocationFilter = "" | "israel" | "united-states" | "other";
@@ -35,7 +36,7 @@ export function filterJobs(jobs: JobSummary[], options: ViewOptions): JobSummary
     (!options.source || job.source === options.source) &&
     (!options.location || locationGroup(job.location) === options.location) &&
     (!options.seniority || (options.seniority === "non-senior" ? !["Senior", "Lead / Manager", "Staff / Principal"].includes(levelGroup(job.seniority)) : levelGroup(job.seniority) === options.seniority)) &&
-    (!options.fit || (options.fit === "unscored" ? job.score === null : options.fit === "scored" ? job.score !== null : job.score !== null && job.score >= 60)),
+    matchesFit(job, options.fit),
   ).sort((a, b) => {
     if (options.sort === "fit") return (b.score ?? -1) - (a.score ?? -1) || timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
     if (options.sort === "seniority") return levelOrder.indexOf(levelGroup(a.seniority)) - levelOrder.indexOf(levelGroup(b.seniority)) || a.title.localeCompare(b.title);

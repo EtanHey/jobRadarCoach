@@ -31,3 +31,10 @@ test("location filters keep countryless remote roles unknown",()=>{
   assert.deepEqual(filterJobs(rows,{...options,location:"united-states"}).map((row)=>row.id),[rows[1].id,rows[4].id,rows[5].id,rows[6].id,rows[7].id]);
   assert.deepEqual(filterJobs(rows,{...options,location:"other"}).map((row)=>row.id),[rows[2].id]);
 });
+
+test("recommendation filtering composes with location without hiding stretch reviews",()=>{
+  const rows=[{...job(1,44,null,"Israel"),recommendation:"review" as const},{...job(2,80,null,"Israel"),recommendation:"skip" as const},{...job(3,92,null,"United States"),recommendation:"apply" as const},job(4,null,null,"Israel")];
+  assert.deepEqual(filterJobs(rows,{...options,fit:"recommended",location:"israel"}).map(x=>x.id),[rows[0].id]);
+  assert.deepEqual(filterJobs(rows,{...options,fit:"skip"}).map(x=>x.id),[rows[1].id]);
+  assert.equal(filterJobs(rows,options).length,4);
+});
