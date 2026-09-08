@@ -289,6 +289,8 @@ class Supervisor:
                         "supervisor: cleanup failed: " + "; ".join(retry_failures),
                         file=sys.stderr,
                     )
+                    if interrupted_signal is not None:
+                        print("supervisor: interrupted; cleanup state retained", file=sys.stderr)
                     return 1
                 self.state_path.unlink(missing_ok=True)
                 if interrupted_signal is not None:

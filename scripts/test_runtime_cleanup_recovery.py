@@ -138,10 +138,12 @@ def test_sigint_during_retry_finishes_cleanup_before_exit(tmp_path):
         assert [row["name"] for row in json.loads(state_path.read_text())["services"]] == [
             "first", "second",
         ]
-        with (tmp_path / "retry.log").open("w") as output:
+        retry_stdout_path = tmp_path / "retry.stdout"
+        retry_stderr_path = tmp_path / "retry.stderr"
+        with retry_stdout_path.open("w") as stdout, retry_stderr_path.open("w") as stderr:
             retry = subprocess.Popen(
                 [str(ROOT / "run"), "down"], cwd=ROOT, env=env,
-                stdout=output, stderr=subprocess.STDOUT, text=True,
+                stdout=stdout, stderr=stderr, text=True,
             )
         wait_for(lambda: not is_alive(int(identities["second"]["pid"])))
         retry.send_signal(signal.SIGINT)
@@ -158,6 +160,7 @@ def test_sigint_during_retry_finishes_cleanup_before_exit(tmp_path):
         assert all(not is_alive(pid) for pid in pids)
         assert (tmp_path / "first.stops").read_text() == "3"
         assert (tmp_path / "second.stops").read_text() == "2"
+        assert "supervisor: interrupted; cleanup state retained" in retry_stderr_path.read_text()
     finally:
         gate.touch()
         for pid in pids:
