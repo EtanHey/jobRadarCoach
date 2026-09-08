@@ -161,6 +161,27 @@ def test_missing_proxy_dependency_is_specific_not_ready(tmp_path):
     assert wait_for(marker, "NOT_READY")["reason"] == "proxy_module_unavailable"
 
 
+def test_proxy_start_preserves_verifier_revocation_reason(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    counter = tmp_path / "verify-count"
+    verifier.write_text("""
+import json, os, pathlib, sys
+counter = pathlib.Path(os.environ['FIXTURE_COUNT'])
+count = int(counter.read_text()) + 1 if counter.exists() else 1
+counter.write_text(str(count))
+if count == 1:
+    print(json.dumps({'status':'READY','worker_id':'AW_fixture'}, separators=(',', ':')))
+else:
+    print('NOT_READY registered_worker_absent fixture', file=sys.stderr)
+    raise SystemExit(1)
+""")
+    child, marker = launch(
+        tmp_path, module, verifier, control, {"FIXTURE_COUNT": str(counter)},
+    )
+    assert child.wait(timeout=5) != 0
+    assert wait_for(marker, "NOT_READY")["reason"] == "registered_worker_absent"
+
+
 def test_verifier_timeout_kills_owned_child(tmp_path):
     module, verifier, control = fixtures(tmp_path)
     pid_file = tmp_path / "verifier.pid"
