@@ -176,7 +176,7 @@ def score_and_persist(
 def list_scoring_candidates(
     connection: Connection, *, limit: int, posting_ids: Sequence[str] = ()
 ) -> list[str]:
-    """Select extracted/no-score rows plus open rows after a profile change."""
+    """Select substantive raw JDs without scores, or open rows after a profile change."""
 
     if type(limit) is not int or not 1 <= limit <= 1000:
         raise ValueError("limit must be between 1 and 1000")
@@ -188,12 +188,15 @@ def list_scoring_candidates(
     profile_sha256 = _sha256(projection.profile_contract(profile))
     requested = list(dict.fromkeys(posting_ids))
     rows = connection.execute(
-        "select p.id::text from public.postings p join public.posting_extractions e "
-        "on e.posting_id=p.id join public.posting_status st on st.posting_id=p.id "
-        "left join public.posting_scores s on s.posting_id=p.id where (s.posting_id is null "
+        "select p.id::text from public.postings p "
+        "join public.posting_status st on st.posting_id=p.id "
+        "left join public.posting_scores s on s.posting_id=p.id "
+        "where p.raw_jd is not null and char_length(regexp_replace(p.raw_jd, "
+        "'(^[[:space:]]+|[[:space:]]+$)', '', 'g')) >= %s "
+        "and (s.posting_id is null "
         "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s)) "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
         "order by p.posted_at desc nulls last, p.id limit %s",
-        (profile_sha256, requested or None, requested or None, limit),
+        (projection.MIN_JD_CHARS, profile_sha256, requested or None, requested or None, limit),
     ).fetchall()
     return [str(row[0]) for row in rows]
