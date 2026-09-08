@@ -224,10 +224,71 @@ The foreground port-forward is session-scoped. Restart it after logout, reboot, 
 ### Prepare the voice transport
 
 These transport steps require an installed LiveKit Deployment and Service with the `livekit-keys`
-API Secret configured. Verify their readiness and the tracked bridge source before exposing voice ports:
+API Secret configured. The tracked Service manifest exposes signaling only, so add the required RTC
+port to that owned Service before starting the bridge. This guarded JSON Patch preserves unrelated
+Service fields, reuses an exact existing mapping, rejects conflicts, and fails if the Service changes
+between inspection and patching:
 
 ```zsh
 set -euo pipefail
+python3 - <<'PY'
+import json
+import subprocess
+
+kubectl = ["kubectl", "--context", "orbstack", "-n", "job-radar-coach"]
+service = json.loads(subprocess.run(
+    [*kubectl, "get", "service/livekit", "-o", "json"], check=True,
+    capture_output=True, text=True,
+).stdout)
+ports = service.get("spec", {}).get("ports", [])
+version = service.get("metadata", {}).get("resourceVersion")
+if not isinstance(ports, list) or not isinstance(version, str) or not version:
+    raise SystemExit("service/livekit identity or ports are unavailable")
+
+def exact(item, port):
+    return (
+        item.get("port") == port and item.get("targetPort") == port
+        and item.get("protocol", "TCP") == "TCP"
+    )
+
+def related(item, port):
+    return item.get("port") == port or item.get("targetPort") == port
+
+http = [(index, item) for index, item in enumerate(ports) if related(item, 7880)]
+rtc = [(index, item) for index, item in enumerate(ports) if related(item, 7881)]
+if len(http) != 1 or not exact(http[0][1], 7880):
+    raise SystemExit("conflict: service/livekit must already expose numeric TCP 7880->7880")
+if len(rtc) > 1 or (rtc and not exact(rtc[0][1], 7881)):
+    raise SystemExit("conflict: service/livekit 7881 has another target")
+
+patch = [{"op": "test", "path": "/metadata/resourceVersion", "value": version}]
+if "name" not in http[0][1]:
+    if any(index != http[0][0] and item.get("name") == "http" for index, item in enumerate(ports)):
+        raise SystemExit("conflict: Service port name http is already used")
+    patch.append({"op": "add", "path": f"/spec/ports/{http[0][0]}/name", "value": "http"})
+if rtc:
+    if "name" not in rtc[0][1]:
+        if any(index != rtc[0][0] and item.get("name") == "rtc-tcp" for index, item in enumerate(ports)):
+            raise SystemExit("conflict: Service port name rtc-tcp is already used")
+        patch.append({"op": "add", "path": f"/spec/ports/{rtc[0][0]}/name", "value": "rtc-tcp"})
+elif any(item.get("name") == "rtc-tcp" for item in ports):
+    raise SystemExit("conflict: Service port name rtc-tcp is already used")
+else:
+    patch.append({
+        "op": "add", "path": "/spec/ports/-",
+        "value": {"name": "rtc-tcp", "port": 7881, "targetPort": 7881, "protocol": "TCP"},
+    })
+if len(patch) == 1:
+    print("service/livekit TCP 7881 mapping: reuse")
+else:
+    subprocess.run(
+        [*kubectl, "patch", "service/livekit", "--type=json", "--patch",
+         json.dumps(patch, separators=(",", ":")), "-o", "name"],
+        check=True,
+    )
+PY
+
+# Fail before bridge or mapping work unless both numeric TCP ports are now present.
 kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
 python3 - 3< <(kubectl --context orbstack -n job-radar-coach get service/livekit -o json) <<'PY'
 import json
