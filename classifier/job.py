@@ -99,6 +99,8 @@ def run_batch(
              failure=UnsupportedBrainError.__name__)
         return 1
     settings["BRAIN"] = provider
+    if provider == "codex":
+        settings.setdefault("CODEX_MODEL", "gpt-5.6-terra")
     candidates = _selection(
         connection,
         limit=limit,
