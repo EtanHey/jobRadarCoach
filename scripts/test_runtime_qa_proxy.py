@@ -441,3 +441,27 @@ finally:
     finally:
         child.terminate()
         child.wait(timeout=5)
+
+
+def test_replacing_verifier_before_exec_cannot_substitute_unverified_source(tmp_path):
+    module, verifier, control = fixtures(tmp_path)
+    verified, substituted = tmp_path / "verified", tmp_path / "substituted"
+    source = f"from pathlib import Path; Path({str(verified)!r}).touch()\n" + verifier.read_text()
+    verifier.write_text(source)
+    replacement = f"from pathlib import Path; Path({str(substituted)!r}).touch()\n" + source
+    interpreter = tmp_path / "python-wrapper"
+    interpreter.write_text(
+        f"#!{sys.executable}\nimport os,sys\nfrom pathlib import Path\n"
+        f"Path({str(verifier)!r}).write_text({replacement!r})\n"
+        f"os.execv({sys.executable!r}, [{sys.executable!r}, *sys.argv[1:]])\n")
+    interpreter.chmod(0o700)
+    child, marker = launch(tmp_path, module, verifier, control, {"QA_PYTHON": str(interpreter)})
+    try:
+        assert child.wait(timeout=5) != 0
+        assert wait_for(marker, "NOT_READY")["reason"] == "verifier_source_changed"
+        assert verified.exists()
+        assert not substituted.exists()
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
