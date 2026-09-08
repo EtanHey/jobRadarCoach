@@ -123,10 +123,10 @@ def _identity_state(identity: Identity) -> str:
     if not _group_exists(pgid):
         return "stopped"
     recorded = {
-        (item.get("pid"), item.get("start"))
+        (item.get("pid"), item.get("start"), item.get("argv"))
         for item in identity.get("members", []) if isinstance(item, dict)
     }
-    current = {(item["pid"], item["start"]) for item in _group_snapshots(pgid)}
+    current = {(item["pid"], item["start"], item["argv"]) for item in _group_snapshots(pgid)}
     return "group" if recorded & current else "mismatch"
 
 
