@@ -173,6 +173,99 @@ The service-role key remains server-side. Never commit Secret output, `profile.y
 
 ## 7. Deploy and run one bounded batch
 
+Bootstrap the repository-owned LiveKit signaling resources before the UI, which reads the same
+`livekit-keys` Secret. Existing keys are reused only when both required values are present; values are
+generated into a pipe and never placed in arguments, files, or terminal output:
+
+```zsh
+set -euo pipefail
+if kubectl --context orbstack -n job-radar-coach get secret/livekit-keys >/dev/null 2>&1; then
+  kubectl --context orbstack -n job-radar-coach get secret/livekit-keys -o json |
+    python3 -c 'import base64,json,sys
+data=json.load(sys.stdin).get("data", {})
+for key in ("LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
+    try: value=base64.b64decode(data[key], validate=True)
+    except Exception: raise SystemExit(f"secret/livekit-keys has invalid {key}")
+    if not value: raise SystemExit(f"secret/livekit-keys has empty {key}")'
+else
+  python3 - <<'PY' | kubectl --context orbstack create -f -
+import json
+import secrets
+import sys
+
+json.dump({
+    "apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+    "metadata": {"name": "livekit-keys", "namespace": "job-radar-coach"},
+    "stringData": {
+        "LIVEKIT_API_KEY": secrets.token_urlsafe(18),
+        "LIVEKIT_API_SECRET": secrets.token_urlsafe(32),
+    },
+}, sys.stdout, separators=(",", ":"))
+PY
+fi
+
+python3 - <<'PY'
+import json
+import subprocess
+
+kubectl = ["kubectl", "--context", "orbstack", "-n", "job-radar-coach"]
+names = ("configmap/livekit-config", "deployment/livekit", "service/livekit")
+
+def get(name):
+    result = subprocess.run(
+        [*kubectl, "get", name, "-o", "json", "--ignore-not-found"],
+        check=True, capture_output=True, text=True,
+    )
+    return json.loads(result.stdout) if result.stdout.strip() else None
+
+objects = {name: get(name) for name in names}
+present = [name for name, value in objects.items() if value is not None]
+if not present:
+    subprocess.run([*kubectl, "create", "-f", "k8s/livekit-config.yaml"], check=True)
+    subprocess.run([*kubectl, "create", "-f", "k8s/livekit.yaml"], check=True)
+elif len(present) != len(names):
+    raise SystemExit(f"conflict: partial LiveKit installation exists: {', '.join(present)}")
+else:
+    desired = json.loads(subprocess.run(
+        [*kubectl, "create", "--dry-run=client", "-f", "k8s/livekit-config.yaml", "-o", "json"],
+        check=True, capture_output=True, text=True,
+    ).stdout)
+    config, deployment, service = (objects[name] for name in names)
+    pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
+    containers = [item for item in pod_spec.get("containers", []) if item.get("name") == "livekit"]
+    container = containers[0] if len(containers) == 1 else {}
+    env = {item.get("name"): item.get("valueFrom", {}).get("secretKeyRef")
+           for item in container.get("env", [])}
+    values = {item.get("name"): item.get("value") for item in container.get("env", [])}
+    mounts = {item.get("name"): item.get("mountPath") for item in container.get("volumeMounts", [])}
+    ports = service.get("spec", {}).get("ports", [])
+    if config.get("data") != desired.get("data"):
+        raise SystemExit("conflict: configmap/livekit-config differs from the tracked config")
+    if not (
+        container.get("name") == "livekit"
+        and container.get("image") == "livekit/livekit-server:latest"
+        and container.get("args") == ["--config", "/etc/livekit/livekit.yaml"]
+        and env.get("LIVEKIT_API_KEY") == {"name": "livekit-keys", "key": "LIVEKIT_API_KEY"}
+        and env.get("LIVEKIT_API_SECRET") == {"name": "livekit-keys", "key": "LIVEKIT_API_SECRET"}
+        and values.get("LIVEKIT_KEYS") == "$(LIVEKIT_API_KEY): $(LIVEKIT_API_SECRET)"
+        and mounts.get("config") == "/etc/livekit"
+        and {item.get("name"): item.get("configMap", {}).get("name")
+             for item in pod_spec.get("volumes", [])}.get("config") == "livekit-config"
+        and service.get("spec", {}).get("selector") == {"app": "livekit"}
+        and any(p.get("port") == 7880 and p.get("targetPort") == 7880
+                and p.get("protocol", "TCP") == "TCP" for p in ports)
+    ):
+        raise SystemExit("conflict: installed LiveKit Deployment or Service has an unfamiliar shape")
+    print("reusing identified LiveKit signaling resources")
+PY
+kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
+```
+
+This installs the tracked signaling base. The voice transport steps below guard and add its missing TCP
+RTC Service port. The tracked manifests do not yet contain the lifecycle contract's
+`livekit-advertise`/`NODE_IP` wiring or UDP port, so do not treat this bootstrap alone as full voice
+runtime readiness.
+
 Apply the suspended scraper template and UI. Do not apply the extractor or classifier Job manifests directly; the coordinator reads them with client dry-run and creates uniquely named jobs.
 
 ```zsh
