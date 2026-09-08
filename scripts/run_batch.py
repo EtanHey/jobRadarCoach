@@ -3,12 +3,14 @@
 from __future__ import annotations
 import argparse
 import copy
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
 import subprocess
+import threading
 import time
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -30,6 +32,7 @@ class BatchConfig:
     classifier_image: str | None = None
     extractor_provider: str | None = None
     classifier_provider: str | None = None
+    all_observed: bool = False
     def __post_init__(self) -> None:
         if type(self.limit) is not int or not 1 <= self.limit <= 30:
             raise ValueError("batch limit must be between 1 and 30")
@@ -41,6 +44,8 @@ class BatchConfig:
         if any(value is not None and not value.strip() for value in
                (self.scraper_image, self.extractor_image, self.classifier_image)):
             raise ValueError("image overrides must be nonblank")
+        if type(self.all_observed) is not bool:
+            raise ValueError("all_observed must be a boolean")
 
 def _run(command: Sequence[str], *, input_text: str | None, timeout: float) -> str:
     try:
@@ -90,14 +95,18 @@ def _container(job: dict[str, Any], stage: str) -> dict[str, Any]:
 def _prepare_job(
     source: dict[str, Any], stage: str, run_id: str, image: str | None,
     args: list[str] | None = None, provider: str | None = None,
+    chunk: int | None = None,
 ) -> dict[str, Any]:
     job = copy.deepcopy(source)
     if job.get("kind") != "Job":
         raise CoordinatorError("InvalidJobTemplate")
     labels = {"job-radar-coach/run-id": run_id, "job-radar-coach/stage": stage}
+    if chunk is not None:
+        labels["job-radar-coach/chunk"] = str(chunk)
+    suffix = "" if chunk is None else f"-{chunk:03d}"
     job["apiVersion"] = "batch/v1"
     job["metadata"] = {
-        "name": f"{stage}-{run_id}", "namespace": NAMESPACE, "labels": labels,
+        "name": f"{stage}-{run_id}{suffix}", "namespace": NAMESPACE, "labels": labels,
     }
     spec = job.setdefault("spec", {})
     spec.update(activeDeadlineSeconds=STAGE_DEADLINE, backoffLimit=0)
@@ -231,9 +240,100 @@ def _receipt(run_id: str) -> dict[str, Any]:
         },
     }
 
-def _fail(receipt: dict[str, Any], stage: str, error: BaseException) -> None:
+def _fail(
+    receipt: dict[str, Any], stage: str, error: BaseException, chunk: int | None = None,
+) -> None:
     code = str(error) if isinstance(error, CoordinatorError) else type(error).__name__
-    receipt["failures"].append({"stage": stage, "failure": code})
+    failure = {"stage": stage, "failure": code}
+    if chunk is not None:
+        failure["chunk"] = chunk
+    receipt["failures"].append(failure)
+
+def _run_all_observed(
+    client: Kubectl, config: BatchConfig, run_id: str,
+    observed: list[str], receipt: dict[str, Any],
+) -> None:
+    chunks = [observed[index:index + config.limit]
+              for index in range(0, len(observed), config.limit)]
+    receipt["chunk_count"] = len(chunks)
+    receipt["jobs"].update(extractor=[], classifier=[])
+    totals = {
+        "extractor": {"selected": 0, "completed": 0, "failed": 0, "reported_chunks": 0},
+        "classifier": {"selected": 0, "completed": 0, "failed": 0, "reported_chunks": 0},
+    }
+    lock = threading.Lock()
+
+    def pipeline(chunk_number: int, posting_ids: list[str]) -> None:
+        model_args = [
+            "--limit", str(len(posting_ids)),
+            "--timeout-seconds", str(config.timeout_seconds),
+        ]
+        for posting_id in posting_ids:
+            model_args.extend(("--posting-id", posting_id))
+        for stage, outcome, image, provider in (
+            ("extractor", "extracted", config.extractor_image, config.extractor_provider),
+            ("classifier", "scored", config.classifier_image, config.classifier_provider),
+        ):
+            partial: dict[str, Any] = {}
+            result = None
+            summary = None
+            failure = None
+            job_name = f"{stage}-{run_id}-{chunk_number:03d}"
+            try:
+                template = client.json([
+                    "create", "-f", str(REPO_ROOT / "k8s" / f"{stage}-job.yaml"),
+                    "--dry-run=client", "-n", NAMESPACE, "-o", "json",
+                ])
+                job = _prepare_job(
+                    template, stage, run_id, image, model_args, provider,
+                    chunk=chunk_number,
+                )
+                result = _create_and_wait(client, job, stage, partial)
+                summary = _model_summary(result["logs"], outcome)
+                if summary["selected"] != len(posting_ids):
+                    summary = None
+                    raise CoordinatorError("IncompleteReceipt")
+                if result["exit_code"] != 0:
+                    raise CoordinatorError("JobFailed")
+            except Exception as error:
+                failure = error
+            with lock:
+                job_receipt = result or partial.get(stage) or {
+                    "job_name": job_name, "not_created": True,
+                }
+                job_receipt.update(chunk=chunk_number, posting_ids=posting_ids)
+                receipt["jobs"][stage].append(job_receipt)
+                if summary is not None:
+                    totals[stage]["selected"] += summary["selected"]
+                    totals[stage]["completed"] += summary[outcome]
+                    totals[stage]["failed"] += summary["failed"]
+                    totals[stage]["reported_chunks"] += 1
+                if failure is not None:
+                    _fail(receipt, stage, failure, chunk_number)
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = {
+            pool.submit(pipeline, number, chunk): number
+            for number, chunk in enumerate(chunks)
+        }
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as error:
+                with lock:
+                    _fail(receipt, "pipeline", error, futures[future])
+
+    receipt["aggregate_receipts"] = {}
+    for stage, outcome in (("extractor", "extracted"), ("classifier", "scored")):
+        receipt["jobs"][stage].sort(key=lambda item: item["chunk"])
+        aggregate = totals[stage]
+        complete = aggregate["reported_chunks"] == len(chunks)
+        receipt["aggregate_receipts"][stage] = {
+            **aggregate, "chunk_count": len(chunks), "complete": complete,
+        }
+        receipt["selected_counts"][stage] = aggregate["selected"] if complete else None
+        receipt[outcome] = aggregate["completed"] if complete else None
+    receipt["failures"].sort(key=lambda item: (item.get("chunk", -1), item["stage"]))
 
 def run_cohort(
     config: BatchConfig, *, kubectl: Callable[..., str] = _run, run_id: str | None = None,
@@ -263,12 +363,18 @@ def run_cohort(
         cohort_count=len(observed), fetched=summary["fetched_count"],
         matched=summary["matched_count"], new=summary["new_count"],
     )
+    if config.all_observed:
+        receipt["mode"] = "all_observed"
+        receipt["chunk_count"] = 0
     if not observed:
         receipt.update(extracted=0, scored=0)
         receipt["selected_counts"] = {"extractor": 0, "classifier": 0}
         receipt["jobs"].update(
             extractor={"skipped": "empty_cohort"}, classifier={"skipped": "empty_cohort"}
         )
+        return receipt
+    if config.all_observed:
+        _run_all_observed(client, config, run_id, observed, receipt)
         return receipt
     model_args = ["--limit", str(config.limit), "--timeout-seconds", str(config.timeout_seconds)]
     for posting_id in observed:
@@ -302,6 +408,7 @@ def build_parser() -> argparse.ArgumentParser:
         parser.add_argument(f"--{stage}-image")
     for stage in ("extractor", "classifier"):
         parser.add_argument(f"--{stage}-provider", choices=("ollama", "codex"))
+    parser.add_argument("--all-observed", action="store_true")
     return parser
 
 def main(argv: Sequence[str] | None = None) -> int:
