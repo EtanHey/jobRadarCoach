@@ -32,6 +32,13 @@ test("location filters keep countryless remote roles unknown",()=>{
   assert.deepEqual(filterJobs(rows,{...options,location:"other"}).map((row)=>row.id),[rows[2].id]);
 });
 
+test("recommendation filtering composes with location without hiding stretch reviews",()=>{
+  const rows=[{...job(1,44,null,"Israel"),recommendation:"review" as const},{...job(2,80,null,"Israel"),recommendation:"skip" as const},{...job(3,92,null,"United States"),recommendation:"apply" as const},job(4,null,null,"Israel")];
+  assert.deepEqual(filterJobs(rows,{...options,fit:"recommended",location:"israel"}).map(x=>x.id),[rows[0].id]);
+  assert.deepEqual(filterJobs(rows,{...options,fit:"skip"}).map(x=>x.id),[rows[1].id]);
+  assert.equal(filterJobs(rows,options).length,4);
+});
+
 test("country codes alone cannot masquerade as US states",()=>{
   for (const location of ["Toronto, CA", "Hyderabad, IN", "Unknown City, CA", "Bremen, DE"]) assert.equal(locationGroup(location),"other",location);
   for (const location of ["San Francisco, CA", "Fortville, IN", "Chicago, IL", "Washington, DC", "Austin, Texas Metropolitan Area"]) assert.equal(locationGroup(location),"united-states",location);
