@@ -240,21 +240,6 @@ def _identified_http_process(
     return Probe(healthy, "identified listener healthy" if healthy else f"port {port} is absent or unfamiliar")
 
 
-def _agent_probe(log_path: Path, starting: list[bool]) -> Callable[[RuntimeContext], Probe]:
-    def check(context: RuntimeContext) -> Probe:
-        processes = _processes(context, "python", "agent/main.py", "console")
-        try:
-            ready = "starting worker" in log_path.read_text(encoding="utf-8")
-        except OSError:
-            ready = False
-        healthy = len(processes) == 1 and ready if starting[0] else len(processes) == 1
-        detail = "owned console agent startup marker observed" if starting[0] and ready else (
-            "console agent alive; readiness and QA mode unverified"
-        )
-        return Probe(healthy, detail if healthy else "console agent readiness not proven")
-    return check
-
-
 def _bridge_probe(context: RuntimeContext) -> Probe:
     http, rtc = _listener(context, 17880), _listener(context, 17881)
     try:
@@ -282,25 +267,43 @@ def _port_conflict(port: int) -> Callable[[RuntimeContext], str | None]:
     return check
 
 
-def build_services(context: RuntimeContext) -> Sequence[Service]:
-    if getattr(context, "qa_mode", False):
-        return [RequirementService(
-            "qa-runtime",
-            lambda _context: Probe(False, "room-mode agent receipt and owned QA proxy are not installed"),
-        )]
+def _mic_ui(context: RuntimeContext) -> Probe:
+    result = _result(context, (
+        "curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}",
+        "--max-time", "2", "http://127.0.0.1:3410/mic",
+    ))
+    healthy = result is not None and result.returncode == 0 and result.stdout == "200"
+    return Probe(
+        healthy,
+        "UI /mic returned 200" if healthy
+        else "NOT READY: UI http://127.0.0.1:3410/mic must return 200",
+    )
+
+
+def _livekit_forward(context: RuntimeContext) -> Probe:
+    from scripts.runtime_qa_config import QaConfigError, _local_expected_url
+
+    try:
+        url = _local_expected_url(context)
+    except QaConfigError as error:
+        return Probe(False, f"NOT READY: {error.code}")
+    return Probe(url == "ws://127.0.0.1:7880", "identified loopback LiveKit forward")
+
+
+def _livekit_forward_service() -> Service:
+    return SafeProcessService(
+        "livekit-forward",
+        (*KUBECTL, "port-forward", "--address", "127.0.0.1", "svc/livekit", "7880:7880"),
+        _livekit_forward,
+        conflict=_port_conflict(7880),
+    )
+
+
+def _shared_services(context: RuntimeContext) -> Sequence[Service]:
     whisper_port = int(os.environ.get("VOICE_STT_PORT", "8912"))
     whisper_model = Path(os.environ.get(
         "VOICE_STT_MODEL", "~/.cache/whisper/ggml-small.bin",
     )).expanduser()
-    agent_log = context.state_dir / "agent.log"
-    agent_starting = [False]
-    status = _json(context, ("supabase", "status", "-o", "json", "--workdir", str(context.repo_root))) or {}
-    database_url = status.get("DB_URL")
-    agent_env = {"AGENT_LOG_FILE": str(agent_log)}
-    if isinstance(database_url, str) and database_url:
-        agent_env["DATABASE_URL"] = database_url
-    if "VOICE_STT_PORT" in os.environ:
-        agent_env["STT_URL"] = f"http://127.0.0.1:{whisper_port}/inference"
     return [
         RequirementService("kubernetes", _kubernetes),
         RequirementService("supabase", _supabase),
@@ -330,17 +333,22 @@ def build_services(context: RuntimeContext) -> Sequence[Service]:
             conflict=lambda ctx: "voice bridge port conflict" if _listener(ctx, 17880) or _listener(ctx, 17881) else None,
         ),
         TailscaleServeService(),
-        SafeProcessService(
-            "agent", (str(context.repo_root / ".venv-agent" / "bin" / "python"), "agent/main.py", "console"),
-            _agent_probe(agent_log, agent_starting), cwd=context.repo_root,
-            env=agent_env, startup_timeout=30,
-            conflict=lambda ctx: (
-                "DATABASE_URL unavailable from supabase status" if not database_url
-                else "multiple console agents exist"
-                if len(_processes(ctx, "python", "agent/main.py", "console")) > 1
-                else None
-            ),
-            prepare=lambda: (agent_log.unlink(missing_ok=True), agent_starting.__setitem__(0, True)),
-            finish=lambda: agent_starting.__setitem__(0, False),
-        ),
     ]
+
+
+def _normal_services(context: RuntimeContext) -> Sequence[Service]:
+    from scripts.runtime_room_agent import RoomAgentService
+
+    return [
+        *_shared_services(context),
+        _livekit_forward_service(),
+        RequirementService("room-ui", _mic_ui),
+        RoomAgentService(),
+    ]
+
+
+def build_services(context: RuntimeContext) -> Sequence[Service]:
+    if getattr(context, "qa_mode", False):
+        from scripts.runtime_qa_stack import build_qa_stack
+        return build_qa_stack(context)
+    return _normal_services(context)
