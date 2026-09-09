@@ -424,7 +424,7 @@ def run_cohort(
     if config.all_observed:
         receipt.update(mode="all_observed", chunk_count=0)
     try:
-        cron = client.json(["get", "cronjob/scraper", "-n", NAMESPACE, "-o", "json"])
+        cron = client.read_json(["get", "cronjob/scraper", "-n", NAMESPACE, "-o", "json"])
         job = _scraper_job(cron, run_id, config.scraper_image)
         scraper = _create_and_wait(client, job, "scraper", receipt["jobs"])
         receipt["jobs"]["scraper"] = scraper
