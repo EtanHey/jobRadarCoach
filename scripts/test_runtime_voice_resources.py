@@ -14,7 +14,7 @@ IMAGE_ID = "sha256:" + "b" * 64
 STARTED_AT = "2026-09-09T10:00:00.000000000Z"
 
 
-def snapshot(*, running=True, started_at=STARTED_AT):
+def snapshot(*, running=True, started_at=STARTED_AT, host_ip=""):
     return {
         "Id": CONTAINER_ID,
         "Image": IMAGE_ID,
@@ -25,7 +25,7 @@ def snapshot(*, running=True, started_at=STARTED_AT):
             "Cmd": ["./entrypoint.sh"],
         },
         "HostConfig": {
-            "PortBindings": {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]},
+            "PortBindings": {"8880/tcp": [{"HostIp": host_ip, "HostPort": "8881"}]},
             "RestartPolicy": {"Name": "no", "MaximumRetryCount": 0},
             "AutoRemove": False,
             "NetworkMode": "bridge",
@@ -68,6 +68,15 @@ def test_probe_requires_the_approved_installed_shape(monkeypatch):
     wrong["Id"] = CONTAINER_ID[:12]
     monkeypatch.setattr(service, "_inspect", lambda *_args: wrong)
     assert not service.probe(context).healthy
+
+
+def test_approved_bindings_accept_loopback_and_identified_legacy_only():
+    service = KokoroContainerService()
+
+    assert service._approved(snapshot(host_ip="127.0.0.1"))
+    assert service._approved(snapshot(host_ip=""))
+    assert not service._approved(snapshot(host_ip="0.0.0.0"))
+    assert not service._approved(snapshot(host_ip="::"))
 
 
 def test_healthy_container_is_adopted_with_exact_identity(monkeypatch):
