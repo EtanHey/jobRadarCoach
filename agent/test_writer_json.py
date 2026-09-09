@@ -11,7 +11,7 @@ from livekit.agents.voice.agent_session import SessionConnectOptions
 from livekit.plugins.openai import LLM
 
 from coach import JobCoach
-from response_schemas import SpeechEnvelope
+from response_schemas import NaturalSpeech
 from tools import Posting, SessionState
 from user import User
 
@@ -30,7 +30,7 @@ class WriterCoach(JobCoach):
     def session(self):
         return self.test_session
 
-    async def _audit_speech(self, text, facts, references):
+    async def _audit_speech(self, text, facts):
         return None
 
 
@@ -85,13 +85,7 @@ class WriterJsonTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_writer_sends_typed_schema_and_preserves_connection_options(self):
         self.reply = {
-            "parts": [
-                {"text": "I’d look closely at "},
-                {"fact": "title"},
-                {"text": " with "},
-                {"fact": "company"},
-                {"text": ". It looks promising."},
-            ],
+            "sentence": "I’d look closely at Backend Developer with Acme. It looks promising.",
             "stance": "recommend",
         }
         with patch.object(self.model, "chat", wraps=self.model.chat) as chat:
@@ -108,15 +102,18 @@ class WriterJsonTests(unittest.IsolatedAsyncioTestCase):
         request, timeout = self.requests[0]
         response_format = request["response_format"]
         self.assertEqual(response_format["type"], "json_schema")
-        self.assertEqual(response_format["json_schema"]["name"], SpeechEnvelope.__name__)
+        self.assertEqual(response_format["json_schema"]["name"], NaturalSpeech.__name__)
         self.assertTrue(response_format["json_schema"]["strict"])
+        schema = response_format["json_schema"]["schema"]
+        self.assertEqual(set(schema["properties"]), {"sentence", "stance"})
+        self.assertNotIn("$defs", schema)
         self.assertNotIn("tools", request)
         self.assertEqual(timeout, {key: 7.25 for key in ("connect", "read", "write", "pool")})
         self.assertIs(chat.call_args.kwargs["conn_options"], self.connect)
 
-    async def test_writer_refuses_an_unknown_fact(self):
+    async def test_writer_refuses_an_invented_url(self):
         self.reply = {
-            "parts": [{"text": "The salary is "}, {"fact": "salary"}],
+            "sentence": "Apply at https://invented.example/jobs/123.",
             "stance": "neutral",
         }
         with self.assertLogs("coach", "WARNING") as logs:
@@ -126,8 +123,8 @@ class WriterJsonTests(unittest.IsolatedAsyncioTestCase):
                     llm.ChatContext.empty(), [], None
                 )
             ]
-        self.assertNotIn("salary", " ".join(output).casefold())
-        self.assertEqual(logs.records[0].reason, "unknown_fact")
+        self.assertNotIn("invented.example", " ".join(output).casefold())
+        self.assertEqual(logs.records[0].reason, "unsupported_url")
 
 
 if __name__ == "__main__":

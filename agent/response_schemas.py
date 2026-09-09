@@ -19,23 +19,6 @@ class AuditResponse(StrictResponse):
     unsupported: list[str]
 
 
-FactKey = Literal["company", "title", "location", "score", "reasons", "apply_url", "outcome"]
-QuotableFactKey = Literal["company", "title", "location", "reasons", "outcome"]
-
-
-class SpeechTextPart(StrictResponse):
-    text: str
-
-
-class SpeechFactPart(StrictResponse):
-    fact: FactKey
-
-
-class SpeechFactQuotePart(StrictResponse):
-    fact: QuotableFactKey
-    quote: str
-
-
-class SpeechEnvelope(StrictResponse):
-    parts: list[SpeechTextPart | SpeechFactPart | SpeechFactQuotePart]
+class NaturalSpeech(StrictResponse):
+    sentence: str
     stance: Literal["recommend", "weak_option", "poor_fit", "neutral"]

@@ -20,12 +20,12 @@ class CoachUnderTest(JobCoach):
     def state(self):
         return self.test_state
 
-    async def _audit_speech(self, text, facts, references):
+    async def _audit_speech(self, text, facts):
         pass
 
 
 def envelope(text):
-    return json.dumps({"parts": [{"text": text}], "stance": "neutral"})
+    return json.dumps({"sentence": text, "stance": "neutral"})
 
 
 class StreamTests(unittest.IsolatedAsyncioTestCase):
@@ -45,7 +45,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         coach = CoachUnderTest(SessionState())
         auditing, finish = asyncio.Event(), asyncio.Event()
 
-        async def audit(text, facts, references):
+        async def audit(text, facts):
             self.assertEqual(text, "Stripe would suit you")
             auditing.set()
             await finish.wait()
@@ -102,18 +102,20 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         facts_message = next(m.text_content for m in called[0].messages() if (m.text_content or "").startswith("CURRENT_FACTS: "))
         self.assertNotIn("user_profile", json.loads(facts_message.removeprefix("CURRENT_FACTS: ")))
 
-    async def test_unknown_fact_is_logged_and_never_released(self):
+    async def test_invalid_writer_shape_is_logged_and_never_released(self):
         state = SessionState()
         coach = CoachUnderTest(state)
 
         async def model(*_args):
-            yield json.dumps({"parts": [{"fact": "invented_company"}], "stance": "neutral"})
+            yield json.dumps(
+                {"sentence": "Stripe would suit you", "stance": "neutral", "company": "Stripe"}
+            )
 
         with patch.object(JobCoach, "_writer_node", model), self.assertLogs("coach", "WARNING") as logs:
             output = [chunk async for chunk in coach.llm_node(llm.ChatContext.empty(), [], None)]
         self.assertEqual(output, ["I couldn't put that reply together. Could you try again?"])
-        self.assertEqual(logs.records[0].reason, "unknown_fact")
-        self.assertIn("invented_company", logs.records[0].model_text)
+        self.assertEqual(logs.records[0].reason, "invalid_speech_fields")
+        self.assertIn("Stripe", logs.records[0].model_text)
 
 
 if __name__ == "__main__":

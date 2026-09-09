@@ -52,8 +52,7 @@ class SdkJsonRequests(unittest.IsolatedAsyncioTestCase):
     async def test_audit_json_mode_reaches_provider_and_rejects_invented_claim(self):
         self.reply = {"claims": [{"field": "company", "value": "Acme"}],
                       "stance": "neutral", "unsupported": []}
-        await audit_sentence(self.model, "Acme is the company.", {"company": "Acme"},
-                             expected_references=("company",))
+        await audit_sentence(self.model, "Acme is the company.", {"company": "Acme"})
         self.assertEqual(self.requests[0]["response_format"]["type"], "json_schema")
         self.assertTrue(self.requests[0]["response_format"]["json_schema"]["strict"])
         self.reply["claims"][0]["value"] = "Invented"
