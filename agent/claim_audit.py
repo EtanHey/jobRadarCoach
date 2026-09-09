@@ -9,6 +9,7 @@ import asyncio
 import json
 
 from livekit.agents import llm
+from response_schemas import AuditResponse
 
 class GroundingError(ValueError):
     pass
@@ -95,7 +96,7 @@ async def audit_sentence(model, text: str, facts: dict[str, str], *, expected_re
     context.add_message(role="user", content=json.dumps({"facts": facts, "sentence": text}, ensure_ascii=False))
     output = ""
     async with asyncio.timeout(timeout):
-        async with model.chat(chat_ctx=context, tools=[], response_format={"type": "json_object"}) as stream:
+        async with model.chat(chat_ctx=context, tools=[], response_format=AuditResponse) as stream:
             async for chunk in stream:
                 if chunk.delta and chunk.delta.content:
                     output += chunk.delta.content

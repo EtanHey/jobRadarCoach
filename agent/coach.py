@@ -200,7 +200,7 @@ class JobCoach(Agent):
                 return None
             output = ""
             async with asyncio.timeout(8):
-                async with model.chat(chat_ctx=context, tools=[], response_format={"type": "json_object"}) as stream:
+                async with model.chat(chat_ctx=context, tools=[], extra_kwargs={"response_format": {"type": "json_object"}}) as stream:
                     async for chunk in stream:
                         if chunk.delta and chunk.delta.content:
                             output += chunk.delta.content
