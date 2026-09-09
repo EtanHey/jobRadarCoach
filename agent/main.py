@@ -315,6 +315,17 @@ def interruption_options(stt) -> dict[str, float | int]:
     }
 
 
+def turn_handling_options(stt) -> dict[str, object]:
+    return {
+        "endpointing": {
+            "min_delay": float(os.environ.get("MIN_ENDPOINTING_DELAY", "1.2")),
+            "max_delay": float(os.environ.get("MAX_ENDPOINTING_DELAY", "6.0")),
+        },
+        "interruption": interruption_options(stt),
+        "preemptive_generation": {"enabled": False},
+    }
+
+
 def llm_session_connect_options() -> SessionConnectOptions:
     return SessionConnectOptions(
         llm_conn_options=APIConnectOptions(
@@ -408,13 +419,7 @@ async def entrypoint(ctx: agents.JobContext):
             voice=os.environ.get("TTS_VOICE", "af_heart"),
         ),
         use_tts_aligned_transcript=True,
-        turn_handling={
-            "endpointing": {
-                "min_delay": float(os.environ.get("MIN_ENDPOINTING_DELAY", "1.2")),
-                "max_delay": float(os.environ.get("MAX_ENDPOINTING_DELAY", "6.0")),
-            },
-            "interruption": interruption_options(whisper),
-        },
+        turn_handling=turn_handling_options(whisper),
     )
 
     recovery = SpeechRecovery(session)
