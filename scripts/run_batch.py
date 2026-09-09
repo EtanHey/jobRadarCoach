@@ -19,6 +19,8 @@ NAMESPACE = "job-radar-coach"
 STAGE_DEADLINE = 900
 JOB_TTL_SECONDS = 3600
 RUN_DEADLINE = 2800
+READ_ATTEMPTS = 3
+READ_RETRY_DELAY_SECONDS = 0.25
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_ID_PATTERN = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 class CoordinatorError(RuntimeError):
@@ -83,6 +85,25 @@ class Kubectl:
             raise CoordinatorError("InvalidKubectlJSON")
         return value
 
+    def _read(self, operation: Callable[[], Any]) -> Any:
+        for attempt in range(READ_ATTEMPTS):
+            try:
+                return operation()
+            except CoordinatorError as error:
+                if str(error) != "KubectlTimeout" or attempt + 1 == READ_ATTEMPTS:
+                    raise
+                remaining = self.deadline - time.monotonic()
+                if remaining <= 0:
+                    raise CoordinatorError("RunDeadlineExceeded") from error
+                time.sleep(min(READ_RETRY_DELAY_SECONDS, remaining))
+        raise AssertionError("unreachable")
+
+    def read_text(self, args: Sequence[str]) -> str:
+        return self._read(lambda: self.text(args))
+
+    def read_json(self, args: Sequence[str]) -> dict[str, Any]:
+        return self._read(lambda: self.json(args))
+
 def _container(job: dict[str, Any], stage: str) -> dict[str, Any]:
     try:
         containers = job["spec"]["template"]["spec"]["containers"]
@@ -138,26 +159,36 @@ def _scraper_job(cron: dict[str, Any], run_id: str, image: str | None) -> dict[s
     return _prepare_job(source, "scraper", run_id, image)
 
 def _create_and_wait(client: Kubectl, job: dict[str, Any], stage: str, receipts: dict[str, Any]) -> dict[str, Any]:
-    created = client.json(
-        ["create", "-f", "-", "-n", NAMESPACE, "-o", "json"],
-        json.dumps(job, separators=(",", ":")),
-    )
+    name = job["metadata"]["name"]
+    receipts[stage] = {"job_name": name, "creation_outcome": "unknown"}
+    try:
+        created = client.json(
+            ["create", "-f", "-", "-n", NAMESPACE, "-o", "json"],
+            json.dumps(job, separators=(",", ":")),
+        )
+    except CoordinatorError as error:
+        if str(error) == "KubectlTimeout":
+            raise CoordinatorError("JobCreationOutcomeUnknown") from error
+        raise
     uid = created.get("metadata", {}).get("uid")
     if not isinstance(uid, str) or not uid:
         raise CoordinatorError("MissingJobUID")
-    name = job["metadata"]["name"]
-    receipts[stage] = {"job_name": name, "job_uid": uid}
+    receipts[stage].update(job_uid=uid, creation_outcome="created")
     while True:
-        status = client.json(
+        observed_job = client.read_json(
             ["get", f"job/{name}", "-n", NAMESPACE, "-o", "json"]
-        ).get("status", {})
+        )
+        metadata = observed_job.get("metadata")
+        if not isinstance(metadata, dict) or metadata.get("uid") != uid:
+            raise CoordinatorError("JobUIDMismatch")
+        status = observed_job.get("status", {})
         if status.get("succeeded") or status.get("failed"):
             break
         remaining = client.deadline - time.monotonic()
         if remaining <= 0:
             raise CoordinatorError("RunDeadlineExceeded")
         time.sleep(min(2, remaining))
-    pods = client.json([
+    pods = client.read_json([
         "get", "pods", "-n", NAMESPACE, "-l", f"job-name={name}", "-o", "json",
     ]).get("items")
     if not isinstance(pods, list) or len(pods) != 1:
@@ -165,19 +196,34 @@ def _create_and_wait(client: Kubectl, job: dict[str, Any], stage: str, receipts:
     pod = pods[0]
     try:
         pod_name = pod["metadata"]["name"]
+        pod_uid = pod["metadata"]["uid"]
+        owners = pod["metadata"].get("ownerReferences")
+        owns_pod = isinstance(owners, list) and any(
+            isinstance(item, dict)
+            and item.get("apiVersion") == "batch/v1"
+            and item.get("kind") == "Job"
+            and item.get("name") == name
+            and item.get("uid") == uid
+            for item in owners
+        )
         states = pod["status"]["containerStatuses"]
         state = next(item for item in states if item.get("name") == stage)
         exit_code = state["state"]["terminated"]["exitCode"]
         image_id = state["imageID"]
-    except (KeyError, StopIteration, TypeError) as error:
+    except (AttributeError, KeyError, StopIteration, TypeError) as error:
         raise CoordinatorError("IncompleteJobPod") from error
-    receipts[stage].update(pod_name=pod_name, exit_code=exit_code, image_id=image_id)
-    logs = client.text([
+    if not isinstance(pod_uid, str) or not pod_uid or not owns_pod:
+        raise CoordinatorError("JobPodOwnershipMismatch")
+    receipts[stage].update(
+        pod_name=pod_name, pod_uid=pod_uid, exit_code=exit_code, image_id=image_id,
+    )
+    logs = client.read_text([
         "logs", f"pod/{pod_name}", "-n", NAMESPACE, "-c", stage,
         "--tail=200", "--limit-bytes=1048576",
     ])
     return {
-        "job_name": name, "job_uid": uid, "pod_name": pod_name,
+        "job_name": name, "job_uid": uid, "creation_outcome": "created",
+        "pod_name": pod_name, "pod_uid": pod_uid,
         "exit_code": exit_code, "image_id": image_id, "logs": logs,
     }
 
@@ -378,7 +424,7 @@ def run_cohort(
     if config.all_observed:
         receipt.update(mode="all_observed", chunk_count=0)
     try:
-        cron = client.json(["get", "cronjob/scraper", "-n", NAMESPACE, "-o", "json"])
+        cron = client.read_json(["get", "cronjob/scraper", "-n", NAMESPACE, "-o", "json"])
         job = _scraper_job(cron, run_id, config.scraper_image)
         scraper = _create_and_wait(client, job, "scraper", receipt["jobs"])
         receipt["jobs"]["scraper"] = scraper
