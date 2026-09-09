@@ -43,7 +43,10 @@ class FakeKubectl:
             code = self.stage_exits.get((stage, int(chunk) if chunk is not None else None),
                                         self.extractor_exit if stage == "extractor" else 0)
             failed = bool(code)
-            return json.dumps({"status": {"failed" if failed else "succeeded": 1}})
+            return json.dumps({
+                "metadata": {"uid": f"uid-{name}"},
+                "status": {"failed" if failed else "succeeded": 1},
+            })
         if args[:2] == ["get", "pods"]:
             name = args[args.index("-l") + 1].split("=", 1)[1]
             job = self.created_by_name[name]
@@ -51,7 +54,13 @@ class FakeKubectl:
             chunk = job["metadata"]["labels"].get("job-radar-coach/chunk")
             code = self.stage_exits.get((stage, int(chunk) if chunk is not None else None),
                                         self.extractor_exit if stage == "extractor" else 0)
-            pod = {"metadata": {"name": f"{name}-pod"}, "status": {"containerStatuses": [{
+            pod = {"metadata": {
+                "name": f"{name}-pod", "uid": f"uid-{name}-pod",
+                "ownerReferences": [{
+                    "apiVersion": "batch/v1", "kind": "Job", "name": name,
+                    "uid": f"uid-{name}", "controller": True,
+                }],
+            }, "status": {"containerStatuses": [{
                 "name": stage, "imageID": f"sha256:{stage}",
                 "state": {"terminated": {"exitCode": code}},
             }]}}
@@ -214,6 +223,131 @@ def test_retains_created_job_identity_when_logs_fail():
     assert receipt["jobs"]["extractor"]["exit_code"] == 0
     assert receipt["extracted"] is None
     assert receipt["scored"] == 1
+
+
+def test_transient_read_timeout_recovers_without_recreating_job(monkeypatch):
+    fake = FakeKubectl()
+    failed_once = False
+
+    def runner(command, **kwargs):
+        nonlocal failed_once
+        if command[1:3] == ["get", "job/extractor-funnel-read-recovery"] and not failed_once:
+            failed_once = True
+            raise CoordinatorError("KubectlTimeout")
+        return fake(command, **kwargs)
+
+    monkeypatch.setattr("scripts.run_batch.time.sleep", lambda _delay: None)
+    receipt = run_cohort(
+        BatchConfig(), kubectl=runner, run_id="funnel-read-recovery",
+    )
+
+    assert receipt["failures"] == []
+    assert receipt["jobs"]["extractor"]["creation_outcome"] == "created"
+    assert sum(call[0][1] == "create" and bool(call[1]) for call in fake.calls) == 3
+
+
+def test_transient_log_timeout_recovers_after_owned_pod_check(monkeypatch):
+    fake = FakeKubectl()
+    failed_once = False
+
+    def runner(command, **kwargs):
+        nonlocal failed_once
+        if command[1] == "logs" and "extractor" in command and not failed_once:
+            failed_once = True
+            raise CoordinatorError("KubectlTimeout")
+        return fake(command, **kwargs)
+
+    monkeypatch.setattr("scripts.run_batch.time.sleep", lambda _delay: None)
+    receipt = run_cohort(BatchConfig(), kubectl=runner, run_id="funnel-log-recovery")
+
+    assert receipt["failures"] == []
+    assert receipt["jobs"]["extractor"]["pod_uid"].endswith("-pod")
+    assert sum(call[0][1] == "create" and bool(call[1]) for call in fake.calls) == 3
+
+
+def test_recovered_read_rejects_replaced_job_uid(monkeypatch):
+    fake = FakeKubectl()
+    timed_out = False
+
+    def runner(command, **kwargs):
+        nonlocal timed_out
+        if command[1:3] == ["get", "job/extractor-funnel-wrong-uid"]:
+            if not timed_out:
+                timed_out = True
+                raise CoordinatorError("KubectlTimeout")
+            value = json.loads(fake(command, **kwargs))
+            value["metadata"]["uid"] = "replacement-uid"
+            return json.dumps(value)
+        return fake(command, **kwargs)
+
+    monkeypatch.setattr("scripts.run_batch.time.sleep", lambda _delay: None)
+    receipt = run_cohort(BatchConfig(), kubectl=runner, run_id="funnel-wrong-uid")
+
+    assert {item["failure"] for item in receipt["failures"]} == {"JobUIDMismatch"}
+    assert receipt["jobs"]["extractor"]["job_uid"] == "uid-extractor-funnel-wrong-uid"
+    assert sum(call[0][1] == "create" and bool(call[1]) for call in fake.calls) == 3
+
+
+def test_persistent_read_timeout_is_bounded(monkeypatch):
+    fake = FakeKubectl()
+    read_attempts = 0
+
+    def runner(command, **kwargs):
+        nonlocal read_attempts
+        if command[1:3] == ["get", "job/extractor-funnel-read-timeout"]:
+            read_attempts += 1
+            raise CoordinatorError("KubectlTimeout")
+        return fake(command, **kwargs)
+
+    monkeypatch.setattr("scripts.run_batch.time.sleep", lambda _delay: None)
+    receipt = run_cohort(BatchConfig(), kubectl=runner, run_id="funnel-read-timeout")
+
+    assert {item["failure"] for item in receipt["failures"]} == {"KubectlTimeout"}
+    assert read_attempts == 3
+    assert sum(call[0][1] == "create" and bool(call[1]) for call in fake.calls) == 3
+
+
+def test_create_timeout_has_unknown_outcome_and_is_never_retried():
+    fake = FakeKubectl()
+    extractor_create_attempts = 0
+
+    def runner(command, **kwargs):
+        nonlocal extractor_create_attempts
+        if command[1] == "create" and kwargs.get("input_text"):
+            job = json.loads(kwargs["input_text"])
+            if job["metadata"]["labels"]["job-radar-coach/stage"] == "extractor":
+                extractor_create_attempts += 1
+                raise CoordinatorError("KubectlTimeout")
+        return fake(command, **kwargs)
+
+    receipt = run_cohort(BatchConfig(), kubectl=runner, run_id="funnel-create-timeout")
+
+    assert {item["failure"] for item in receipt["failures"]} == {
+        "JobCreationOutcomeUnknown",
+    }
+    assert receipt["jobs"]["extractor"] == {
+        "job_name": "extractor-funnel-create-timeout",
+        "creation_outcome": "unknown",
+    }
+    assert extractor_create_attempts == 1
+
+
+def test_rejects_pod_without_exact_job_owner():
+    fake = FakeKubectl()
+
+    def runner(command, **kwargs):
+        value = fake(command, **kwargs)
+        if command[1:3] == ["get", "pods"] and "extractor" in command[command.index("-l") + 1]:
+            payload = json.loads(value)
+            payload["items"][0]["metadata"]["ownerReferences"][0]["uid"] = "other-uid"
+            return json.dumps(payload)
+        return value
+
+    receipt = run_cohort(BatchConfig(), kubectl=runner, run_id="funnel-wrong-pod-owner")
+
+    assert {item["failure"] for item in receipt["failures"]} == {
+        "JobPodOwnershipMismatch",
+    }
 
 
 def test_rejects_inconsistent_insertion_count():
