@@ -7,13 +7,19 @@ from livekit.agents import Agent, llm
 
 from coach import JobCoach
 from intent import Intent, fast_intent
-from tools import Posting, SessionState
+from tools import NO_STRONG_JOBS, Posting, SessionState
 from user import User
 
 
 class DisclosureTests(unittest.IsolatedAsyncioTestCase):
     async def test_widening_evidence_reaches_writer_and_auditor_only_on_result_turn(self):
-        posting = Posting(uuid4(), "Developer", "Example", "Israel", 82, "Relevant skills.", "https://example.com/apply")
+        await self.check_disclosure(82)
+
+    async def test_widened_lower_scores_keep_both_outcomes_without_offering_a_job(self):
+        await self.check_disclosure(65)
+
+    async def check_disclosure(self, score):
+        posting = Posting(uuid4(), "Developer", "Example", "Israel", score, "Relevant skills.", "https://example.com/apply")
         state = SessionState()
         writer_facts, audit_facts, contexts = [], [], []
 
@@ -36,7 +42,7 @@ class DisclosureTests(unittest.IsolatedAsyncioTestCase):
             current = next(m.text_content for m in context.messages() if (m.text_content or "").startswith("CURRENT_FACTS: "))
             facts = json.loads(current.removeprefix("CURRENT_FACTS: "))
             writer_facts.append(facts)
-            text = "I widened the subject search." if "outcome" in facts else "Let's look closer."
+            text = "I widened the subject search." if "removed only that query" in facts.get("outcome", "") else "Let's look closer."
             yield json.dumps({"parts": [{"text": text}], "stance": "neutral"})
 
         coach = Coach(User.default(), find_jobs=find)
@@ -48,7 +54,13 @@ class DisclosureTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue([x async for x in coach.llm_node(context, [], None)])
         self.assertIn("removed only that query", writer_facts[0]["outcome"])
         self.assertEqual(writer_facts, audit_facts)
-        self.assertNotIn("outcome", writer_facts[1])
+        if score <= 70:
+            self.assertIn(NO_STRONG_JOBS, writer_facts[0]["outcome"])
+            self.assertNotIn("company", writer_facts[0])
+            self.assertNotIn("title", writer_facts[0])
+        else:
+            self.assertNotIn("outcome", writer_facts[1])
+        self.assertNotIn("removed only that query", writer_facts[1].get("outcome", ""))
         self.assertFalse(state.search_widened)
         self.assertFalse(any((m.text_content or "").startswith("SEARCH_RESULT:") for c in contexts for m in c.messages()))
 

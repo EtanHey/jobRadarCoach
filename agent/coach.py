@@ -230,8 +230,9 @@ class JobCoach(Agent):
         facts = ({key: str(value) for key, value in posting.as_log_row().items() if key != "id"} if posting else {})
         if state.deterministic_reply:
             facts["outcome"] = state.deterministic_reply
-        elif state.search_widened:
-            facts["outcome"] = "The subject query matched no jobs. Code removed only that query, retained the other filters, and found results."
+        if state.search_widened:
+            widening = "The subject query matched no jobs. Code removed only that query, retained the other filters, and found results."
+            facts["outcome"] = " ".join(filter(None, (facts.get("outcome"), widening)))
         # Keep only the latest factual handoff, not a trail of competing postings.
         context = chat_ctx.copy()
         context.items = [item for item in context.items if not (
