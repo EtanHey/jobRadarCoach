@@ -109,14 +109,14 @@ def test_stopped_container_starts_and_stops_by_full_identity(monkeypatch):
 
     identity = service.start(context)
     assert service.owns(context, identity)
-    assert service.is_running(context, identity)
+    assert service.is_running(context, identity) is True
     service.stop(context, identity)
     assert context.commands == [
         ("docker", "container", "start", CONTAINER_ID),
         ("docker", "container", "stop", "--time", "10", CONTAINER_ID),
     ]
     assert not current["State"]["Running"]
-    assert not service.is_running(context, identity)
+    assert service.is_running(context, identity) is False
 
 
 def test_post_mutation_readiness_failure_preserves_partial_identity(monkeypatch):
@@ -156,10 +156,23 @@ def test_successful_start_without_post_start_inspect_retains_unconfirmed_identit
     }
     assert "started_at" not in identity
     assert not service.owns(context, identity)
-    assert not service.is_running(context, identity)
+    assert service.is_running(context, identity) is None
     with pytest.raises(RuntimeError, match="identity was unconfirmed; refusing cleanup"):
         service.stop(context, identity)
     assert context.commands == [("docker", "container", "start", CONTAINER_ID)]
+
+
+def test_resource_liveness_is_unknown_when_inspect_is_unavailable(monkeypatch):
+    context = FakeContext()
+    service = KokoroContainerService()
+    identity = {
+        "container_id": CONTAINER_ID,
+        "image_id": IMAGE_ID,
+        "started_at": STARTED_AT,
+    }
+    monkeypatch.setattr(service, "_inspect", lambda *_args: None)
+
+    assert service.is_running(context, identity) is None
 
 
 def test_supervisor_retains_unconfirmed_identity_and_cleanup_refusal(monkeypatch, tmp_path):
@@ -260,6 +273,7 @@ def test_stop_refuses_same_container_restarted_after_adoption(monkeypatch):
     }
 
     assert not service.owns(context, identity)
+    assert service.is_running(context, identity) is False
     with pytest.raises(RuntimeError, match="identity changed"):
         service.stop(context, identity)
     assert context.commands == []
