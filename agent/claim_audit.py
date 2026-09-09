@@ -7,12 +7,54 @@ latency evaluation are required before deploying a model with this gate.
 
 import asyncio
 import json
+import re
 
 from livekit.agents import llm
 from response_schemas import AuditResponse
 
 class GroundingError(ValueError):
     pass
+
+
+_URL_RE = re.compile(r"https?://[^\s)\]>]+", re.I)
+_NUMBER_RE = re.compile(r"(?<![\w/])\d+(?:\.\d+)?(?![\w/])")
+_IDENTITY_FIELDS = ("company", "title", "location")
+
+
+def _identity_pattern(value: str) -> re.Pattern[str]:
+    words = " ".join(value.split()).casefold().split(" ")
+    return re.compile(r"(?<!\w)" + r"\s+".join(map(re.escape, words)) + r"(?!\w)")
+
+
+def spoken_identity_fields(text: str, facts: dict[str, str]) -> set[str]:
+    """Return known protected facts stated as whole tokens in natural speech."""
+    if not isinstance(text, str):
+        raise GroundingError("invalid_spoken_text")
+    required: set[str] = set()
+    expected_url = facts.get("apply_url")
+    for raw_url in _URL_RE.findall(text):
+        if expected_url and (raw_url == expected_url or raw_url.rstrip(".,!?;:") == expected_url):
+            required.add("apply_url")
+
+    normalized = " ".join(_URL_RE.sub(" ", text).split()).casefold()
+    identity_spans: list[tuple[int, int]] = []
+    for field in _IDENTITY_FIELDS:
+        value = facts.get(field)
+        if not value or not str(value).strip():
+            continue
+        matches = tuple(_identity_pattern(str(value)).finditer(normalized))
+        if matches:
+            required.add(field)
+            identity_spans.extend(match.span() for match in matches)
+
+    covered = [False] * len(normalized)
+    for start, end in identity_spans:
+        covered[start:end] = [True] * (end - start)
+    score_text = "".join(" " if covered[index] else char for index, char in enumerate(normalized))
+    score = facts.get("score")
+    if score and str(score) in _NUMBER_RE.findall(score_text):
+        required.add("score")
+    return required
 
 
 INSTRUCTIONS = """Audit the proposed spoken sentence against the supplied facts.
@@ -41,7 +83,7 @@ Example with supplied company Acme: 'Stripe would suit you' ->
 """
 
 
-def validate_audit(payload: object, facts: dict[str, str]) -> None:
+def validate_audit(payload: object, facts: dict[str, str], text: str) -> None:
     if not isinstance(payload, dict) or set(payload) != {"claims", "stance", "unsupported"}:
         raise GroundingError("invalid_claim_audit")
     claims, stance, unsupported = payload["claims"], payload["stance"], payload["unsupported"]
@@ -51,6 +93,7 @@ def validate_audit(payload: object, facts: dict[str, str]) -> None:
         raise GroundingError("unsupported_proposition: " + "; ".join(unsupported)[:500])
     if not isinstance(claims, list) or len(claims) > 20:
         raise GroundingError("invalid_extracted_claims")
+    extracted = set()
     for claim in claims:
         if not isinstance(claim, dict) or set(claim) != {"field", "value"}:
             raise GroundingError("invalid_extracted_claim")
@@ -64,6 +107,7 @@ def validate_audit(payload: object, facts: dict[str, str]) -> None:
         normalize = (lambda x: x) if field in {"apply_url", "score"} else (lambda x: " ".join(x.split()).casefold())
         if normalize(value) != normalize(expected):
             raise GroundingError("claim_mismatch: " + field)
+        extracted.add(field)
     if not isinstance(stance, str) or stance not in {"neutral", "recommend", "weak_option", "poor_fit"}:
         raise GroundingError("invalid_extracted_stance")
     allowed = {"neutral"}
@@ -77,6 +121,9 @@ def validate_audit(payload: object, facts: dict[str, str]) -> None:
         allowed.add("recommend" if score > 70 else "weak_option" if score >= 40 else "poor_fit")
     if stance not in allowed:
         raise GroundingError("spoken_stance_contradicts_score")
+    missing = spoken_identity_fields(text, facts) - extracted
+    if missing:
+        raise GroundingError("audit_omitted_spoken_identity: " + ", ".join(sorted(missing)))
 
 
 async def audit_sentence(model, text: str, facts: dict[str, str], *, timeout: float = 8) -> None:
@@ -102,4 +149,4 @@ async def audit_sentence(model, text: str, facts: dict[str, str], *, timeout: fl
         payload = json.loads(output)
     except json.JSONDecodeError as error:
         raise GroundingError("malformed_claim_audit") from error
-    validate_audit(payload, facts)
+    validate_audit(payload, facts, text)

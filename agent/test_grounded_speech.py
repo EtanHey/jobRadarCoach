@@ -45,6 +45,7 @@ class GroundedSpeechTests(unittest.TestCase):
                 "unsupported": [],
             },
             facts,
+            text,
         )
         self.assertEqual(speech.text, text)
         self.assertEqual(speech.text.count(facts["title"]), 1)
