@@ -67,7 +67,14 @@ class CommittedTurnTests(unittest.IsolatedAsyncioTestCase):
         configured_activity._turn_detection = "manual"
         configured_activity._interrupt_background_speeches = Mock(return_value=[])
         configured_activity._preemptive_generation = None
-        configured_activity._user_turn_completed_atask = asyncio.current_task()
+        configured_activity._cancel_false_interruption_timer = Mock()
+        configured_activity._user_turn_completed_atask = None
+        configured_activity._user_turn_completed_task = lambda old_task, turn_info: (
+            AgentActivity._user_turn_completed_task(
+                configured_activity, old_task, turn_info
+            )
+        )
+        configured_activity._create_speech_task = Mock(return_value="scheduled")
         configured_activity._init_metrics_from_end_of_turn = lambda info: (
             AgentActivity._init_metrics_from_end_of_turn(configured_activity, info)
         )
@@ -80,7 +87,15 @@ class CommittedTurnTests(unittest.IsolatedAsyncioTestCase):
             metrics=_EndOfTurnMetrics(None, None, 0.0, 0.0),
         )
 
-        await AgentActivity._user_turn_completed_task(configured_activity, None, info)
+        self.assertTrue(AgentActivity.on_end_of_turn(configured_activity, info))
+        configured_activity._create_speech_task.assert_called_once()
+        scheduled = configured_activity._create_speech_task.call_args
+        self.assertEqual(
+            scheduled.kwargs["name"], "AgentActivity._user_turn_completed_task"
+        )
+        configured_activity._cancel_false_interruption_timer.assert_called_once()
+        configured_activity._user_turn_completed_atask = asyncio.current_task()
+        await scheduled.args[0]
 
         configured_activity._generate_reply.assert_called_once()
         generated = configured_activity._generate_reply.call_args.kwargs
