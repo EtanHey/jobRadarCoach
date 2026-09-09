@@ -60,11 +60,18 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
             os.unlink(temporary)
 
 
-def _identity_alive(context: RuntimeContext, service: Service, identity: Identity) -> bool:
+def _identity_alive(context: RuntimeContext, service: Service, identity: Identity) -> bool | None:
+    running = getattr(service, "is_running", None)
+    if callable(running):
+        try:
+            result = running(context, identity)
+            return result if isinstance(result, bool) else None
+        except Exception:
+            return None
     try:
         pid = int(identity["pid"])
     except (KeyError, TypeError, ValueError):
-        return False
+        return None
     if isinstance(service, ProcessService):
         child = service._children.get(pid)
         if child is not None and child.poll() is not None:
@@ -266,7 +273,7 @@ class Supervisor:
                     stopped = (
                         entry.get("mode") == "owned"
                         and isinstance(identity, dict)
-                        and not _identity_alive(self.context, service, identity)
+                        and _identity_alive(self.context, service, identity) is False
                     )
                     condition = "stopped" if stopped else "readiness_failed"
                     current = {"condition": condition, "reason": reason}
