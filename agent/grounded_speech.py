@@ -75,7 +75,7 @@ class SentenceDecoder:
             except json.JSONDecodeError:
                 break
             self.count += 1
-            if self.count > 3:
+            if self.count > 1:
                 raise GroundingError("too_many_speech_envelopes")
             result.append(payload)
             self.buffer = self.buffer[end:]
