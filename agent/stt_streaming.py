@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from typing import Any
 
 import websockets
@@ -53,6 +54,10 @@ class WhisperLiveKitSTT(lkstt.STT):
 
     def stream(self, *, language=None, conn_options=APIConnectOptions()):
         requested = language if isinstance(language, str) else str(self._language)
+        # RecognizeStream retries reuse a one-shot audio channel. Once PCM has been
+        # consumed, reconnecting here would open an empty stream; the SDK pipeline
+        # instead recreates this stream around its durable live-audio channel.
+        conn_options = replace(conn_options, max_retry=0)
         return _WhisperLiveKitStream(stt=self, language=LanguageCode(requested), conn_options=conn_options)
 
     async def _notify_failure(self, error: BaseException) -> None:
