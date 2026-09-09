@@ -197,6 +197,14 @@ class LiveKitDeploymentService:
             time.sleep(self.readiness_interval)
         raise RuntimeError("deployment/livekit startup readiness timed out")
 
+    def _unconfirmed_identity(self, before: Identity, after: dict[str, Any] | None) -> Identity:
+        return {
+            "ownership_unconfirmed": True,
+            "target_replicas": 1,
+            "before_identity": before,
+            "observed_identity": self._identity(after or {}),
+        }
+
     def start(self, context: RuntimeContext) -> Identity:
         before = self._deployment(context)
         if before is None or not self._approved(before):
@@ -205,15 +213,21 @@ class LiveKitDeploymentService:
         if identity is None or identity["replicas"] not in {0, 1}:
             raise RuntimeError("deployment/livekit has an invalid identity or replica count")
         if identity["replicas"] == 0:
+            before_identity = identity
             if context.stop_requested():
                 raise InterruptedError("stop requested before starting LiveKit")
             after = self._patch_replicas(context, before, 1)
-            partial = self._identity(after or {}) or {**identity, "ownership_unconfirmed": True, "target_replicas": 1}
             if after is None or not self._approved(after) or not self._expected_transition(before, after, 1):
-                raise PartialStartError("deployment/livekit scale-up was not confirmed", partial)
+                raise PartialStartError(
+                    "deployment/livekit scale-up was not confirmed",
+                    self._unconfirmed_identity(before_identity, after),
+                )
             identity = self._identity(after)
             if identity is None:
-                raise PartialStartError("deployment/livekit identity was not captured", partial)
+                raise PartialStartError(
+                    "deployment/livekit identity was not captured",
+                    self._unconfirmed_identity(before_identity, after),
+                )
         try:
             self._wait_ready(context, identity)
         except Exception as error:
@@ -221,6 +235,8 @@ class LiveKitDeploymentService:
         return identity
 
     def owns(self, context: RuntimeContext, identity: Identity) -> bool:
+        if identity.get("ownership_unconfirmed") is True:
+            return False
         snapshot = self._deployment(context)
         return snapshot is not None and self._matches_identity(snapshot, identity)
 
@@ -231,6 +247,8 @@ class LiveKitDeploymentService:
         return None if snapshot is None else self._matches_identity(snapshot, identity) and snapshot.get("spec", {}).get("replicas") == 1
 
     def stop(self, context: RuntimeContext, identity: Identity) -> None:
+        if identity.get("ownership_unconfirmed") is True:
+            raise RuntimeError("deployment/livekit ownership unconfirmed; refusing cleanup")
         before = self._deployment(context)
         if before is None or not self._matches_identity(before, identity):
             raise RuntimeError("deployment/livekit identity changed; refusing cleanup")
