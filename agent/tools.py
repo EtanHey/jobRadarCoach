@@ -75,6 +75,7 @@ class SessionState:
     current_posting: Posting | None = None
     turn_posting: Posting | None = None
     deterministic_reply: str | None = None
+    intent_failed: bool = False
     intended_text: str | None = None
     qa_mode: bool = False
     prepared_message_id: str | None = None

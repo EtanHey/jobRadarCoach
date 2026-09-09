@@ -92,10 +92,12 @@ class JobCoach(Agent):
         state.prepared_message_id = new_message.id
         state.turn_posting = None
         state.deterministic_reply = None
+        state.intent_failed = False
         state.intended_text = None
         state.search_widened = False
         intent = await self._resolve_intent(text)
         if intent is None:
+            state.intent_failed = True
             state.deterministic_reply = "I couldn't work out that request. Could you say what you'd like to change?"
             return
         requested_posting = intent.action in {"search", "next", "clear"}
@@ -211,6 +213,9 @@ class JobCoach(Agent):
                             if len(output) > 4096:
                                 raise ValueError("intent response too large")
             return validate_intent(json.loads(output), text)
+        except TimeoutError:
+            _logger.warning("intent interpretation rejected", extra={"reason": "intent_timeout"})
+            return None
         except Exception as error:
             _logger.warning("intent interpretation rejected", extra={"reason": str(error)})
             return None
@@ -230,6 +235,17 @@ class JobCoach(Agent):
         )
         if latest_user is not None and latest_user.id != state.prepared_message_id:
             await self._prepare_turn(chat_ctx, latest_user)
+        if state.intent_failed and state.deterministic_reply:
+            # Interpretation has already failed. Another model request cannot
+            # supply a verified selection; ask for clarification immediately.
+            # Successful empty searches and other outcomes still use model words.
+            state.intended_text = state.deterministic_reply
+            _logger.info("assistant intended text captured", extra={
+                "model_text": "", "intended_text": state.intended_text,
+                "grounded_posting_id": None,
+            })
+            yield state.intended_text
+            return
         posting = state.turn_posting
         facts = ({key: str(value) for key, value in posting.as_log_row().items() if key != "id"} if posting else {})
         if state.deterministic_reply:
