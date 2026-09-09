@@ -10,8 +10,9 @@ from uuid import uuid4
 from coach import AGENT_NAME, JobCoach
 from db import close_pool
 from livekit import agents
-from livekit.agents import AgentServer, AgentSession
+from livekit.agents import APIConnectOptions, AgentServer, AgentSession
 from livekit.agents.metrics import LLMMetrics, TTSMetrics
+from livekit.agents.voice.agent_session import SessionConnectOptions
 from livekit.plugins import openai, silero
 from qa_receipt import QaStartupReceipt
 from stt_whisper import WhisperCppSTT
@@ -314,6 +315,15 @@ def interruption_options(stt) -> dict[str, float | int]:
     }
 
 
+def llm_session_connect_options() -> SessionConnectOptions:
+    return SessionConnectOptions(
+        llm_conn_options=APIConnectOptions(
+            timeout=float(os.environ.get("LLM_TIMEOUT", "60")),
+            max_retry=int(os.environ.get("LLM_HTTP_RETRIES", "0")),
+        )
+    )
+
+
 async def entrypoint(ctx: agents.JobContext):
     setup_logging()
     logger = logging.getLogger(__name__)
@@ -381,6 +391,7 @@ async def entrypoint(ctx: agents.JobContext):
     whisper = WhisperCppSTT()
     session = AgentSession(
         userdata=state,
+        conn_options=llm_session_connect_options(),
         vad=silero.VAD.load(),
         stt=whisper,
         llm=openai.LLM(
