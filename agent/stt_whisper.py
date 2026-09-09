@@ -19,14 +19,17 @@ from livekit.agents.language import LanguageCode
 
 _logger = logging.getLogger(__name__)
 _WHITESPACE_RE = re.compile(r"\s+")
-_BRACKETED_ARTIFACT_RE = re.compile(r"^[\[(]\s*[^\]\)\r\n]{1,80}\s*[\])]$")
+_BRACKETED_ARTIFACT_RE = re.compile(r"^(?:\[([^\[\]]+)\]|\(([^()]+)\))$")
+_SILENCE_MARKERS = {"blank audio", "silence", "inaudible", "no speech", "no audio"}
 FailureHandler = Callable[[int, int, BaseException], Awaitable[None]]
 
 
 def normalize_transcript(text: str) -> str:
     normalized = _WHITESPACE_RE.sub(" ", text).strip()
-    if _BRACKETED_ARTIFACT_RE.fullmatch(normalized):
-        return ""
+    if match := _BRACKETED_ARTIFACT_RE.fullmatch(normalized):
+        marker = " ".join((match[1] or match[2]).replace("_", " ").casefold().split())
+        if marker in _SILENCE_MARKERS:
+            return ""
     return normalized
 
 
