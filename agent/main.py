@@ -15,6 +15,7 @@ from livekit.agents.metrics import LLMMetrics, TTSMetrics
 from livekit.plugins import openai, silero
 from qa_receipt import QaStartupReceipt
 from stt_whisper import WhisperCppSTT
+from speech_recovery import SpeechRecovery
 from tools import (
     JobFilters,
     Posting,
@@ -302,11 +303,23 @@ def register_ping_rpc(ctx: agents.JobContext) -> None:
         )
 
 
+def interruption_options(stt) -> dict[str, float | int]:
+    # Batch Whisper has no words until end-of-speech. Requiring a word here
+    # prevents barge-in while the user is still speaking. Silero's sustained
+    # speech-duration floor remains the noise gate; explicit overrides survive.
+    default_words = "1" if stt.capabilities.interim_results else "0"
+    return {
+        "min_duration": float(os.environ.get("MIN_INTERRUPTION_DURATION", "0.75")),
+        "min_words": int(os.environ.get("MIN_INTERRUPTION_WORDS", default_words)),
+    }
+
+
 async def entrypoint(ctx: agents.JobContext):
     setup_logging()
     logger = logging.getLogger(__name__)
     state = SessionState(qa_mode=_env_flag("VOICE_QA_MODE"))
     before_owner_state: dict[str, object] | None = None
+    recovery: SpeechRecovery | None = None
     if state.qa_mode:
         before_owner_state = await owner_state_fingerprint()
         logger.info(
@@ -320,6 +333,8 @@ async def entrypoint(ctx: agents.JobContext):
         )
 
     async def shutdown() -> None:
+        if recovery is not None:
+            await recovery.aclose()
         try:
             if state.qa_mode:
                 after_owner_state = await owner_state_fingerprint()
@@ -387,43 +402,12 @@ async def entrypoint(ctx: agents.JobContext):
                 "min_delay": float(os.environ.get("MIN_ENDPOINTING_DELAY", "1.2")),
                 "max_delay": float(os.environ.get("MAX_ENDPOINTING_DELAY", "6.0")),
             },
-            "interruption": {
-                "min_duration": float(
-                    os.environ.get("MIN_INTERRUPTION_DURATION", "0.75")
-                ),
-                "min_words": int(os.environ.get("MIN_INTERRUPTION_WORDS", "1")),
-            },
+            "interruption": interruption_options(whisper),
         },
     )
 
-    async def handle_stt_failure(
-        consecutive_failures: int, failure_limit: int, error: BaseException
-    ) -> None:
-        final_failure = consecutive_failures >= failure_limit
-        message = (
-            "My speech recognition is still unavailable, so I need to disconnect."
-            if final_failure
-            else "I didn't catch that, my speech recognition dropped. Please try again."
-        )
-        logger.warning(
-            "speech recognition failure announced",
-            extra={
-                "consecutive_failed_turns": consecutive_failures,
-                "consecutive_failure_limit": failure_limit,
-                "disconnecting": final_failure,
-                "exception_type": type(error).__name__,
-                "exception_message": str(error),
-            },
-        )
-        state.intended_text = message
-        try:
-            await session.say(message, allow_interruptions=False).wait_for_playout()
-        except Exception:
-            logger.exception("speech recognition failure announcement failed")
-        if final_failure:
-            session.shutdown(drain=True)
-
-    whisper.set_failure_handler(handle_stt_failure)
+    recovery = SpeechRecovery(session)
+    whisper.set_failure_handler(recovery.notify)
 
     wire_observability(session, state)
 
