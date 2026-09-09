@@ -1,9 +1,11 @@
 import asyncio
 import logging
+import json
+import time
 import re
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
-from livekit.agents import Agent, llm, tokenize
+from livekit.agents import Agent, llm
 from livekit.agents.types import FlushSentinel
 
 from tools import (
@@ -16,6 +18,8 @@ from tools import (
     SessionState,
 )
 from user import User
+from grounded_speech import GroundingError, SPEECH_INSTRUCTIONS, SentenceDecoder, render_sentence
+from claim_audit import audit_sentence
 
 SAY_AS = {
     "Tel Aviv": "Tell Aveev",
@@ -147,6 +151,7 @@ class JobCoach(Agent):
     ):
         self._open_job = open_job
         self._find_jobs = find_jobs
+        self._profile_facts = json.dumps({"positioning": user.positioning, "roles_wanted": user.roles_wanted, "stacks": user.stacks})
         super().__init__(
             tools=[],
             instructions=(
@@ -156,14 +161,13 @@ class JobCoach(Agent):
                 f"works with {', '.join(user.stacks)}.\n"
                 "NEVER recommend or name a job from your own knowledge. Application code, not you, "
                 "loads real scraped postings and hands you at most one posting per turn. Speak only "
-                "about the posting in the current GROUNDING record. If there is no GROUNDING record, "
-                "do not mention any job. Any link you say must be the exact apply_url in GROUNDING.\n"
+                "about the posting in the current CURRENT_FACTS record. If no posting is supplied, "
+                "do not mention any job. Any link you say must be the exact supplied apply_url.\n"
                 "Scores: above seventy, recommend applying. Forty to seventy, mention only if asked "
                 "for more options. Below forty, say it is not worth it.\n"
                 "Walk jobs ONE AT A TIME. Describe one job and why it fits, then stop and wait. "
                 "Never list several jobs in one reply.\n"
-                "After describing one job, ask what he thinks of it and STOP. "
-                "Do not describe another until he answers.\n"
+                "After describing one job, STOP. Do not describe another until he answers.\n"
                 "If a job is a poor fit say so plainly and say why. Do not soften a bad score. "
                 "You have no web access. For requests outside job search, say that briefly and steer "
                 "back to the job search; never present outside information as fetched fact."
@@ -254,6 +258,7 @@ class JobCoach(Agent):
             return
 
         if _OPEN_RE.search(text):
+            state.turn_posting = posting
             if self._open_job is None:
                 state.deterministic_reply = (
                     "I couldn't confirm that the job opened. The grounded link is "
@@ -264,6 +269,7 @@ class JobCoach(Agent):
             return
 
         if _LINK_RE.search(text):
+            state.turn_posting = posting
             state.deterministic_reply = f"The application link I was given is {posting.apply_url}."
             return
 
@@ -290,128 +296,115 @@ class JobCoach(Agent):
         )
         if latest_user is not None and latest_user.id != state.prepared_message_id:
             await self._prepare_turn(chat_ctx, latest_user)
-        if state.deterministic_reply is not None:
-            reply = state.deterministic_reply
-            state.intended_text = reply
-            _logger.info(
-                "model call skipped by deterministic guard",
-                extra={
-                    "stage": "model",
-                    "outcome": "skipped",
-                    "reason": "deterministic_guard",
-                    "intended_text": reply,
-                },
-            )
-            yield reply
-            return
-
-        source = Agent.default.llm_node(self, chat_ctx, tools, model_settings)
+        posting = state.turn_posting
+        facts = ({key: str(value) for key, value in posting.as_log_row().items() if key != "id"} if posting else {})
+        if state.deterministic_reply:
+            facts["outcome"] = state.deterministic_reply
+        # Keep only the latest factual handoff, not a trail of competing postings.
+        context = chat_ctx.copy()
+        context.items = [item for item in context.items if not (
+            isinstance(item, llm.ChatMessage) and item.role == "system"
+            and (item.text_content or "").startswith(("GROUNDING:", "CURRENT_FACTS:"))
+        )]
+        context.add_message(role="system", content=SPEECH_INSTRUCTIONS)
+        context.add_message(role="system", content="USER_PROFILE (context, never speak raw JSON): " + self._profile_facts)
+        context.add_message(role="system", content="CURRENT_FACTS: " + json.dumps(facts, ensure_ascii=False))
+        source = Agent.default.llm_node(self, context, [], model_settings)
         if asyncio.iscoroutine(source):
             source = await source
-        if source is None:
-            return
-
-        posting = state.turn_posting
-        if posting is None:
-            intended = ""
-            try:
-                async for chunk in source:
-                    if isinstance(chunk, str):
-                        intended += chunk
-                    elif isinstance(chunk, llm.ChatChunk) and chunk.delta and chunk.delta.content:
-                        intended += chunk.delta.content
-                    yield chunk
-            finally:
-                state.intended_text = intended
-                _logger.info(
-                    "assistant intended text captured",
-                    extra={"intended_text": intended, "grounded_posting_id": None},
+        decoder = SentenceDecoder()
+        started = time.perf_counter()
+        raw_text = ""
+        delivered = []
+        first_token = None
+        try:
+            if source is None:
+                raise GroundingError("model_unavailable")
+            async for chunk in source:
+                delta = chunk if isinstance(chunk, str) else (
+                    chunk.delta.content if isinstance(chunk, llm.ChatChunk) and chunk.delta else None
                 )
-            return
-
-        model_text = ""
-        async for chunk in source:
-            if isinstance(chunk, str):
-                model_text += chunk
-            elif isinstance(chunk, llm.ChatChunk) and chunk.delta and chunk.delta.content:
-                model_text += chunk.delta.content
-
-        intended = self._validated_grounded_reply(model_text, posting)
-        state.intended_text = intended
-        _logger.info(
-            "assistant intended text captured",
-            extra={
-                "model_text": model_text,
-                "intended_text": intended,
-                "grounded_posting_id": str(posting.id),
-                "grounding_guard_changed_output": intended != model_text,
-            },
-        )
-        yield intended
-
-    def _validated_grounded_reply(self, model_text: str, posting: Posting) -> str:
-        urls = [url.rstrip(".,") for url in _URL_RE.findall(model_text)]
-        wrong_url = any(url != posting.apply_url for url in urls)
-        missing_identity = not (
-            posting.title.casefold() in model_text.casefold()
-            and posting.company.casefold() in model_text.casefold()
-        )
-        other_candidate = any(
-            candidate.id != posting.id
-            and (
-                candidate.company.casefold() in model_text.casefold()
-                or candidate.title.casefold() in model_text.casefold()
+                if not delta:
+                    continue
+                if first_token is None:
+                    first_token = round((time.perf_counter() - started) * 1000, 3)
+                raw_text += delta
+                for envelope in decoder.push(delta):
+                    speech = render_sentence(envelope, facts)
+                    audit_started = time.perf_counter()
+                    await self._audit_speech(speech.text, facts, speech.references)
+                    delivered.append(speech.text)
+                    state.intended_text = " ".join(delivered)
+                    _logger.info("grounded speech released", extra={
+                        "first_token_ms": first_token,
+                        "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
+                        "envelope_index": len(delivered), "fact_references": speech.references,
+                        "stance": speech.stance, "model_written": True,
+                        "claim_audit_ms": round((time.perf_counter() - audit_started) * 1000, 3),
+                    })
+                    yield speech.text + " "
+            decoder.finish()
+        except Exception as error:
+            _logger.warning("model speech rejected", extra={
+                "model_text": raw_text, "reason": str(error),
+                "released_envelopes": len(delivered),
+            })
+            fallback = (
+                "I couldn't verify that detail."
+                if delivered else state.deterministic_reply or (
+                    self._fallback_reply(posting) if posting else
+                    "I couldn't put that reply together. Could you try again?"
+                )
             )
-            for candidate in self.state.candidates
-        )
-        asks_for_reaction = "what do you think" in model_text.casefold()
-        if (
-            model_text.strip()
-            and not wrong_url
-            and not missing_identity
-            and not other_candidate
-            and asks_for_reaction
-        ):
-            return model_text.strip()
+            delivered.append(fallback)
+            state.intended_text = " ".join(delivered)
+            yield fallback
+        finally:
+            if source is not None:
+                await source.aclose()
+            _logger.info("assistant intended text captured", extra={
+                "model_text": raw_text, "intended_text": state.intended_text,
+                "grounded_posting_id": str(posting.id) if posting else None,
+            })
 
+    async def _audit_speech(self, text: str, facts: dict[str, str], references: tuple[str, ...]) -> None:
+        # An independent request sees the rendered proposition, not the writer's
+        # declared stance/references. Never release unchecked speech on failure.
+        started = time.perf_counter()
+        outcome = "cancelled"
+        try:
+            await audit_sentence(self.session.llm, text, {**facts, "user_profile": self._profile_facts}, expected_references=references)
+            outcome = "accepted"
+        except Exception:
+            outcome = "rejected"
+            raise
+        finally:
+            _logger.info("claim audit completed", extra={
+                "duration_ms": round((time.perf_counter() - started) * 1000, 3), "outcome": outcome,
+            })
+
+    def _fallback_reply(self, posting: Posting) -> str:
         reason = posting.reasons.split(". ", 1)[0].strip()
         if reason and not reason.endswith("."):
             reason += "."
         location = f" in {posting.location}" if posting.location else ""
         explanation = f" {reason}" if reason else ""
+        advice = " I'd recommend a closer look." if posting.score > 70 else (
+            " It's a weaker option." if posting.score >= 40 else " I don't think it is worth pursuing."
+        )
         return (
             f"{posting.title} at {posting.company}{location} scored {posting.score}."
-            f"{explanation} What do you think of this role?"
+            f"{explanation}{advice}"
         )
 
     async def tts_node(self, text: AsyncIterable[str], model_settings):
-        sentence_stream = tokenize.blingfire.SentenceTokenizer(retain_format=True).stream()
+        # llm_node now emits complete validated speech envelopes. Avoid another
+        # sentence buffer before the SDK's TTS adapter sees the first one.
+        async def spoken_text() -> AsyncIterator[str]:
+            async for chunk in text:
+                for written, pronunciation in SAY_AS.items():
+                    chunk = chunk.replace(written, pronunciation)
+                yield chunk
 
-        async def feed_sentences() -> None:
-            try:
-                async for chunk in text:
-                    sentence_stream.push_text(chunk)
-                sentence_stream.end_input()
-            except BaseException:
-                await sentence_stream.aclose()
-                raise
-
-        feeder = asyncio.create_task(feed_sentences())
-
-        async def fixed_sentences() -> AsyncIterator[str]:
-            try:
-                async for sentence in sentence_stream:
-                    spoken = sentence.token
-                    for written, pronunciation in SAY_AS.items():
-                        spoken = spoken.replace(written, pronunciation)
-                    yield spoken
-            finally:
-                await sentence_stream.aclose()
-
-        try:
-            async for frame in Agent.default.tts_node(self, fixed_sentences(), model_settings):
-                yield frame
-        finally:
-            if not feeder.done():
-                feeder.cancel()
-            await asyncio.gather(feeder, return_exceptions=True)
+        async for frame in Agent.default.tts_node(self, spoken_text(), model_settings):
+            yield frame
