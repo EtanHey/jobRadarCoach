@@ -196,18 +196,16 @@ class KokoroContainerService:
         snapshot = self._inspect(context, reference)
         return snapshot is not None and self._matches_identity(snapshot, identity)
 
-    def is_running(self, context: RuntimeContext, identity: Identity) -> bool:
+    def is_running(self, context: RuntimeContext, identity: Identity) -> bool | None:
         if identity.get("ownership_status") == UNCONFIRMED_AFTER_START:
-            return False
+            return None
         reference = identity.get("container_id")
         if not isinstance(reference, str) or not reference:
-            return False
+            return None
         snapshot = self._inspect(context, reference)
-        return (
-            snapshot is not None
-            and self._matches_identity(snapshot, identity)
-            and self._running(snapshot)
-        )
+        if snapshot is None:
+            return None
+        return self._matches_identity(snapshot, identity) and self._running(snapshot)
 
     def stop(self, context: RuntimeContext, identity: Identity) -> None:
         if identity.get("ownership_status") == UNCONFIRMED_AFTER_START:
