@@ -15,6 +15,9 @@ from scripts.runtime_process import Identity, Probe, RuntimeContext
 KOKORO_CONTAINER_NAME = "kokoro"
 KOKORO_IMAGE = "ghcr.io/remsky/kokoro-fastapi-cpu:latest"
 KOKORO_PORT_BINDINGS = {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]}
+POST_START_INSPECT_ATTEMPTS = 3
+POST_START_INSPECT_INTERVAL = 0.1
+UNCONFIRMED_AFTER_START = "unconfirmed_after_start"
 _CONTAINER_ID = re.compile(r"[0-9a-f]{64}")
 _IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
 
@@ -84,12 +87,33 @@ class KokoroContainerService:
         return values if all(isinstance(value, str) and value for value in values.values()) else None
 
     def _matches_identity(self, snapshot: dict[str, Any], identity: Identity) -> bool:
+        if identity.get("ownership_status") == UNCONFIRMED_AFTER_START:
+            return False
         current = self._identity(snapshot)
         return self._approved(snapshot) and current is not None and current == {
             "container_id": identity.get("container_id"),
             "image_id": identity.get("image_id"),
             "started_at": identity.get("started_at"),
         }
+
+    @staticmethod
+    def _unconfirmed_identity(snapshot: dict[str, Any]) -> Identity:
+        return {
+            "container_id": snapshot["Id"],
+            "image_id": snapshot["Image"],
+            "ownership_status": UNCONFIRMED_AFTER_START,
+        }
+
+    def _inspect_after_start(
+        self, context: RuntimeContext, reference: str,
+    ) -> dict[str, Any] | None:
+        for attempt in range(POST_START_INSPECT_ATTEMPTS):
+            current = self._inspect(context, reference)
+            if current is not None and self._identity(current) is not None:
+                return current
+            if attempt + 1 < POST_START_INSPECT_ATTEMPTS:
+                time.sleep(POST_START_INSPECT_INTERVAL)
+        return None
 
     def _health(self, context: RuntimeContext) -> bool:
         result = self._result(
@@ -132,13 +156,19 @@ class KokoroContainerService:
         result = self._result(
             context, ("docker", "container", "start", str(before["Id"])), timeout=15,
         )
-        current = self._inspect(context, str(before["Id"]))
-        identity = self._identity(current or {}) or {
-            "container_id": before.get("Id"),
-            "image_id": before.get("Image"),
-            "started_at": before.get("State", {}).get("StartedAt"),
-        }
-        if result is None or result.returncode or current is None or not self._running(current):
+        current = self._inspect_after_start(context, str(before["Id"]))
+        if current is None:
+            raise PartialStartError(
+                "Kokoro post-start identity could not be confirmed",
+                self._unconfirmed_identity(before),
+            )
+        identity = self._identity(current)
+        if identity is None:
+            raise PartialStartError(
+                "Kokoro post-start identity could not be confirmed",
+                self._unconfirmed_identity(before),
+            )
+        if result is None or result.returncode or not self._running(current):
             raise PartialStartError("Kokoro container did not start cleanly", identity)
         if not self._matches_identity(current, identity):
             raise PartialStartError("Kokoro identity changed during startup", identity)
@@ -158,6 +188,8 @@ class KokoroContainerService:
         raise PartialStartError("Kokoro startup health check timed out", identity)
 
     def owns(self, context: RuntimeContext, identity: Identity) -> bool:
+        if identity.get("ownership_status") == UNCONFIRMED_AFTER_START:
+            return False
         reference = identity.get("container_id")
         if not isinstance(reference, str) or not reference:
             return False
@@ -165,6 +197,8 @@ class KokoroContainerService:
         return snapshot is not None and self._matches_identity(snapshot, identity)
 
     def is_running(self, context: RuntimeContext, identity: Identity) -> bool:
+        if identity.get("ownership_status") == UNCONFIRMED_AFTER_START:
+            return False
         reference = identity.get("container_id")
         if not isinstance(reference, str) or not reference:
             return False
@@ -176,6 +210,10 @@ class KokoroContainerService:
         )
 
     def stop(self, context: RuntimeContext, identity: Identity) -> None:
+        if identity.get("ownership_status") == UNCONFIRMED_AFTER_START:
+            raise RuntimeError(
+                "Kokoro post-start identity was unconfirmed; refusing cleanup"
+            )
         reference = identity.get("container_id")
         if not isinstance(reference, str) or not reference:
             raise RuntimeError("Kokoro container identity is invalid")
