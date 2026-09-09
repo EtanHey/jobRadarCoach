@@ -134,6 +134,31 @@ def test_post_mutation_failure_preserves_exact_owned_identity(monkeypatch):
     assert caught.value.owned_identity == service._identity(running)
 
 
+@pytest.mark.parametrize("failure", ("generation", "spec"))
+def test_unexpected_valid_patch_response_is_never_claimed(monkeypatch, failure):
+    service = LiveKitDeploymentService()
+    before, after = deployment(replicas=0, ready=False), deployment(generation=5)
+    if failure == "generation":
+        after["metadata"]["generation"] = 6
+        after["status"]["observedGeneration"] = 6
+    else:
+        after["spec"]["strategy"] = {"type": "Recreate"}
+    monkeypatch.setattr(service, "_deployment", lambda *_args: before)
+    monkeypatch.setattr(service, "_patch_replicas", lambda *_args: after)
+
+    with pytest.raises(PartialStartError, match="scale-up was not confirmed") as caught:
+        service.start(Context())
+    unconfirmed = caught.value.owned_identity
+    assert unconfirmed == {
+        "ownership_unconfirmed": True, "target_replicas": 1,
+        "before_identity": service._identity(before), "observed_identity": service._identity(after),
+    }
+    assert service.is_running(Context(), unconfirmed) is None
+    assert not service.owns(Context(), unconfirmed)
+    with pytest.raises(RuntimeError, match="ownership unconfirmed"):
+        service.stop(Context(), unconfirmed)
+
+
 def test_identity_or_spec_change_refuses_cleanup(monkeypatch):
     service, original = LiveKitDeploymentService(), deployment()
     identity, changed = service._identity(original), deployment()
