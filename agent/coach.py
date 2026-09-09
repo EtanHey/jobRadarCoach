@@ -18,7 +18,13 @@ from tools import (
     SessionState,
 )
 from user import User
-from intent import INTENT_INSTRUCTIONS, Intent, fast_intent, validate_intent
+from intent import (
+    INTENT_INSTRUCTIONS,
+    Intent,
+    IntentActionConflict,
+    fast_intent,
+    validate_intent,
+)
 from grounded_speech import GroundingError, SPEECH_INSTRUCTIONS, SentenceDecoder, render_sentence
 from claim_audit import audit_sentence
 from response_schemas import NaturalSpeech
@@ -32,6 +38,13 @@ AGENT_NAME = "Riki"
 
 _URL_RE = re.compile(r"https?://[^\s)\]>]+")
 _logger = logging.getLogger(__name__)
+INTENT_TIMEOUT_SECONDS = 8
+
+_INTENT_REPAIR_INSTRUCTIONS = """Your previous JSON had an action/filter conflict.
+Reinterpret the full user turn once. Return the same exact JSON fields and follow the original rules.
+A stated preference or requested constraint uses action search with only explicitly stated filters.
+A question or discussion about the current selection uses action discuss with empty filters.
+Do not normalize an action or discard filters mechanically; decide from the user's meaning."""
 
 
 def extract_job_filter_updates(text: str) -> tuple[dict[str, object], bool]:
@@ -204,15 +217,15 @@ class JobCoach(Agent):
             model = self.session.llm
             if model is None:
                 return None
-            output = ""
-            async with asyncio.timeout(8):
-                async with model.chat(chat_ctx=context, tools=[], extra_kwargs={"response_format": {"type": "json_object"}}) as stream:
-                    async for chunk in stream:
-                        if chunk.delta and chunk.delta.content:
-                            output += chunk.delta.content
-                            if len(output) > 4096:
-                                raise ValueError("intent response too large")
-            return validate_intent(json.loads(output), text)
+            async with asyncio.timeout(INTENT_TIMEOUT_SECONDS):
+                output = await JobCoach._read_intent_response(self, model, context)
+                try:
+                    return validate_intent(json.loads(output), text)
+                except IntentActionConflict:
+                    context.add_message(role="assistant", content=output)
+                    context.add_message(role="system", content=_INTENT_REPAIR_INSTRUCTIONS)
+                    repaired = await JobCoach._read_intent_response(self, model, context)
+                    return validate_intent(json.loads(repaired), text)
         except TimeoutError:
             _logger.warning("intent interpretation rejected", extra={"reason": "intent_timeout"})
             return None
@@ -221,6 +234,20 @@ class JobCoach(Agent):
             return None
         finally:
             _logger.info("intent stage completed", extra={"duration_ms": round((time.perf_counter() - started) * 1000, 3)})
+
+    async def _read_intent_response(self, model, context: llm.ChatContext) -> str:
+        output = ""
+        async with model.chat(
+            chat_ctx=context,
+            tools=[],
+            extra_kwargs={"response_format": {"type": "json_object"}},
+        ) as stream:
+            async for chunk in stream:
+                if chunk.delta and chunk.delta.content:
+                    output += chunk.delta.content
+                    if len(output) > 4096:
+                        raise ValueError("intent response too large")
+        return output
 
     async def llm_node(
         self,

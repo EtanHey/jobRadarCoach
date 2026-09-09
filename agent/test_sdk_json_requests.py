@@ -1,6 +1,7 @@
 """Exercise real LiveKit/OpenAI adapters, replacing only HTTP transport."""
 import json
 import os
+import asyncio
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -19,13 +20,19 @@ class SdkJsonRequests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.requests = []
         self.reply = {}
+        self.replies = None
+        self.response_delays = []
 
         async def respond(request):
             self.requests.append(json.loads(request.content))
+            request_index = len(self.requests) - 1
+            if request_index < len(self.response_delays):
+                await asyncio.sleep(self.response_delays[request_index])
+            reply = self.replies[request_index] if self.replies is not None else self.reply
             chunk = {
                 "id": "qa-response", "object": "chat.completion.chunk", "created": 0,
                 "model": "qa-model", "choices": [{
-                    "index": 0, "delta": {"content": json.dumps(self.reply)},
+                    "index": 0, "delta": {"content": json.dumps(reply)},
                     "finish_reason": None,
                 }],
             }
@@ -48,6 +55,76 @@ class SdkJsonRequests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(intent)
         self.assertEqual(intent.action, "discuss")
         self.assertEqual(self.requests[0]["response_format"], {"type": "json_object"})
+
+    async def test_conflicting_remote_preference_is_repaired_as_search(self):
+        self.replies = [
+            {"action": "discuss", "filters": {"remote": True}, "more_options": False},
+            {"action": "search", "filters": {"remote": True}, "more_options": False},
+        ]
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=None),
+                                session=SimpleNamespace(llm=self.model))
+        intent = await JobCoach._resolve_intent(coach, "I prefer remote roles")
+        self.assertEqual(intent.action, "search")
+        self.assertEqual(intent.filters, {"remote": True})
+        self.assertEqual(len(self.requests), 2)
+        repair_messages = self.requests[1]["messages"]
+        self.assertEqual(repair_messages[1], {"role": "user", "content": "I prefer remote roles"})
+        self.assertEqual(repair_messages[-2]["role"], "assistant")
+        self.assertIn("action/filter conflict", repair_messages[-1]["content"])
+        self.assertNotIn("job", json.dumps(repair_messages[-1]).casefold())
+
+    async def test_conflicting_discussion_is_repaired_without_filters(self):
+        self.replies = [
+            {"action": "discuss", "filters": {"remote": True}, "more_options": False},
+            {"action": "discuss", "filters": {}, "more_options": False},
+        ]
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=object()),
+                                session=SimpleNamespace(llm=self.model))
+        intent = await JobCoach._resolve_intent(coach, "Would remote work be good for me?")
+        self.assertEqual(intent.action, "discuss")
+        self.assertEqual(intent.filters, {})
+        self.assertEqual(len(self.requests), 2)
+
+    async def test_repaired_invented_filter_is_rejected(self):
+        self.replies = [
+            {"action": "discuss", "filters": {"remote": True}, "more_options": False},
+            {"action": "search", "filters": {"location": "Israel"}, "more_options": False},
+        ]
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=None),
+                                session=SimpleNamespace(llm=self.model))
+        self.assertIsNone(await JobCoach._resolve_intent(coach, "I prefer remote roles"))
+        self.assertEqual(len(self.requests), 2)
+
+    async def test_second_action_conflict_stops_after_two_attempts(self):
+        self.replies = [
+            {"action": "discuss", "filters": {"remote": True}, "more_options": False},
+            {"action": "next", "filters": {"remote": True}, "more_options": False},
+        ]
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=None),
+                                session=SimpleNamespace(llm=self.model))
+        self.assertIsNone(await JobCoach._resolve_intent(coach, "I prefer remote roles"))
+        self.assertEqual(len(self.requests), 2)
+
+    async def test_other_invalid_fields_do_not_retry(self):
+        self.reply = {"action": "search", "filters": {}, "more_options": False, "extra": True}
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=None),
+                                session=SimpleNamespace(llm=self.model))
+        self.assertIsNone(await JobCoach._resolve_intent(coach, "I prefer remote roles"))
+        self.assertEqual(len(self.requests), 1)
+
+    async def test_repair_shares_the_original_deadline(self):
+        self.replies = [
+            {"action": "discuss", "filters": {"remote": True}, "more_options": False},
+            {"action": "search", "filters": {"remote": True}, "more_options": False},
+        ]
+        self.response_delays = [0.02, 0.09]
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=None),
+                                session=SimpleNamespace(llm=self.model))
+        with patch("coach.INTENT_TIMEOUT_SECONDS", 0.1), self.assertLogs("coach", "WARNING") as logs:
+            intent = await JobCoach._resolve_intent(coach, "I prefer remote roles")
+        self.assertIsNone(intent)
+        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(logs.records[0].reason, "intent_timeout")
 
     async def test_audit_json_mode_reaches_provider_and_rejects_invented_claim(self):
         self.reply = {"claims": [{"field": "company", "value": "Acme"}],

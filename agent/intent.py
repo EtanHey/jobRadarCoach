@@ -8,6 +8,10 @@ class IntentError(ValueError):
     pass
 
 
+class IntentActionConflict(IntentError):
+    """The model attached filter changes to an action that cannot apply them."""
+
+
 @dataclass(frozen=True)
 class Intent:
     action: str
@@ -53,7 +57,7 @@ def validate_intent(payload: object, utterance: str) -> Intent:
     if not isinstance(filters, dict) or set(filters) - FIELDS or type(more) is not bool:
         raise IntentError("invalid filters")
     if filters and action != "search":
-        raise IntentError("only a search may change filters")
+        raise IntentActionConflict("only a search may change filters")
     validated = {}
     for key, value in filters.items():
         if value is None:

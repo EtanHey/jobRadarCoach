@@ -1,9 +1,16 @@
 import unittest
 
-from intent import IntentError, fast_intent, validate_intent
+from intent import IntentActionConflict, IntentError, fast_intent, validate_intent
 
 
 class IntentTests(unittest.TestCase):
+    def test_non_search_filters_have_a_typed_conflict(self):
+        with self.assertRaises(IntentActionConflict):
+            validate_intent(
+                {"action": "discuss", "filters": {"remote": True}, "more_options": False},
+                "Would remote work be good for me?",
+            )
+
     def test_bus_requests_keep_location_without_quantifier_query(self):
         for text in (
             "Find me some jobs in Israel",
