@@ -34,7 +34,7 @@ class DisclosureTests(unittest.IsolatedAsyncioTestCase):
             async def _resolve_intent(self, text):
                 return fast_intent(text) or Intent("discuss")
 
-            async def _audit_speech(self, text, facts, references):
+            async def _audit_speech(self, text, facts):
                 audit_facts.append(facts)
 
         async def model(_agent, context, *_args):
@@ -43,7 +43,7 @@ class DisclosureTests(unittest.IsolatedAsyncioTestCase):
             facts = json.loads(current.removeprefix("CURRENT_FACTS: "))
             writer_facts.append(facts)
             text = "I widened the subject search." if "removed only that query" in facts.get("outcome", "") else "Let's look closer."
-            yield json.dumps({"parts": [{"text": text}], "stance": "neutral"})
+            yield json.dumps({"sentence": text, "stance": "neutral"})
 
         coach = Coach(User.default(), find_jobs=find)
         context = llm.ChatContext.empty()

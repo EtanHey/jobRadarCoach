@@ -41,7 +41,7 @@ Example with supplied company Acme: 'Stripe would suit you' ->
 """
 
 
-def validate_audit(payload: object, facts: dict[str, str], expected_references: tuple[str, ...] = ()) -> None:
+def validate_audit(payload: object, facts: dict[str, str]) -> None:
     if not isinstance(payload, dict) or set(payload) != {"claims", "stance", "unsupported"}:
         raise GroundingError("invalid_claim_audit")
     claims, stance, unsupported = payload["claims"], payload["stance"], payload["unsupported"]
@@ -51,7 +51,6 @@ def validate_audit(payload: object, facts: dict[str, str], expected_references: 
         raise GroundingError("unsupported_proposition: " + "; ".join(unsupported)[:500])
     if not isinstance(claims, list) or len(claims) > 20:
         raise GroundingError("invalid_extracted_claims")
-    extracted = set()
     for claim in claims:
         if not isinstance(claim, dict) or set(claim) != {"field", "value"}:
             raise GroundingError("invalid_extracted_claim")
@@ -65,14 +64,6 @@ def validate_audit(payload: object, facts: dict[str, str], expected_references: 
         normalize = (lambda x: x) if field in {"apply_url", "score"} else (lambda x: " ".join(x.split()).casefold())
         if normalize(value) != normalize(expected):
             raise GroundingError("claim_mismatch: " + field)
-        extracted.add(field)
-    if set(expected_references) - facts.keys():
-        raise GroundingError("unknown_expected_reference")
-    # Reason/outcome references require semantic support rather than an exact
-    # entity claim; only the five protected identity fields use this coverage check.
-    required = set(expected_references) & {"company", "title", "location", "score", "apply_url"}
-    if required - extracted:
-        raise GroundingError("audit_omitted_rendered_fact")
     if not isinstance(stance, str) or stance not in {"neutral", "recommend", "weak_option", "poor_fit"}:
         raise GroundingError("invalid_extracted_stance")
     allowed = {"neutral"}
@@ -88,12 +79,17 @@ def validate_audit(payload: object, facts: dict[str, str], expected_references: 
         raise GroundingError("spoken_stance_contradicts_score")
 
 
-async def audit_sentence(model, text: str, facts: dict[str, str], *, expected_references: tuple[str, ...] = (), timeout: float = 8) -> None:
+async def audit_sentence(model, text: str, facts: dict[str, str], *, timeout: float = 8) -> None:
     if model is None:
         raise GroundingError("claim_auditor_unavailable")
     context = llm.ChatContext.empty()
     context.add_message(role="system", content=INSTRUCTIONS)
-    context.add_message(role="user", content=json.dumps({"facts": facts, "sentence": text}, ensure_ascii=False))
+    context.add_message(
+        role="user",
+        content=json.dumps(
+            {"facts": facts, "sentence": text}, ensure_ascii=False, separators=(",", ":")
+        ),
+    )
     output = ""
     async with asyncio.timeout(timeout):
         async with model.chat(chat_ctx=context, tools=[], response_format=AuditResponse) as stream:
@@ -106,4 +102,4 @@ async def audit_sentence(model, text: str, facts: dict[str, str], *, expected_re
         payload = json.loads(output)
     except json.JSONDecodeError as error:
         raise GroundingError("malformed_claim_audit") from error
-    validate_audit(payload, facts, expected_references)
+    validate_audit(payload, facts)

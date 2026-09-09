@@ -9,16 +9,6 @@ FACTS = {"company": "Acme", "title": "Developer", "location": "Israel", "score":
 
 
 class AuditTests(unittest.TestCase):
-    def test_unknown_reference_fails_but_non_entity_facts_use_semantic_audit(self):
-        audit = {"claims": [], "stance": "neutral", "unsupported": []}
-        with self.assertRaisesRegex(GroundingError, "unknown_expected_reference"):
-            validate_audit(audit, FACTS, ("invented",))
-        validate_audit(audit, {**FACTS, "reasons": "Relevant experience"}, ("reasons",))
-
-    def test_empty_audit_cannot_omit_a_fact_the_renderer_inserted(self):
-        with self.assertRaisesRegex(GroundingError, "omitted_rendered_fact"):
-            validate_audit({"claims": [], "stance": "neutral", "unsupported": []}, FACTS, ("company",))
-
     def test_extracted_values_must_match_current_posting(self):
         for field, value in (("company", "Stripe"), ("title", "CEO"), ("location", "London"), ("score", "91"), ("apply_url", "https://invented.example")):
             with self.subTest(field=field), self.assertRaises(GroundingError):

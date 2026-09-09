@@ -21,7 +21,7 @@ from user import User
 from intent import INTENT_INSTRUCTIONS, Intent, fast_intent, validate_intent
 from grounded_speech import GroundingError, SPEECH_INSTRUCTIONS, SentenceDecoder, render_sentence
 from claim_audit import audit_sentence
-from response_schemas import SpeechEnvelope
+from response_schemas import NaturalSpeech
 
 SAY_AS = {
     "Tel Aviv": "Tell Aveev",
@@ -49,7 +49,10 @@ class JobCoach(Agent):
     ):
         self._open_job = open_job
         self._find_jobs = find_jobs
-        self._profile_facts = json.dumps({"positioning": user.positioning, "roles_wanted": user.roles_wanted, "stacks": user.stacks})
+        self._profile_facts = json.dumps(
+            {"positioning": user.positioning, "roles_wanted": user.roles_wanted, "stacks": user.stacks},
+            separators=(",", ":"),
+        )
         super().__init__(
             tools=[],
             instructions=(
@@ -242,7 +245,10 @@ class JobCoach(Agent):
         )]
         context.add_message(role="system", content=SPEECH_INSTRUCTIONS)
         context.add_message(role="system", content="USER_PROFILE (context, never speak raw JSON): " + self._profile_facts)
-        context.add_message(role="system", content="CURRENT_FACTS: " + json.dumps(facts, ensure_ascii=False))
+        context.add_message(
+            role="system",
+            content="CURRENT_FACTS: " + json.dumps(facts, ensure_ascii=False, separators=(",", ":")),
+        )
         if state.search_widened:
             context.add_message(role="system", content="Disclose the search widening in outcome once this turn. Do not imply the original subject matched.")
         source = self._writer_node(context, model_settings)
@@ -264,15 +270,17 @@ class JobCoach(Agent):
                     first_token = round((time.perf_counter() - started) * 1000, 3)
                 raw_text += delta
                 for envelope in decoder.push(delta):
-                    speech = render_sentence(envelope, facts)
+                    speech = render_sentence(
+                        envelope, {**facts, "user_profile": self._profile_facts}
+                    )
                     audit_started = time.perf_counter()
-                    await self._audit_speech(speech.text, facts, speech.references)
+                    await self._audit_speech(speech.text, facts)
                     delivered.append(speech.text)
                     state.intended_text = " ".join(delivered)
                     _logger.info("grounded speech released", extra={
                         "first_token_ms": first_token,
                         "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
-                        "envelope_index": len(delivered), "fact_references": speech.references,
+                        "envelope_index": len(delivered),
                         "stance": speech.stance, "model_written": True,
                         "claim_audit_ms": round((time.perf_counter() - audit_started) * 1000, 3),
                     })
@@ -311,19 +319,21 @@ class JobCoach(Agent):
         async with model.chat(
             chat_ctx=context,
             tools=[],
-            response_format=SpeechEnvelope,
+            response_format=NaturalSpeech,
             conn_options=session.conn_options.llm_conn_options,
         ) as stream:
             async for chunk in stream:
                 yield chunk
 
-    async def _audit_speech(self, text: str, facts: dict[str, str], references: tuple[str, ...]) -> None:
+    async def _audit_speech(self, text: str, facts: dict[str, str]) -> None:
         # An independent request sees the rendered proposition, not the writer's
-        # declared stance/references. Never release unchecked speech on failure.
+        # declared stance. Never release unchecked speech on failure.
         started = time.perf_counter()
         outcome = "cancelled"
         try:
-            await audit_sentence(self.session.llm, text, {**facts, "user_profile": self._profile_facts}, expected_references=references)
+            await audit_sentence(
+                self.session.llm, text, {**facts, "user_profile": self._profile_facts}
+            )
             outcome = "accepted"
         except Exception:
             outcome = "rejected"
