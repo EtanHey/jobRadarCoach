@@ -1,0 +1,226 @@
+import asyncio
+import json
+import unittest
+
+from livekit import rtc
+from livekit.agents import APIConnectionError, APIConnectOptions, APIStatusError, APITimeoutError
+from livekit.agents import stt as lkstt
+
+from stt_streaming import WhisperLiveKitSTT
+
+
+class FakeSocket:
+    def __init__(self, updates=(), *, acknowledge_eof=True, server_config=None):
+        self.sent = []
+        self.closed = False
+        self._updates = updates
+        self._acknowledge_eof = acknowledge_eof
+        self._incoming = asyncio.Queue()
+        config = server_config if server_config is not None else {
+            "type": "config", "useAudioWorklet": True, "mode": "full"
+        }
+        self._incoming.put_nowait(json.dumps(config))
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        self.closed = True
+
+    async def send(self, data):
+        self.sent.append(data)
+        if isinstance(data, bytes) and data and not self._incoming.qsize():
+            for update in self._updates:
+                await self._incoming.put(json.dumps(update))
+        if data == b"" and self._acknowledge_eof:
+            await self._incoming.put(json.dumps({"type": "ready_to_stop"}))
+            await self._incoming.put(None)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        item = await self._incoming.get()
+        if item is None:
+            raise StopAsyncIteration
+        return item
+
+    async def recv(self):
+        return await self.__anext__()
+
+
+class Connector:
+    def __init__(self, *sockets):
+        self.sockets = sockets
+        self.calls = []
+
+    def __call__(self, url, **kwargs):
+        socket = self.sockets[min(len(self.calls), len(self.sockets) - 1)]
+        self.calls.append((url, kwargs))
+        return socket
+
+
+class FailingSocket(FakeSocket):
+    async def send(self, data):
+        self.sent.append(data)
+        if isinstance(data, bytes):
+            await self._incoming.put(json.dumps({"error": "backend unavailable"}))
+
+
+def frame(data=b"\x01\x00\x02\x00"):
+    return rtc.AudioFrame(data=data, sample_rate=16000, num_channels=1,
+                          samples_per_channel=len(data) // 2)
+
+
+async def collect(stt, audio=None):
+    stream = stt.stream(conn_options=APIConnectOptions(timeout=4, max_retry=0))
+    stream.push_frame(audio or frame())
+    stream.end_input()
+    try:
+        return await drain(stream)
+    finally:
+        await stream.aclose()
+
+
+async def drain(stream):
+    return [event async for event in stream]
+
+
+class StreamingProtocolTests(unittest.IsolatedAsyncioTestCase):
+    async def test_early_ready_ack_cancels_sender_with_input_open(self):
+        socket = FakeSocket([])
+        socket._incoming.put_nowait(json.dumps({"type": "ready_to_stop"}))
+        stt = WhisperLiveKitSTT(connect=Connector(socket))
+        stream = stt.stream(conn_options=APIConnectOptions(timeout=0.1, max_retry=0))
+        self.assertEqual(await asyncio.wait_for(drain(stream), 0.5), [])
+        await stream.aclose()
+        self.assertTrue(socket.closed)
+        self.assertTrue(stream._sender_task.done())
+        self.assertTrue(stream._receiver_task.done())
+
+    async def test_eof_acknowledgement_is_bounded_by_connection_timeout(self):
+        failures = []
+
+        async def failed(_count, _limit, error):
+            failures.append(error)
+
+        socket = FakeSocket([], acknowledge_eof=False)
+        stt = WhisperLiveKitSTT(connect=Connector(socket), failure_handler=failed)
+        stream = stt.stream(conn_options=APIConnectOptions(timeout=0.01, max_retry=0))
+        stream.end_input()
+        with self.assertRaises(APITimeoutError):
+            await asyncio.wait_for(drain(stream), 0.5)
+        await stream.aclose()
+        self.assertIsInstance(failures[0], APITimeoutError)
+        self.assertTrue(socket.closed)
+
+    async def test_incompatible_server_config_sends_no_audio(self):
+        socket = FakeSocket(
+            [], server_config={"type": "config", "useAudioWorklet": False, "mode": "full"}
+        )
+        stt = WhisperLiveKitSTT(connect=Connector(socket))
+        with self.assertRaisesRegex(APIStatusError, "incompatible"):
+            await collect(stt)
+        self.assertEqual(socket.sent, [])
+        self.assertTrue(socket.closed)
+
+    async def test_pcm_handshake_interim_final_eof_and_cleanup(self):
+        socket = FakeSocket(
+            [
+                {
+                    "status": "active_transcription",
+                    "lines": [],
+                    "buffer_transcription": "Hel",
+                },
+                {
+                    "status": "active_transcription",
+                    "lines": [
+                        {
+                            "speaker": 1,
+                            "text": "Hello",
+                            "start": "0:00:00",
+                            "end": "0:00:01.5",
+                        }
+                    ],
+                    "buffer_transcription": "world",
+                },
+            ]
+        )
+        connector = Connector(socket)
+        events = await collect(WhisperLiveKitSTT(connect=connector))
+        self.assertEqual(socket.sent, [b"\x01\x00\x02\x00", b""])
+        self.assertEqual(connector.calls[0][0], "ws://127.0.0.1:8913/asr?mode=full")
+        self.assertEqual(connector.calls[0][1]["open_timeout"], 4)
+        self.assertEqual([event.type for event in events], [
+            lkstt.SpeechEventType.INTERIM_TRANSCRIPT,
+            lkstt.SpeechEventType.FINAL_TRANSCRIPT,
+            lkstt.SpeechEventType.INTERIM_TRANSCRIPT,
+        ])
+        self.assertEqual([event.alternatives[0].text for event in events], ["Hel", "Hello", "world"])
+        self.assertEqual(events[1].alternatives[0].end_time, 1.5)
+        self.assertTrue(socket.closed)
+
+    def test_diarization_is_rejected_by_runtime_contract(self):
+        stt = WhisperLiveKitSTT()
+        self.assertTrue(stt.capabilities.streaming)
+        self.assertTrue(stt.capabilities.interim_results)
+        with self.assertRaisesRegex(ValueError, "diarization=False"):
+            WhisperLiveKitSTT(diarization=True)
+
+    async def test_server_error_and_invalid_audio_are_observable(self):
+        for updates, audio, expected in (
+            ([{"error": "backend unavailable"}], frame(), "backend unavailable"),
+            (["invalid update"], frame(), "update must be an object"),
+            ([], rtc.AudioFrame(data=b"\0" * 8, sample_rate=16000, num_channels=2, samples_per_channel=2), "mono PCM"),
+        ):
+            with self.subTest(expected=expected):
+                failures = []
+
+                async def failed(_count, _limit, error):
+                    failures.append(str(error))
+
+                socket = FakeSocket(updates)
+                stt = WhisperLiveKitSTT(connect=Connector(socket), failure_handler=failed)
+                with self.assertRaises(APIStatusError):
+                    await collect(stt, audio)
+                self.assertIn(expected, failures[0])
+                self.assertTrue(socket.closed)
+
+    async def test_failed_stream_notifies_recovery_and_sdk_retries(self):
+        failures = []
+
+        async def failed(count, limit, error):
+            failures.append((count, limit, str(error)))
+
+        sockets = [FailingSocket(), FailingSocket()]
+        connector = Connector(*sockets)
+        stt = WhisperLiveKitSTT(connect=connector, failure_handler=failed)
+        stream = stt.stream(
+            conn_options=APIConnectOptions(timeout=1, max_retry=1, retry_interval=0)
+        )
+        stream.push_frame(frame())
+        stream.end_input()
+        with self.assertRaises(APIConnectionError):
+            _ = [event async for event in stream]
+        await stream.aclose()
+        self.assertEqual(len(connector.calls), 2)
+        self.assertEqual([failure[:2] for failure in failures], [(1, 3), (2, 3)])
+        self.assertTrue(all(socket.closed for socket in sockets))
+
+    async def test_aclose_cancels_open_input_sender_and_receiver(self):
+        socket = FakeSocket([])
+        stt = WhisperLiveKitSTT(connect=Connector(socket))
+        stream = stt.stream(conn_options=APIConnectOptions(timeout=1, max_retry=0))
+        stream.push_frame(frame())
+        for _ in range(20):
+            if len(socket.sent) >= 2:
+                break
+            await asyncio.sleep(0)
+        await asyncio.wait_for(stream.aclose(), timeout=0.5)
+        self.assertTrue(socket.closed)
+        self.assertTrue(stream._sender_task.done())
+        self.assertTrue(stream._receiver_task.done())
+
+
+if __name__ == "__main__":
+    unittest.main()
