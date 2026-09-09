@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-from livekit.agents import Agent, llm
+from livekit.agents import llm
 
 from coach import JobCoach
 from tools import Posting, SessionState
@@ -54,7 +54,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         async def model(*_args):
             yield envelope("Stripe would suit you")
 
-        with patch.object(Agent.default, "llm_node", model), patch.object(coach, "_audit_speech", audit):
+        with patch.object(JobCoach, "_writer_node", model), patch.object(coach, "_audit_speech", audit):
             stream = coach.llm_node(llm.ChatContext.empty(), [], None)
             first_audio_text = asyncio.create_task(anext(stream))
             await asyncio.wait_for(auditing.wait(), 0.1)
@@ -79,7 +79,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 closed.set()
 
-        with patch.object(Agent.default, "llm_node", model):
+        with patch.object(JobCoach, "_writer_node", model):
             stream = coach.llm_node(llm.ChatContext.empty(), [], None)
             self.assertEqual(await asyncio.wait_for(anext(stream), 0.1), "Absolutely. Let's look closer. ")
             self.assertFalse(finish.is_set())
@@ -95,7 +95,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
             called.append(context)
             yield envelope("That search came back empty. Shall we broaden it?")
 
-        with patch.object(Agent.default, "llm_node", model):
+        with patch.object(JobCoach, "_writer_node", model):
             output = [chunk async for chunk in coach.llm_node(llm.ChatContext.empty(), [], None)]
         self.assertEqual(output, ["That search came back empty. Shall we broaden it? "])
         self.assertEqual(len(called), 1)
@@ -109,7 +109,7 @@ class StreamTests(unittest.IsolatedAsyncioTestCase):
         async def model(*_args):
             yield json.dumps({"parts": [{"fact": "invented_company"}], "stance": "neutral"})
 
-        with patch.object(Agent.default, "llm_node", model), self.assertLogs("coach", "WARNING") as logs:
+        with patch.object(JobCoach, "_writer_node", model), self.assertLogs("coach", "WARNING") as logs:
             output = [chunk async for chunk in coach.llm_node(llm.ChatContext.empty(), [], None)]
         self.assertEqual(output, ["I couldn't put that reply together. Could you try again?"])
         self.assertEqual(logs.records[0].reason, "unknown_fact")

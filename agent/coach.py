@@ -21,6 +21,7 @@ from user import User
 from intent import INTENT_INSTRUCTIONS, Intent, fast_intent, validate_intent
 from grounded_speech import GroundingError, SPEECH_INSTRUCTIONS, SentenceDecoder, render_sentence
 from claim_audit import audit_sentence
+from response_schemas import SpeechEnvelope
 
 SAY_AS = {
     "Tel Aviv": "Tell Aveev",
@@ -244,9 +245,7 @@ class JobCoach(Agent):
         context.add_message(role="system", content="CURRENT_FACTS: " + json.dumps(facts, ensure_ascii=False))
         if state.search_widened:
             context.add_message(role="system", content="Disclose the search widening in outcome once this turn. Do not imply the original subject matched.")
-        source = Agent.default.llm_node(self, context, [], model_settings)
-        if asyncio.iscoroutine(source):
-            source = await source
+        source = self._writer_node(context, model_settings)
         decoder = SentenceDecoder()
         started = time.perf_counter()
         raw_text = ""
@@ -301,6 +300,22 @@ class JobCoach(Agent):
                 "model_text": raw_text, "intended_text": state.intended_text,
                 "grounded_posting_id": str(posting.id) if posting else None,
             })
+
+    async def _writer_node(
+        self, context: llm.ChatContext, model_settings
+    ) -> AsyncIterator[llm.ChatChunk | str | FlushSentinel]:
+        session = self.session
+        model = session.llm
+        if model is None:
+            raise GroundingError("model_unavailable")
+        async with model.chat(
+            chat_ctx=context,
+            tools=[],
+            response_format=SpeechEnvelope,
+            conn_options=session.conn_options.llm_conn_options,
+        ) as stream:
+            async for chunk in stream:
+                yield chunk
 
     async def _audit_speech(self, text: str, facts: dict[str, str], references: tuple[str, ...]) -> None:
         # An independent request sees the rendered proposition, not the writer's
