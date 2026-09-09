@@ -185,13 +185,15 @@ def test_owned_start_uses_private_env_and_binds_receipt_pid(monkeypatch, tmp_pat
         "DATABASE_URL": "postgres://synthetic", "LIVEKIT_URL": "ws://127.0.0.1:7880",
         "LIVEKIT_API_KEY": "synthetic-key", "LIVEKIT_API_SECRET": "synthetic-secret",
         "VOICE_QA_RECEIPT_FILE": str(owned_receipt),
-        "AGENT_LOG_FILE": str(context.state_dir / "qa-agent.log"),
+        "AGENT_LOG_FILE": str(captured["log_dir"] / "agent.log"),
         "STT_URL": "http://127.0.0.1:8923/inference",
     }
     assert service.receipt_path(context) == owned_receipt
     assert service.owns(context, identity)
     service.stop(context, identity)
     assert captured["stopped"] == identity["process"]
+    assert (captured["log_dir"] / "agent.log").exists()
+    assert json.loads((captured["log_dir"] / "receipt-snapshot.json").read_text())["process"]["pid"] == 777
 
 
 def test_strict_verifier_stdout_and_owned_pid_binding(monkeypatch, tmp_path):

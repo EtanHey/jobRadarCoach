@@ -187,6 +187,8 @@ def test_owned_start_is_normal_automatic_start_and_cleanup_is_exact(monkeypatch,
     service.stop(context, identity)
     assert captured["stopped"] == identity["process"]
     assert not (context.state_dir / "room-agent-receipt.json").exists()
+    assert (captured["log_dir"] / "agent.log").exists()
+    assert json.loads((captured["log_dir"] / "receipt-snapshot.json").read_text())["process"]["pid"] == 777
 
 
 def test_existing_or_qa_process_never_starts(monkeypatch, tmp_path):

@@ -6,9 +6,13 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Sequence
+
+
+from scripts.runtime_diagnostics import private_append, record_event
 
 
 Identity = dict[str, Any]
@@ -152,10 +156,12 @@ class ProcessService:
         startup_timeout: float = 20,
         shutdown_timeout: float = 10,
         readiness_interval: float = 0.5,
+        log_dir: Path | None = None,
     ) -> None:
         self.name, self.command, self._probe = name, tuple(command), probe
         self.cwd, self.env = cwd, dict(env or {})
         self.startup_timeout, self.shutdown_timeout = startup_timeout, shutdown_timeout
+        self.log_dir = log_dir
         self.readiness_interval = readiness_interval
         self._children: dict[int, subprocess.Popen[str]] = {}
 
@@ -169,14 +175,27 @@ class ProcessService:
             merged_env["VOICE_QA_MODE"] = "1"
         else:
             merged_env.pop("VOICE_QA_MODE", None)
-        child = subprocess.Popen(
-            self.command, cwd=self.cwd or context.repo_root, env=merged_env,
-            text=True, start_new_session=True,
-        )
+        output = private_append(self.log_dir / "console.log") if self.log_dir else None
+        try:
+            child = subprocess.Popen(
+                self.command, cwd=self.cwd or context.repo_root, env=merged_env,
+                text=True, start_new_session=True, stdout=output,
+                stderr=subprocess.STDOUT if output else None,
+            )
+        except OSError:
+            record_event(self.log_dir, self.name, "spawn_failed", qa_mode=context.qa_mode)
+            raise
+        finally:
+            if output:
+                output.close()
+        if self.log_dir:
+            print(f"{self.name} diagnostics: {self.log_dir}", file=sys.stderr, flush=True)
+        record_event(self.log_dir, self.name, "started", pid=child.pid, qa_mode=context.qa_mode)
         self._children[child.pid] = child
         identity = process_snapshot(child.pid)
         if identity is None:
             self._terminate(child.pid, None)
+            record_event(self.log_dir, self.name, "startup_failed", pid=child.pid, exit_code=child.poll())
             raise RuntimeError("could not capture process identity")
         identity["argv_verified"] = False
         try:
@@ -201,6 +220,7 @@ class ProcessService:
             raise RuntimeError("startup health check timed out")
         except BaseException:
             self._terminate(child.pid, identity)
+            record_event(self.log_dir, self.name, "startup_failed", pid=child.pid, exit_code=child.poll())
             raise
 
     def owns(self, context: RuntimeContext, identity: Identity) -> bool:
@@ -211,7 +231,11 @@ class ProcessService:
         del context
         if _identity_state(identity) == "mismatch":
             raise RuntimeError("process identity changed; refusing to signal")
-        self._terminate(int(identity["pid"]), identity)
+        pid = int(identity["pid"])
+        self._terminate(pid, identity)
+        child = self._children.get(pid)
+        record_event(self.log_dir, self.name, "stopped", pid=pid,
+                     exit_code=child.poll() if child else None)
 
     def _terminate(self, pid: int, identity: Identity | None) -> None:
         state = _identity_state(identity) if identity is not None else "same"
