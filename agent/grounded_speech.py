@@ -94,8 +94,8 @@ class SentenceDecoder:
             raise GroundingError("incomplete_speech")
 
 
-SPEECH_INSTRUCTIONS = """Write natural spoken replies, one to three short sentences, then wait.
-Output one JSON object per sentence with exactly parts and stance. No arrays/markdown around objects.
+SPEECH_INSTRUCTIONS = """Write one natural spoken reply containing one to three short sentences, then wait.
+Output exactly one JSON object with parts and stance. No arrays, markdown or additional objects.
 parts contains {"text":"your conversational wording"} and {"fact":"field"} entries.
 For a shorter exact quote use {"fact":"reasons","quote":"Python"} if Python occurs in reasons.
 Use fact parts for ALL factual claims, names, titles, locations, numbers, technologies and links.
@@ -108,7 +108,7 @@ No posting means neutral conversation/clarification only. Do not imply a job exi
 An initial offer identifies one role/company and why it may fit. A follow-up answers the actual question;
 do not repeat the identity or a closing question every turn. STOP after this job and wait.
 Above70 recommend;40–70 are weaker options only when asked; below40 plainly not worth pursuing.
-Each object should be short enough to speak immediately. Do not put multiple long sentences in one object.
-Example: {"parts":[{"text":"I'd look closer at "},{"fact":"title"},{"text":" with "},{"fact":"company"},{"text":"."}],"stance":"recommend"}
+The one object should be short enough to speak immediately and render as at most three short sentences.
+Example: {"parts":[{"text":"I'd look closer at "},{"fact":"title"},{"text":" with "},{"fact":"company"},{"text":". The fit looks promising."}],"stance":"recommend"}
 Example follow-up: {"parts":[{"text":"Absolutely. I see why that part bothers you."}],"stance":"neutral"}
 """

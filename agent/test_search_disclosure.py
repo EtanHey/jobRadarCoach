@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-from livekit.agents import Agent, llm
+from livekit.agents import llm
 
 from coach import JobCoach
 from intent import Intent, fast_intent
@@ -47,7 +47,7 @@ class DisclosureTests(unittest.IsolatedAsyncioTestCase):
 
         coach = Coach(User.default(), find_jobs=find)
         context = llm.ChatContext.empty()
-        with patch.object(Agent.default, "llm_node", model):
+        with patch.object(JobCoach, "_writer_node", model):
             for utterance in ("find jobs in Israel with Rust", "tell me more"):
                 message = context.add_message(role="user", content=utterance)
                 await coach._prepare_turn(context, message)
