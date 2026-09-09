@@ -19,11 +19,44 @@ class GroundingError(ValueError):
 _URL_RE = re.compile(r"https?://[^\s)\]>]+", re.I)
 _NUMBER_RE = re.compile(r"(?<![\w/])\d+(?:\.\d+)?(?![\w/])")
 _IDENTITY_FIELDS = ("company", "title", "location")
+_SMALL_NUMBER_WORDS = (
+    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+    "seventeen", "eighteen", "nineteen",
+)
+_TENS_WORDS = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety")
+_NUMBER_WORD = "(?:" + "|".join(
+    (*_SMALL_NUMBER_WORDS, *filter(None, _TENS_WORDS), "hundred", "thousand", "million")
+) + ")"
+_PRECEDING_NUMBER_RE = re.compile(_NUMBER_WORD + r"(?:[\s-]+and)?[\s-]+$")
+_FOLLOWING_NUMBER_RE = re.compile(r"^[\s-]+(?:and[\s-]+)?" + _NUMBER_WORD + r"(?!\w)")
 
 
 def _identity_pattern(value: str) -> re.Pattern[str]:
     words = " ".join(value.split()).casefold().split(" ")
     return re.compile(r"(?<!\w)" + r"\s+".join(map(re.escape, words)) + r"(?!\w)")
+
+
+def _score_word_pattern(score: int) -> re.Pattern[str] | None:
+    if not 0 <= score <= 100:
+        return None
+    if score < 20:
+        words = (_SMALL_NUMBER_WORDS[score],)
+    elif score < 100:
+        words = (_TENS_WORDS[score // 10],)
+        if score % 10:
+            words += (_SMALL_NUMBER_WORDS[score % 10],)
+    else:
+        words = (r"(?:one|a)", "hundred")
+    return re.compile(r"(?<!\w)" + r"(?:[\s-]+)".join(words) + r"(?!\w)")
+
+
+def _has_maximal_score_words(text: str, pattern: re.Pattern[str]) -> bool:
+    return any(
+        not _PRECEDING_NUMBER_RE.search(text[:match.start()])
+        and not _FOLLOWING_NUMBER_RE.search(text[match.end():])
+        for match in pattern.finditer(text)
+    )
 
 
 def spoken_identity_fields(text: str, facts: dict[str, str]) -> set[str]:
@@ -52,7 +85,14 @@ def spoken_identity_fields(text: str, facts: dict[str, str]) -> set[str]:
         covered[start:end] = [True] * (end - start)
     score_text = "".join(" " if covered[index] else char for index, char in enumerate(normalized))
     score = facts.get("score")
-    if score and str(score) in _NUMBER_RE.findall(score_text):
+    try:
+        word_score = _score_word_pattern(int(str(score))) if score is not None else None
+    except (TypeError, ValueError):
+        word_score = None
+    if score and (
+        str(score) in _NUMBER_RE.findall(score_text)
+        or (word_score is not None and _has_maximal_score_words(score_text, word_score))
+    ):
         required.add("score")
     return required
 

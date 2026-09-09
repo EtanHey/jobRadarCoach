@@ -55,6 +55,40 @@ class AuditTests(unittest.TestCase):
             for field in missing.split("|"):
                 self.assertIn(field, str(raised.exception))
 
+    def test_word_form_score_requires_a_matching_extracted_claim(self):
+        for text in ("It scored eighty-two.", "It scored eighty two."):
+            with self.subTest(text=text), self.assertRaisesRegex(
+                GroundingError, "audit_omitted_spoken_identity.*score"
+            ):
+                validate_audit(EMPTY_AUDIT, FACTS, text)
+            validate_audit(
+                {**EMPTY_AUDIT, "claims": [{"field": "score", "value": "82"}]},
+                FACTS,
+                text,
+            )
+
+    def test_word_form_score_inside_known_identity_is_masked(self):
+        facts = {**FACTS, "company": "Eighty-Two Labs"}
+        validate_audit(
+            {**EMPTY_AUDIT, "claims": [{"field": "company", "value": "Eighty-Two Labs"}]},
+            facts,
+            "Eighty-Two Labs looks interesting.",
+        )
+
+    def test_word_form_score_does_not_match_prefix_of_larger_number(self):
+        for score, larger, standalone in (
+            ("20", "It scored twenty one.", "It scored twenty."),
+            ("100", "It scored one hundred and one.", "It scored one hundred."),
+            ("1", "It scored twenty one.", "It scored one."),
+        ):
+            facts = {**FACTS, "score": score}
+            with self.subTest(score=score, form="larger"):
+                validate_audit(EMPTY_AUDIT, facts, larger)
+            with self.subTest(score=score, form="standalone"), self.assertRaisesRegex(
+                GroundingError, "audit_omitted_spoken_identity.*score"
+            ):
+                validate_audit(EMPTY_AUDIT, facts, standalone)
+
     def test_short_identity_names_use_token_boundaries(self):
         for company in ("AI", "X", "Go"):
             with self.subTest(company=company), self.assertRaisesRegex(
@@ -92,6 +126,18 @@ class AuditTests(unittest.TestCase):
                 facts,
                 "Studio 54 scored 54.",
             )
+
+    def test_a_hundred_requires_matching_score_claim(self):
+        facts = {**FACTS, "score": "100"}
+        for text in ("It scored a hundred.", "It scored a-hundred."):
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(GroundingError, "score"):
+                    validate_audit(EMPTY_AUDIT, facts, text)
+                validate_audit(
+                    {**EMPTY_AUDIT, "claims": [{"field": "score", "value": "100"}]},
+                    facts, text,
+                )
+        validate_audit(EMPTY_AUDIT, facts, "It scored a hundred and one.")
 
     def test_claim_free_words_and_repeated_valid_identity_pass(self):
         for text in ("Absolutely, I see why that bothers you.", "How does that sound?"):
