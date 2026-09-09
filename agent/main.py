@@ -315,8 +315,8 @@ def interruption_options(stt) -> dict[str, float | int]:
     }
 
 
-def turn_handling_options(stt) -> dict[str, object]:
-    return {
+def turn_handling_options(stt, *, turn_detection=None) -> dict[str, object]:
+    options = {
         "endpointing": {
             "min_delay": float(os.environ.get("MIN_ENDPOINTING_DELAY", "1.2")),
             "max_delay": float(os.environ.get("MAX_ENDPOINTING_DELAY", "6.0")),
@@ -324,6 +324,28 @@ def turn_handling_options(stt) -> dict[str, object]:
         "interruption": interruption_options(stt),
         "preemptive_generation": {"enabled": False},
     }
+    if turn_detection is not None:
+        options["turn_detection"] = turn_detection
+    return options
+
+
+def speech_components(*, streaming_factory=None, turn_detector_factory=None):
+    streaming_url = os.environ.get("STREAMING_STT_URL", "").strip()
+    if not streaming_url:
+        return WhisperCppSTT(), None
+    if os.environ.get("LIVEKIT_REMOTE_EOT_URL", "").strip():
+        raise RuntimeError(
+            "LIVEKIT_REMOTE_EOT_URL is incompatible with local streaming STT"
+        )
+    if streaming_factory is None:
+        from stt_streaming import WhisperLiveKitSTT
+
+        streaming_factory = WhisperLiveKitSTT
+    if turn_detector_factory is None:
+        from livekit.plugins.turn_detector.multilingual import MultilingualModel
+
+        turn_detector_factory = MultilingualModel
+    return streaming_factory(url=streaming_url), turn_detector_factory()
 
 
 def llm_session_connect_options() -> SessionConnectOptions:
@@ -399,7 +421,7 @@ async def entrypoint(ctx: agents.JobContext):
             "voice_qa_mode": state.qa_mode,
         },
     )
-    whisper = WhisperCppSTT()
+    whisper, turn_detector = speech_components()
     session = AgentSession(
         userdata=state,
         conn_options=llm_session_connect_options(),
@@ -419,7 +441,9 @@ async def entrypoint(ctx: agents.JobContext):
             voice=os.environ.get("TTS_VOICE", "af_heart"),
         ),
         use_tts_aligned_transcript=True,
-        turn_handling=turn_handling_options(whisper),
+        turn_handling=turn_handling_options(
+            whisper, turn_detection=turn_detector
+        ),
     )
 
     recovery = SpeechRecovery(session)
