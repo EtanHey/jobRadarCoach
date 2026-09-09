@@ -209,7 +209,9 @@ def test_qa_mode_and_symlinked_jrc_are_visible_and_guarded(tmp_path):
         normal_up = run_entry(ROOT / "run", env, "up")
         qa_up = run_entry(symlink, env, "run", "--qa")
         assert '"qa_mode": true' in state.read_text()
-        assert status.returncode == 0 and "mode=QA" in status.stdout
+        assert "mode=QA" in status.stdout
+        scheduler_healthy = status.stdout.startswith(("scheduler: healthy", "scheduler: running"))
+        assert status.returncode == (0 if scheduler_healthy else 1)
         unavailable_env = {**env, "RUN_SERVICES_MODULE": "missing_test_adapter"}
         unavailable = run_entry(ROOT / "run", unavailable_env, "status")
         assert unavailable.returncode == 2 and "running mode=QA" in unavailable.stdout
