@@ -39,6 +39,12 @@ class TailscaleServeService:
         "tcp:7881": "127.0.0.1:17881",
     }
 
+    def __init__(self, *, voice_only: bool = False) -> None:
+        self.desired = dict(type(self).desired)
+        self.lifecycle_owned = voice_only
+        if voice_only:
+            self.desired.pop("https:8445")
+
     def _targets(self, context: RuntimeContext) -> dict[str, str | None] | None:
         serve = _json(context, ("tailscale", "serve", "status", "--json"))
         status = _json(context, ("tailscale", "status", "--json"))
@@ -58,7 +64,7 @@ class TailscaleServeService:
                     else handlers.get("/", {}).get("Proxy", "<occupied>") if valid
                     else "<occupied>"
                 )
-            return targets
+            return {key: target for key, target in targets.items() if key in self.desired}
         except (AttributeError, KeyError, TypeError):
             return None
 
@@ -72,7 +78,8 @@ class TailscaleServeService:
             return Probe(False, f"conflicting mappings: {','.join(wrong)}")
         status = _json(context, ("tailscale", "status", "--json")) or {}
         dns = status.get("Self", {}).get("DNSName", "").rstrip(".")
-        reachable = bool(dns) and all(_http(context, f"https://{dns}:{port}/") for port in (8445, 8446))
+        ports = [key.split(":")[1] for key in self.desired if key.startswith("https:")]
+        reachable = bool(dns) and all(_http(context, f"https://{dns}:{port}/") for port in ports)
         healthy = not missing and reachable
         detail = "exact mappings reachable" if healthy else (
             f"missing: {','.join(missing)}" if missing else "tailnet HTTPS probes failed"
@@ -86,7 +93,8 @@ class TailscaleServeService:
         conflicts = [key for key, target in targets.items() if target not in (None, self.desired[key])]
         if conflicts:
             raise RuntimeError(f"refusing to replace mappings: {','.join(conflicts)}")
-        created: list[str] = []
+        created = [key for key, target in targets.items()
+                   if self.lifecycle_owned and target == self.desired[key]]
         try:
             for key, target in self.desired.items():
                 current = self._targets(context)
@@ -123,6 +131,9 @@ class TailscaleServeService:
             key in self.desired and recorded.get(key) == self.desired[key] == targets.get(key)
             for key in created
         )
+
+    def is_running(self, context: RuntimeContext, identity: dict[str, Any]) -> bool:
+        return self.owns(context, identity)
 
     def stop(self, context: RuntimeContext, identity: dict[str, Any]) -> None:
         if not self.owns(context, identity):

@@ -5,6 +5,8 @@ import signal
 import subprocess
 import time
 
+import pytest
+
 from test_support.runtime_cli_support import ROOT, environment, is_alive, run_entry, wait_for
 from test_support.runtime_supervisor_services import _service
 
@@ -95,14 +97,15 @@ def test_partial_cleanup_retry_stops_only_retained_identity_in_recorded_qa_mode(
             wait_for(lambda: not is_alive(first_pid))
 
 
-def test_cleanup_retry_refuses_stale_owned_identity_without_stopping_process(tmp_path):
+@pytest.mark.parametrize("command", ["down", "up"])
+def test_cleanup_retry_refuses_stale_owned_identity_without_stopping_process(tmp_path, command):
     env, state_path, identities = _launch_partial(tmp_path)
     first_pid = int(identities["first"]["pid"])
     try:
         retained = json.loads(state_path.read_text())
         retained["services"][0]["identity"]["start"] += " changed"
         state_path.write_text(json.dumps(retained))
-        retry = run_entry(ROOT / "run", env, "down")
+        retry = run_entry(ROOT / "run", env, command)
         assert retry.returncode == 1 and "ownership identity changed" in retry.stderr
         assert is_alive(first_pid)
         assert (tmp_path / "first.stops").read_text() == "1"
