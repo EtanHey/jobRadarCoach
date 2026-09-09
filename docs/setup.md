@@ -86,9 +86,98 @@ docker build -f ui/Dockerfile -t job-radar-ui:dev ui
 
 The images stay local; the manifests use `imagePullPolicy: Never`.
 
+### Preinstall the Kokoro voice container
+
+`jrc run` owns an approved, preinstalled Kokoro container. A fresh setup creates it stopped, with its
+HTTP port bound only to loopback. An existing approved `kokoro` container is reused without pulling,
+starting, stopping, replacing, or deleting it. Any conflicting name, shape, or port fails closed.
+
+```zsh
+set -euo pipefail
+runtime_kokoro_image="ghcr.io/remsky/kokoro-fastapi-cpu:latest"
+runtime_kokoro_created=0
+runtime_kokoro_exists=0
+runtime_kokoro_running=false
+docker info >/dev/null
+runtime_kokoro_names="$(
+  docker container ls --all --filter 'name=^/kokoro$' --format '{{.Names}}'
+)"
+if [[ "${runtime_kokoro_names}" == kokoro ]]; then
+  runtime_kokoro_exists=1
+  runtime_kokoro_running="$(docker container inspect --format '{{.State.Running}}' kokoro)"
+elif [[ -n "${runtime_kokoro_names}" ]]; then
+  printf '%s\n' "conflict: exact container name kokoro is ambiguous" >&2
+  exit 1
+fi
+runtime_kokoro_publishers="$(
+  docker container ls --all --filter publish=8881 --format '{{.Names}}'
+)"
+if [[ -n "${runtime_kokoro_publishers}" ]] && \
+   [[ "${runtime_kokoro_exists}" != 1 || "${runtime_kokoro_publishers}" != "kokoro" ]]; then
+  printf '%s\n' "conflict: another Docker container publishes port 8881" >&2
+  exit 1
+fi
+if [[ "${runtime_kokoro_running}" != true && -n "$(lsof -nP -iTCP:8881 -sTCP:LISTEN -t || true)" ]]; then
+  printf '%s\n' "conflict: another process listens on TCP port 8881" >&2
+  exit 1
+fi
+if [[ "${runtime_kokoro_exists}" == 0 ]]; then
+  docker pull "${runtime_kokoro_image}"
+  docker container create \
+    --name kokoro \
+    --restart=no \
+    --network bridge \
+    --publish 127.0.0.1:8881:8880 \
+    "${runtime_kokoro_image}" ./entrypoint.sh >/dev/null
+  runtime_kokoro_created=1
+fi
+
+KOKORO_CREATED="${runtime_kokoro_created}" python3 - 3< <(
+  docker container inspect kokoro
+) <<'PY'
+import json
+import os
+import re
+
+values = json.load(open(3))
+container = values[0] if isinstance(values, list) and len(values) == 1 else {}
+config = container.get("Config", {})
+host = container.get("HostConfig", {})
+state = container.get("State", {})
+approved_bindings = (
+    {"8880/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8881"}]},
+    {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]},
+)
+approved = (
+    container.get("Name") == "/kokoro"
+    and re.fullmatch(r"[0-9a-f]{64}", str(container.get("Id", ""))) is not None
+    and re.fullmatch(r"sha256:[0-9a-f]{64}", str(container.get("Image", ""))) is not None
+    and config.get("Image") == "ghcr.io/remsky/kokoro-fastapi-cpu:latest"
+    and config.get("Entrypoint") is None
+    and config.get("Cmd") == ["./entrypoint.sh"]
+    and host.get("PortBindings") in approved_bindings
+    and host.get("RestartPolicy") == {"Name": "no", "MaximumRetryCount": 0}
+    and host.get("AutoRemove") is False
+    and host.get("NetworkMode") == "bridge"
+    and container.get("Mounts") == []
+    and state.get("Status") in {"created", "exited", "running"}
+)
+if not approved:
+    raise SystemExit("conflict: container/kokoro does not match the approved jrc voice shape")
+if os.environ["KOKORO_CREATED"] == "1" and state.get("Status") != "created":
+    raise SystemExit("new container/kokoro was expected to remain stopped")
+print("container/kokoro ready for jrc", state["Status"])
+PY
+unset runtime_kokoro_image runtime_kokoro_created runtime_kokoro_exists
+unset runtime_kokoro_running runtime_kokoro_names runtime_kokoro_publishers
+```
+
+The empty-host legacy binding is accepted only for an already identified installation. New setups use
+`127.0.0.1:8881`; `jrc run` starts or adopts the exact container and Ctrl-C stops it without removal.
+
 ## 6. Create runtime-only Kubernetes Secrets
 
-Use an unused tailnet HTTPS port. These commands use `8445` and preserve existing handlers on `443` or `8443`; if `8445` is occupied, choose another port and replace it throughout this guide, including the origin validation. The following Python reads Supabase status on file descriptor 3, replaces only a parsed loopback hostname, preserves URL-encoded database user information, and pipes Secret JSON directly to `kubectl`. It does not put credentials in command arguments, files, or terminal output.
+The dashboard uses tailnet HTTPS port `8445`, which is also required by `jrc`. These commands preserve existing handlers on `443` or `8443`. If `8445` is occupied, identify and resolve that mapping before setup; do not silently choose a different port. The following Python reads Supabase status on file descriptor 3, replaces only a parsed loopback hostname, preserves URL-encoded database user information, and pipes Secret JSON directly to `kubectl`. It does not put credentials in command arguments, files, or terminal output.
 
 ```zsh
 set -euo pipefail
@@ -352,19 +441,19 @@ The portable default remains Ollama. Only Ollama and Codex are implemented batch
 Keep this localhost bridge running in its own terminal:
 
 ```zsh
-kubectl -n job-radar-coach port-forward service/ui 3000:3000
+kubectl --context orbstack -n job-radar-coach port-forward --address 127.0.0.1 service/ui 3410:3000
 ```
 
-Wait for the bridge to print `Forwarding from 127.0.0.1:3000`. If the local port is occupied, use another free port in both bridge commands. In a second terminal, add only the chosen HTTPS handler:
+Wait for the bridge to print `Forwarding from 127.0.0.1:3410`. Port 3410 is the dashboard bridge used by `jrc`; if it is occupied, identify the existing listener before proceeding. In a second terminal, add only the chosen HTTPS handler:
 
 ```zsh
-tailscale serve --bg --https=8445 http://127.0.0.1:3000
+tailscale serve --bg --https=8445 http://127.0.0.1:3410
 tailscale serve status
 ```
 
 Open `https://<this-machine-tailnet-name>:8445` from a device on the same tailnet. The exact full origin must match the `UI_ORIGIN` stored above or mutations are rejected. Do not use `tailscale serve reset`: it would remove unrelated handlers.
 
-The foreground port-forward is session-scoped. Restart it after logout, reboot, or a selected UI pod restart. Portable setup does not install a background bridge.
+The foreground port-forward is session-scoped. Restart it after logout, reboot, or a selected UI pod restart. Portable setup does not install a background bridge. Keep this dashboard bridge running independently of `jrc run`; voice Ctrl-C cleanup leaves it and the dashboard mapping intact.
 
 ### Prepare the voice transport
 
@@ -430,7 +519,9 @@ print("https:8446", "missing" if signaling is None else "reuse")
 PY
 ```
 
-If `tcp:7881` printed `missing`, add the media mapping:
+For normal use, `jrc run` creates missing voice mappings and adopts matching existing mappings on ports 7881 and 8446. Ctrl-C removes those exact voice mappings, including adopted ones; dashboard port 8445 stays intact. The commands below are an optional manual transport check before using `jrc`.
+
+For that manual check, if `tcp:7881` printed `missing`, add the media mapping:
 
 ```zsh
 tailscale serve --bg --tcp=7881 tcp://127.0.0.1:17881
@@ -442,7 +533,7 @@ If `https:8446` printed `missing`, add the signaling mapping:
 tailscale serve --bg --https=8446 http://127.0.0.1:17880
 ```
 
-Leave every `reuse` mapping untouched. Then verify signaling:
+During this manual check, leave existing `reuse` mappings unchanged. Then verify signaling:
 
 ```zsh
 curl -fsS -o /dev/null http://127.0.0.1:17880/
@@ -450,10 +541,10 @@ curl -fsS -o /dev/null "https://${runtime_tailnet_host}:8446/"
 unset runtime_tailnet_host
 ```
 
-Never use `tailscale serve reset` or Funnel. On cleanup, stop the bridge only if this terminal launched
+Never use `tailscale serve reset` or Funnel. When ending only the manual check, stop the bridge only if this terminal launched
 it, using Ctrl-C or SIGTERM for that exact PID. Remove only a mapping that this setup created, after the
 same status check still reports its exact target, with `tailscale serve --tcp=7881 off` or `tailscale
-serve --https=8446 off`. Keep reused processes and mappings.
+serve --https=8446 off`. Preserve processes and mappings borrowed by this manual check. Once `jrc run` adopts the voice mappings, its Ctrl-C cleanup owns their removal regardless of who originally created them.
 
 ## Repeat starts
 

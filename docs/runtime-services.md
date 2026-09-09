@@ -1,10 +1,12 @@
 # Runtime service ownership
 
-Run `jrc run` (or `./run up`) in a foreground terminal. Use `jrc run --qa` for read-only voice QA; it prints its mode and sets `VOICE_QA_MODE=1` for children. `jrc status` reports the running mode, readiness and ownership. Press Ctrl-C or run `jrc down` to stop the matching supervisor and clean its owned resources.
+Run `jrc run` in a foreground terminal. Use `jrc run --qa` for read-only voice QA; it prints its mode and sets `VOICE_QA_MODE=1` for children. `jrc status` reports the running mode, readiness and ownership. Press Ctrl-C to stop the voice stack. `jrc down` is crash cleanup only; a new `jrc run` also recovers the prior run’s verified resources before starting.
 
-Supabase, Ollama, Kokoro, the OrbStack VM/Kubernetes node, and deployed UI and LiveKit resources are shared prerequisites. The supervisor borrows them only after identity and health checks; it never starts or stops them. Missing prerequisites cause an explicit failure.
+Supabase, Ollama, OrbStack/Kubernetes, the deployed UI and its loopback forward on port 3410 remain always-on prerequisites. Missing prerequisites cause an explicit failure. The supervisor never stops them or removes the dashboard HTTPS mapping on port 8445.
 
-The supervisor may own foreground Whisper, the UI and signaling port forwards, the tracked loopback LiveKit bridge, a room-mode agent, and—in QA mode—the guarded proxy. Existing processes must match the expected executable and arguments. Cleanup checks PID, process group, session and OS start identity; unfamiliar listeners refuse startup. Tailscale mappings are removed only if the supervisor created them and their targets still match. Cleanup never resets Serve or enables Funnel.
+The supervisor adopts or starts the approved preinstalled Kokoro container and LiveKit Deployment. Ctrl-C stops that exact Kokoro instance and scales that exact LiveKit Deployment to zero. It does not delete the container, Deployment, Service, ConfigMaps or Secrets. Replaced identities or changed deployment specs refuse cleanup and retain a diagnostic record. Kokoro health uses a ten-second budget; repeated post-start readiness failures report degradation without tearing down unrelated services.
+
+Whisper, the signaling forward, tracked loopback bridge and room agent are foreground processes started when absent. Existing verified processes remain borrowed; unfamiliar listeners refuse startup. Cleanup checks PID, process group, session and OS start identity. The voice mappings on ports 8446 and 7881 are adopted for the run and removed only while their targets still match. Cleanup never resets Serve or enables Funnel. QA adds the guarded proxy and its optional separate phone mapping.
 
 Normal mode launches `.venv-agent/bin/python agent/main.py start` with QA mode unset or zero. An existing exact `dev` or `start` worker can be borrowed only after verification. Console mode never serves `/mic`. QA mode selects a QA room worker and passes its selected receipt to the guarded proxy; it never starts the normal worker path.
 

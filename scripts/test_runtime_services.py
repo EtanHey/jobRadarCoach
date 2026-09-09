@@ -73,8 +73,8 @@ def test_normal_order_uses_room_agent_after_forwards_and_mic_gate(monkeypatch, t
     })()
     services = subject.build_services(context)
     assert [service.name for service in services] == [
-        "kubernetes", "supabase", "ollama", "kokoro", "livekit", "ui", "whisper",
-        "ui-forward", "livekit-bridge", "tailscale-serve", "livekit-forward", "room-ui",
+        "kubernetes", "supabase", "ollama", "ui", "ui-forward", "dashboard-tailnet", "kokoro", "livekit",
+        "whisper", "livekit-bridge", "tailscale-serve", "livekit-forward", "room-ui",
         "room-agent",
     ]
     assert services[-3].command == (
@@ -185,3 +185,28 @@ def test_kokoro_health_probe_allows_loaded_service_ten_seconds(monkeypatch):
     assert unavailable.detail == (
         "shared Kokoro identified; health endpoint timed out or returned non-success"
     )
+
+
+def test_voice_resources_owned_and_dashboard_borrowed_in_both_modes(tmp_path):
+    for qa in (False, True):
+        context = RuntimeContext(tmp_path, tmp_path / "state", qa_mode=qa)
+        services = {item.name: item for item in subject.build_services(context)}
+        for name in ("kokoro", "livekit", "tailscale-serve"):
+            assert services[name].lifecycle_owned is True
+        for name in ("ui", "ui-forward", "dashboard-tailnet", "supabase"):
+            assert isinstance(services[name], subject.RequirementService)
+        assert "https:8445" not in services["tailscale-serve"].desired
+        assert ("qa-agent" in services) is qa
+        assert ("room-agent" in services) is not qa
+
+
+def test_dashboard_mapping_is_checked_without_mutation(monkeypatch):
+    monkeypatch.setattr(subject.TailscaleServeService, "_targets", lambda *args: {"https:8445": "http://127.0.0.1:3410"})
+    monkeypatch.setattr(subject, "_json", lambda *args: {"Self": {"DNSName": "host.ts.net."}})
+    calls = []
+    monkeypatch.setattr(subject, "_http", lambda ctx, url, **kw: calls.append(url) or True)
+    assert subject._dashboard_tailnet(object()).healthy
+    assert calls == ["https://host.ts.net:8445/mic"]
+    monkeypatch.setattr(subject.TailscaleServeService, "_targets", lambda *args: {"https:8445": "http://127.0.0.1:9999"})
+    assert not subject._dashboard_tailnet(object()).healthy
+    assert len(calls) == 1

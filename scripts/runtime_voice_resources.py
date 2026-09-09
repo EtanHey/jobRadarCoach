@@ -14,7 +14,10 @@ from scripts.runtime_process import Identity, Probe, RuntimeContext
 
 KOKORO_CONTAINER_NAME = "kokoro"
 KOKORO_IMAGE = "ghcr.io/remsky/kokoro-fastapi-cpu:latest"
-KOKORO_PORT_BINDINGS = {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]}
+KOKORO_PORT_BINDINGS = (
+    {"8880/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8881"}]},
+    {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]},
+)
 POST_START_INSPECT_ATTEMPTS = 3
 POST_START_INSPECT_INTERVAL = 0.1
 UNCONFIRMED_AFTER_START = "unconfirmed_after_start"
@@ -64,7 +67,7 @@ class KokoroContainerService:
             and config.get("Image") == KOKORO_IMAGE
             and config.get("Entrypoint") is None
             and config.get("Cmd") == ["./entrypoint.sh"]
-            and host.get("PortBindings") == KOKORO_PORT_BINDINGS
+            and host.get("PortBindings") in KOKORO_PORT_BINDINGS
             and host.get("RestartPolicy") == {"Name": "no", "MaximumRetryCount": 0}
             and host.get("AutoRemove") is False
             and host.get("NetworkMode") == "bridge"
