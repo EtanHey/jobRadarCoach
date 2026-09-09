@@ -86,6 +86,95 @@ docker build -f ui/Dockerfile -t job-radar-ui:dev ui
 
 The images stay local; the manifests use `imagePullPolicy: Never`.
 
+### Preinstall the Kokoro voice container
+
+`jrc run` owns an approved, preinstalled Kokoro container. A fresh setup creates it stopped, with its
+HTTP port bound only to loopback. An existing approved `kokoro` container is reused without pulling,
+starting, stopping, replacing, or deleting it. Any conflicting name, shape, or port fails closed.
+
+```zsh
+set -euo pipefail
+runtime_kokoro_image="ghcr.io/remsky/kokoro-fastapi-cpu:latest"
+runtime_kokoro_created=0
+runtime_kokoro_exists=0
+runtime_kokoro_running=false
+docker info >/dev/null
+runtime_kokoro_names="$(
+  docker container ls --all --filter 'name=^/kokoro$' --format '{{.Names}}'
+)"
+if [[ "${runtime_kokoro_names}" == kokoro ]]; then
+  runtime_kokoro_exists=1
+  runtime_kokoro_running="$(docker container inspect --format '{{.State.Running}}' kokoro)"
+elif [[ -n "${runtime_kokoro_names}" ]]; then
+  printf '%s\n' "conflict: exact container name kokoro is ambiguous" >&2
+  exit 1
+fi
+runtime_kokoro_publishers="$(
+  docker container ls --all --filter publish=8881 --format '{{.Names}}'
+)"
+if [[ -n "${runtime_kokoro_publishers}" ]] && \
+   [[ "${runtime_kokoro_exists}" != 1 || "${runtime_kokoro_publishers}" != "kokoro" ]]; then
+  printf '%s\n' "conflict: another Docker container publishes port 8881" >&2
+  exit 1
+fi
+if [[ "${runtime_kokoro_running}" != true && -n "$(lsof -nP -iTCP:8881 -sTCP:LISTEN -t || true)" ]]; then
+  printf '%s\n' "conflict: another process listens on TCP port 8881" >&2
+  exit 1
+fi
+if [[ "${runtime_kokoro_exists}" == 0 ]]; then
+  docker pull "${runtime_kokoro_image}"
+  docker container create \
+    --name kokoro \
+    --restart=no \
+    --network bridge \
+    --publish 127.0.0.1:8881:8880 \
+    "${runtime_kokoro_image}" ./entrypoint.sh >/dev/null
+  runtime_kokoro_created=1
+fi
+
+KOKORO_CREATED="${runtime_kokoro_created}" python3 - 3< <(
+  docker container inspect kokoro
+) <<'PY'
+import json
+import os
+import re
+
+values = json.load(open(3))
+container = values[0] if isinstance(values, list) and len(values) == 1 else {}
+config = container.get("Config", {})
+host = container.get("HostConfig", {})
+state = container.get("State", {})
+approved_bindings = (
+    {"8880/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8881"}]},
+    {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]},
+)
+approved = (
+    container.get("Name") == "/kokoro"
+    and re.fullmatch(r"[0-9a-f]{64}", str(container.get("Id", ""))) is not None
+    and re.fullmatch(r"sha256:[0-9a-f]{64}", str(container.get("Image", ""))) is not None
+    and config.get("Image") == "ghcr.io/remsky/kokoro-fastapi-cpu:latest"
+    and config.get("Entrypoint") is None
+    and config.get("Cmd") == ["./entrypoint.sh"]
+    and host.get("PortBindings") in approved_bindings
+    and host.get("RestartPolicy") == {"Name": "no", "MaximumRetryCount": 0}
+    and host.get("AutoRemove") is False
+    and host.get("NetworkMode") == "bridge"
+    and container.get("Mounts") == []
+    and state.get("Status") in {"created", "exited", "running"}
+)
+if not approved:
+    raise SystemExit("conflict: container/kokoro does not match the approved jrc voice shape")
+if os.environ["KOKORO_CREATED"] == "1" and state.get("Status") != "created":
+    raise SystemExit("new container/kokoro was expected to remain stopped")
+print("container/kokoro ready for jrc", state["Status"])
+PY
+unset runtime_kokoro_image runtime_kokoro_created runtime_kokoro_exists
+unset runtime_kokoro_running runtime_kokoro_names runtime_kokoro_publishers
+```
+
+The empty-host legacy binding is accepted only for an already identified installation. New setups use
+`127.0.0.1:8881`; `jrc run` starts or adopts the exact container and Ctrl-C stops it without removal.
+
 ## 6. Create runtime-only Kubernetes Secrets
 
 The dashboard uses tailnet HTTPS port `8445`, which is also required by `jrc`. These commands preserve existing handlers on `443` or `8443`. If `8445` is occupied, identify and resolve that mapping before setup; do not silently choose a different port. The following Python reads Supabase status on file descriptor 3, replaces only a parsed loopback hostname, preserves URL-encoded database user information, and pipes Secret JSON directly to `kubectl`. It does not put credentials in command arguments, files, or terminal output.
