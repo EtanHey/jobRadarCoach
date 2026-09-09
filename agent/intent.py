@@ -56,8 +56,6 @@ def validate_intent(payload: object, utterance: str) -> Intent:
         raise IntentError("unknown action")
     if not isinstance(filters, dict) or set(filters) - FIELDS or type(more) is not bool:
         raise IntentError("invalid filters")
-    if filters and action != "search":
-        raise IntentActionConflict("only a search may change filters")
     validated = {}
     for key, value in filters.items():
         if value is None:
@@ -85,6 +83,8 @@ def validate_intent(payload: object, utterance: str) -> Intent:
         validated[key] = value
     if more and not (_MORE.search(utterance) or "min_score" in validated):
         raise IntentError("lower-score options were not requested")
+    if filters and action != "search":
+        raise IntentActionConflict("only a search may change filters")
     return Intent(action, validated, more)
 
 
