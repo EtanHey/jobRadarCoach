@@ -12,6 +12,7 @@ import subprocess
 from typing import Callable
 
 from scripts.runtime_verifier_source import pinned_verifier_source
+from scripts.runtime_diagnostics import create_run_logs, retain_receipt, validate_run_logs
 from scripts.runtime_process import Identity, Probe, ProcessService, RuntimeContext
 from scripts.runtime_qa_config import resolve_qa_urls
 
@@ -253,9 +254,11 @@ class RoomAgentService:
         expected_url = self._expected_url(context)
         config = self._config(context)
         context.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        receipt, log = self._owned_path(context), context.state_dir / "room-agent.log"
+        receipt = self._owned_path(context)
+        log_dir = create_run_logs(context, self.name)
+        log = log_dir / "agent.log"
+        log.touch(mode=0o600)
         receipt.unlink(missing_ok=True)
-        log.unlink(missing_ok=True)
         self._selected_receipt = receipt
         env = {
             "LIVEKIT_AGENT_NAME": "", **config, "LIVEKIT_URL": expected_url,
@@ -268,10 +271,14 @@ class RoomAgentService:
         self._process = ProcessService(
             self.name,
             (str(context.repo_root / ".venv-agent/bin/python"), "agent/main.py", "start"),
-            self.probe, cwd=context.repo_root, env=env, startup_timeout=30,
+            self.probe, cwd=context.repo_root, env=env, startup_timeout=30, log_dir=log_dir,
         )
-        process = self._process.start(context)
-        return {"process": process, "receipt": str(receipt)}
+        try:
+            process = self._process.start(context)
+        except BaseException:
+            retain_receipt(context, log_dir, receipt)
+            raise
+        return {"process": process, "receipt": str(receipt), "log_dir": str(log_dir)}
 
     def owns(self, context: RuntimeContext, identity: Identity) -> bool:
         process = identity.get("process")
@@ -284,6 +291,11 @@ class RoomAgentService:
     def stop(self, context: RuntimeContext, identity: Identity) -> None:
         if not self.owns(context, identity):
             raise RuntimeError("normal agent ownership changed; refusing cleanup")
-        (self._process or ProcessService(self.name, (), self.probe)).stop(context, identity["process"])
-        self._owned_path(context).unlink(missing_ok=True)
-        (context.state_dir / "room-agent.log").unlink(missing_ok=True)
+        log_dir = Path(identity["log_dir"]) if identity.get("log_dir") else create_run_logs(context, self.name)
+        validate_run_logs(context, log_dir)
+        try:
+            (self._process or ProcessService(self.name, (), self.probe, log_dir=log_dir)).stop(context, identity["process"])
+        finally:
+            retained = retain_receipt(context, log_dir, self._owned_path(context))
+        if retained:
+            self._owned_path(context).unlink(missing_ok=True)
