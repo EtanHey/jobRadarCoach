@@ -68,6 +68,22 @@ class FullHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(APIStatusError, "truncated committed transcript"):
             history.consume(update([first]))
 
+    def test_invalid_line_bounds_fail_before_committing_history(self):
+        for speaker, text in ((0, "hello"), (-2, None)):
+            for start, end in (
+                ("0:00:02", "0:00:01"),
+                ("0:00:nan", "0:00:01"),
+                ("0:00:00", "0:00:inf"),
+                ("0:00:-inf", "0:00:01"),
+            ):
+                with self.subTest(speaker=speaker, start=start, end=end):
+                    history = FullHistory(LanguageCode("en"))
+                    with self.assertRaisesRegex(APIStatusError, "timestamp"):
+                        history.consume(update([line(text, start, end, speaker=speaker)]))
+                    # The refused snapshot must not poison a later valid update.
+                    events = history.consume(update([line("valid", "0:00:00", "0:00:01")]))
+                    self.assertEqual(events[0].alternatives[0].text, "valid")
+
 
 if __name__ == "__main__":
     unittest.main()
