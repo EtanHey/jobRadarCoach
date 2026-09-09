@@ -4,7 +4,8 @@ import subprocess
 
 import pytest
 
-from scripts.runtime_control import PartialStartError
+from scripts.runtime_control import PartialStartError, Supervisor
+from scripts.runtime_process import RuntimeContext
 from scripts.runtime_voice_resources import KokoroContainerService
 
 
@@ -134,6 +135,103 @@ def test_post_mutation_readiness_failure_preserves_partial_identity(monkeypatch)
         "image_id": IMAGE_ID,
         "started_at": STARTED_AT,
     }
+
+
+def test_successful_start_without_post_start_inspect_retains_unconfirmed_identity(monkeypatch):
+    context = FakeContext()
+    service = KokoroContainerService()
+    before = snapshot(running=False, started_at="0001-01-01T00:00:00Z")
+    values = iter((before, None, None, None))
+    monkeypatch.setattr(service, "_inspect", lambda *_args: next(values))
+    monkeypatch.setattr("scripts.runtime_voice_resources.time.sleep", lambda _seconds: None)
+
+    with pytest.raises(PartialStartError, match="identity could not be confirmed") as caught:
+        service.start(context)
+
+    identity = caught.value.owned_identity
+    assert identity == {
+        "container_id": CONTAINER_ID,
+        "image_id": IMAGE_ID,
+        "ownership_status": "unconfirmed_after_start",
+    }
+    assert "started_at" not in identity
+    assert not service.owns(context, identity)
+    assert not service.is_running(context, identity)
+    with pytest.raises(RuntimeError, match="identity was unconfirmed; refusing cleanup"):
+        service.stop(context, identity)
+    assert context.commands == [("docker", "container", "start", CONTAINER_ID)]
+
+
+def test_supervisor_retains_unconfirmed_identity_and_cleanup_refusal(monkeypatch, tmp_path):
+    context = RuntimeContext(tmp_path, tmp_path / "state")
+    service = KokoroContainerService()
+    before = snapshot(running=False, started_at="0001-01-01T00:00:00Z")
+    values = iter((before, before, None, None, None))
+    commands = []
+
+    def result(_context, command, **_kwargs):
+        commands.append(tuple(command))
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(service, "_inspect", lambda *_args: next(values))
+    monkeypatch.setattr(service, "_result", result)
+    monkeypatch.setattr("scripts.runtime_voice_resources.time.sleep", lambda _seconds: None)
+
+    assert Supervisor(context, [service]).up() == 1
+    retained = json.loads((context.state_dir / "state.json").read_text())
+    assert retained["services"] == [{
+        "name": "kokoro",
+        "mode": "owned",
+        "identity": {
+            "container_id": CONTAINER_ID,
+            "image_id": IMAGE_ID,
+            "ownership_status": "unconfirmed_after_start",
+        },
+    }]
+    assert retained["cleanup_failures"] == [
+        "kokoro: cleanup failed: ownership identity changed; refusing cleanup"
+    ]
+    assert commands == [("docker", "container", "start", CONTAINER_ID)]
+
+
+def test_recovered_post_start_inspect_confirms_identity_and_supports_cleanup(monkeypatch):
+    context = FakeContext()
+    service = KokoroContainerService(startup_timeout=0.1, readiness_interval=0)
+    current = snapshot(running=False, started_at="0001-01-01T00:00:00Z")
+    inspect_count = 0
+
+    def inspect(_context, _reference):
+        nonlocal inspect_count
+        inspect_count += 1
+        if inspect_count == 2:
+            return None
+        return copy.deepcopy(current)
+
+    def run(command, **_kwargs):
+        context.commands.append(tuple(command))
+        if command[2] == "start":
+            current.update(snapshot())
+        elif command[2] == "stop":
+            current["State"]["Running"] = False
+            current["State"]["Status"] = "exited"
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(service, "_inspect", inspect)
+    monkeypatch.setattr(service, "_health", lambda *_args: True)
+    monkeypatch.setattr(context, "run", run)
+    monkeypatch.setattr("scripts.runtime_voice_resources.time.sleep", lambda _seconds: None)
+
+    identity = service.start(context)
+    assert identity == {
+        "container_id": CONTAINER_ID,
+        "image_id": IMAGE_ID,
+        "started_at": STARTED_AT,
+    }
+    service.stop(context, identity)
+    assert context.commands == [
+        ("docker", "container", "start", CONTAINER_ID),
+        ("docker", "container", "stop", "--time", "10", CONTAINER_ID),
+    ]
 
 
 def test_stopped_container_cannot_pass_readiness_from_unrelated_endpoint(monkeypatch):
