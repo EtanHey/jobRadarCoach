@@ -1,3 +1,6 @@
+import json
+import os
+import signal
 import subprocess
 import sys
 
@@ -23,6 +26,118 @@ def test_borrowed_process_is_untouched(tmp_path):
             finish(owner)
         borrowed.terminate()
         borrowed.wait(timeout=3)
+
+
+def test_status_fails_closed_during_qa_health_threshold_window(tmp_path, capsys):
+    class UnreadyBorrowed:
+        name = "qa-verifier"
+
+        def probe(self, _context):
+            return Probe(False, "QA receipt is NOT_READY")
+
+    context = RuntimeContext(ROOT, tmp_path / "state", qa_mode=True)
+    supervisor = Supervisor(context, [UnreadyBorrowed()])
+    supervisor._write_state([{"name": "qa-verifier", "mode": "borrowed"}])
+
+    assert supervisor.status() == 1
+    output = capsys.readouterr().out
+    assert "supervisor: checking mode=QA" in output
+    assert "qa-verifier: borrowed checking (QA receipt is NOT_READY)" in output
+
+
+def test_repeated_borrowed_failure_degrades_without_killing_owned_child_and_recovers(tmp_path):
+    health = tmp_path / "kokoro.health"
+    health.write_text("healthy")
+    owner, env = launch_up(tmp_path, "health-policy")
+    marker = tmp_path / "worker.pid"
+    state = tmp_path / "state/state.json"
+    try:
+        wait_for(
+            lambda: marker.exists() and state.exists() and '"mode": "owned"' in state.read_text()
+        )
+        child_pid = int(marker.read_text())
+
+        health.write_text("failed")
+        wait_for(
+            lambda: '"kokoro": {"condition": "readiness_failed", '
+            '"reason": "synthetic Kokoro timeout"}' in state.read_text()
+        )
+        degraded = run_entry(ROOT / "run", env, "status")
+        assert owner.poll() is None and is_alive(child_pid)
+        assert degraded.returncode == 1
+        assert "supervisor: degraded mode=normal" in degraded.stdout
+        assert "kokoro: borrowed degraded (synthetic Kokoro timeout)" in degraded.stdout
+
+        health.write_text("healthy")
+        wait_for(lambda: '"degraded": {}' in state.read_text())
+        recovered = run_entry(ROOT / "run", env, "status")
+        assert recovered.returncode == 0
+        assert "supervisor: running mode=normal" in recovered.stdout
+        assert owner.poll() is None and is_alive(child_pid)
+
+        owner.send_signal(2)
+        output = owner.communicate(timeout=5)[0]
+        assert owner.returncode == 0 and "tiny: stopped" in output
+        events_path, = (tmp_path / ".run-logs").glob("*-supervisor-*/events.jsonl")
+        events = [json.loads(line) for line in events_path.read_text().splitlines()]
+        assert [event["event"] for event in events] == ["started", "degraded", "recovered", "shutdown"]
+        assert events[0]["qa_mode"] is False
+        assert events[1]["affected_service"] == "kokoro"
+        assert events[1]["mode"] == "borrowed"
+        assert events[1]["condition"] == "readiness_failed"
+        assert events[1]["consecutive_failures"] >= 3
+        assert events[-1]["reason"] == "signal:SIGINT"
+        assert not state.exists()
+    finally:
+        finish(owner)
+
+
+def test_owned_failure_does_not_tear_down_unrelated_owned_process(tmp_path):
+    health = tmp_path / "owned.health"
+    health.write_text("healthy")
+    owner, env = launch_up(tmp_path, "owned-health-policy")
+    failed_marker = tmp_path / "worker.pid"
+    unrelated_marker = tmp_path / "unrelated.pid"
+    state = tmp_path / "state/state.json"
+    try:
+        wait_for(
+            lambda: failed_marker.exists() and unrelated_marker.exists()
+            and state.exists() and state.read_text().count('"mode": "owned"') == 2
+        )
+        failed_pid = int(failed_marker.read_text())
+        unrelated_pid = int(unrelated_marker.read_text())
+
+        health.write_text("failed")
+        wait_for(
+            lambda: '"flappable": {"condition": "readiness_failed", '
+            '"reason": "synthetic owned timeout"}' in state.read_text()
+        )
+        status = run_entry(ROOT / "run", env, "status")
+        assert status.returncode == 1
+        assert "flappable: owned degraded (synthetic owned timeout)" in status.stdout
+        assert owner.poll() is None
+        assert is_alive(failed_pid) and is_alive(unrelated_pid)
+
+        health.write_text("healthy")
+        wait_for(lambda: '"degraded": {}' in state.read_text())
+        os.kill(failed_pid, signal.SIGTERM)
+        wait_for(lambda: not failed_marker.exists())
+        wait_for(
+            lambda: '"flappable": {"condition": "stopped", '
+            '"reason": "synthetic owned timeout"}' in state.read_text()
+        )
+        stopped = run_entry(ROOT / "run", env, "status")
+        assert stopped.returncode == 1
+        assert "flappable: owned stopped/degraded (synthetic owned timeout)" in stopped.stdout
+        assert owner.poll() is None and is_alive(unrelated_pid)
+
+        owner.send_signal(2)
+        output = owner.communicate(timeout=5)[0]
+        assert owner.returncode == 0
+        assert "unrelated: stopped" in output and "flappable: stopped" in output
+        assert not is_alive(failed_pid) and not is_alive(unrelated_pid)
+    finally:
+        finish(owner)
 
 
 def test_failed_startup_rolls_back_prior_process(tmp_path):

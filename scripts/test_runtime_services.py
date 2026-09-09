@@ -150,7 +150,7 @@ class Result:
 
 
 def test_kokoro_requires_exact_approved_container_name(monkeypatch):
-    monkeypatch.setattr(subject, "_http", lambda *_args: True)
+    monkeypatch.setattr(subject, "_http", lambda *_args, **_kwargs: True)
     records = [
         ('{"Names":"not-kokoro","Image":"ghcr.io/remsky/kokoro-fastapi-cpu:latest"}', False),
         ('{"Names":"impostor","Labels":"service=kokoro"}', False),
@@ -162,3 +162,26 @@ def test_kokoro_requires_exact_approved_container_name(monkeypatch):
     for output, expected in records:
         monkeypatch.setattr(subject, "_result", lambda *_args, output=output: Result(output))
         assert subject._kokoro(None).healthy is expected
+
+
+def test_kokoro_health_probe_allows_loaded_service_ten_seconds(monkeypatch):
+    calls = []
+
+    def run(_context, command, **kwargs):
+        calls.append((command, kwargs))
+        if command[:2] == ("docker", "ps"):
+            return Result('{"Names":"kokoro"}')
+        return Result("")
+
+    monkeypatch.setattr(subject, "_result", run)
+    assert subject._kokoro(None).healthy
+    command, kwargs = calls[-1]
+    assert command[-3:] == ("--max-time", "10", "http://127.0.0.1:8881/v1/models")
+    assert kwargs == {"timeout": 11}
+
+    monkeypatch.setattr(subject, "_http", lambda *_args, **_kwargs: False)
+    unavailable = subject._kokoro(None)
+    assert not unavailable.healthy
+    assert unavailable.detail == (
+        "shared Kokoro identified; health endpoint timed out or returned non-success"
+    )

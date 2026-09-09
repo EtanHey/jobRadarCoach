@@ -16,6 +16,7 @@ from scripts.runtime_tailnet import TailscaleServeService
 
 KUBECTL = ("kubectl", "--context", "orbstack", "-n", "job-radar-coach")
 KOKORO_CONTAINER_NAME = "kokoro"
+KOKORO_HEALTH_TIMEOUT = 10
 
 
 def _result(context: RuntimeContext, command: Sequence[str], *, timeout: float = 5):
@@ -36,8 +37,12 @@ def _json(context: RuntimeContext, command: Sequence[str]) -> dict[str, Any] | N
     return value if isinstance(value, dict) else None
 
 
-def _http(context: RuntimeContext, url: str) -> bool:
-    result = _result(context, ("curl", "-fsS", "-o", "/dev/null", "--max-time", "2", url))
+def _http(context: RuntimeContext, url: str, *, timeout: float = 2) -> bool:
+    result = _result(
+        context,
+        ("curl", "-fsS", "-o", "/dev/null", "--max-time", str(timeout), url),
+        timeout=timeout + 1,
+    )
     return result is not None and result.returncode == 0
 
 
@@ -198,8 +203,18 @@ def _kokoro(context: RuntimeContext) -> Probe:
         except (json.JSONDecodeError, TypeError):
             rows = []
     known = len(rows) == 1 and isinstance(rows[0], dict) and rows[0].get("Names") == KOKORO_CONTAINER_NAME
-    healthy = known and _http(context, "http://127.0.0.1:8881/v1/models")
-    return Probe(healthy, "shared Kokoro healthy" if healthy else "shared Kokoro container is absent or unidentified")
+    if not known:
+        return Probe(False, "shared Kokoro container is absent or unidentified")
+    healthy = _http(
+        context,
+        "http://127.0.0.1:8881/v1/models",
+        timeout=KOKORO_HEALTH_TIMEOUT,
+    )
+    return Probe(
+        healthy,
+        "shared Kokoro healthy" if healthy
+        else "shared Kokoro identified; health endpoint timed out or returned non-success",
+    )
 
 
 def _deployment(name: str, *, livekit: bool = False) -> Callable[[RuntimeContext], Probe]:
