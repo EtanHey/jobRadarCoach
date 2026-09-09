@@ -109,6 +109,12 @@ Resolve 'this role/they/it' to the supplied posting only when a posting exists.
 stance describes the actual words: recommend, weak_option, poor_fit, or neutral.
 An invitation to apply is recommend even if the writer labels it neutral.
 Check ALL other factual propositions against reasons, outcome and user_profile.
+The supplied posting's identity fields establish which role, company and location
+the record describes. Reasons are evidence too, including explicit hiring facts.
+A posting alone does not establish that hiring is still active or newly opened.
+Distinguish framing the user's search from asserting additional search results:
+request context does not imply that other jobs were found. Any actual assertion
+of additional jobs, counts or opportunities still requires supplied evidence.
 List every unsupported or contradicted proposition in unsupported, including
 invented jobs, hiring/funding/salary/culture facts and misleading recontextualized
 quotes. An empty search must not become an assertion that a job was found.
