@@ -1,3 +1,5 @@
+import math
+
 from livekit.agents import APIStatusError
 from livekit.agents import stt as lkstt
 from livekit.agents.language import LanguageCode
@@ -26,8 +28,9 @@ def _line_identity(line: object) -> tuple[int, str | None, str, str]:
         or not isinstance(end, str)
     ):
         raise APIStatusError("invalid WhisperLiveKit line schema")
-    _seconds(start)
-    _seconds(end)
+    start_seconds, end_seconds = _seconds(start), _seconds(end)
+    if not (math.isfinite(start_seconds) and math.isfinite(end_seconds)) or end_seconds < start_seconds:
+        raise APIStatusError("invalid WhisperLiveKit line timestamp bounds")
     return speaker, text, start, end
 
 
