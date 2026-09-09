@@ -182,7 +182,7 @@ class Supervisor:
                 if stop_event.is_set():
                     raise InterruptedError("startup interrupted")
                 probe = service.probe(self.context)
-                if probe.healthy:
+                if probe.healthy and getattr(service, "lifecycle_owned", False) is not True:
                     entries.append({"name": service.name, "mode": "borrowed", "detail": probe.detail})
                     print(f"{service.name}: borrowed ({probe.detail or 'healthy'})", flush=True)
                     if stop_event.is_set():
