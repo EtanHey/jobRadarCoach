@@ -6,15 +6,18 @@ import argparse
 import fcntl
 import importlib
 import json
+import math
 import os
 from pathlib import Path
 import signal
+import subprocess
 import sys
 import tempfile
 import threading
 import time
 from typing import Any, Protocol, Sequence
 
+from scripts.runtime_diagnostics import create_run_logs, record_event
 from scripts.runtime_process import (
     Identity,
     Probe,
@@ -57,6 +60,25 @@ def _atomic_json(path: Path, value: dict[str, Any]) -> None:
             os.unlink(temporary)
 
 
+def _identity_alive(context: RuntimeContext, service: Service, identity: Identity) -> bool:
+    try:
+        pid = int(identity["pid"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    if isinstance(service, ProcessService):
+        child = service._children.get(pid)
+        if child is not None and child.poll() is not None:
+            return False
+    if not _same_process(identity):
+        return False
+    try:
+        result = context.run(("ps", "-o", "state=", "-p", str(pid)), timeout=2)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    state = result.stdout.strip()
+    return result.returncode == 0 and bool(state) and not state.startswith("Z")
+
+
 class Supervisor:
     def __init__(self, context: RuntimeContext, services: Sequence[Service]) -> None:
         self.context, self.services = context, list(services)
@@ -72,12 +94,13 @@ class Supervisor:
         except (OSError, json.JSONDecodeError):
             return None
 
-    def _write_state(self, entries: list[dict[str, Any]]) -> None:
+    def _write_state(self, entries: list[dict[str, Any]], degraded: dict[str, dict[str, str]] | None = None) -> None:
         supervisor = _process_snapshot(os.getpid())
         if supervisor is None:
             raise RuntimeError("could not capture supervisor identity")
         _atomic_json(self.state_path, {
-            "supervisor": supervisor, "qa_mode": self.context.qa_mode, "services": entries,
+            "supervisor": supervisor, "qa_mode": self.context.qa_mode,
+            "services": entries, "degraded": degraded or {},
         })
 
     def _wait_for_locked_mode(self, timeout: float = 0.75) -> bool | None:
@@ -92,6 +115,18 @@ class Supervisor:
             time.sleep(0.02)
 
     def up(self) -> int:
+        try:
+            health_failure_threshold = int(os.environ.get("RUN_HEALTH_FAILURE_THRESHOLD", "3"))
+        except ValueError as error:
+            raise ValueError("RUN_HEALTH_FAILURE_THRESHOLD must be an integer") from error
+        if health_failure_threshold < 2:
+            raise ValueError("RUN_HEALTH_FAILURE_THRESHOLD must be at least 2")
+        try:
+            health_interval = float(os.environ.get("RUN_HEALTH_INTERVAL", "5"))
+        except ValueError as error:
+            raise ValueError("RUN_HEALTH_INTERVAL must be a number") from error
+        if not math.isfinite(health_interval) or health_interval <= 0:
+            raise ValueError("RUN_HEALTH_INTERVAL must be greater than zero")
         self.context.state_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         lock = self.lock_path.open("a+")
         os.chmod(self.lock_path, 0o600)
@@ -116,8 +151,21 @@ class Supervisor:
             return 1
         entries: list[dict[str, Any]] = []
         stop_event = threading.Event()
+        shutdown_reason: str | None = None
+        try:
+            diagnostic_dir = create_run_logs(self.context, "supervisor")
+        except OSError:
+            diagnostic_dir = None
+            print("Warning: cannot create runtime diagnostics", file=sys.stderr, flush=True)
+        record_event(diagnostic_dir, "supervisor", "started", qa_mode=self.context.qa_mode)
 
-        def request_stop(_signum: int, _frame: Any) -> None:
+        def request_stop(signum: int, _frame: Any) -> None:
+            nonlocal shutdown_reason
+            try:
+                signal_name = signal.Signals(signum).name
+            except ValueError:
+                signal_name = str(signum)
+            shutdown_reason = f"signal:{signal_name}"
             stop_event.set()
 
         old_int = signal.signal(signal.SIGINT, request_stop)
@@ -152,17 +200,101 @@ class Supervisor:
                     raise InterruptedError("startup interrupted")
             self._write_state(entries)
             print("supervisor: running; Ctrl-C stops owned resources", flush=True)
+            failure_counts: dict[str, int] = {}
+            degraded: dict[str, dict[str, str]] = {}
+
+            def persist_health_state(next_degraded: dict[str, dict[str, str]]) -> bool:
+                try:
+                    self._write_state(entries, next_degraded)
+                    return True
+                except Exception as error:
+                    print(
+                        f"supervisor: cannot persist health state ({type(error).__name__}); "
+                        "stack remains running",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    record_event(
+                        diagnostic_dir, "supervisor", "health_state_write_failed",
+                        error_type=type(error).__name__,
+                    )
+                    return False
+
             while not stop_event.is_set():
                 for service, entry in zip(self.services, entries):
-                    if not service.probe(self.context).healthy:
-                        print(f"{service.name}: unhealthy; shutting down", file=sys.stderr, flush=True)
-                        exit_code = 1
-                        stop_event.set()
+                    if stop_event.is_set():
                         break
-                stop_event.wait(float(os.environ.get("RUN_HEALTH_INTERVAL", "5")))
+                    try:
+                        probe = service.probe(self.context)
+                    except Exception as error:
+                        probe = Probe(False, f"health probe raised {type(error).__name__}")
+                    if probe.healthy:
+                        failure_counts.pop(service.name, None)
+                        previous = degraded.get(service.name)
+                        if previous is not None:
+                            next_degraded = dict(degraded)
+                            next_degraded.pop(service.name)
+                            if not persist_health_state(next_degraded):
+                                continue
+                            degraded = next_degraded
+                            print(f"{service.name}: recovered ({probe.detail or 'healthy'})", flush=True)
+                            record_event(
+                                diagnostic_dir,
+                                "supervisor",
+                                "recovered",
+                                affected_service=service.name,
+                                mode=entry.get("mode"),
+                                previous_reason=previous["reason"],
+                                previous_condition=previous["condition"],
+                            )
+                        continue
+                    failures = failure_counts.get(service.name, 0) + 1
+                    failure_counts[service.name] = failures
+                    if failures < health_failure_threshold:
+                        print(
+                            f"{service.name}: health check failed "
+                            f"({failures}/{health_failure_threshold}); retrying",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        continue
+                    reason = probe.detail or "health check failed"
+                    identity = entry.get("identity")
+                    stopped = (
+                        entry.get("mode") == "owned"
+                        and isinstance(identity, dict)
+                        and not _identity_alive(self.context, service, identity)
+                    )
+                    condition = "stopped" if stopped else "readiness_failed"
+                    current = {"condition": condition, "reason": reason}
+                    if degraded.get(service.name) != current:
+                        next_degraded = {**degraded, service.name: current}
+                        if not persist_health_state(next_degraded):
+                            continue
+                        degraded = next_degraded
+                        state_label = "stopped/degraded" if stopped else "degraded"
+                        print(
+                            f"{service.name}: {state_label} after {failures} consecutive failures "
+                            f"({reason}); stack remains running",
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        record_event(
+                            diagnostic_dir,
+                            "supervisor",
+                            "degraded",
+                            affected_service=service.name,
+                            mode=entry.get("mode"),
+                            condition=condition,
+                            reason=reason,
+                            consecutive_failures=failures,
+                        )
+                stop_event.wait(health_interval)
         except InterruptedError:
+            shutdown_reason = shutdown_reason or "startup_interrupted"
             print("supervisor: startup interrupted", flush=True)
         except Exception as error:
+            shutdown_reason = shutdown_reason or f"supervisor_error:{type(error).__name__}"
             print(f"startup failed: {error}", file=sys.stderr, flush=True)
             exit_code = 1
         finally:
@@ -178,6 +310,11 @@ class Supervisor:
             signal.signal(signal.SIGTERM, old_term)
             if failures:
                 exit_code = 1
+            record_event(
+                diagnostic_dir, "supervisor", "shutdown",
+                reason=shutdown_reason or "requested", exit_code=exit_code,
+                cleanup_failure_count=len(failures),
+            )
         return exit_code
 
     def _cleanup(
@@ -208,16 +345,67 @@ class Supervisor:
         owner = state.get("supervisor")
         active = isinstance(owner, dict) and _same_process(owner)
         modes = {item.get("name"): item.get("mode") for item in state.get("services", [])}
+        raw_degraded = state.get("degraded", {})
+        degraded = {
+            name: item
+            for name, item in raw_degraded.items()
+            if (
+                isinstance(name, str)
+                and isinstance(item, dict)
+                and item.get("condition") in {"readiness_failed", "stopped"}
+                and isinstance(item.get("reason"), str)
+            )
+        } if active and isinstance(raw_degraded, dict) else {}
+        if active and not isinstance(raw_degraded, dict):
+            degraded = {
+                "supervisor": {"condition": "readiness_failed", "reason": "invalid degraded state"},
+            }
+        probes: dict[str, Probe] = {}
+        current_failures: dict[str, str] = {}
+        for service in self.services:
+            try:
+                probe = service.probe(self.context)
+            except Exception as error:
+                probe = Probe(False, f"health probe raised {type(error).__name__}")
+            probes[service.name] = probe
+            if active and not probe.healthy:
+                current_failures[service.name] = probe.detail or "health check failed"
         failures = state.get("cleanup_failures", []) if not active else []
         suffix = f" (cleanup failed: {'; '.join(failures)})" if failures else ""
         mode = "unknown" if "qa_mode" not in state else ("QA" if state["qa_mode"] else "normal")
-        print(f"supervisor: {'running' if active else 'stopped'} mode={mode}{suffix}")
+        if degraded:
+            reasons = "; ".join(
+                f"{name}: {item['condition'].replace('_', ' ')}: {item['reason']}"
+                for name, item in sorted(degraded.items())
+            )
+            suffix = f" (degraded: {reasons})"
+        elif active and current_failures:
+            reasons = "; ".join(
+                f"{name}: {reason}" for name, reason in sorted(current_failures.items())
+            )
+            suffix = f" (health check failed; waiting for threshold: {reasons})"
+        label = (
+            "degraded" if active and degraded
+            else "checking" if active and current_failures
+            else "running" if active
+            else "stopped"
+        )
+        print(f"supervisor: {label} mode={mode}{suffix}")
         for service in self.services:
-            probe = service.probe(self.context)
+            probe = probes[service.name]
             mode = modes.get(service.name) if active else None
             label = mode or ("external" if probe.healthy else "stopped")
-            print(f"{service.name}: {label} ({probe.detail or ('healthy' if probe.healthy else 'not healthy')})")
-        return 0 if active else 1
+            if service.name in degraded:
+                condition = degraded[service.name]["condition"]
+                label = f"{label} stopped/degraded" if condition == "stopped" else f"{label} degraded"
+                detail = degraded[service.name]["reason"]
+            elif active and not probe.healthy:
+                label = f"{label} checking"
+                detail = current_failures[service.name]
+            else:
+                detail = probe.detail or ("healthy" if probe.healthy else "not healthy")
+            print(f"{service.name}: {label} ({detail})")
+        return 0 if active and not degraded and not current_failures else 1
 
     def down(self, timeout: float = 20) -> int:
         state = self._read_state()

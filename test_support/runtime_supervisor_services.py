@@ -35,6 +35,19 @@ def _service(name, marker, fail=False):
     )
 
 
+def _flappable_service(name, marker, health_marker):
+    command = [sys.executable, "-c", WORKER, str(marker)]
+
+    def probe(_context):
+        healthy = _alive(marker) and health_marker.read_text() == "healthy"
+        return Probe(healthy, "synthetic owned healthy" if healthy else "synthetic owned timeout")
+
+    return ProcessService(
+        name, command, probe,
+        startup_timeout=.8, shutdown_timeout=.8, readiness_interval=.03,
+    )
+
+
 class _BadStop:
     name = "bad-stop"
 
@@ -55,6 +68,27 @@ class _BadStop:
         raise RuntimeError("synthetic stop failure")
 
 
+class _BorrowedHealth:
+    name = "kokoro"
+
+    def __init__(self, marker):
+        self.marker = marker
+
+    def probe(self, _context):
+        healthy = self.marker.read_text() == "healthy"
+        detail = "synthetic Kokoro healthy" if healthy else "synthetic Kokoro timeout"
+        return Probe(healthy, detail)
+
+    def start(self, _context):
+        raise RuntimeError("synthetic Kokoro must stay borrowed")
+
+    def owns(self, _context, _identity):
+        return False
+
+    def stop(self, _context, _identity):
+        raise RuntimeError("synthetic Kokoro must never be stopped")
+
+
 def build_services(_context):
     marker = Path(os.environ["TEST_MARKER"])
     mode = os.environ.get("TEST_MODE")
@@ -68,4 +102,11 @@ def build_services(_context):
         )]
     if mode == "cleanup-fail":
         return [_BadStop(marker)]
+    if mode == "health-policy":
+        return [_BorrowedHealth(marker.with_name("kokoro.health")), _service("tiny", marker)]
+    if mode == "owned-health-policy":
+        return [
+            _flappable_service("flappable", marker, marker.with_name("owned.health")),
+            _service("unrelated", marker.with_name("unrelated.pid")),
+        ]
     return [_service("tiny", marker)]
