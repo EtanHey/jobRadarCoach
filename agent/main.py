@@ -303,6 +303,17 @@ def register_ping_rpc(ctx: agents.JobContext) -> None:
         )
 
 
+def interruption_options(stt) -> dict[str, float | int]:
+    # Batch Whisper has no words until end-of-speech. Requiring a word here
+    # prevents barge-in while the user is still speaking. Silero's sustained
+    # speech-duration floor remains the noise gate; explicit overrides survive.
+    default_words = "1" if stt.capabilities.interim_results else "0"
+    return {
+        "min_duration": float(os.environ.get("MIN_INTERRUPTION_DURATION", "0.75")),
+        "min_words": int(os.environ.get("MIN_INTERRUPTION_WORDS", default_words)),
+    }
+
+
 async def entrypoint(ctx: agents.JobContext):
     setup_logging()
     logger = logging.getLogger(__name__)
@@ -391,12 +402,7 @@ async def entrypoint(ctx: agents.JobContext):
                 "min_delay": float(os.environ.get("MIN_ENDPOINTING_DELAY", "1.2")),
                 "max_delay": float(os.environ.get("MAX_ENDPOINTING_DELAY", "6.0")),
             },
-            "interruption": {
-                "min_duration": float(
-                    os.environ.get("MIN_INTERRUPTION_DURATION", "0.75")
-                ),
-                "min_words": int(os.environ.get("MIN_INTERRUPTION_WORDS", "1")),
-            },
+            "interruption": interruption_options(whisper),
         },
     )
 
