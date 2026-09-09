@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import json
+import time
 import re
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 
@@ -16,6 +18,7 @@ from tools import (
     SessionState,
 )
 from user import User
+from intent import INTENT_INSTRUCTIONS, Intent, fast_intent, validate_intent
 
 SAY_AS = {
     "Tel Aviv": "Tell Aveev",
@@ -24,117 +27,13 @@ SAY_AS = {
 
 AGENT_NAME = "Riki"
 
-_NEXT_RE = re.compile(r"\b(next|another|different|more)\b", re.IGNORECASE)
-_LINK_RE = re.compile(r"\b(link|url|apply|application page)\b", re.IGNORECASE)
-_OPEN_RE = re.compile(
-    r"\b(open(?: it| this| the job| the application| the link)?|"
-    r"show (?:it|this) in (?:a )?browser)\b",
-    re.IGNORECASE,
-)
-_DECLINE_RE = re.compile(r"\b(no|not now|don't|do not)\b", re.IGNORECASE)
-_JOB_RE = re.compile(
-    r"\b(yes|yeah|sure|okay|ok|job|match|role|position|opportunit(?:y|ies)|hear|show|find|recommend)\b",
-    re.IGNORECASE,
-)
-_OUT_OF_SCOPE_RE = re.compile(
-    r"\b(cake|recipe|weather|news|medical|health advice|internet search|browse the web)\b",
-    re.IGNORECASE,
-)
 _URL_RE = re.compile(r"https?://[^\s)\]>]+")
-_CLEAR_FILTERS_RE = re.compile(
-    r"\b(clear|remove|reset)\b.{0,30}\b(filters?|constraints?)\b|\bshow me everything\b",
-    re.IGNORECASE,
-)
-_LOCATION_RE = re.compile(
-    r"\b(?:jobs?|roles?|positions?|opportunit(?:y|ies)|something)\s+"
-    r"(?:located\s+|based\s+)?in\s+"
-    r"(?P<location>[A-Za-z][A-Za-z .'-]{1,50}?)"
-    r"(?=\s+(?:with|using|above|over|at least|scor(?:e|ed)|and)\b|[?!,.]|$)",
-    re.IGNORECASE,
-)
-_LOCATION_IS_RE = re.compile(
-    r"\b(?:location|country|city)\s+(?:is|of|to)\s+"
-    r"(?P<location>[A-Za-z][A-Za-z .'-]{1,50}?)(?=[?!,.]|$)",
-    re.IGNORECASE,
-)
-_REMOTE_RE = re.compile(r"\b(remote|work(?:ing)? from home|wfh)\b", re.IGNORECASE)
-_ONSITE_RE = re.compile(r"\b(on[ -]?site|not remote)\b", re.IGNORECASE)
-_SENIORITY_RE = re.compile(
-    r"\b(intern(?:ship)?|junior|entry(?: level)?|mid(?: level)?|senior|staff|principal|lead)\b",
-    re.IGNORECASE,
-)
-_SCORE_PREFIX_RE = re.compile(
-    r"\b(?:score|scored)\s*(?:of|at least|above|over|greater than)?\s*"
-    r"(?P<score>\d{1,3})\b",
-    re.IGNORECASE,
-)
-_SCORE_SUFFIX_RE = re.compile(
-    r"\b(?:at least|above|over|greater than)\s*(?P<score>\d{1,3})\s*"
-    r"(?:score|points?)\b",
-    re.IGNORECASE,
-)
-_QUERY_CUE_RE = re.compile(
-    r"\b(?:using|with|stack(?: of)?|technology|tech)\s+"
-    r"(?:a\s+|an\s+)?(?P<query>[A-Za-z][A-Za-z0-9.+#/-]{0,29})\b",
-    re.IGNORECASE,
-)
-_COMMON_QUERY_RE = re.compile(
-    r"\b(python|typescript|javascript|react(?:\.js)?|next(?:\.js)?|node(?:\.js)?|"
-    r"fastapi|django|rust|golang|kotlin|swift|java|c#|\.net|ruby|rails|postgres(?:ql)?|"
-    r"supabase|aws|gcp|azure|kubernetes|docker|terraform|frontend|backend|full[ -]?stack|"
-    r"machine learning|artificial intelligence|llm)\b",
-    re.IGNORECASE,
-)
 _logger = logging.getLogger(__name__)
 
 
-def _clean_constraint(value: str) -> str:
-    return re.sub(r"\s+", " ", value).strip(" .,!?:;")
-
-
 def extract_job_filter_updates(text: str) -> tuple[dict[str, object], bool]:
-    """Extract only explicit constraints; never infer job facts or preferences."""
-    if _CLEAR_FILTERS_RE.search(text):
-        return {}, True
-
-    updates: dict[str, object] = {}
-    location_match = _LOCATION_RE.search(text) or _LOCATION_IS_RE.search(text)
-    if location_match:
-        location = _clean_constraint(location_match.group("location"))
-        if location:
-            updates["location"] = location
-
-    if _ONSITE_RE.search(text):
-        updates["remote"] = False
-    elif _REMOTE_RE.search(text):
-        updates["remote"] = True
-
-    seniority = _SENIORITY_RE.search(text)
-    if seniority:
-        value = seniority.group(1).casefold().replace(" ", "_")
-        updates["seniority"] = "entry" if value == "entry_level" else value
-
-    score = _SCORE_PREFIX_RE.search(text) or _SCORE_SUFFIX_RE.search(text)
-    if score:
-        value = int(score.group("score"))
-        if 0 <= value <= 100:
-            updates["min_score"] = value
-
-    query = _QUERY_CUE_RE.search(text)
-    if query is not None and query.group("query").casefold() in {
-        "score",
-        "minimum",
-        "rating",
-    }:
-        query = None
-    if query is None:
-        query = _COMMON_QUERY_RE.search(text)
-    if query:
-        updates["query"] = _clean_constraint(
-            query.groupdict().get("query") or query.group(0)
-        )
-
-    return updates, False
+    intent = fast_intent(text)
+    return (intent.filters, intent.action == "clear") if intent else ({}, False)
 
 
 class JobCoach(Agent):
@@ -188,41 +87,46 @@ class JobCoach(Agent):
         state.turn_posting = None
         state.deterministic_reply = None
         state.intended_text = None
-        requested_posting = bool(_JOB_RE.search(text) or _NEXT_RE.search(text))
-
-        filter_updates, clear_filters = extract_job_filter_updates(text)
-        if clear_filters or filter_updates:
-            filters = JobFilters() if clear_filters else state.filters.merged(filter_updates)
+        intent = await self._resolve_intent(text)
+        if intent is None:
+            state.deterministic_reply = "I couldn't work out that request. Could you say what you'd like to change?"
+            return
+        requested_posting = intent.action in {"search", "next", "clear"}
+        if intent.more_options:
+            state.allow_more_options = True
+        if intent.action == "pause":
+            state.deterministic_reply = "Okay, I'll wait."
+            return
+        if intent.action == "clear" or intent.filters:
+            state.allow_more_options = intent.more_options
+            filters = JobFilters() if intent.action == "clear" else state.filters.merged(intent.filters)
             if self._find_jobs is None:
                 state.deterministic_reply = JOB_LOOKUP_FAILED
                 return
             try:
-                state.replace_candidates(await self._find_jobs(filters), filters=filters)
+                candidates = await self._find_jobs(filters)
+                state.search_widened = False
+                if not candidates and filters.query:
+                    # Keep explicit geography/seniority/score; widen only the subject.
+                    wider = filters.merged({"query": None})
+                    candidates = await self._find_jobs(wider)
+                    if candidates:
+                        filters = wider
+                        state.search_widened = True
+                state.replace_candidates(candidates, filters=filters)
             except Exception:
                 state.fail_lookup()
                 state.deterministic_reply = JOB_LOOKUP_FAILED
                 return
-            _logger.info(
-                "spoken job constraints applied",
-                extra={
-                    "filter_updates": filter_updates,
-                    "filters_cleared": clear_filters,
-                    "active_filters": filters.as_log_fields(),
-                    "candidate_count": len(state.candidates),
-                    "candidate_ids": [str(posting.id) for posting in state.candidates],
-                    "cursor": state.cursor,
-                },
-            )
-            requested_posting = True
+            _logger.info("spoken job constraints applied", extra={
+                "filter_updates": intent.filters, "active_filters": filters.as_log_fields(),
+                "candidate_count": len(state.candidates), "search_widened": state.search_widened,
+            })
+            if state.search_widened:
+                turn_ctx.add_message(role="system", content="SEARCH_RESULT: No result matched the subject query. Code retried WITHOUT that query, retaining the other filters, and found results. Tell the user plainly that you widened the subject search. Do not claim the original subject matched.")
             if not state.candidates:
                 state.deterministic_reply = NO_FILTERED_JOBS
                 return
-
-        if _OUT_OF_SCOPE_RE.search(text):
-            state.deterministic_reply = (
-                "I don't have web access for that. I can help with your grounded job matches."
-            )
-            return
 
         posting = state.current_posting
         if posting is None:
@@ -232,20 +136,15 @@ class JobCoach(Agent):
             if state.cursor >= len(state.candidates):
                 state.deterministic_reply = NO_MORE_JOBS
                 return
-            if _DECLINE_RE.search(text) and not _NEXT_RE.search(text):
-                state.deterministic_reply = (
-                    "Okay. Tell me when you want to hear a grounded job match."
-                )
-                return
             if requested_posting:
-                posting = state.advance(strong_only=not _NEXT_RE.search(text))
-        elif _NEXT_RE.search(text):
-            posting = state.advance()
+                posting = state.advance(strong_only=not state.allow_more_options)
+        elif intent.action == "next":
+            posting = state.advance(strong_only=not state.allow_more_options)
 
         if posting is None:
             if state.cursor >= len(state.candidates):
                 state.deterministic_reply = NO_MORE_JOBS
-            elif state.cursor == -1 and requested_posting:
+            elif requested_posting and not state.allow_more_options:
                 state.deterministic_reply = NO_STRONG_JOBS
             else:
                 state.deterministic_reply = (
@@ -253,7 +152,7 @@ class JobCoach(Agent):
                 )
             return
 
-        if _OPEN_RE.search(text):
+        if intent.action == "open":
             if self._open_job is None:
                 state.deterministic_reply = (
                     "I couldn't confirm that the job opened. The grounded link is "
@@ -263,7 +162,7 @@ class JobCoach(Agent):
                 state.deterministic_reply = await self._open_job(posting)
             return
 
-        if _LINK_RE.search(text):
+        if intent.action == "link":
             state.deterministic_reply = f"The application link I was given is {posting.apply_url}."
             return
 
@@ -276,6 +175,38 @@ class JobCoach(Agent):
                 f"facts, and do not mention any other posting. {posting.grounded_context()}"
             ),
         )
+
+    async def _resolve_intent(self, text: str) -> Intent | None:
+        started = time.perf_counter()
+        try:
+            direct = fast_intent(text)
+            if direct is not None:
+                return direct
+            # Follow-up explanations keep the current posting and need only one model pass.
+            if self.state.current_posting is not None and re.match(
+                r"^\s*(why|how|tell me more about|what (?:does|makes|is))\b", text, re.I
+            ):
+                return Intent("discuss")
+            context = llm.ChatContext.empty()
+            context.add_message(role="system", content=INTENT_INSTRUCTIONS)
+            context.add_message(role="user", content=text)
+            model = self.session.llm
+            if model is None:
+                return None
+            output = ""
+            async with asyncio.timeout(8):
+                async with model.chat(chat_ctx=context, tools=[], response_format={"type": "json_object"}) as stream:
+                    async for chunk in stream:
+                        if chunk.delta and chunk.delta.content:
+                            output += chunk.delta.content
+                            if len(output) > 4096:
+                                raise ValueError("intent response too large")
+            return validate_intent(json.loads(output), text)
+        except Exception as error:
+            _logger.warning("intent interpretation rejected", extra={"reason": str(error)})
+            return None
+        finally:
+            _logger.info("intent stage completed", extra={"duration_ms": round((time.perf_counter() - started) * 1000, 3)})
 
     async def llm_node(
         self,

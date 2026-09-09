@@ -79,6 +79,8 @@ class SessionState:
     qa_mode: bool = False
     prepared_message_id: str | None = None
     filters: JobFilters = field(default_factory=JobFilters)
+    allow_more_options: bool = False
+    search_widened: bool = False
 
     def load_candidates(self, candidates: list[Posting]) -> None:
         self.candidates = tuple(candidates)
@@ -86,7 +88,7 @@ class SessionState:
     def replace_candidates(
         self, candidates: list[Posting], *, filters: JobFilters
     ) -> None:
-        self.candidates = tuple(candidates)
+        self.candidates = tuple(p for p in candidates if p.id not in self.discussed_posting_ids)
         self.cursor = -1
         self.lookup_error = None
         self.current_posting = None
@@ -95,6 +97,10 @@ class SessionState:
 
     def fail_lookup(self) -> None:
         self.lookup_error = JOB_LOOKUP_FAILED
+        self.candidates = ()
+        self.current_posting = None
+        self.turn_posting = None
+        self.cursor = -1
 
     def advance(self, *, strong_only: bool = False) -> Posting | None:
         next_cursor = self.cursor + 1
