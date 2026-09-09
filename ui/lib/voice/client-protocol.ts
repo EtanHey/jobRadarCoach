@@ -195,6 +195,35 @@ const transcriptChunkSchema = z.object({
   attributes: z.record(z.string(), z.string()),
 }).strict();
 
+function appendDisplayText(current: string, suffix: string): string {
+  if (!current || !suffix || /\s$/.test(current) || /^\s/.test(suffix)) return current + suffix;
+  return /^[.,!?;:)}\]]/.test(suffix) ? current + suffix : `${current} ${suffix}`;
+}
+
+export function groupTranscriptForDisplay(
+  segments: readonly TranscriptSegment[],
+): readonly TranscriptSegment[] {
+  const grouped: TranscriptSegment[] = [];
+  for (const segment of segments) {
+    const previous = grouped.at(-1);
+    if (segment.role === "user" && previous?.role === "user"
+        && segment.senderIdentity === previous.senderIdentity
+        && segment.trackId === previous.trackId) {
+      grouped[grouped.length - 1] = {
+        ...previous,
+        streamId: segment.streamId,
+        lastChunkIndex: segment.lastChunkIndex,
+        text: appendDisplayText(previous.text, segment.text),
+        final: segment.final,
+        streaming: segment.streaming,
+      };
+    } else {
+      grouped.push(segment);
+    }
+  }
+  return grouped;
+}
+
 export function reduceTranscript(
   segments: readonly TranscriptSegment[], chunk: TranscriptChunk, maxSegments = 200,
 ): readonly TranscriptSegment[] {

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { transcriptIsSpeaking } from "@/lib/voice/activity";
+import { transcriptIsSpeaking, type AgentActivity } from "@/lib/voice/activity";
+import { groupTranscriptForDisplay, type TranscriptSegment } from "@/lib/voice/client-protocol";
 import { useVoiceSession } from "./use-voice-session";
 
 const micMessages = {
@@ -28,6 +29,26 @@ function MicGlyph({ open }: { open: boolean }) {
   );
 }
 
+export function TranscriptRows({
+  segments, activity = "unknown",
+}: {
+  segments: readonly TranscriptSegment[];
+  activity?: AgentActivity;
+}) {
+  return <>{segments.map((segment) => (
+    <article key={`${segment.senderIdentity}:${segment.segmentId}`}
+      className={`max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm ${segment.role === "user"
+        ? "ml-auto bg-primary text-primary-foreground" : "mr-auto bg-card"}`}>
+      <p className={`mb-1 text-[0.68rem] font-semibold uppercase tracking-wider ${segment.role === "user"
+        ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+        {segment.role === "user" ? "You" : "Voice agent"}
+      </p>
+      <p className="whitespace-pre-wrap text-sm leading-6">{segment.text}</p>
+      {transcriptIsSpeaking(segment, activity) && <span className="mt-1 block text-xs opacity-65">Speaking…</span>}
+    </article>
+  ))}</>;
+}
+
 export function VoicePage() {
   const {
     qa, roomPhase, mic, transcript, agentIdentity, agentConnected, agentResponsive, activity, soundBlocked,
@@ -41,6 +62,7 @@ export function VoicePage() {
   const connected = roomPhase === "connected";
   const qaBlocked = qa.status === "checking" || qa.status === "error";
   const micOpen = mic.phase === "open";
+  const displayTranscript = useMemo(() => groupTranscriptForDisplay(transcript), [transcript]);
 
   useEffect(() => {
     if (!nearBottomRef.current) return;
@@ -116,7 +138,7 @@ export function VoicePage() {
         }}
         className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-          {transcript.length === 0 ? (
+          {displayTranscript.length === 0 ? (
             <section className="mt-[12vh] rounded-3xl border bg-card p-6 text-center shadow-sm">
               <h2 className="text-xl font-semibold">Talk through your job search</h2>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
@@ -127,18 +149,7 @@ export function VoicePage() {
                 <p className="mt-4 rounded-xl bg-muted px-3 py-2 text-sm">Waiting for a voice agent to join this room…</p>
               )}
             </section>
-          ) : transcript.map((segment) => (
-            <article key={`${segment.senderIdentity}:${segment.segmentId}`}
-              className={`max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm ${segment.role === "user"
-                ? "ml-auto bg-primary text-primary-foreground" : "mr-auto bg-card"}`}>
-              <p className={`mb-1 text-[0.68rem] font-semibold uppercase tracking-wider ${segment.role === "user"
-                ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                {segment.role === "user" ? "You" : "Voice agent"}
-              </p>
-              <p className="whitespace-pre-wrap text-sm leading-6">{segment.text}</p>
-              {transcriptIsSpeaking(segment, activity) && <span className="mt-1 block text-xs opacity-65">Speaking…</span>}
-            </article>
-          ))}
+          ) : <TranscriptRows segments={displayTranscript} activity={activity} />}
 
           {applicationLink && (
             <section className="rounded-2xl border border-primary/30 bg-card p-4 shadow-sm"

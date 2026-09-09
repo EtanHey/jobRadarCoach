@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   createOpenJobRpcHandler, MAX_OPEN_JOB_PAYLOAD_BYTES, OpenJobProtocolError,
-  reduceTranscript, TRANSCRIPTION_TOPIC,
+  groupTranscriptForDisplay, reduceTranscript, TRANSCRIPTION_TOPIC,
 } from "../lib/voice/client-protocol";
 
 const AGENT = "agent:riki";
@@ -212,4 +212,41 @@ test("ignores non-transcription/missing-track input and bounds retained segment 
   state = reduceTranscript(state, chunk("web:1", "two", "s2", 0, "two", true), 2);
   state = reduceTranscript(state, chunk("web:1", "three", "s3", 0, "three", true), 2);
   assert.deepEqual(state.map((item) => item.segmentId), ["two", "three"]);
+});
+
+test("groups adjacent user word segments for display without changing reducer rows", () => {
+  let state = [] as ReturnType<typeof reduceTranscript>;
+  const visible: string[] = [];
+  for (const [segmentId, text] of [["word-1", "Could"], ["word-2", "you"], ["word-3", "help?"]]) {
+    state = reduceTranscript(state, chunk("web:1", segmentId, `${segmentId}:draft`, 0, text, false));
+    state = reduceTranscript(state, chunk("web:1", segmentId, `${segmentId}:final`, 0, text, true));
+    visible.push(groupTranscriptForDisplay(state)[0].text);
+  }
+
+  assert.deepEqual(visible, ["Could", "Could you", "Could you help?"]);
+  assert.equal(state.length, 3, "the reducer keeps the three SDK protocol segments");
+
+  state = reduceTranscript(state, chunk("agent:1", "answer", "agent-stream", 0, "I can ", false, "agent"));
+  state = reduceTranscript(state, chunk("agent:1", "answer", "agent-stream", 1, "help.", true, "agent"));
+  state = reduceTranscript(state, chunk("web:1", "next-turn", "next", 0, "Again", true));
+  const otherTrack = chunk("web:1", "other-track", "other", 0, "Elsewhere", true);
+  state = reduceTranscript(state, {
+    ...otherTrack,
+    attributes: { ...otherTrack.attributes, "lk.transcribed_track_id": "track:other" },
+  });
+  const otherSender = chunk("web:2", "other-sender", "sender", 0, "Someone else", true);
+  state = reduceTranscript(state, {
+    ...otherSender,
+    attributes: { ...otherSender.attributes, "lk.transcribed_track_id": "track:web:1" },
+  });
+
+  const display = groupTranscriptForDisplay(state);
+  assert.deepEqual(display.map(({ role, text }) => ({ role, text })), [
+    { role: "user", text: "Could you help?" },
+    { role: "agent", text: "I can help." },
+    { role: "user", text: "Again" },
+    { role: "user", text: "Elsewhere" },
+    { role: "user", text: "Someone else" },
+  ]);
+  assert.equal(display[1], state[3], "agent segments pass through unchanged");
 });
