@@ -11,6 +11,7 @@ import re
 
 from livekit.agents import llm
 from response_schemas import AuditResponse
+from model_telemetry import model_stage
 
 class GroundingError(ValueError):
     pass
@@ -179,12 +180,13 @@ async def audit_sentence(model, text: str, facts: dict[str, str], *, timeout: fl
     )
     output = ""
     async with asyncio.timeout(timeout):
-        async with model.chat(chat_ctx=context, tools=[], response_format=AuditResponse) as stream:
-            async for chunk in stream:
-                if chunk.delta and chunk.delta.content:
-                    output += chunk.delta.content
-                    if len(output) > 4096:
-                        raise GroundingError("oversized_claim_audit")
+        with model_stage("audit"):
+            async with model.chat(chat_ctx=context, tools=[], response_format=AuditResponse) as stream:
+                async for chunk in stream:
+                    if chunk.delta and chunk.delta.content:
+                        output += chunk.delta.content
+                        if len(output) > 4096:
+                            raise GroundingError("oversized_claim_audit")
     try:
         payload = json.loads(output)
     except json.JSONDecodeError as error:

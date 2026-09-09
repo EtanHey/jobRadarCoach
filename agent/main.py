@@ -27,6 +27,7 @@ from tools import (
     owner_state_fingerprint,
 )
 from user import User
+from model_telemetry import llm_metric_fields
 
 
 def _streaming_stt_url() -> str:
@@ -286,10 +287,9 @@ def wire_observability(session: AgentSession, state: SessionState) -> None:
             logger.info(
                 "model stage completed",
                 extra={
-                    "stage": "model",
+                    **llm_metric_fields(metrics),
                     "duration_ms": round(metrics.duration * 1000, 3),
                     "time_to_first_token_ms": round(metrics.ttft * 1000, 3),
-                    "cancelled": metrics.cancelled,
                     "speech_id": metrics.speech_id,
                 },
             )

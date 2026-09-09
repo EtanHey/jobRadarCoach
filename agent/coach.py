@@ -28,6 +28,7 @@ from intent import (
 from grounded_speech import GroundingError, SPEECH_INSTRUCTIONS, SentenceDecoder, render_sentence
 from claim_audit import audit_sentence
 from response_schemas import NaturalSpeech
+from model_telemetry import model_stage
 
 SAY_AS = {
     "Tel Aviv": "Tell Aveev",
@@ -237,16 +238,17 @@ class JobCoach(Agent):
 
     async def _read_intent_response(self, model, context: llm.ChatContext) -> str:
         output = ""
-        async with model.chat(
-            chat_ctx=context,
-            tools=[],
-            extra_kwargs={"response_format": {"type": "json_object"}},
-        ) as stream:
-            async for chunk in stream:
-                if chunk.delta and chunk.delta.content:
-                    output += chunk.delta.content
-                    if len(output) > 4096:
-                        raise ValueError("intent response too large")
+        with model_stage("intent"):
+            async with model.chat(
+                chat_ctx=context,
+                tools=[],
+                extra_kwargs={"response_format": {"type": "json_object"}},
+            ) as stream:
+                async for chunk in stream:
+                    if chunk.delta and chunk.delta.content:
+                        output += chunk.delta.content
+                        if len(output) > 4096:
+                            raise ValueError("intent response too large")
         return output
 
     async def llm_node(
@@ -359,14 +361,15 @@ class JobCoach(Agent):
         model = session.llm
         if model is None:
             raise GroundingError("model_unavailable")
-        async with model.chat(
-            chat_ctx=context,
-            tools=[],
-            response_format=NaturalSpeech,
-            conn_options=session.conn_options.llm_conn_options,
-        ) as stream:
-            async for chunk in stream:
-                yield chunk
+        with model_stage("writer"):
+            async with model.chat(
+                chat_ctx=context,
+                tools=[],
+                response_format=NaturalSpeech,
+                conn_options=session.conn_options.llm_conn_options,
+            ) as stream:
+                async for chunk in stream:
+                    yield chunk
 
     async def _audit_speech(self, text: str, facts: dict[str, str]) -> None:
         # An independent request sees the rendered proposition, not the writer's
