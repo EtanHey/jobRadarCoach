@@ -181,6 +181,26 @@ def test_invalid_scraper_cohort_never_starts_models(ids):
     assert receipt["failures"] == [{"stage": "scraper", "failure": "InvalidReceipt"}]
 
 
+def test_transient_initial_cron_read_timeout_recovers_once(monkeypatch):
+    fake = FakeKubectl()
+    read_attempts = 0
+
+    def runner(command, **kwargs):
+        nonlocal read_attempts
+        if command[1:3] == ["get", "cronjob/scraper"]:
+            read_attempts += 1
+            if read_attempts == 1:
+                raise CoordinatorError("KubectlTimeout")
+        return fake(command, **kwargs)
+
+    monkeypatch.setattr("scripts.run_batch.time.sleep", lambda _delay: None)
+    receipt = run_cohort(BatchConfig(), kubectl=runner, run_id="funnel-cron-read-recovery")
+
+    assert receipt["failures"] == []
+    assert read_attempts == 2
+    assert sum(call[0][1] == "create" and bool(call[1]) for call in fake.calls) == 3
+
+
 def test_all_observed_preserves_typed_scraper_poll_failure():
     fake = FakeKubectl()
 
