@@ -175,6 +175,8 @@ class ProcessService:
             merged_env["VOICE_QA_MODE"] = "1"
         else:
             merged_env.pop("VOICE_QA_MODE", None)
+        if self.log_dir:
+            print(f"{self.name} diagnostics: {self.log_dir}", file=sys.stderr, flush=True)
         output = private_append(self.log_dir / "console.log") if self.log_dir else None
         try:
             child = subprocess.Popen(
@@ -188,8 +190,6 @@ class ProcessService:
         finally:
             if output:
                 output.close()
-        if self.log_dir:
-            print(f"{self.name} diagnostics: {self.log_dir}", file=sys.stderr, flush=True)
         record_event(self.log_dir, self.name, "started", pid=child.pid, qa_mode=context.qa_mode)
         self._children[child.pid] = child
         identity = process_snapshot(child.pid)

@@ -40,3 +40,38 @@ def test_startup_failure_preserves_traceback_and_reaps_process(tmp_path):
     assert all(child.poll() is not None for child in service._children.values())
     assert "RuntimeError: startup proof" in (logs / "console.log").read_text()
     assert json.loads((logs / "events.jsonl").read_text().splitlines()[-1])["event"] == "startup_failed"
+
+
+def test_snapshot_io_error_preserves_original_receipt(monkeypatch, tmp_path, capsys):
+    import scripts.runtime_diagnostics as diagnostics
+    context = RuntimeContext(tmp_path, tmp_path / ".run-state")
+    logs = create_run_logs(context, "room-agent")
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text('{"process":{"pid":123}}')
+    def full_disk(_path):
+        raise OSError("disk full")
+    monkeypatch.setattr(diagnostics, "private_append", full_disk)
+    assert diagnostics.retain_receipt(context, logs, receipt) is False
+    assert receipt.read_text() == '{"process":{"pid":123}}'
+    assert "original retained" in capsys.readouterr().err
+
+
+def test_failed_termination_snapshots_both_modes_without_deleting_live_receipt(monkeypatch, tmp_path):
+    import pytest
+    from scripts.runtime_room_agent import RoomAgentService
+    from scripts.runtime_qa_agent import QaAgentService
+    for service in (RoomAgentService(), QaAgentService()):
+        context = RuntimeContext(tmp_path, tmp_path / service.name)
+        context.state_dir.mkdir()
+        receipt = service._owned_path(context)
+        receipt.write_text('{"process":{"pid":123}}')
+        logs = create_run_logs(context, service.name)
+        class FailedStop:
+            def stop(self, *_args):
+                raise RuntimeError("owned group did not exit")
+        service._process = FailedStop()
+        monkeypatch.setattr(service, "owns", lambda *_: True)
+        with pytest.raises(RuntimeError, match="owned group did not exit"):
+            service.stop(context, {"process": {"pid": 123}, "log_dir": str(logs)})
+        assert receipt.exists()
+        assert (logs / "receipt-snapshot.json").read_text() == receipt.read_text()
