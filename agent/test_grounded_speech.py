@@ -93,8 +93,22 @@ class GroundedSpeechTests(unittest.TestCase):
         decoder = SentenceDecoder()
         self.assertEqual(decoder.push(first[:15]), [])
         self.assertEqual(decoder.push(first[15:]), [envelope("How does that sound?")])
-        self.assertEqual(decoder.push("\n" + json.dumps(envelope("We can look closer."))), [envelope("We can look closer.")])
         decoder.finish()
+
+    def test_second_valid_envelope_is_rejected_in_same_or_later_chunk(self):
+        first = json.dumps(envelope("How does that sound?"))
+        second = json.dumps(envelope("We can look closer."))
+
+        with self.subTest(delivery="same chunk"):
+            decoder = SentenceDecoder()
+            with self.assertRaisesRegex(GroundingError, "too_many_speech_envelopes"):
+                decoder.push(first + second)
+
+        with self.subTest(delivery="later chunk"):
+            decoder = SentenceDecoder()
+            self.assertEqual(decoder.push(first), [envelope("How does that sound?")])
+            with self.assertRaisesRegex(GroundingError, "too_many_speech_envelopes"):
+                decoder.push(second)
 
     def test_malformed_and_unbounded_output_fail(self):
         for output in ('```json', '{"sentence":', 'x' * 4097):
