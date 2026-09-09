@@ -1,10 +1,14 @@
 import asyncio
 import json
+import time
 import unittest
+from unittest.mock import patch
 
 from livekit import rtc
 from livekit.agents import APIConnectionError, APIConnectOptions, APIStatusError, APITimeoutError
 from livekit.agents import stt as lkstt
+from livekit.agents.voice import AgentSession
+from livekit.agents.voice.audio_recognition import _STTPipeline
 
 from stt_streaming import WhisperLiveKitSTT
 
@@ -186,7 +190,7 @@ class StreamingProtocolTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(expected, failures[0])
                 self.assertTrue(socket.closed)
 
-    async def test_failed_stream_notifies_recovery_and_sdk_retries(self):
+    async def test_failed_stream_disables_same_channel_retry_and_replay(self):
         failures = []
 
         async def failed(count, limit, error):
@@ -200,12 +204,63 @@ class StreamingProtocolTests(unittest.IsolatedAsyncioTestCase):
         )
         stream.push_frame(frame())
         stream.end_input()
-        with self.assertRaises(APIConnectionError):
+        with self.assertRaises(APIStatusError):
             _ = [event async for event in stream]
         await stream.aclose()
-        self.assertEqual(len(connector.calls), 2)
-        self.assertEqual([failure[:2] for failure in failures], [(1, 3), (2, 3)])
-        self.assertTrue(all(socket.closed for socket in sockets))
+        self.assertEqual(len(connector.calls), 1)
+        self.assertEqual(sockets[0].sent, [b"\x01\x00\x02\x00", b""])
+        self.assertEqual(sockets[1].sent, [])
+        self.assertTrue(sockets[0].closed)
+        self.assertEqual([failure[:2] for failure in failures], [(1, 3)])
+        self.assertEqual(stream._conn_options.timeout, 1)
+        self.assertEqual(stream._conn_options.retry_interval, 0)
+        self.assertEqual(stream._conn_options.max_retry, 0)
+
+    async def test_sdk_pipeline_recreates_stream_for_fresh_audio(self):
+        received = []
+        stream_calls = 0
+        stream_recreated = asyncio.Event()
+
+        async def stt_node(audio, _settings):
+            nonlocal stream_calls
+            call = stream_calls
+            stream_calls += 1
+            if call == 1:
+                stream_recreated.set()
+            async for audio_frame in audio:
+                received.append((call, bytes(audio_frame.data)))
+                if call == 0:
+                    raise APIConnectionError("first stream failed")
+                yield lkstt.SpeechEvent(type=lkstt.SpeechEventType.FINAL_TRANSCRIPT)
+
+        with patch(
+            "livekit.agents.voice.audio_recognition._STT_RECONNECT_INTERVAL", 0
+        ):
+            pipeline = _STTPipeline(stt_node)
+            try:
+                pipeline.audio_ch.send_nowait(frame(b"\x01\x00\x02\x00"))
+                await asyncio.wait_for(stream_recreated.wait(), 0.5)
+                self.assertEqual(stream_calls, 2)
+                pipeline.audio_ch.send_nowait(frame(b"\x03\x00\x04\x00"))
+                event = await asyncio.wait_for(anext(pipeline.event_ch), 0.5)
+                self.assertEqual(event.type, lkstt.SpeechEventType.FINAL_TRANSCRIPT)
+                self.assertEqual(received, [
+                    (0, b"\x01\x00\x02\x00"),
+                    (1, b"\x03\x00\x04\x00"),
+                ])
+            finally:
+                await pipeline.aclose()
+
+    async def test_first_unrecoverable_stt_error_is_tolerated_by_session(self):
+        session = AgentSession()
+        session._on_error(lkstt.STTError(
+            timestamp=time.time(),
+            label="streaming-stt",
+            error=APIConnectionError("stream failed"),
+            recoverable=False,
+        ))
+        self.assertEqual(session._stt_error_counts, 1)
+        self.assertIsNone(session._closing_task)
 
     async def test_aclose_cancels_open_input_sender_and_receiver(self):
         socket = FakeSocket([])
