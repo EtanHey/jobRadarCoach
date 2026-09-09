@@ -12,6 +12,8 @@ from typing import Any, Callable, Sequence
 
 from scripts.runtime_control import Probe, ProcessService, RuntimeContext, Service
 from scripts.runtime_tailnet import TailscaleServeService
+from scripts.runtime_livekit_resource import LiveKitDeploymentService
+from scripts.runtime_voice_resources import KokoroContainerService
 
 
 KUBECTL = ("kubectl", "--context", "orbstack", "-n", "job-radar-coach")
@@ -314,6 +316,20 @@ def _livekit_forward_service() -> Service:
     )
 
 
+def _dashboard_tailnet(context: RuntimeContext) -> Probe:
+    targets = TailscaleServeService()._targets(context)
+    status = _json(context, ("tailscale", "status", "--json")) or {}
+    dns = status.get("Self", {}).get("DNSName", "").rstrip(".")
+    healthy = (
+        targets is not None
+        and targets.get("https:8445") == "http://127.0.0.1:3410"
+        and bool(dns)
+        and _http(context, f"https://{dns}:8445/mic", timeout=10)
+    )
+    return Probe(bool(healthy), "dashboard HTTPS ready" if healthy else
+                 "always-on dashboard mapping https:8445 -> 127.0.0.1:3410 must be reachable")
+
+
 def _shared_services(context: RuntimeContext) -> Sequence[Service]:
     whisper_port = int(os.environ.get("VOICE_STT_PORT", "8912"))
     whisper_model = Path(os.environ.get(
@@ -323,9 +339,13 @@ def _shared_services(context: RuntimeContext) -> Sequence[Service]:
         RequirementService("kubernetes", _kubernetes),
         RequirementService("supabase", _supabase),
         RequirementService("ollama", _ollama),
-        RequirementService("kokoro", _kokoro),
-        RequirementService("livekit", _deployment("livekit", livekit=True)),
         RequirementService("ui", _deployment("ui")),
+        RequirementService("ui-forward", lambda ctx: _identified_http_process(
+            ctx, 3410, "http://127.0.0.1:3410/api/jobs?limit=1", _port_forward_argv,
+        )),
+        RequirementService("dashboard-tailnet", _dashboard_tailnet),
+        KokoroContainerService(),
+        LiveKitDeploymentService(),
         SafeProcessService(
             "whisper",
             ("/opt/homebrew/bin/whisper-server", "-m", str(whisper_model), "--host", "127.0.0.1", "--port", str(whisper_port), "-l", os.environ.get("VOICE_STT_LANGUAGE", "en")),
@@ -336,18 +356,11 @@ def _shared_services(context: RuntimeContext) -> Sequence[Service]:
             conflict=_port_conflict(whisper_port),
         ),
         SafeProcessService(
-            "ui-forward", (*KUBECTL, "port-forward", "service/ui", "3410:3000"),
-            lambda ctx: _identified_http_process(
-                ctx, 3410, "http://127.0.0.1:3410/api/jobs?limit=1", _port_forward_argv,
-            ),
-            conflict=_port_conflict(3410),
-        ),
-        SafeProcessService(
             "livekit-bridge", ("node", str(context.repo_root / "scripts" / "livekit_bridge.cjs")),
             _bridge_probe,
             conflict=lambda ctx: "voice bridge port conflict" if _listener(ctx, 17880) or _listener(ctx, 17881) else None,
         ),
-        TailscaleServeService(),
+        TailscaleServeService(voice_only=True),
     ]
 
 

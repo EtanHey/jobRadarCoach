@@ -88,7 +88,7 @@ The images stay local; the manifests use `imagePullPolicy: Never`.
 
 ## 6. Create runtime-only Kubernetes Secrets
 
-Use an unused tailnet HTTPS port. These commands use `8445` and preserve existing handlers on `443` or `8443`; if `8445` is occupied, choose another port and replace it throughout this guide, including the origin validation. The following Python reads Supabase status on file descriptor 3, replaces only a parsed loopback hostname, preserves URL-encoded database user information, and pipes Secret JSON directly to `kubectl`. It does not put credentials in command arguments, files, or terminal output.
+The dashboard uses tailnet HTTPS port `8445`, which is also required by `jrc`. These commands preserve existing handlers on `443` or `8443`. If `8445` is occupied, identify and resolve that mapping before setup; do not silently choose a different port. The following Python reads Supabase status on file descriptor 3, replaces only a parsed loopback hostname, preserves URL-encoded database user information, and pipes Secret JSON directly to `kubectl`. It does not put credentials in command arguments, files, or terminal output.
 
 ```zsh
 set -euo pipefail
@@ -352,19 +352,19 @@ The portable default remains Ollama. Only Ollama and Codex are implemented batch
 Keep this localhost bridge running in its own terminal:
 
 ```zsh
-kubectl -n job-radar-coach port-forward service/ui 3000:3000
+kubectl --context orbstack -n job-radar-coach port-forward --address 127.0.0.1 service/ui 3410:3000
 ```
 
-Wait for the bridge to print `Forwarding from 127.0.0.1:3000`. If the local port is occupied, use another free port in both bridge commands. In a second terminal, add only the chosen HTTPS handler:
+Wait for the bridge to print `Forwarding from 127.0.0.1:3410`. Port 3410 is the dashboard bridge used by `jrc`; if it is occupied, identify the existing listener before proceeding. In a second terminal, add only the chosen HTTPS handler:
 
 ```zsh
-tailscale serve --bg --https=8445 http://127.0.0.1:3000
+tailscale serve --bg --https=8445 http://127.0.0.1:3410
 tailscale serve status
 ```
 
 Open `https://<this-machine-tailnet-name>:8445` from a device on the same tailnet. The exact full origin must match the `UI_ORIGIN` stored above or mutations are rejected. Do not use `tailscale serve reset`: it would remove unrelated handlers.
 
-The foreground port-forward is session-scoped. Restart it after logout, reboot, or a selected UI pod restart. Portable setup does not install a background bridge.
+The foreground port-forward is session-scoped. Restart it after logout, reboot, or a selected UI pod restart. Portable setup does not install a background bridge. Keep this dashboard bridge running independently of `jrc run`; voice Ctrl-C cleanup leaves it and the dashboard mapping intact.
 
 ### Prepare the voice transport
 
@@ -430,7 +430,9 @@ print("https:8446", "missing" if signaling is None else "reuse")
 PY
 ```
 
-If `tcp:7881` printed `missing`, add the media mapping:
+For normal use, `jrc run` creates missing voice mappings and adopts matching existing mappings on ports 7881 and 8446. Ctrl-C removes those exact voice mappings, including adopted ones; dashboard port 8445 stays intact. The commands below are an optional manual transport check before using `jrc`.
+
+For that manual check, if `tcp:7881` printed `missing`, add the media mapping:
 
 ```zsh
 tailscale serve --bg --tcp=7881 tcp://127.0.0.1:17881
@@ -442,7 +444,7 @@ If `https:8446` printed `missing`, add the signaling mapping:
 tailscale serve --bg --https=8446 http://127.0.0.1:17880
 ```
 
-Leave every `reuse` mapping untouched. Then verify signaling:
+During this manual check, leave existing `reuse` mappings unchanged. Then verify signaling:
 
 ```zsh
 curl -fsS -o /dev/null http://127.0.0.1:17880/
@@ -450,10 +452,10 @@ curl -fsS -o /dev/null "https://${runtime_tailnet_host}:8446/"
 unset runtime_tailnet_host
 ```
 
-Never use `tailscale serve reset` or Funnel. On cleanup, stop the bridge only if this terminal launched
+Never use `tailscale serve reset` or Funnel. When ending only the manual check, stop the bridge only if this terminal launched
 it, using Ctrl-C or SIGTERM for that exact PID. Remove only a mapping that this setup created, after the
 same status check still reports its exact target, with `tailscale serve --tcp=7881 off` or `tailscale
-serve --https=8446 off`. Keep reused processes and mappings.
+serve --https=8446 off`. Preserve processes and mappings borrowed by this manual check. Once `jrc run` adopts the voice mappings, its Ctrl-C cleanup owns their removal regardless of who originally created them.
 
 ## Repeat starts
 
