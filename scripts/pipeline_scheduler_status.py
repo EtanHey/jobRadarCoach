@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import stat
 import subprocess
+import tempfile
 from typing import Any, Sequence
 
 
@@ -66,20 +67,30 @@ def _read_object(path: Path) -> dict[str, Any]:
 
 def _launchctl(argv: Sequence[str]) -> subprocess.CompletedProcess[bytes] | None:
     try:
-        result = subprocess.run(
-            [LAUNCHCTL, *argv],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=LAUNCHCTL_TIMEOUT_SECONDS,
-            check=False,
-            env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin"},
-        )
+        with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+            result = subprocess.run(
+                [LAUNCHCTL, *argv],
+                stdin=subprocess.DEVNULL,
+                stdout=stdout,
+                stderr=stderr,
+                timeout=LAUNCHCTL_TIMEOUT_SECONDS,
+                check=False,
+                env={"PATH": "/usr/bin:/bin:/usr/sbin:/sbin"},
+            )
+            stdout.seek(0)
+            stderr.seek(0)
+            stdout_payload = stdout.read(LAUNCHCTL_OUTPUT_LIMIT + 1)
+            stderr_payload = stderr.read(LAUNCHCTL_OUTPUT_LIMIT + 1)
     except (OSError, subprocess.TimeoutExpired):
         return None
-    if len(result.stdout) > LAUNCHCTL_OUTPUT_LIMIT or len(result.stderr) > LAUNCHCTL_OUTPUT_LIMIT:
+    if (
+        len(stdout_payload) > LAUNCHCTL_OUTPUT_LIMIT
+        or len(stderr_payload) > LAUNCHCTL_OUTPUT_LIMIT
+    ):
         return None
-    return result
+    return subprocess.CompletedProcess(
+        result.args, result.returncode, stdout_payload, stderr_payload,
+    )
 
 
 def probe_launchd() -> str:
