@@ -176,6 +176,7 @@ export interface TranscriptSegment {
   lastChunkIndex: number;
   text: string;
   final: boolean;
+  streaming?: boolean;
 }
 
 export interface TranscriptChunk {
@@ -219,6 +220,7 @@ export function reduceTranscript(
   if (current.final && current.streamId !== chunk.streamId) return segments;
   if (current.streamId === chunk.streamId && chunk.chunkIndex <= current.lastChunkIndex) return segments;
   const updated: TranscriptSegment = {
+    streaming: current.streamId === chunk.streamId ? current.streaming : true,
     senderIdentity: chunk.senderIdentity, role: chunk.role, segmentId, trackId,
     streamId: chunk.streamId, lastChunkIndex: chunk.chunkIndex,
     text: current.streamId === chunk.streamId ? current.text + chunk.text : chunk.text,

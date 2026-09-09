@@ -15,6 +15,9 @@ import {
 import { createMicClient, type MicClientState } from "@/lib/voice/mic-client";
 import { createGuardedCaptureAdapter, type VoiceCaptureSession } from "./capture-adapter";
 
+import { AGENT_PING_METHOD, agentResponds, watchAgentLiveness } from "@/lib/voice/liveness";
+import { agentActivity, observeAgentActivity, settleTranscriptStreams, type AgentActivity } from "@/lib/voice/activity";
+
 const qaSession = z.uuid();
 const qaPreflight = z.object({
   version: z.literal(1), qa_mode: z.literal(true), session_id: qaSession,
@@ -105,7 +108,9 @@ export function useVoiceSession() {
   const [mic, setMic] = useState<MicClientState>(initialMic);
   const [transcript, setTranscript] = useState<readonly TranscriptSegment[]>([]);
   const [agentIdentity, setAgentIdentity] = useState<string | null>(null);
+  const [activity, setActivity] = useState<AgentActivity>("unknown");
   const [agentConnected, setAgentConnected] = useState(false);
+  const [agentResponsive, setAgentResponsive] = useState(true);
   const [soundBlocked, setSoundBlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [applicationLink, setApplicationLink] = useState<GroundedApplicationLink | null>(null);
@@ -117,16 +122,6 @@ export function useVoiceSession() {
     room: Room; abort: AbortController; mic: ReturnType<typeof createMicClient> | null;
     audio: Map<RemoteTrack, HTMLMediaElement>; manual: boolean;
   } | null>(null);
-
-  const clearAudio = useCallback(() => {
-    const session = sessionRef.current;
-    if (!session) return;
-    for (const [track, element] of session.audio) {
-      track.detach(element);
-      element.remove();
-    }
-    session.audio.clear();
-  }, []);
 
   const closeSession = useCallback((update = true) => {
     generationRef.current += 1;
@@ -145,7 +140,7 @@ export function useVoiceSession() {
     }
     if (update) {
       setMic(initialMic); setRoomPhase("idle"); setAgentConnected(false);
-      setAgentIdentity(null); setSoundBlocked(false); setError(null);
+      setAgentIdentity(null); setActivity("unknown"); setAgentResponsive(true); setSoundBlocked(false); setError(null);
     }
   }, []);
 
@@ -212,13 +207,14 @@ export function useVoiceSession() {
       pendingAbortRef.current = null;
       sessionRef.current = session;
       let pinnedAgent: string | null = null;
+      let responsive = true;
       let rpcHandler: ReturnType<typeof createOpenJobRpcHandler> | null = null;
       const isCurrent = () => generation === generationRef.current && sessionRef.current === session;
       const pinAgent = (participant: RemoteParticipant) => {
         if (!isCurrent() || participant.kind !== ParticipantKind.AGENT) return false;
         if (pinnedAgent === null) { pinnedAgent = participant.identity; setAgentIdentity(participant.identity); }
         if (pinnedAgent !== participant.identity) return false;
-        setAgentConnected(true); return true;
+        setAgentConnected(true); if (responsive) setActivity(agentActivity(participant.attributes)); return true;
       };
       const captureSession: VoiceCaptureSession = {
         createTrack: () => createLocalAudioTrack(),
@@ -237,7 +233,11 @@ export function useVoiceSession() {
             topic: reader.info.topic, senderIdentity: participantInfo.identity, role,
             streamId: reader.info.id, chunkIndex, text, attributes,
           }));
-        }).catch(() => { if (isCurrent()) setError("The live transcript was interrupted."); });
+        }).catch(() => {
+          if (isCurrent() && role === "user") setError("The live transcript was interrupted.");
+        }).finally(() => {
+          if (isCurrent()) setTranscript((current) => settleTranscriptStreams(current, participantInfo.identity, reader.info.id));
+        });
       });
       room.registerRpcMethod(OPEN_JOB_RPC_METHOD, async (data: RpcInvocationData) => {
         if (!isCurrent() || abort.signal.aborted) throw new OpenJobProtocolError();
@@ -265,10 +265,21 @@ export function useVoiceSession() {
         return rpcHandler({ callerIdentity: data.callerIdentity, payload: data.payload });
       });
       room.on(RoomEvent.ParticipantConnected, pinAgent);
-      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-        if (!isCurrent()) return;
-        if (participant.identity === pinnedAgent) setAgentConnected(false);
+      const stopObserving = observeAgentActivity(room, {
+        isCurrent, identity: () => pinnedAgent,
+        stateChanged: (next) => {
+          if (responsive) setActivity(next);
+          if (next !== "speaking" && pinnedAgent) {
+            setTranscript((current) => settleTranscriptStreams(current, pinnedAgent!));
+          }
+        },
+        departed: () => {
+          closeSession();
+          setRoomPhase("disconnected");
+          setError("Voice agent disconnected. Connect again to continue.");
+        },
       });
+      abort.signal.addEventListener("abort", stopObserving, { once: true });
       room.on(RoomEvent.TrackSubscribed, (track) => {
         if (track.kind !== Track.Kind.Audio || !isCurrent()) return;
         const element = track.attach(); element.autoplay = true; element.hidden = true;
@@ -293,13 +304,31 @@ export function useVoiceSession() {
       });
       room.on(RoomEvent.Disconnected, () => {
         if (!isCurrent() || session.manual) return;
-        captureSessionRef.current = null; void session.mic?.suspend(); clearAudio();
+        closeSession();
         setRoomPhase("disconnected"); setAgentConnected(false);
         setError("Voice room disconnected. Connect again to continue.");
       });
       await room.connect(token.server_url, token.token);
       if (!isCurrent()) { void room.disconnect(true); return; }
       room.remoteParticipants.forEach(pinAgent);
+      watchAgentLiveness({
+        signal: abort.signal, isCurrent, identity: () => pinnedAgent,
+        probe: (identity, responseTimeout) => agentResponds(() => room.localParticipant.performRpc({
+          destinationIdentity: identity, method: AGENT_PING_METHOD, payload: "", responseTimeout,
+        })),
+        changed: (alive) => {
+          responsive = alive; setAgentResponsive(alive);
+          if (!alive) {
+            void session.mic?.suspend(); setActivity("unknown");
+            if (pinnedAgent) setTranscript((current) => settleTranscriptStreams(current, pinnedAgent!));
+            setError("Voice agent is not responding. Microphone closed while checking the connection.");
+          } else {
+            const participant = pinnedAgent ? room.remoteParticipants.get(pinnedAgent) : undefined;
+            if (participant) setActivity(agentActivity(participant.attributes));
+            setError("Voice agent reconnected. Tap the microphone when you are ready.");
+          }
+        },
+      });
       session.mic = createMicClient({ clientId, capture });
       session.mic.subscribe((next) => handleMicStateForSession(next, {
         qaMode: qa.mode,
@@ -321,16 +350,16 @@ export function useVoiceSession() {
       if (qa.mode) setQa((current) => ({ ...current, status: "error" }));
       setError(qa.mode ? "QA voice session is not verified or available." : "Voice room is unavailable. Try connecting again.");
     }
-  }, [clearAudio, clientId, closeSession, qa]);
+  }, [clientId, closeSession, qa]);
 
   const tapMic = useCallback(() => {
     const session = sessionRef.current;
-    if (!session || roomPhase !== "connected") return;
+    if (!session || roomPhase !== "connected" || !agentConnected || !agentResponsive) return;
     const generation = generationRef.current;
     const isCurrent = () => generation === generationRef.current && sessionRef.current === session;
     settleForCurrentSession(session.room.startAudio(), isCurrent, undefined, () => setSoundBlocked(true));
     void session.mic?.tap();
-  }, [roomPhase]);
+  }, [roomPhase, agentConnected, agentResponsive]);
   const enableSound = useCallback(() => {
     const session = sessionRef.current;
     if (!session) return;
@@ -342,7 +371,7 @@ export function useVoiceSession() {
   const retryQaVerification = useCallback(() => setQaAttempt((current) => current + 1), []);
 
   return {
-    clientId, qa, roomPhase, mic, transcript, agentIdentity, agentConnected, soundBlocked,
+    clientId, qa, roomPhase, mic, transcript, agentIdentity, agentConnected, agentResponsive, activity, soundBlocked,
     error, applicationLink, audioHostRef, connect, disconnect: closeSession, tapMic, enableSound,
     retryQaVerification,
   };
