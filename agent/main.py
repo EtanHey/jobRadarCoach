@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import json
 import logging
 import os
@@ -26,6 +27,23 @@ from tools import (
     owner_state_fingerprint,
 )
 from user import User
+
+
+def _streaming_stt_url() -> str:
+    streaming_url = os.environ.get("STREAMING_STT_URL", "").strip()
+    if streaming_url and os.environ.get("LIVEKIT_REMOTE_EOT_URL", "").strip():
+        raise RuntimeError(
+            "LIVEKIT_REMOTE_EOT_URL is incompatible with local streaming STT"
+        )
+    return streaming_url
+
+
+def _register_streaming_inference_runner() -> None:
+    if _streaming_stt_url():
+        importlib.import_module("livekit.plugins.turn_detector.multilingual")
+
+
+_register_streaming_inference_runner()
 
 _STANDARD_LOG_RECORD_KEYS = frozenset(
     logging.LogRecord("", 0, "", 0, "", (), None).__dict__
@@ -330,13 +348,9 @@ def turn_handling_options(stt, *, turn_detection=None) -> dict[str, object]:
 
 
 def speech_components(*, streaming_factory=None, turn_detector_factory=None):
-    streaming_url = os.environ.get("STREAMING_STT_URL", "").strip()
+    streaming_url = _streaming_stt_url()
     if not streaming_url:
         return WhisperCppSTT(), None
-    if os.environ.get("LIVEKIT_REMOTE_EOT_URL", "").strip():
-        raise RuntimeError(
-            "LIVEKIT_REMOTE_EOT_URL is incompatible with local streaming STT"
-        )
     if streaming_factory is None:
         from stt_streaming import WhisperLiveKitSTT
 
