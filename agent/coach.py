@@ -89,6 +89,7 @@ class JobCoach(Agent):
         state.turn_posting = None
         state.deterministic_reply = None
         state.intended_text = None
+        state.search_widened = False
         intent = await self._resolve_intent(text)
         if intent is None:
             state.deterministic_reply = "I couldn't work out that request. Could you say what you'd like to change?"
@@ -229,15 +230,19 @@ class JobCoach(Agent):
         facts = ({key: str(value) for key, value in posting.as_log_row().items() if key != "id"} if posting else {})
         if state.deterministic_reply:
             facts["outcome"] = state.deterministic_reply
+        elif state.search_widened:
+            facts["outcome"] = "The subject query matched no jobs. Code removed only that query, retained the other filters, and found results."
         # Keep only the latest factual handoff, not a trail of competing postings.
         context = chat_ctx.copy()
         context.items = [item for item in context.items if not (
             isinstance(item, llm.ChatMessage) and item.role == "system"
-            and (item.text_content or "").startswith(("GROUNDING:", "CURRENT_FACTS:"))
+            and (item.text_content or "").startswith(("GROUNDING:", "CURRENT_FACTS:", "SEARCH_RESULT:"))
         )]
         context.add_message(role="system", content=SPEECH_INSTRUCTIONS)
         context.add_message(role="system", content="USER_PROFILE (context, never speak raw JSON): " + self._profile_facts)
         context.add_message(role="system", content="CURRENT_FACTS: " + json.dumps(facts, ensure_ascii=False))
+        if state.search_widened:
+            context.add_message(role="system", content="Disclose the search widening in outcome once this turn. Do not imply the original subject matched.")
         source = Agent.default.llm_node(self, context, [], model_settings)
         if asyncio.iscoroutine(source):
             source = await source
