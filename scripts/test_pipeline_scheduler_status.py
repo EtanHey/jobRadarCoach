@@ -87,6 +87,16 @@ def test_launchctl_probe_rejects_explicitly_disabled_service(monkeypatch):
     assert status.probe_launchd() == "disabled"
 
 
+def test_launchctl_probe_rejects_oversized_output(monkeypatch):
+    def oversized(argv, **kwargs):
+        kwargs["stdout"].write(b"x" * (status.LAUNCHCTL_OUTPUT_LIMIT + 1))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(status.subprocess, "run", oversized)
+
+    assert status._launchctl(["print", "gui/501/example"]) is None
+
+
 def test_cli_fails_closed_when_attempt_is_missing(tmp_path, capsys):
     result = status.main([
         "--attempt", str(tmp_path / "missing.json"), "--now", "2026-09-09T10:30:00Z",
