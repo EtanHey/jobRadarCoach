@@ -73,6 +73,30 @@ class SdkJsonRequests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("action/filter conflict", repair_messages[-1]["content"])
         self.assertNotIn("job", json.dumps(repair_messages[-1]).casefold())
 
+    async def test_malformed_conflicts_fail_without_repair_request(self):
+        cases = (
+            (
+                {"action": "discuss", "filters": {"remote": "yes"}, "more_options": False},
+                "I prefer remote roles",
+            ),
+            (
+                {"action": "discuss", "filters": {"location": "Israel"}, "more_options": False},
+                "Could you explain the tradeoffs?",
+            ),
+            (
+                {"action": "discuss", "filters": {"remote": True}, "more_options": True},
+                "I prefer remote roles",
+            ),
+        )
+        coach = SimpleNamespace(state=SimpleNamespace(current_posting=None),
+                                session=SimpleNamespace(llm=self.model))
+        for reply, utterance in cases:
+            with self.subTest(reply=reply):
+                self.reply = reply
+                self.requests.clear()
+                self.assertIsNone(await JobCoach._resolve_intent(coach, utterance))
+                self.assertEqual(len(self.requests), 1)
+
     async def test_conflicting_discussion_is_repaired_without_filters(self):
         self.replies = [
             {"action": "discuss", "filters": {"remote": True}, "more_options": False},
