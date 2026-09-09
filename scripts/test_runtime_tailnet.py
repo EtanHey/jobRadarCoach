@@ -150,3 +150,41 @@ def test_creation_rechecks_later_mapping_and_rolls_back_only_owned(monkeypatch):
     ]
     assert targets["https:8445"] is None
     assert targets["https:8446"] == "http://127.0.0.1:9999"
+
+
+def test_voice_only_adoption_never_modifies_dashboard_mapping(monkeypatch):
+    context = FakeContext()
+    service = subject.TailscaleServeService(voice_only=True)
+    tcp = {'8445': {'HTTPS': True}, '8446': {'HTTPS': True},
+           '7881': {'TCPForward': '127.0.0.1:17881'}}
+    web = {'host.ts.net:8445': {'Handlers': {'/': {'Proxy': 'http://127.0.0.1:3410'}}},
+           'host.ts.net:8446': {'Handlers': {'/': {'Proxy': 'http://127.0.0.1:17880'}}}}
+    probes = []
+    changes = []
+
+    def snapshot(_context, command):
+        return {'TCP': tcp, 'Web': web} if 'serve' in command else {'Self': {'DNSName': 'host.ts.net.'}}
+
+    def result(_context, command):
+        changes.append(command)
+        assert command[-1] == 'off'
+        flag = command[-2]
+        port = flag.split('=')[1]
+        assert port != '8445'
+        tcp.pop(port)
+        web.pop(f'host.ts.net:{port}', None)
+        return subprocess.CompletedProcess(command, 0, '', '')
+
+    monkeypatch.setattr(subject, '_json', snapshot)
+    monkeypatch.setattr(subject, '_http', lambda _context, url: probes.append(url) or True)
+    monkeypatch.setattr(subject, '_result', result)
+    assert service.lifecycle_owned is True
+    assert service.probe(context).healthy
+    identity = service.start(context)
+    assert set(identity['created']) == {'https:8446', 'tcp:7881'}
+    assert service.is_running(context, identity)
+    service.stop(context, identity)
+    assert len(changes) == 2
+    assert tcp == {'8445': {'HTTPS': True}}
+    assert web == {'host.ts.net:8445': {'Handlers': {'/': {'Proxy': 'http://127.0.0.1:3410'}}}}
+    assert probes and all(':8446/' in url for url in probes)
