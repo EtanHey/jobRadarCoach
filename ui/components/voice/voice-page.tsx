@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { transcriptIsSpeaking } from "@/lib/voice/activity";
 import { useVoiceSession } from "./use-voice-session";
 
 const micMessages = {
@@ -29,7 +30,7 @@ function MicGlyph({ open }: { open: boolean }) {
 
 export function VoicePage() {
   const {
-    qa, roomPhase, mic, transcript, agentIdentity, agentConnected, soundBlocked,
+    qa, roomPhase, mic, transcript, agentIdentity, agentConnected, agentResponsive, activity, soundBlocked,
     error, applicationLink, audioHostRef, connect, disconnect, tapMic, enableSound,
     retryQaVerification,
   } = useVoiceSession();
@@ -63,6 +64,7 @@ export function VoicePage() {
 
   const connectionText = roomPhase === "connecting" ? "Connecting to voice room…"
     : roomPhase === "reconnecting" ? "Reconnecting…"
+      : connected && agentConnected && !agentResponsive ? "Voice agent not responding"
       : connected && agentConnected ? "Voice agent connected"
         : connected ? "Waiting for voice agent"
           : roomPhase === "disconnected" ? "Voice room disconnected"
@@ -74,7 +76,7 @@ export function VoicePage() {
   return (
     <main className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background text-foreground"
       data-room-phase={roomPhase} data-mic-phase={mic.phase}
-      data-agent-connected={agentConnected} data-qa-status={qa.status}>
+      data-agent-connected={agentConnected} data-agent-responsive={agentResponsive} data-agent-activity={activity} data-qa-status={qa.status}>
       {qa.mode && (
         <div role={qa.status === "error" ? "alert" : "status"}
           className={`px-4 py-2 text-center text-sm font-bold tracking-wide ${qa.status === "ready"
@@ -88,7 +90,7 @@ export function VoicePage() {
       <header className="flex items-center justify-between gap-4 border-b bg-card/80 px-4 py-3 backdrop-blur sm:px-6">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`size-2.5 rounded-full ${connected ? "bg-emerald-500" : "bg-muted-foreground/50"}`} />
+            <span className={`size-2.5 rounded-full ${connected && agentResponsive ? "bg-emerald-500" : connected ? "bg-amber-500" : "bg-muted-foreground/50"}`} />
             <h1 className="truncate text-lg font-semibold">Voice job coach</h1>
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">Automatic dispatch · {connectionText}</p>
@@ -134,7 +136,7 @@ export function VoicePage() {
                 {segment.role === "user" ? "You" : "Voice agent"}
               </p>
               <p className="whitespace-pre-wrap text-sm leading-6">{segment.text}</p>
-              {!segment.final && <span className="mt-1 block text-xs opacity-65">Speaking…</span>}
+              {transcriptIsSpeaking(segment, activity) && <span className="mt-1 block text-xs opacity-65">Speaking…</span>}
             </article>
           ))}
 
@@ -161,7 +163,9 @@ export function VoicePage() {
       <footer className="sticky bottom-0 border-t bg-background/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <div className="min-w-0 flex-1" aria-live="polite">
-            <p className="text-sm font-semibold">Microphone: {micText}</p>
+            <p className="text-sm font-semibold">{connected && agentConnected && agentResponsive && micOpen
+              ? activity === "speaking" ? "Speaking" : activity === "thinking" ? "Thinking" : activity === "listening" ? "Listening" : "Microphone open"
+              : `Microphone: ${micText}`}</p>
             <p className="text-xs leading-5 text-muted-foreground">
               {mic.error ? micMessages[mic.error]
                 : !connected ? "Connect before opening the microphone."
@@ -170,7 +174,7 @@ export function VoicePage() {
             </p>
           </div>
           <button type="button" aria-label={micOpen ? "Close microphone" : "Open microphone"}
-            aria-pressed={micOpen} aria-busy={mic.phase === "opening"} disabled={!connected || (!mic.ready && mic.phase !== "open" && mic.phase !== "opening")}
+            aria-pressed={micOpen} aria-busy={mic.phase === "opening"} disabled={!connected || !agentConnected || !agentResponsive || (!mic.ready && mic.phase !== "open" && mic.phase !== "opening")}
             onClick={tapMic}
             className={`grid size-16 shrink-0 place-items-center rounded-full border-4 shadow-lg transition focus-visible:outline-2 focus-visible:outline-offset-4 disabled:opacity-40 ${
               micOpen ? "border-red-300 bg-red-600 text-white" : mic.phase === "opening"
