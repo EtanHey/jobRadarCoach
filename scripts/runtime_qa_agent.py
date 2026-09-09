@@ -269,6 +269,9 @@ class QaAgentService:
         process = identity["process"]
         log_dir = Path(identity["log_dir"]) if identity.get("log_dir") else create_run_logs(context, self.name)
         validate_run_logs(context, log_dir)
-        (self._process or ProcessService(self.name, (), self.probe, log_dir=log_dir)).stop(context, process)
-        retain_receipt(context, log_dir, self._owned_path(context))
-        self._owned_path(context).unlink(missing_ok=True)
+        try:
+            (self._process or ProcessService(self.name, (), self.probe, log_dir=log_dir)).stop(context, process)
+        finally:
+            retained = retain_receipt(context, log_dir, self._owned_path(context))
+        if retained:
+            self._owned_path(context).unlink(missing_ok=True)

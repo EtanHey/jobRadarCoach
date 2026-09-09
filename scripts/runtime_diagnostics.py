@@ -51,11 +51,17 @@ def validate_run_logs(context: RuntimeContext, directory: Path) -> Path:
     return directory
 
 
-def retain_receipt(context: RuntimeContext, directory: Path, receipt: Path) -> None:
+def retain_receipt(context: RuntimeContext, directory: Path, receipt: Path) -> bool:
     validate_run_logs(context, directory)
-    if receipt.is_file():
-        # Snapshot only; this file must never be treated as a current readiness receipt.
-        with private_append(directory / "receipt-snapshot.json") as output:
-            output.seek(0)
-            output.truncate()
-            output.write(receipt.read_text())
+    try:
+        if receipt.is_file():
+            # Read before opening the destination so a failed read cannot erase a snapshot.
+            content = receipt.read_text()
+            with private_append(directory / "receipt-snapshot.json") as output:
+                output.seek(0)
+                output.truncate()
+                output.write(content)
+        return True
+    except OSError:
+        print(f"Warning: cannot snapshot runtime receipt in {directory}; original retained", file=sys.stderr)
+        return False
