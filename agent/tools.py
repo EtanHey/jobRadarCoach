@@ -14,7 +14,31 @@ NO_STRONG_JOBS = (
     "I didn't load a new match above seventy. Ask for more options if you want to hear "
     "the lower-scored ones."
 )
+NO_FILTERED_JOBS = "I didn't find any unseen jobs matching those filters."
 _logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class JobFilters:
+    location: str | None = None
+    seniority: str | None = None
+    min_score: int | None = None
+    query: str | None = None
+    remote: bool | None = None
+
+    def merged(self, updates: dict[str, object]) -> "JobFilters":
+        values = self.as_log_fields()
+        values.update(updates)
+        return JobFilters(**values)
+
+    def as_log_fields(self) -> dict[str, object]:
+        return {
+            "location": self.location,
+            "seniority": self.seniority,
+            "min_score": self.min_score,
+            "query": self.query,
+            "remote": self.remote,
+        }
 
 
 @dataclass(frozen=True)
@@ -54,9 +78,20 @@ class SessionState:
     intended_text: str | None = None
     qa_mode: bool = False
     prepared_message_id: str | None = None
+    filters: JobFilters = field(default_factory=JobFilters)
 
     def load_candidates(self, candidates: list[Posting]) -> None:
         self.candidates = tuple(candidates)
+
+    def replace_candidates(
+        self, candidates: list[Posting], *, filters: JobFilters
+    ) -> None:
+        self.candidates = tuple(candidates)
+        self.cursor = -1
+        self.lookup_error = None
+        self.current_posting = None
+        self.turn_posting = None
+        self.filters = filters
 
     def fail_lookup(self) -> None:
         self.lookup_error = JOB_LOOKUP_FAILED
@@ -213,6 +248,97 @@ async def list_new_for_me(
             "tool invocation failed",
             extra={
                 "tool_name": "list_new_for_me",
+                "arguments": arguments,
+                "start_time": started_at,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+                "outcome": "exception",
+            },
+        )
+        raise
+
+
+async def list_jobs(
+    *,
+    limit: int,
+    filters: JobFilters,
+    excluded_ids: set[UUID],
+) -> list[Posting]:
+    """Re-query ranked unseen jobs with code-validated session filters."""
+    if not 1 <= limit <= 1000:
+        raise ValueError("limit must be between 1 and 1000")
+    if filters.min_score is not None and not 0 <= filters.min_score <= 100:
+        raise ValueError("min_score must be between 0 and 100")
+
+    # public.list_jobs has no remote argument. Fetch its bounded ranked result and
+    # apply the boolean projection in code so "remote" means the stored remote
+    # field, not a guess based only on location text.
+    fetch_limit = min(1000, limit + len(excluded_ids))
+    if filters.remote is not None:
+        fetch_limit = 1000
+    arguments = {
+        "seen": False,
+        "max": fetch_limit,
+        **filters.as_log_fields(),
+        "excluded_ids": [
+            str(posting_id) for posting_id in sorted(excluded_ids, key=str)
+        ],
+    }
+    started_at = datetime.now(timezone.utc).isoformat()
+    started = time.perf_counter()
+    _logger.info(
+        "tool invocation started",
+        extra={
+            "tool_name": "list_jobs",
+            "arguments": arguments,
+            "start_time": started_at,
+        },
+    )
+    try:
+        rows = await (await pool()).fetch(
+            """
+            select posting_id, title, company, coalesce(location, '') as location,
+                   remote, score, reasons, coalesce(nullif(apply_url, ''), url) as apply_url
+            from public.list_jobs(false, $1, $2, $3, $4, $5)
+            """,
+            fetch_limit,
+            filters.min_score,
+            filters.location,
+            filters.seniority,
+            filters.query,
+        )
+        postings = [
+            Posting(
+                id=row["posting_id"],
+                title=row["title"],
+                company=row["company"],
+                location=row["location"],
+                score=row["score"],
+                reasons=_format_reasons(row["reasons"]),
+                apply_url=row["apply_url"],
+            )
+            for row in rows
+            if row["posting_id"] not in excluded_ids
+            and row["score"] is not None
+            and row["apply_url"]
+            and (filters.remote is None or row["remote"] is filters.remote)
+        ][:limit]
+        _logger.info(
+            "tool invocation completed",
+            extra={
+                "tool_name": "list_jobs",
+                "arguments": arguments,
+                "start_time": started_at,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+                "outcome": "success" if postings else "empty",
+                "returned_rows": [posting.as_log_row() for posting in postings],
+            },
+        )
+        return postings
+    except Exception:
+        _logger.exception(
+            "tool invocation failed",
+            extra={
+                "tool_name": "list_jobs",
                 "arguments": arguments,
                 "start_time": started_at,
                 "duration_ms": round((time.perf_counter() - started) * 1000, 3),

@@ -7,7 +7,9 @@ from livekit.agents import Agent, llm, tokenize
 from livekit.agents.types import FlushSentinel
 
 from tools import (
+    JobFilters,
     JOB_LOOKUP_FAILED,
+    NO_FILTERED_JOBS,
     NO_MORE_JOBS,
     NO_STRONG_JOBS,
     Posting,
@@ -17,9 +19,10 @@ from user import User
 
 SAY_AS = {
     "Tel Aviv": "Tell Aveev",
-    "Etan": "Ay-tahn",
     "Jeen": "Jeen",
 }
+
+AGENT_NAME = "Riki"
 
 _NEXT_RE = re.compile(r"\b(next|another|different|more)\b", re.IGNORECASE)
 _LINK_RE = re.compile(r"\b(link|url|apply|application page)\b", re.IGNORECASE)
@@ -38,7 +41,100 @@ _OUT_OF_SCOPE_RE = re.compile(
     re.IGNORECASE,
 )
 _URL_RE = re.compile(r"https?://[^\s)\]>]+")
+_CLEAR_FILTERS_RE = re.compile(
+    r"\b(clear|remove|reset)\b.{0,30}\b(filters?|constraints?)\b|\bshow me everything\b",
+    re.IGNORECASE,
+)
+_LOCATION_RE = re.compile(
+    r"\b(?:jobs?|roles?|positions?|opportunit(?:y|ies)|something)\s+"
+    r"(?:located\s+|based\s+)?in\s+"
+    r"(?P<location>[A-Za-z][A-Za-z .'-]{1,50}?)"
+    r"(?=\s+(?:with|using|above|over|at least|scor(?:e|ed)|and)\b|[?!,.]|$)",
+    re.IGNORECASE,
+)
+_LOCATION_IS_RE = re.compile(
+    r"\b(?:location|country|city)\s+(?:is|of|to)\s+"
+    r"(?P<location>[A-Za-z][A-Za-z .'-]{1,50}?)(?=[?!,.]|$)",
+    re.IGNORECASE,
+)
+_REMOTE_RE = re.compile(r"\b(remote|work(?:ing)? from home|wfh)\b", re.IGNORECASE)
+_ONSITE_RE = re.compile(r"\b(on[ -]?site|not remote)\b", re.IGNORECASE)
+_SENIORITY_RE = re.compile(
+    r"\b(intern(?:ship)?|junior|entry(?: level)?|mid(?: level)?|senior|staff|principal|lead)\b",
+    re.IGNORECASE,
+)
+_SCORE_PREFIX_RE = re.compile(
+    r"\b(?:score|scored)\s*(?:of|at least|above|over|greater than)?\s*"
+    r"(?P<score>\d{1,3})\b",
+    re.IGNORECASE,
+)
+_SCORE_SUFFIX_RE = re.compile(
+    r"\b(?:at least|above|over|greater than)\s*(?P<score>\d{1,3})\s*"
+    r"(?:score|points?)\b",
+    re.IGNORECASE,
+)
+_QUERY_CUE_RE = re.compile(
+    r"\b(?:using|with|stack(?: of)?|technology|tech)\s+"
+    r"(?:a\s+|an\s+)?(?P<query>[A-Za-z][A-Za-z0-9.+#/-]{0,29})\b",
+    re.IGNORECASE,
+)
+_COMMON_QUERY_RE = re.compile(
+    r"\b(python|typescript|javascript|react(?:\.js)?|next(?:\.js)?|node(?:\.js)?|"
+    r"fastapi|django|rust|golang|kotlin|swift|java|c#|\.net|ruby|rails|postgres(?:ql)?|"
+    r"supabase|aws|gcp|azure|kubernetes|docker|terraform|frontend|backend|full[ -]?stack|"
+    r"machine learning|artificial intelligence|llm)\b",
+    re.IGNORECASE,
+)
 _logger = logging.getLogger(__name__)
+
+
+def _clean_constraint(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip(" .,!?:;")
+
+
+def extract_job_filter_updates(text: str) -> tuple[dict[str, object], bool]:
+    """Extract only explicit constraints; never infer job facts or preferences."""
+    if _CLEAR_FILTERS_RE.search(text):
+        return {}, True
+
+    updates: dict[str, object] = {}
+    location_match = _LOCATION_RE.search(text) or _LOCATION_IS_RE.search(text)
+    if location_match:
+        location = _clean_constraint(location_match.group("location"))
+        if location:
+            updates["location"] = location
+
+    if _ONSITE_RE.search(text):
+        updates["remote"] = False
+    elif _REMOTE_RE.search(text):
+        updates["remote"] = True
+
+    seniority = _SENIORITY_RE.search(text)
+    if seniority:
+        value = seniority.group(1).casefold().replace(" ", "_")
+        updates["seniority"] = "entry" if value == "entry_level" else value
+
+    score = _SCORE_PREFIX_RE.search(text) or _SCORE_SUFFIX_RE.search(text)
+    if score:
+        value = int(score.group("score"))
+        if 0 <= value <= 100:
+            updates["min_score"] = value
+
+    query = _QUERY_CUE_RE.search(text)
+    if query is not None and query.group("query").casefold() in {
+        "score",
+        "minimum",
+        "rating",
+    }:
+        query = None
+    if query is None:
+        query = _COMMON_QUERY_RE.search(text)
+    if query:
+        updates["query"] = _clean_constraint(
+            query.groupdict().get("query") or query.group(0)
+        )
+
+    return updates, False
 
 
 class JobCoach(Agent):
@@ -47,12 +143,14 @@ class JobCoach(Agent):
         user: User,
         *,
         open_job: Callable[[Posting], Awaitable[str]] | None = None,
+        find_jobs: Callable[[JobFilters], Awaitable[list[Posting]]] | None = None,
     ):
         self._open_job = open_job
+        self._find_jobs = find_jobs
         super().__init__(
             tools=[],
             instructions=(
-                f"You are {user.first_name}'s job-search coach. You talk over voice: "
+                f"You are {AGENT_NAME}, {user.first_name}'s job-search coach. You talk over voice: "
                 "one to three short sentences per reply, no markdown, no lists, no asterisks. "
                 f"{user.first_name} is {user.positioning}, wants {', '.join(user.roles_wanted)}, "
                 f"works with {', '.join(user.stacks)}.\n"
@@ -91,6 +189,34 @@ class JobCoach(Agent):
         state.deterministic_reply = None
         state.intended_text = None
         requested_posting = bool(_JOB_RE.search(text) or _NEXT_RE.search(text))
+
+        filter_updates, clear_filters = extract_job_filter_updates(text)
+        if clear_filters or filter_updates:
+            filters = JobFilters() if clear_filters else state.filters.merged(filter_updates)
+            if self._find_jobs is None:
+                state.deterministic_reply = JOB_LOOKUP_FAILED
+                return
+            try:
+                state.replace_candidates(await self._find_jobs(filters), filters=filters)
+            except Exception:
+                state.fail_lookup()
+                state.deterministic_reply = JOB_LOOKUP_FAILED
+                return
+            _logger.info(
+                "spoken job constraints applied",
+                extra={
+                    "filter_updates": filter_updates,
+                    "filters_cleared": clear_filters,
+                    "active_filters": filters.as_log_fields(),
+                    "candidate_count": len(state.candidates),
+                    "candidate_ids": [str(posting.id) for posting in state.candidates],
+                    "cursor": state.cursor,
+                },
+            )
+            requested_posting = True
+            if not state.candidates:
+                state.deterministic_reply = NO_FILTERED_JOBS
+                return
 
         if _OUT_OF_SCOPE_RE.search(text):
             state.deterministic_reply = (
