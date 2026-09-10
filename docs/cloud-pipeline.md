@@ -67,10 +67,12 @@ separate proof layers. See GitHub's official
 [scheduled-workflow documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
 GitHub states that standard GitHub-hosted runner use is free in public
-repositories. Artifact and cache storage have separate plan quotas and billing
-rules, and larger runners are charged. This workflow uploads seven-day evidence
-artifacts, so free runner compute does not imply unlimited artifact storage. See
-GitHub's official [Actions billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+repositories. Actions artifacts share the plan-level storage allowance with
+GitHub Packages. Actions caches have a separate default allowance of 10 GB per
+repository, with distinct billing when an increased limit is used. Larger
+runners are charged. This workflow uploads seven-day evidence artifacts, so
+free runner compute does not imply unlimited artifact storage. See GitHub's
+official [Actions billing documentation](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 This GitHub runner policy does not cover the local Codex CLI subscription or its
 usage quotas; Luna and Terra inference is provided through that CLI rather than
 weights running on the Mac.
