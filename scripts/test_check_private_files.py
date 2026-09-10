@@ -51,6 +51,14 @@ def run_guard(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
         "nested/docs.local/note.md",
         ".env",
         "nested/.env.production",
+        "nested/credentials.json",
+        "nested/credentials-prod.json",
+        ".run-state/run.json",
+        ".run-logs/latest.log",
+        "data/runtime.db",
+        "logs/latest.log",
+        "backups/dump.sql",
+        ".autocursor-runs/report.json",
         "settings.local.json",
         "nested/auth.json",
     ],
@@ -82,6 +90,8 @@ def test_safe_examples_and_empty_index_pass(tmp_path: Path) -> None:
     assert run_guard(repo).returncode == 0
 
     write(repo, "profile.example.yaml")
+    write(repo, ".env.example")
+    write(repo, ".env.local.sample")
     write(repo, "nested/environment.example")
     git(repo, "add", ".")
     assert run_guard(repo).returncode == 0
