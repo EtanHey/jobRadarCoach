@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timezone
 from typing import Callable
 from urllib.error import HTTPError
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -17,7 +17,8 @@ BROWSER_USER_AGENT = (
 )
 DEAD_STATUS_CODES = {404, 410}
 DEAD_TEXT = re.compile(
-    r"\b(?:no longer accepting applications|job (?:is )?no longer available|"
+    r"\b(?:no longer accepting applications|not currently accepting applications|"
+    r"the job you are looking for is no longer open|job (?:is )?no longer available|"
     r"position (?:has been|is) (?:filled|closed)|this job has expired)\b",
     re.I,
 )
@@ -72,6 +73,27 @@ def _redirected_to_auth(original_url: str, final_url: str) -> bool:
     return original_url != final_url and bool(AUTH_PATH.search(urlparse(final_url).path))
 
 
+def _greenhouse_board_error_redirect(original_url: str, final_url: str) -> bool:
+    """Match Greenhouse's closed-job redirect without trusting arbitrary redirects."""
+
+    original = urlparse(original_url)
+    final = urlparse(final_url)
+    if (
+        original.scheme != "https"
+        or final.scheme != original.scheme
+        or original.netloc.lower() != "job-boards.greenhouse.io"
+        or final.netloc.lower() != original.netloc.lower()
+    ):
+        return False
+    job_path = re.fullmatch(r"/([^/]+)/jobs/[^/]+/?", original.path)
+    if job_path is None:
+        return False
+    board_token = job_path.group(1)
+    if final.path.rstrip("/") != f"/{board_token}":
+        return False
+    return parse_qs(final.query, keep_blank_values=True).get("error") == ["true"]
+
+
 def _error_final_url(error: HTTPError, requested_url: str) -> str:
     """Final URL an ``HTTPError`` was raised for, across interpreter versions.
 
@@ -91,6 +113,18 @@ def _error_final_url(error: HTTPError, requested_url: str) -> str:
         if isinstance(candidate, str) and candidate:
             return candidate
     return requested_url
+
+
+def _error_location(error: HTTPError, requested_url: str) -> str:
+    """Resolve an HTTP redirect Location, falling back to the error URL."""
+
+    try:
+        location = error.headers.get("Location")
+    except Exception:  # noqa: BLE001 - malformed third-party header containers
+        location = None
+    if isinstance(location, str) and location:
+        return urljoin(requested_url, location)
+    return _error_final_url(error, requested_url)
 
 
 def check_url(
@@ -117,14 +151,36 @@ def check_url(
             return _result(None, status=status, reason="redirect-to-auth", final_url=final_url)
         if _redirected_to_search(url, final_url):
             return _result(False, status=status, reason="redirect-to-search", final_url=final_url)
+        if _greenhouse_board_error_redirect(url, final_url):
+            return _result(
+                False,
+                status=status,
+                reason="greenhouse-board-error-redirect",
+                final_url=final_url,
+            )
         if DEAD_TEXT.search(_visible_text(body)):
             return _result(False, status=status, reason="closed-page-text", final_url=final_url)
-        return _result(True, status=status, reason="http-live", final_url=final_url)
+        return _result(
+            None,
+            status=status,
+            reason=f"http-{status}-uncertain",
+            final_url=final_url,
+        )
     except HTTPError as error:
-        final_url = _error_final_url(error, url)
+        final_url = _error_location(error, url)
         if AUTH_PATH.search(urlparse(final_url).path):
             return _result(
                 None, status=error.code, reason="redirect-to-auth", final_url=final_url
+            )
+        if (
+            error.code in {301, 302, 303, 307, 308}
+            and _greenhouse_board_error_redirect(url, final_url)
+        ):
+            return _result(
+                False,
+                status=error.code,
+                reason="greenhouse-board-error-redirect",
+                final_url=final_url,
             )
         if error.code in DEAD_STATUS_CODES:
             return _result(
