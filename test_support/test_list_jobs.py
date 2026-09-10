@@ -10,6 +10,8 @@ from test_support.postgres import DatabaseUnavailable, migrated_database
 ROOT = Path(__file__).parents[1]
 MIGRATIONS = ROOT / "supabase/migrations"
 MIGRATION = MIGRATIONS / "0008_list_jobs.sql"
+SECURITY_MIGRATION = MIGRATIONS / "0010_hosted_access.sql"
+ACTIVE_MIC_MIGRATION = MIGRATIONS / "0009_active_mic.sql"
 REGRESSION = ROOT / "supabase/tests/0008_list_jobs_test.sql"
 
 
@@ -25,6 +27,10 @@ def test_migration_preserves_legacy_function_and_passes_sql_contract() -> None:
             assert connection.execute(
                 "select pg_get_functiondef('public.list_new_for_me()'::regprocedure)"
             ).fetchone()[0] == legacy_definition
+            connection.execute(ACTIVE_MIC_MIGRATION.read_text(encoding="utf-8"))
+            connection.commit()
+            connection.execute(SECURITY_MIGRATION.read_text(encoding="utf-8"))
+            connection.commit()
             cursor = connection.execute(REGRESSION.read_text(encoding="utf-8"))
             tap = []
             while True:

@@ -32,7 +32,7 @@ def test_active_mic_sql_contract() -> None:
                     tap.extend(row[0] for row in cursor.fetchall() if isinstance(row[0], str))
                 if not cursor.nextset():
                     break
-            assert "1..29" in tap
+            assert "1..30" in tap
             assert [line for line in tap if line.startswith("not ok")] == []
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
