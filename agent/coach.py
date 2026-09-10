@@ -58,9 +58,11 @@ class JobCoach(Agent):
         self,
         user: User,
         *,
+        auditor=None,
         open_job: Callable[[Posting], Awaitable[str]] | None = None,
         find_jobs: Callable[[JobFilters], Awaitable[list[Posting]]] | None = None,
     ):
+        self._auditor = auditor
         self._open_job = open_job
         self._find_jobs = find_jobs
         self._profile_facts = json.dumps(
@@ -378,7 +380,7 @@ class JobCoach(Agent):
         outcome = "cancelled"
         try:
             await audit_sentence(
-                self.session.llm, text, {**facts, "user_profile": self._profile_facts}
+                self._auditor, text, {**facts, "user_profile": self._profile_facts}
             )
             outcome = "accepted"
         except Exception:

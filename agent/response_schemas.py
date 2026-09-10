@@ -13,10 +13,21 @@ class ExtractedClaim(StrictResponse):
     value: str
 
 
+class HiringEvidence(StrictResponse):
+    field: Literal["reasons", "outcome"]
+    quote: str
+
+
+class HiringAssertion(StrictResponse):
+    asserted: bool
+    evidence: HiringEvidence | None
+
+
 class AuditResponse(StrictResponse):
     claims: list[ExtractedClaim]
     stance: Literal["recommend", "weak_option", "poor_fit", "neutral"]
     unsupported: list[str]
+    hiring_assertion: HiringAssertion
 
 
 class NaturalSpeech(StrictResponse):

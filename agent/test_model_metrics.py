@@ -60,7 +60,7 @@ class ModelMetricsTests(unittest.IsolatedAsyncioTestCase):
             payload = {
                 "intent": {"action": "discuss", "filters": {}, "more_options": False},
                 "writer": {"sentence": "Okay.", "stance": "neutral"},
-                "audit": {"claims": [], "stance": "neutral", "unsupported": []},
+                "audit": {"claims": [], "stance": "neutral", "unsupported": [], "hiring_assertion": {"asserted": False, "evidence": None}},
             }[name]
             content = sse_chunk(name + "-request", json.dumps(payload))
             usage = sse_chunk(name + "-request", usage={

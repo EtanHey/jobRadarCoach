@@ -6,7 +6,10 @@ from types import SimpleNamespace
 from claim_audit import GroundingError, audit_sentence, validate_audit
 
 FACTS = {"company": "Acme", "title": "Developer", "location": "Israel", "score": "82", "apply_url": "https://example.com/apply"}
-EMPTY_AUDIT = {"claims": [], "stance": "neutral", "unsupported": []}
+EMPTY_AUDIT = {
+    "claims": [], "stance": "neutral", "unsupported": [],
+    "hiring_assertion": {"asserted": False, "evidence": None},
+}
 
 
 def audit_model(payload):
@@ -151,25 +154,25 @@ class AuditTests(unittest.TestCase):
     def test_extracted_values_must_match_current_posting(self):
         for field, value in (("company", "Stripe"), ("title", "CEO"), ("location", "London"), ("score", "91"), ("apply_url", "https://invented.example")):
             with self.subTest(field=field), self.assertRaises(GroundingError):
-                validate_audit({"claims": [{"field": field, "value": value}], "stance": "neutral", "unsupported": []}, FACTS, "Stripe would suit you.")
+                validate_audit({**EMPTY_AUDIT, "claims": [{"field": field, "value": value}]}, FACTS, "Stripe would suit you.")
 
     def test_actual_recommendation_cannot_hide_behind_writer_neutral_label(self):
         with self.assertRaisesRegex(GroundingError, "spoken_stance"):
-            validate_audit({"claims": [], "stance": "recommend", "unsupported": []}, {**FACTS, "score": "35"}, "Apply now.")
+            validate_audit({**EMPTY_AUDIT, "stance": "recommend"}, {**FACTS, "score": "35"}, "Apply now.")
 
     def test_invalid_score_returns_a_stable_grounding_failure(self):
         for score in ("", "82.5", "unknown", "101", "-1"):
             with self.subTest(score=score), self.assertRaisesRegex(GroundingError, "invalid_verified_score"):
-                validate_audit({"claims": [], "stance": "neutral", "unsupported": []}, {**FACTS, "score": score}, "Let's discuss it.")
+                validate_audit(EMPTY_AUDIT, {**FACTS, "score": score}, "Let's discuss it.")
 
     def test_unsupported_propositions_and_malformed_audits_fail(self):
-        for audit in ({}, {"claims": [], "stance": "neutral", "unsupported": ["Team growth was invented"]}, {"claims": [], "stance": "neutral", "unsupported": False}):
+        for audit in ({}, {**EMPTY_AUDIT, "unsupported": ["Team growth was invented"]}, {**EMPTY_AUDIT, "unsupported": False}):
             with self.subTest(audit=audit), self.assertRaises(GroundingError):
                 validate_audit(audit, FACTS, "Let's discuss it.")
 
     def test_natural_conversation_and_verified_identity_pass(self):
         validate_audit(EMPTY_AUDIT, {}, "Absolutely.")
-        validate_audit({"claims": [{"field": "company", "value": "Acme"}], "stance": "recommend", "unsupported": []}, FACTS, "Acme looks strong.")
+        validate_audit({**EMPTY_AUDIT, "claims": [{"field": "company", "value": "Acme"}], "stance": "recommend"}, FACTS, "Acme looks strong.")
 
 
 class AuditStreamTests(unittest.IsolatedAsyncioTestCase):

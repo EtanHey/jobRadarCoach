@@ -43,6 +43,7 @@ class GroundedSpeechTests(unittest.TestCase):
                 ],
                 "stance": "recommend",
                 "unsupported": [],
+                "hiring_assertion": {"asserted": False, "evidence": None},
             },
             facts,
             text,
