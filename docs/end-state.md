@@ -1,159 +1,150 @@
-# jobRadarCoach — end state
+# Job Radar Coach — end state
 
-> Frozen 2026-09-07 after a 4-round grill (Etan + coachClaude). This is the target every lane builds toward.
-> Change it only by a new decision from Etan, recorded here with a date.
+> Owner decision updated 2026-09-10. This supersedes the 2026-09-07
+> Mac/Kubernetes topology. Change the target only through a new dated owner
+> decision.
 
-## What it is
+## Product
 
-A self-hosted voice agent that knows your job search: it scrapes postings, extracts and scores them against
-*your* profile, and talks to you about what is new **for you** — new since your last visit, minus what you
-already heard, opened, saved, applied to, or rejected. It may also resurface a job you have seen but not
-applied to when it strongly thinks you should.
+Job Radar Coach is a private, single-owner job-search dashboard and data
+pipeline. It collects public postings, ranks them against an evidence-bounded
+professional profile, tracks the complete application pipeline, and helps the
+owner find both new jobs and older strong matches that still deserve action.
 
-Runs on one Mac for $0: OrbStack's built-in k3s, a local Supabase, Ollama with Metal. Served over your
-Tailscale tailnet so it works from your phone outside the house. Open source: others clone it, bring their
-own Supabase and their own profile, and run it themselves. Single user, no login.
+The product remains open source: another user can deploy their own isolated
+Supabase project, Vercel dashboard, cloud scraper, and private profile. No
+personal profile, row export, credential, or deployment secret belongs in Git.
 
-## Topology
+## Standalone topology
 
-Namespace `job-radar-coach` in OrbStack k3s (`kubectl config use-context orbstack`).
-
-| Pod | Kind | Owner | Notes |
-|---|---|---|---|
-| `scraper` | CronJob | workers | exists (`k8s/scraper-cronjob.yaml`, image `job-radar:dev`, currently suspended). Must write rows to Postgres instead of JSONL. |
-| `extractor` | Job | workers | structured fields per posting, via the `BRAIN` adapter |
-| `classifier` | Job | workers | Luna v1 ported: score 0–100 + labels |
-| `ui` | Deployment + Service | workers | Next.js + Tailwind + shadcn. API = route handlers (LiveKit token minting, supabase-js). Own Dockerfile. `tailscale serve` in front for HTTPS on the phone. |
-| `livekit` | Deployment + Service + ConfigMap | **Etan (D3) — withheld** | self-hosted `livekit/livekit-server` |
-| `agent` | Deployment | **Etan (D4) — withheld** | Python, `livekit-agents`, tools below |
-
-Outside k3s, on the Mac, reached from pods as `host.docker.internal` (proven 2026-09-07 with Supabase on 54322):
-
-- Supabase local (`supabase start`): Postgres `:54322`, Studio `:54323`, API `:54321`. Schema lives in `supabase/migrations/`. Later `supabase db push` moves it to hosted.
-- Ollama (Metal) — live LLM for the agent (Gemma), and the default batch brain.
-- whisper server + Kokoro-FastAPI — STT/TTS as OpenAI-compatible endpoints. Native so Metal does the work; the agent pod stays thin.
-
-Images are built locally with `docker build -t <name>:dev`; OrbStack's k3s uses them directly, no registry.
-
-## Data model (Supabase Postgres)
-
-- `postings` — one row per posting: source, external id, url, title, company, location, remote, seniority,
-  stack (text[]), salary, apply_url, posted_at, raw_jd, first_seen_at, last_seen_at, liveness.
-- `posting_scores` — per posting: score 0–100, reasons, labels (role_type: frontend|fullstack|ai|voice,
-  seniority_match, remote_ok, red_flag_count), brain used, scored_at.
-- `posting_status` — per posting: status `new → seen → saved | applied | rejected`, reason (text, required
-  on rejected), updated_at. One row, one status column. "seen" = read aloud by the agent OR opened in the UI.
-- `profile` — the user's taste as rows (roles wanted, stacks, seniority, remote, locations, salary floor,
-  red-flag words, free-text preferences). Also the search terms the scraper runs. **Truth lives here.**
-  A gitignored `profile.yaml` only seeds these rows on first run.
-- `visits` — `last_visit_at`; "new for me" = `posted_at > last_visit_at` and no status beyond `new`.
-
-Supabase Realtime subscriptions push row changes to the UI (agent marks applied → list updates).
-
-## Brains
-
-One adapter, chosen by env: `BRAIN=ollama | codex | claude | cursor-agent`. `ollama` is the repo default
-($0, runs anywhere). Etan's own instance uses `codex` (ChatGPT subscription, `codex exec`); see
-`~/Gits/t3code` for how a Codex CLI connection and commit-message generation are wired. The UI has a toggle.
-The live voice LLM is always a local OpenAI-compatible chat endpoint, `LLM_BASE_URL`: Ollama by default
-(portable); Etan's instance points it at `mlx_lm.server` (faster on Apple Silicon). `codex exec` cannot hold a
-conversation.
-
-## Voice agent tools (D4, Etan builds; workers only prepare the SQL functions they call)
-
-- `list_new_for_me()` — ranked unseen postings since last visit.
-- `list_jobs(seen=false, max=5, min_score?, location?, seniority?, query?)` — bounded
-  best-fit jobs across full history; `seen=null` includes new and handled rows, including unknown dates.
-- `set_status(posting_id, status, reason?)` — writes `posting_status`.
-- `update_profile(field, value)` — voice edits the profile rows.
-- `open_job(posting_id)` — sends a message over the LiveKit data channel; the mic page opens the tab.
-  (Alternative kept in mind: the agent emits a custom button for the user to tap.)
-
-## Open-source rules
-
-- `docs/setup.md` must show: OrbStack + k3s, `supabase start`, Ollama, seeding your own `profile.yaml`,
-  choosing a `BRAIN`. Nothing personal is ever committed: `profile.yaml`, `docs.local/`, `.env`,
-  `supabase/.env` are gitignored and a guard script fails the commit if they slip in.
-- No Telegram. No login. No Effect library. Plain TS + zod at boundaries.
-
-## Lane order for workers (each = one small PR, XS/S)
-
-1. Move `scripts/job-feed` from `~/Gits/coach` into `scraper/`; fix the two `COPY` lines in the Dockerfile;
-   personal `references/profile-export.yaml` becomes the seed format, not baked into the image.
-2. Schema migration 0001 (tables above) + `scraper` writes rows (psycopg) instead of JSONL; `--jsonl` stays
-   as an optional flag. Verify: a CronJob run in the cluster inserts rows visible in Studio.
-3. Extractor Job + `BRAIN` adapter (ollama first, codex second).
-4. Classifier Job — port Luna (`annotate.py`) prompts; score + labels.
-5. `ui` pod: list / detail / status buttons / profile drawer / brain toggle; Realtime; Dockerfile; manifest.
-6. `docs/setup.md` + guard script.
-
-Withheld from workers: anything under `k8s/livekit*`, `agent/`, and the mic page's LiveKit client code.
-
-## Owner amendments — 2026-09-07
-
-- Luna receives an explicitly selected professional projection only: skills, ratified depth, tenure,
-  positioning, and public-safe project facts. People, connectors, prohibited-claims
-  lists, and nested ownership exclusions never enter a cloud-brain request; they remain local guards.
-- Professional depth supports `hands-on`, `directed-AI`, and `studied-with-AI`. Values require Etan's
-  explicit ratification. Empty/unset depth is not evidence of no knowledge, and recent AI-directed work
-  does not erase earlier confirmed hands-on depth.
-- Application history is a separate future table and fit input. A past company is context, never a
-  company-wide hard block or invented fixed cooldown; `posting_status` remains the current posting state.
-- CLIProxyAPI is permitted only for a future `BRAIN=codex` spike after logical lane 2. It is not an
-  approved transport for Claude or Gemini and is not claimed installed or verified.
-- Voice sessions (Etan, 2026-09-07 evening): one LiveKit room per web client (Mac tab, phone tab). Mic is
-  sticky push-to-talk: tap opens, tap closes; opening the mic on any client closes any other open mic for the
-  same user. No always-open mic. `ui` and `livekit` are the only Services; Jobs/CronJobs get none.
-
-## Owner amendment — 2026-09-08: voice is how the profile is maintained
-
-Etan, after using the UI: "once we finish setting up the livekit side it'll be much more useful as I'll be
-able to word out why some things dont match and some do, with the nitpicks and the ai would be able to find
-what to edit in the prefrences instead of me giving short answers to the reject and steering filtering too much."
-
-This is the product thesis. It has three consequences:
-
-1. **Rejection reasons are stored verbatim**, as the user said them, in free text. Never as a category from a
-   fixed list. The accumulated reasons are the corpus the agent reasons over; a label destroys the signal.
-2. **`update_profile` is not a setter.** The voice tool accepts what the user actually said and the model
-   derives which preference rows that implies. It must state the intended change back to the user in words
-   before writing. A tool that takes (field, value) recreates filter-steering by voice and misses the point.
-3. **Guard against overfitting.** The agent proposes a preference change only after it observes a PATTERN
-   across several rejections, names the pattern aloud, and every edit it has made is listed, attributed, and
-   individually undoable in the profile drawer. A profile that silently narrows until good roles stop
-   appearing is the failure mode this rule exists to prevent.
-
-### Three tiers, not one (Etan, 2026-09-08)
-
-"Maybe even after a lot of patterns emerge it brings it up to a astra/sol model to give it suggested
-profile/settings edits, then it goes over them with me?"
-
-| Tier | Who | Job |
+| Component | Runs on | Responsibility |
 |---|---|---|
-| Live | local model (Ollama/MLX), in the voice session | capture the reason verbatim, notice a pattern, say it out loud, read proposals back. Nothing more — this is deliberately small so the voice side stays free and fast. |
-| Advisor | a strong model via the BRAIN adapter (codex: gpt-6-astra / gpt-5.6-sol), batch | a fourth Job alongside extractor and classifier. Weekly or on demand. Reads the whole corpus — verbatim rejection reasons AND what was saved/applied, not the profile alone — and DRAFTS proposed profile edits. Each proposal must cite the specific postings and reasons it came from. It writes proposals to a table; it never writes the profile. |
-| Review | Etan | goes over proposals by voice or in the profile drawer, accepts or rejects each one individually. Nothing auto-applies, ever. |
+| Dashboard | Vercel | Next.js owner UI and authenticated server API |
+| Data and Auth | Hosted Supabase | Postgres, owner identity, Vault, Cron, access controls, and backups |
+| Fetcher | GitHub-hosted Actions | Python fetching, validation, liveness checks, and raw posting persistence without LLM calls |
+| Scheduler | Supabase Cron | Six-hour authenticated dispatch of the cloud workflow through `pg_net` |
+| Extractor and scorer | Owner's local CLI | Bounded LLM work and validated persistence through the hosted database URL |
+| Generic agent | DialogKit, separate project | Reusable text/voice conversation, tools, and rendered components |
 
-The advisor tier is also where overfitting gets caught: a bad suggestion shows up as a proposal with thin
-evidence attached, instead of a silent narrowing noticed weeks later when good roles stopped appearing.
+The Mac may be off while cloud fetching runs. It is required only when the owner
+chooses to run local extraction or scoring. Job Radar Coach has no canonical
+Kubernetes, LiveKit, Tailscale, or embedded-agent runtime.
 
-### Status is a pipeline, not triage (Etan, 2026-09-08)
+## Delivery state
 
-Etan, comparing against ScoutMole: "she also has more options for once you want to set a status on a job."
-Her menu: שווה בדיקה (worth checking) · שלחתי קו"ח (sent CV) · ראיון ראשוני (initial interview) ·
-ראיון טכני (technical interview) · חוזה (contract) · ארכיון (archive) · לא רלוונטי (not relevant).
+The GitHub cloud workflow and Supabase scheduling package are merged source.
+They are not live proof. The release is complete only after a scheduled request
+produces a GitHub run, attempts every configured source under its bounded budget,
+and persists fresh hosted rows while the Mac is off.
 
-Supersedes the earlier `new → seen → saved | applied | rejected` enum. Etan already tracks these stages by
-hand in his Obsidian Career Hub table; the app should carry them so it replaces that table, and the stages
-feed the application-history table built in lane 2H.
+The local extractor and scorer are implemented as bounded CLI jobs. Their hosted
+database cutover, unattended orchestration, and durable end-to-end receipts are
+unfinished, so they remain explicit owner-run commands.
 
-New `posting_status.status`:
-`new` → `seen` → `worth_checking` → `applied` → `screen` (HR/recruiter call) → `interview_technical` →
-`interview_final` → `offer` → `contract`, with the terminal side branches `rejected` (reason REQUIRED,
-stored verbatim), `archived`, and `not_relevant`.
+Vercel deployment, Supabase import, Auth configuration, owner enrollment, and
+live behavior each require their own operational receipt. A merged PR or healthy
+service does not establish the next layer.
 
-Rules: one status per posting, forward moves are ordinary edits and backward moves are allowed. Every
-transition is timestamped in application history so the UI can show "applied 6 days ago, no reply." The
-voice agent's `set_status` tool takes any of these. `rejected` and `not_relevant` are distinct: rejected
-means they said no, not_relevant means Etan ruled it out — and only the second is taste signal for the
-advisor tier.
+## Data and semantic ownership
+
+Hosted Supabase is runtime truth:
+
+- `postings` stores source identity, URLs, job metadata, raw descriptions,
+  observation time, and liveness.
+- `posting_extractions` stores structured fields derived from a posting.
+- `posting_scores` stores score, reasons, labels, model metadata, and the exact
+  validated scoring payload.
+- `posting_status` stores current state; `posting_status_history` records every
+  transition.
+- `application_history` stores the owner's professional application context.
+- `profile` stores search preferences and the safe professional projection.
+- `visits` and `heartbeat` support product recency and hosted health contracts.
+
+The status pipeline is:
+
+`new → seen → worth_checking → applied → screen → interview_technical →`
+`interview_final → offer → contract`, with `rejected`, `archived`, and
+`not_relevant` as terminal side branches. Backward corrections are allowed and
+every transition is timestamped. Rejection reasons remain verbatim free text.
+`rejected` means the employer declined; `not_relevant` means the owner ruled out
+the role, and only the latter is taste evidence.
+
+Job Radar Coach owns these facts and exposes them through a validated,
+authenticated semantic API/configuration. Models may phrase responses, but code
+owns posting selection, status rules, exact URLs, filters, authorization, and
+write validation.
+
+## Model boundary
+
+Cloud scraping performs no model calls. Local extraction and scoring may send
+only the explicitly selected professional projection: skills, ratified depth,
+tenure, positioning, and public-safe project facts. People, connectors,
+prohibited-claim lists, private paths, and nested ownership exclusions never
+enter a model request; they remain local guards.
+
+Professional depth distinguishes `hands-on`, `directed-AI`, and
+`studied-with-AI`. Values require explicit owner ratification. Missing depth is
+unknown, and recent AI-directed work does not erase confirmed hands-on work.
+Application history is context, never a company-wide block or invented
+cooldown.
+
+Model output is untrusted until the repository validates its closed schema,
+evidence identifiers, semantic constraints, and persistence result. A failed
+validation must not produce a complete score row.
+
+## DialogKit boundary and preserved owner design
+
+DialogKit is the decoupled generic agent layer. It may call Job Radar's semantic
+API, but it does not own job facts, ranking policy, profile truth, or status
+writes. Job Radar does not own generic voice transport or conversation runtime.
+
+The 2026-09-09 owner design remains a DialogKit-facing product requirement:
+
+- Delivery order is Job Radar search, then a grilling mode that improves both
+  search preferences and claim confidence, then decoupled DialogKit, then the
+  public portfolio mini-me.
+- Search conversations can render a job card with exact open and detail actions
+  that the agent may also invoke; resolved cards may collapse into transcript
+  history.
+- Grilling can propose evidence/profile changes with explicit confirmation and
+  an individually undoable result. Nothing auto-applies.
+- An unresolved component stays visible until the owner resolves it; its
+  confirmed state joins the transcript before the next agent turn.
+- Profile changes are proposed from patterns across evidence, not silently
+  inferred from one rejection.
+- The future public mini-me is voice-first with text fallback and explicit
+  résumé-download and GitHub actions; it is outside this repository's runtime.
+
+The legacy embedded agent/LiveKit integration is preserved as legacy evidence
+until the separately owned DialogKit replacement map and runtime are proven. It
+is not converted in place and is not part of standalone setup.
+
+## Security and operations
+
+- Supabase browser roles have no table or routine access. Vercel server routes
+  authorize the allowlisted owner before using the server-only service role.
+- Passkey relying-party settings and callback origins match the exact production
+  HTTPS origin. Missing configuration fails closed with private, no-store
+  responses.
+- The cloud fetcher uses only public, credential-free job sources. GitHub's
+  database URL and Supabase Vault's repository-scoped workflow token remain in
+  their respective secret stores.
+- Backups are encrypted, excluded from Git, hashed, count-checked, and restored
+  into a disposable database before a production import or destructive change.
+- Disable and rollback paths exist for the cloud schedule. No cleanup removes a
+  shared extension, externally managed credential, or unverified last backup.
+
+## Completion criteria
+
+The standalone migration is complete when all of these are proven together:
+
+1. The owner can authenticate to the production Vercel hostname, read hosted
+   data, and perform authorized mutations; anonymous and non-owner access fail.
+2. Supabase Cron causes a successful cloud fetch while the Mac is off, and the
+   receipt ties configured sources to newly persisted hosted rows.
+3. The local CLI extracts and scores hosted unprocessed rows with validated,
+   reviewable receipts and no private-context leakage.
+4. Backup restore, schedule disable/rollback, Auth recovery, and deployment
+   rollback have each been rehearsed without losing the retained source copy.
+5. Any DialogKit integration consumes the Job Radar semantic contract as a
+   separate client and has its own runtime proof.
