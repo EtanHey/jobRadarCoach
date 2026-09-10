@@ -148,7 +148,7 @@ test("every current page and route file is covered by the default-private policy
     });
 
   assert.ok(routes.length > 0);
-  const publicRoutes = new Set(["/auth/callback", "/auth/recovery"]);
+  const publicRoutes = new Set(["/login", "/auth/callback", "/auth/recovery"]);
   for (const path of routes) {
     assert.equal(classifyAuthPath(path), publicRoutes.has(path) ? "public" : "private", path);
   }
