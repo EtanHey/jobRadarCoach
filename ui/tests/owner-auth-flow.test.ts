@@ -20,7 +20,7 @@ const environment = {
 };
 
 test("post-auth redirects stay on an internal path", () => {
-  assert.equal(safeNextPath("/mic?qa=one"), "/mic?qa=one");
+  assert.equal(safeNextPath("/?view=all"), "/?view=all");
   for (const value of [
     null,
     "",
@@ -54,7 +54,7 @@ test("recovery sends only to the configured owner without creating an account", 
     new Request("https://jobs.example.com/auth/recovery", {
       method: "POST",
       headers: { origin: "https://jobs.example.com", "content-type": "application/json" },
-      body: JSON.stringify({ next: "/mic" }),
+      body: JSON.stringify({ next: "/auth/passkeys" }),
     }),
     environment,
     client,
@@ -64,7 +64,7 @@ test("recovery sends only to the configured owner without creating an account", 
     email: "owner@example.com",
     options: {
       shouldCreateUser: false,
-      emailRedirectTo: "https://jobs.example.com/auth/callback?next=%2Fmic",
+      emailRedirectTo: "https://jobs.example.com/auth/callback?next=%2Fauth%2Fpasskeys",
     },
   }]);
 
@@ -113,12 +113,12 @@ function callbackClient(userId: string | null, exchangeError = false): CallbackA
 
 test("callback accepts only a verified allowlisted owner and safe redirect", async () => {
   const accepted = await handleAuthCallback(
-    new Request("https://jobs.example.com/auth/callback?code=valid&next=%2Fmic"),
+    new Request("https://jobs.example.com/auth/callback?code=valid&next=%2Fauth%2Fpasskeys"),
     environment,
     callbackClient("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
   );
   assert.equal(accepted.status, 303);
-  assert.equal(accepted.headers.get("location"), "https://jobs.example.com/mic");
+  assert.equal(accepted.headers.get("location"), "https://jobs.example.com/auth/passkeys");
 
   const external = await handleAuthCallback(
     new Request("https://attacker.example/auth/callback?code=valid&next=https%3A%2F%2Fattacker.example"),
