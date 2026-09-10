@@ -1,4 +1,5 @@
 import { AuthShell } from "../../components/auth/auth-shell";
+import { AuthSystemTheme } from "../../components/auth/auth-system-theme";
 import { LoginForm } from "../../components/auth/login-form";
 import { readOwnerAuthConfig } from "../../lib/auth/boundary";
 import { readRecoveryConfig, safeNextPath } from "../../lib/auth/flow";
@@ -14,6 +15,7 @@ export default async function LoginPage({
   const configured = readOwnerAuthConfig(process.env);
   return (
     <AuthShell title="Private sign in">
+      <AuthSystemTheme />
       {configured.ok ? (
         <LoginForm
           supabaseUrl={configured.value.supabaseUrl}

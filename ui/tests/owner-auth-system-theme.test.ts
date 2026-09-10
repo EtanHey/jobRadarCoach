@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { followSystemTheme } from "../lib/auth/system-theme";
 
-test("auth follows the system theme and overrides any existing dashboard class", () => {
+test("signed-out auth follows the system theme and overrides any existing dashboard class", () => {
   let dark = true;
   let subscribed: ((event: { matches: boolean }) => void) | undefined;
   let removed: ((event: { matches: boolean }) => void) | undefined;
