@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { filterJobGroups, filterJobs, levelGroup, locationGroup, sourceFilterValues, type ViewOptions } from "../lib/job-filters";
 import { JobSummarySchema } from "../lib/contracts";
 import { technologyMentions } from "../lib/job-metadata";
-const options: ViewOptions = {search:"",source:"",location:"",seniority:"",fit:"",statuses:[],sort:"fit"};
+const options: ViewOptions = {search:"",source:"",location:"",seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"};
 function job(id: number, score: number | null, seniority: string | null = null, location: string | null = null) {
   return JobSummarySchema.parse({id:`00000000-0000-4000-8000-${String(id).padStart(12,"0")}`,title:"Engineer",company:"Example",location,remote:null,seniority,stack:[],salary:null,url:"https://example.test/",apply_url:null,posted_at:null,first_seen_at:"2026-09-08T00:00:00Z",last_seen_at:"2026-09-08T00:00:00Z",source:"linkedin",experience:null,description_available:true,seniority_origin:"unknown",extraction_state:"not-extracted",status:"new",status_reason:null,score,fit_line:null,recommendation:null});
 }

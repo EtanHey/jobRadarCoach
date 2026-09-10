@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
@@ -23,7 +23,7 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
 }
 
 type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
-const listKey = (filter: Filter) => jobListCacheKey({ filter, limit: 1000 });
+const listKey = (filter: Filter, availability: ViewOptions["availability"]) => jobListCacheKey({ filter, availability, limit: 1000 });
 
 export function JobBoard() {
   const [preferences, setPreferences] = useState(defaultBoardPreferences);
@@ -72,10 +72,10 @@ export function JobBoard() {
     setDetailError("");
     setDetailRevision((value) => value + 1);
   }
-  function prepareListSource(value: Filter) {
+  function prepareListSource(value: Filter, availability: ViewOptions["availability"]) {
     filterRef.current = value;
     visitCohortRef.current = null;
-    const cached = listCacheRef.current.get(listKey(value));
+    const cached = listCacheRef.current.get(listKey(value, availability));
     if (cached) {
       listRefreshCoordinatorRef.current.cancelRequest();
       hasLoadedRef.current = true;
@@ -90,10 +90,10 @@ export function JobBoard() {
     }
     setError(""); setRefreshWarning("");
   }
-  function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value); setPreferences((current) => preferencesForBoardFilter(current, value)); }
+  function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value, view.availability); setPreferences((current) => preferencesForBoardFilter(current, value)); }
   function changeView(next: ViewOptions) {
     const nextFilter = next.statuses.length > 0 ? "all" : filter;
-    if (nextFilter !== filter) prepareListSource(nextFilter);
+    if (nextFilter !== filter || next.availability !== view.availability) prepareListSource(nextFilter, next.availability);
     setPreferences((current) => preferencesForPipelineStatuses({ ...current, view: next }, next.statuses));
   }
   function setSearch(search: string) { setPreferences((current) => ({ ...current, view: { ...current.view, search } })); }
@@ -101,7 +101,7 @@ export function JobBoard() {
     const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
     if (storage) clearBoardPreferences(storage);
     const next = defaultBoardPreferences();
-    if (filter !== next.filter) {
+    if (filter !== next.filter || view.availability !== next.view.availability) {
       filterRef.current = next.filter;
       visitCohortRef.current = null;
       hasLoadedRef.current = false;
@@ -169,7 +169,7 @@ export function JobBoard() {
 
   useEffect(() => {
     if (!preferencesReady) return undefined;
-    const key = listKey(filter);
+    const key = listKey(filter, view.availability);
     const cached = listCacheRef.current.get(key);
     if (cached) {
       listRefreshCoordinatorRef.current.cancelRequest();
@@ -182,12 +182,12 @@ export function JobBoard() {
     const controller = new AbortController();
     const generation = listRequestFenceRef.current.capture();
     listRefreshCoordinatorRef.current.beginRequest();
-    request(`/api/jobs?filter=${filter}&limit=1000`, { signal: controller.signal })
+    request(jobListRequestPath({ filter, availability: view.availability, limit: 1000 }), { signal: controller.signal })
       .then((body) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs); const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; const updatedAt = displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null); listCacheRef.current.set(key, { jobs: displayed, loadedUpdatedAt: updatedAt }); hasLoadedRef.current = true; readyRetryUsedRef.current = false; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(updatedAt); } })
       .catch((cause: unknown) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); if (realtimeReadyRef.current && !readyRetryUsedRef.current) { readyRetryUsedRef.current = true; queueMicrotask(requestRefresh); } } })
       .finally(() => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const followUp = listRefreshCoordinatorRef.current.finishRequest(); setLoading(false); if (followUp) queueMicrotask(requestRefresh); } });
     return () => controller.abort();
-  }, [filter, preferencesReady, requestRefresh, revision]);
+  }, [filter, preferencesReady, requestRefresh, revision, view.availability]);
 
   useEffect(() => {
     if (!selected) return undefined;

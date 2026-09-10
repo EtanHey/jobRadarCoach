@@ -29,6 +29,7 @@ function job(id: number, overrides: Partial<JobSummary> = {}): JobSummary {
     fit_line: null,
     recommendation: null,
     ...overrides,
+    alive: overrides.alive ?? null,
   };
 }
 

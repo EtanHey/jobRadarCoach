@@ -8,6 +8,7 @@ const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL
 
 export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
+export const AvailabilitySchema = z.enum(["active", "inactive", "all"]);
 // PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
 // without restricting RFC version or variant bits. Match that database domain.
 export const JobIdSchema = z.guid();
@@ -58,6 +59,7 @@ export const JobSummarySchema = z.object({
   score: z.number().int().min(0).max(100).nullable(),
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
+  alive: z.boolean().nullable().default(null),
 }).strict();
 
 export const JobDetailSchema = JobSummarySchema.extend({
@@ -71,6 +73,7 @@ export const JobDetailSchema = JobSummarySchema.extend({
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 export const JobListQuerySchema = z.object({
   filter: z.enum(["all", "new-for-me", ...JobStatusSchema.options]),
+  availability: AvailabilitySchema.default("active"),
   limit,
 }).strict();
 
@@ -120,6 +123,7 @@ export const ProfileResponseSchema = z.object({ profile: ProfileSchema }).strict
 export type JobSummary = z.infer<typeof JobSummarySchema>;
 export type JobDetail = z.infer<typeof JobDetailSchema>;
 export type JobListQuery = z.infer<typeof JobListQuerySchema>;
+export type Availability = z.infer<typeof AvailabilitySchema>;
 export type StatusPatch = z.infer<typeof StatusPatchSchema>;
 export type StatusResult = z.infer<typeof StatusResultSchema>;
 export type ProfileEntry = z.infer<typeof ProfilePatchSchema>;
