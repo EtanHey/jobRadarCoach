@@ -105,3 +105,88 @@ test("cancel releases passkey and recovery controls while a late credential cann
   await act(async () => { root.unmount(); });
   dom.window.close();
 });
+
+test("duplicate activation cannot replace a live attempt before cancellation", async () => {
+  const dom = new JSDOM("<div id='root'></div>", { url: "https://jobs.example.com/login" });
+  Object.defineProperties(globalThis, {
+    document: { configurable: true, value: dom.window.document },
+    HTMLElement: { configurable: true, value: dom.window.HTMLElement },
+    navigator: { configurable: true, value: dom.window.navigator },
+    window: { configurable: true, value: dom.window },
+  });
+  const container = dom.window.document.querySelector<HTMLElement>("#root");
+  assert.ok(container);
+
+  const providers = [
+    deferred<SerializedPasskeyCredential>(),
+    deferred<SerializedPasskeyCredential>(),
+  ];
+  let startCalls = 0;
+  let ceremonyCalls = 0;
+  let verifyCalls = 0;
+  const client: PasskeyAuthenticationClient = {
+    async startAuthentication() {
+      startCalls += 1;
+      return {
+        data: {
+          challenge_id: `challenge-${startCalls}`,
+          expires_at: 1,
+          options: { challenge: "Y2hhbGxlbmdl" },
+        },
+        error: null,
+      };
+    },
+    async verifyAuthentication() {
+      verifyCalls += 1;
+      return { error: null };
+    },
+  };
+  const ceremony: PasskeyCeremony = {
+    get: () => providers[ceremonyCalls++].promise,
+  };
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(React.createElement(LoginForm, {
+      supabaseUrl: "https://project.supabase.co",
+      publishableKey: "sb_publishable_test",
+      nextPath: "/",
+      recoveryEnabled: false,
+      passkeyClient: client,
+      passkeyCeremony: ceremony,
+    }));
+  });
+  await act(async () => {
+    const signIn = button(container, "Sign in with passkey");
+    signIn?.click();
+    signIn?.click();
+    await Promise.resolve();
+  });
+
+  assert.ok(button(container, "Cancel passkey prompt"));
+  await act(async () => { button(container, "Cancel passkey prompt")?.click(); });
+
+  providers[0].resolve({
+    id: "credential",
+    rawId: "credential",
+    response: {
+      authenticatorData: "authenticator-data",
+      clientDataJSON: "client-data",
+      signature: "signature",
+    },
+    clientExtensionResults: {},
+    type: "public-key",
+  });
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  assert.equal(verifyCalls, 0);
+  assert.equal(startCalls, 1);
+  assert.equal(button(container, "Sign in with passkey")?.disabled, false);
+  assert.equal(button(container, "Send setup or recovery link"), undefined);
+  assert.match(container.querySelector("[role=status]")?.textContent ?? "", /cancelled/i);
+  await act(async () => { root.unmount(); });
+  dom.window.close();
+});
