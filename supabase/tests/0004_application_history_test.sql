@@ -109,17 +109,17 @@ select ok(exists(
   where company = 'Lane2H Linked Co' and posting_id is null
 ), 'posting deletion preserves history and clears only the optional link');
 
-select ok(has_table_privilege('anon', 'public.application_history', 'select'), 'anon can read history');
+select ok(not has_table_privilege('anon', 'public.application_history', 'select'), 'anon cannot read history');
 select ok(not has_table_privilege('anon', 'public.application_history', 'insert'), 'anon cannot insert history');
-select ok(has_table_privilege('authenticated', 'public.application_history', 'select'), 'authenticated can read history');
+select ok(not has_table_privilege('authenticated', 'public.application_history', 'select'), 'authenticated cannot read history');
 select ok(not has_table_privilege('authenticated', 'public.application_history', 'insert'), 'authenticated cannot insert history');
 select ok(has_table_privilege('service_role', 'public.application_history', 'insert'), 'service role can insert history');
 select ok(not has_function_privilege('anon', 'public.record_application_history(text,text,date,text,uuid)', 'execute'), 'anon cannot record history');
 select ok(not has_function_privilege('authenticated', 'public.record_application_history(text,text,date,text,uuid)', 'execute'), 'authenticated cannot record history');
 select ok(has_function_privilege('service_role', 'public.record_application_history(text,text,date,text,uuid)', 'execute'), 'service role can record history');
-select ok(has_function_privilege('anon', 'public.list_application_history(text)', 'execute'), 'anon can use the read helper');
-select ok(has_function_privilege('authenticated', 'public.list_application_history(text)', 'execute'), 'authenticated can use the read helper');
-select is((select relrowsecurity from pg_class where oid = 'public.application_history'::regclass), false, 'RLS follows the no-login tables');
+select ok(not has_function_privilege('anon', 'public.list_application_history(text)', 'execute'), 'anon cannot use the read helper');
+select ok(not has_function_privilege('authenticated', 'public.list_application_history(text)', 'execute'), 'authenticated cannot use the read helper');
+select is((select relrowsecurity from pg_class where oid = 'public.application_history'::regclass), true, 'RLS protects application history');
 select ok(exists(
   select 1 from pg_publication_tables
   where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'application_history'

@@ -129,27 +129,25 @@ select is(
   (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public'
      and c.relname in ('postings', 'posting_scores', 'posting_status', 'profile', 'visits')
-     and not c.relrowsecurity),
+     and c.relrowsecurity),
   5::bigint,
-  'RLS is deliberately disabled on all five tables'
+  'RLS is enabled on all five tables'
 );
 
-select ok(has_table_privilege('anon', 'public.postings', 'select'), 'anon can select postings');
-select ok(has_table_privilege('anon', 'public.posting_scores', 'select'), 'anon can select scores');
-select ok(has_table_privilege('anon', 'public.posting_status', 'select'), 'anon can select statuses');
-select ok(has_table_privilege('anon', 'public.profile', 'select'), 'anon can select profile');
-select ok(has_table_privilege('anon', 'public.visits', 'select'), 'anon can select visits');
+select ok(not has_table_privilege('anon', 'public.postings', 'select'), 'anon cannot select postings');
+select ok(not has_table_privilege('anon', 'public.posting_scores', 'select'), 'anon cannot select scores');
+select ok(not has_table_privilege('anon', 'public.posting_status', 'select'), 'anon cannot select statuses');
+select ok(not has_table_privilege('anon', 'public.profile', 'select'), 'anon cannot select profile');
+select ok(not has_table_privilege('anon', 'public.visits', 'select'), 'anon cannot select visits');
 select ok(not has_table_privilege('anon', 'public.postings', 'insert'), 'anon cannot insert postings');
 select ok(not has_table_privilege('anon', 'public.posting_scores', 'update'), 'anon cannot update scores');
 select ok(not has_table_privilege('anon', 'public.posting_status', 'delete'), 'anon cannot delete statuses');
 select ok(not has_table_privilege('authenticated', 'public.profile', 'update'), 'authenticated cannot update profile');
 select ok(not has_table_privilege('authenticated', 'public.visits', 'insert'), 'authenticated cannot insert visits');
-select ok(
-  has_schema_privilege('anon', 'public', 'usage')
-    and has_schema_privilege('authenticated', 'public', 'usage')
-    and has_schema_privilege('service_role', 'public', 'usage'),
-  'API roles can resolve public tables'
-);
+select ok(not has_schema_privilege('anon', 'public', 'usage')
+  and not has_schema_privilege('authenticated', 'public', 'usage')
+  and has_schema_privilege('service_role', 'public', 'usage'),
+  'only the server API role can resolve public tables');
 
 select ok(has_table_privilege('service_role', 'public.postings', 'insert'), 'service role can insert postings');
 select ok(has_table_privilege('service_role', 'public.posting_scores', 'update'), 'service role can update scores');

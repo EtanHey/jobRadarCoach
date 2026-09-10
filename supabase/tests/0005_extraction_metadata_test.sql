@@ -83,15 +83,15 @@ select ok(pg_temp.throws_sqlstate(
   $$update posting_extractions set facts = '{"location":{},"remote":{},"seniority":{},"stack":[],"salary":{}}'$$,
   '23514'), 'scalar facts require value and evidence_quote keys');
 
-select ok(has_table_privilege('anon', 'public.posting_extractions', 'select'), 'anon can read extraction metadata');
+select ok(not has_table_privilege('anon', 'public.posting_extractions', 'select'), 'anon cannot read extraction metadata');
 select ok(not has_table_privilege('anon', 'public.posting_extractions', 'insert'), 'anon cannot insert extraction metadata');
-select ok(has_table_privilege('authenticated', 'public.posting_extractions', 'select'), 'authenticated can read extraction metadata');
+select ok(not has_table_privilege('authenticated', 'public.posting_extractions', 'select'), 'authenticated cannot read extraction metadata');
 select ok(not has_table_privilege('authenticated', 'public.posting_extractions', 'update'), 'authenticated cannot update extraction metadata');
 select ok(has_table_privilege('service_role', 'public.posting_extractions', 'insert'), 'service role can insert extraction metadata');
 select is(
   (select relrowsecurity from pg_class where oid = 'public.posting_extractions'::regclass),
-  false,
-  'RLS follows the no-login tables'
+  true,
+  'RLS protects extraction metadata'
 );
 select ok(exists(
   select 1 from pg_publication_tables
