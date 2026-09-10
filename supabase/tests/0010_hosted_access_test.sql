@@ -6,8 +6,8 @@ select plan(15);
 
 select is((select array_agg(c.relname::text order by c.relname) from pg_catalog.pg_class c
   join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'
-  and c.relrowsecurity and c.relname=any(array['active_mic','application_history','posting_extractions','posting_scores','posting_status','posting_status_history','postings','profile','visits'])),
-  array['active_mic','application_history','posting_extractions','posting_scores','posting_status','posting_status_history','postings','profile','visits']::text[], 'every tracked application table has RLS enabled');
+  and c.relrowsecurity and c.relname=any(array['active_mic','application_history','local_analysis_leases','posting_extractions','posting_scores','posting_status','posting_status_history','postings','profile','visits'])),
+  array['active_mic','application_history','local_analysis_leases','posting_extractions','posting_scores','posting_status','posting_status_history','postings','profile','visits']::text[], 'every tracked application table has RLS enabled');
 select is((select count(*) from pg_catalog.pg_policy p join pg_catalog.pg_class c on c.oid=p.polrelid
   join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public'),0::bigint,'no browser policy opens application rows');
 select ok(not has_schema_privilege('anon','public','usage') and not has_schema_privilege('authenticated','public','usage')
@@ -23,7 +23,7 @@ select ok(not exists(select 1 from pg_catalog.pg_class c join pg_catalog.pg_name
   'browser roles and PUBLIC have no application-table privilege');
 select ok((select bool_and(has_table_privilege('service_role',c.oid,'select,insert,update,delete,truncate,references,trigger'))
   from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
-  and c.relkind in ('r','p') and c.relname=any(array['application_history','posting_extractions','posting_scores','posting_status','posting_status_history','postings','profile','visits'])),
+  and c.relkind in ('r','p') and c.relname=any(array['application_history','local_analysis_leases','posting_extractions','posting_scores','posting_status','posting_status_history','postings','profile','visits'])),
   'service_role retains full access to ordinary application tables');
 select ok(has_table_privilege('service_role','public.active_mic','select')
   and not has_table_privilege('service_role','public.active_mic','insert,update,delete'),'active_mic preserves RPC-only service writes');
