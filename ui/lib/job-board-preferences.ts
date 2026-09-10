@@ -3,7 +3,7 @@ import type { ViewOptions } from "./job-filters";
 import { pipelineStatusValues, type PipelineStatus } from "./job-status";
 
 export const BOARD_PREFERENCES_KEY = "job-radar.board-preferences";
-export const BOARD_PREFERENCES_VERSION = 2;
+export const BOARD_PREFERENCES_VERSION = 3;
 
 export type BoardFilter = "all" | "new-for-me" | "seen";
 export type BoardPreferences = { filter: BoardFilter; view: ViewOptions };
@@ -20,6 +20,7 @@ export const DEFAULT_BOARD_PREFERENCES: BoardPreferences = {
     seniority: "",
     fit: "recommended",
     statuses: [],
+    availability: "active",
     sort: "fit",
   },
 };
@@ -33,8 +34,14 @@ const viewSchema = z.object({
   sort: z.enum(["found", "posted", "fit", "seniority"]),
 }).strict();
 const pipelineStatusSchema = z.enum(pipelineStatusValues);
+const availabilitySchema = z.enum(["active", "inactive", "all"]);
 const storedPreferencesSchema = z.object({
   version: z.literal(BOARD_PREFERENCES_VERSION),
+  filter: z.enum(["all", "new-for-me", "seen"]),
+  view: viewSchema.extend({ statuses: z.array(pipelineStatusSchema).max(pipelineStatusValues.length), availability: availabilitySchema }).strict(),
+}).strict();
+const versionTwoPreferencesSchema = z.object({
+  version: z.literal(2),
   filter: z.enum(["all", "new-for-me", "seen"]),
   view: viewSchema.extend({ statuses: z.array(pipelineStatusSchema).max(pipelineStatusValues.length) }).strict(),
 }).strict();
@@ -55,6 +62,8 @@ export function readBoardPreferences(storage: StorageReader): BoardPreferences {
     const json: unknown = JSON.parse(raw);
     const parsed = storedPreferencesSchema.safeParse(json);
     if (parsed.success) return { filter: parsed.data.filter, view: { ...parsed.data.view, statuses: [...new Set(parsed.data.view.statuses)] } };
+    const versionTwo = versionTwoPreferencesSchema.safeParse(json);
+    if (versionTwo.success) return { filter: versionTwo.data.filter, view: { ...versionTwo.data.view, statuses: [...new Set(versionTwo.data.view.statuses)], availability: "active" } };
     const legacy = legacyPreferencesSchema.safeParse(json);
     if (!legacy.success) return freshDefaults();
     const status = pipelineStatusValues.includes(legacy.data.filter as PipelineStatus)
@@ -62,7 +71,7 @@ export function readBoardPreferences(storage: StorageReader): BoardPreferences {
       : null;
     return {
       filter: status ? "all" : legacy.data.filter as BoardFilter,
-      view: { ...legacy.data.view, statuses: status ? [status] : [] },
+      view: { ...legacy.data.view, statuses: status ? [status] : [], availability: "active" },
     };
   } catch {
     return freshDefaults();

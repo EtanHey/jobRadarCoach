@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
 
 test("private list cache keys the complete server query and evicts the least-recently-used view", () => {
   assert.throws(() => createBoundedJobListCache(0), RangeError);
   assert.throws(() => createBoundedJobListCache(-1), RangeError);
   const cache = createBoundedJobListCache<string>(2);
-  const all = jobListCacheKey({ filter: "all", limit: 1000 });
-  const fresh = jobListCacheKey({ filter: "new-for-me", limit: 1000 });
-  const seen = jobListCacheKey({ filter: "seen", limit: 1000 });
+  const all = jobListCacheKey({ filter: "all", availability: "active", limit: 1000 });
+  const inactive = jobListCacheKey({ filter: "all", availability: "inactive", limit: 1000 });
+  const fresh = jobListCacheKey({ filter: "new-for-me", availability: "active", limit: 1000 });
+  const seen = jobListCacheKey({ filter: "seen", availability: "active", limit: 1000 });
 
-  assert.equal(all, "filter=all&limit=1000");
+  assert.equal(all, "filter=all&availability=active&limit=1000");
+  assert.equal(jobListRequestPath({ filter: "seen", availability: "inactive", limit: 1000 }), "/api/jobs?filter=seen&availability=inactive&limit=1000");
+  assert.notEqual(all, inactive);
   let repeatedFetches = 0;
   const load = () => cache.get(all) ?? (++repeatedFetches, cache.set(all, "network rows"), "network rows");
   assert.equal(load(), "network rows");

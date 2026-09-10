@@ -1,4 +1,4 @@
-import type { JobSummary } from "./contracts";
+import type { Availability, JobSummary } from "./contracts";
 import { groupDuplicateJobs, type DuplicateJobGroup } from "./job-dedup";
 import { matchesFit } from "./job-fit";
 import type { PipelineStatus } from "./job-status";
@@ -6,7 +6,7 @@ import type { PipelineStatus } from "./job-status";
 export type JobSort = "found" | "posted" | "fit" | "seniority";
 export type LocationFilter = "" | "israel" | "united-states" | "other";
 export type LocationGroup = Exclude<LocationFilter, ""> | "unknown";
-export type ViewOptions = { search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; sort: JobSort };
+export type ViewOptions = { search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
 export const levelOrder = ["Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"];
 export function sourceFilterValues(jobs: Pick<JobSummary, "source">[], selected: string): string[] {
   return [...new Set([...jobs.map((job) => job.source), ...(selected ? [selected] : [])])].sort();

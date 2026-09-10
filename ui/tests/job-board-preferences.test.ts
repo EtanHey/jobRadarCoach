@@ -33,6 +33,7 @@ test("Israel, All roles, facets, sort, and search restore in a fresh tab", () =>
       seniority: "Junior",
       fit: "recommended",
       statuses: ["worth_checking", "interview_technical"],
+      availability: "inactive" as const,
       sort: "posted" as const,
     },
   } satisfies BoardPreferences;
@@ -48,9 +49,9 @@ test("invalid, stale, and unavailable storage safely restore visible defaults", 
   for (const stored of [
     "not json",
     JSON.stringify({ version: 0, filter: "all", view: defaults.view }),
-    JSON.stringify({ version: 2, filter: "all", view: { ...defaults.view, location: "hidden-place" } }),
-    JSON.stringify({ version: 2, filter: "new", view: defaults.view }),
-    JSON.stringify({ version: 2, filter: "all", view: { ...defaults.view, seniority: "hidden-level" } }),
+    JSON.stringify({ version: 3, filter: "all", view: { ...defaults.view, location: "hidden-place" } }),
+    JSON.stringify({ version: 3, filter: "new", view: defaults.view }),
+    JSON.stringify({ version: 3, filter: "all", view: { ...defaults.view, seniority: "hidden-level" } }),
   ]) {
     assert.deepEqual(readBoardPreferences(memoryStorage({ [BOARD_PREFERENCES_KEY]: stored })), defaults);
   }
@@ -75,8 +76,23 @@ test("a version-1 pipeline tab migrates to the equivalent visible status filter"
     readBoardPreferences(memoryStorage({ [BOARD_PREFERENCES_KEY]: JSON.stringify(legacy) })),
     {
       filter: "all",
-      view: { ...legacy.view, statuses: ["interview_final"] },
+      view: { ...legacy.view, statuses: ["interview_final"], availability: "active" },
     },
+  );
+});
+
+test("version-2 preferences migrate to the safe active availability default", () => {
+  const previous = {
+    version: 2,
+    filter: "all",
+    view: {
+      search: "platform", source: "", location: "israel", seniority: "",
+      fit: "", statuses: ["offer"], sort: "found",
+    },
+  };
+  assert.deepEqual(
+    readBoardPreferences(memoryStorage({ [BOARD_PREFERENCES_KEY]: JSON.stringify(previous) })),
+    { filter: "all", view: { ...previous.view, availability: "active" } },
   );
 });
 

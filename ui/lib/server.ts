@@ -6,7 +6,7 @@ import { z } from "zod";
 import {
   JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
-  type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
+  type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
 import { postingUrl, titleSeniority, experiencePhrase, technologyMentions } from "./job-metadata";
 import { HttpError } from "./http";
@@ -33,6 +33,7 @@ const scoreSchema = summaryScoreSchema.extend({
 });
 const rawBaseSchema = z.object({
   source: z.string(), last_seen_at: z.string(), raw_jd: z.string().nullable(),
+  liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
   posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
   remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
@@ -44,9 +45,9 @@ const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSche
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,raw_jd,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "source,last_seen_at,raw_jd,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -70,7 +71,7 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 
 function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const base = checked(rawSummarySchema, row);
-  const { posting_scores: score, posting_status: status, posting_extractions: extraction, raw_jd, ...posting } = base;
+  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, raw_jd, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   const payload = score?.score_payload;
   const fit = payload && typeof payload === "object" ? payload : null;
@@ -85,7 +86,14 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
     score: score?.score ?? null,
     fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
     recommendation: fit && "recommendation" in fit ? fit.recommendation : null,
+    alive: typeof liveness?.alive === "boolean" ? liveness.alive : null,
   });
+}
+
+export function availabilityPredicate(availability: Availability) {
+  if (availability === "inactive") return { method: "eq", column: "liveness->alive", value: false } as const;
+  if (availability === "active") return { method: "or", filter: "liveness->alive.neq.false,liveness->alive.is.null" } as const;
+  return null;
 }
 
 export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidRowCount: 0 } {
@@ -99,16 +107,23 @@ async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise
       db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
     ));
     let fresh = db.from("postings").select(STATUS_SUMMARY)
-      .eq("posting_status.status", "new").order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+      .eq("posting_status.status", "new");
+    const availability = availabilityPredicate(input.availability);
+    if (availability?.method === "eq") fresh = fresh.eq(availability.column, availability.value);
+    else if (availability?.method === "or") fresh = fresh.or(availability.filter);
     if (visit?.last_visit_at) {
       const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
       fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
     }
+    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
     return parseSummaryRows(await data(fresh)).jobs;
   }
-  let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY)
-    .order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+  let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
   if (input.filter !== "all") query = query.eq("posting_status.status", input.filter);
+  const availability = availabilityPredicate(input.availability);
+  if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
+  else if (availability?.method === "or") query = query.or(availability.filter);
+  query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   return parseSummaryRows(await data(query)).jobs;
 }
 

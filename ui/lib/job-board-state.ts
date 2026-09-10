@@ -1,8 +1,12 @@
 type DetailSelection = Readonly<{ id: string | null; generation: number }>;
 type DetailRead = Readonly<{ selection: DetailSelection; generation: number }>;
 
-export function jobListCacheKey(input: { filter: string; limit: number }): string {
-  return new URLSearchParams({ filter: input.filter, limit: String(input.limit) }).toString();
+export function jobListCacheKey(input: { filter: string; availability: string; limit: number }): string {
+  return new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(input.limit) }).toString();
+}
+
+export function jobListRequestPath(input: { filter: string; availability: string; limit: number }): string {
+  return `/api/jobs?${jobListCacheKey(input)}`;
 }
 
 export function createBoundedJobListCache<T>(maxEntries = 3) {
