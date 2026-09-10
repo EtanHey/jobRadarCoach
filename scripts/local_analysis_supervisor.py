@@ -10,7 +10,10 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
+
+TERMINATION_GRACE_SECONDS = 2.0
 
 
 def _now() -> str:
@@ -39,12 +42,16 @@ def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
+        process.wait()
         return
+    deadline = time.monotonic() + TERMINATION_GRACE_SECONDS
     try:
-        process.wait(timeout=2)
-        return
+        process.wait(timeout=TERMINATION_GRACE_SECONDS)
     except subprocess.TimeoutExpired:
         pass
+    remaining = deadline - time.monotonic()
+    if remaining > 0:
+        time.sleep(remaining)
     try:
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:

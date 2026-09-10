@@ -3,6 +3,7 @@ from __future__ import annotations
 import fcntl
 import json
 from pathlib import Path
+import subprocess
 import sys
 import time
 
@@ -47,6 +48,34 @@ def test_timeout_is_bounded_and_recorded(tmp_path: Path) -> None:
     assert result == 124
     assert time.monotonic() - started < 5
     assert read_status(tmp_path)["outcome"] == "timed_out"
+
+
+def test_timeout_kills_child_that_ignores_sigterm(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    monkeypatch.setattr(local_analysis_supervisor, "TERMINATION_GRACE_SECONDS", 0.1)
+    ready = tmp_path / "child-ready"
+    marker = tmp_path / "child-survived"
+    child = (
+        "import signal,time,pathlib; "
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+        f"pathlib.Path({str(ready)!r}).write_text('ready'); "
+        f"time.sleep(0.4); pathlib.Path({str(marker)!r}).write_text('alive')"
+    )
+    parent = (
+        "import subprocess,sys,time; "
+        f"subprocess.Popen([sys.executable, '-c', {child!r}]); "
+        "time.sleep(30)"
+    )
+    process = subprocess.Popen([sys.executable, "-c", parent], start_new_session=True)
+    deadline = time.monotonic() + 2
+    while not ready.exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert ready.exists()
+
+    local_analysis_supervisor._terminate_process_group(process)
+    time.sleep(0.5)
+    assert not marker.exists()
 
 
 def test_outer_lock_prevents_overlapping_secret_resolution(tmp_path: Path) -> None:
