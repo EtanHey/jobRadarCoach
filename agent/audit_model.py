@@ -1,4 +1,5 @@
 """Owned lifecycle for the independent claim-audit model."""
+import logging
 import os
 
 import openai as openai_sdk
@@ -39,6 +40,11 @@ async def create_auditor() -> AuditRuntime:
     try:
         model = openai_plugin.LLM(client=client, model=model_name, temperature=0)
     except BaseException:
-        await client.close()
+        try:
+            await client.close()
+        except BaseException:
+            logging.getLogger(__name__).exception(
+                "audit client cleanup failed during model construction rollback"
+            )
         raise
     return AuditRuntime(model, client)
