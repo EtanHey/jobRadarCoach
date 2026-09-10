@@ -1419,6 +1419,65 @@ def test_subscription_runner_invokes_luna_through_codex_exec(monkeypatch) -> Non
     }
 
 
+def _subscription_output_bytes(monkeypatch, output: bytes) -> object:
+    luna = load_annotate_module()
+    monkeypatch.setattr(luna, "_discover_codex", lambda: "/test/bin/codex")
+    monkeypatch.setattr(luna, "_verify_codex_version", lambda _codex: None)
+    monkeypatch.setattr(luna, "_subscription_auth_path", lambda: PROFILE_PATH)
+
+    def fake_run(command, **_kwargs):
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        output_path.write_bytes(output)
+        return SimpleNamespace(returncode=0, stderr="")
+
+    monkeypatch.setattr(luna.subprocess, "run", fake_run)
+    return luna._subscription_runner("annotate me", luna.LUNA_SCHEMA)
+
+
+def _json_bytes_of_size(size: int) -> tuple[bytes, str]:
+    prefix = b'{"detail":"'
+    suffix = b'"}'
+    payload_bytes = size - len(prefix) - len(suffix)
+    unicode_count, ascii_count = divmod(payload_bytes, len("é".encode("utf-8")))
+    detail = "é" * unicode_count + "x" * ascii_count
+    encoded = prefix + detail.encode("utf-8") + suffix
+    assert len(encoded) == size
+    return encoded, detail
+
+
+def test_subscription_runner_accepts_complete_multibyte_output_at_byte_limit(
+    monkeypatch,
+) -> None:
+    luna = load_annotate_module()
+    encoded, detail = _json_bytes_of_size(luna.MAX_SUBSCRIPTION_RESPONSE_BYTES)
+
+    result = _subscription_output_bytes(monkeypatch, encoded)
+
+    assert result == {
+        "status": "ok",
+        "exit_code": 0,
+        "data": {"detail": detail},
+    }
+
+
+def test_subscription_runner_rejects_oversize_multibyte_output_without_truncating(
+    monkeypatch,
+) -> None:
+    luna = load_annotate_module()
+    encoded, _detail = _json_bytes_of_size(
+        luna.MAX_SUBSCRIPTION_RESPONSE_BYTES + 1
+    )
+
+    result = _subscription_output_bytes(monkeypatch, encoded)
+
+    assert result == {
+        "status": "error",
+        "exit_code": 0,
+        "error": "response_exceeds_byte_limit",
+        "max_response_bytes": luna.MAX_SUBSCRIPTION_RESPONSE_BYTES,
+    }
+
+
 def test_subscription_auth_path_resolves_relative_codex_home(
     monkeypatch, tmp_path
 ) -> None:
