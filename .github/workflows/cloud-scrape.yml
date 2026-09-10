@@ -13,7 +13,7 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -40,7 +40,7 @@ jobs:
           if [[ -f cloud-scrape-receipt.json ]]; then
             {
               echo "## Cloud scrape"
-              jq -r '"- Status: `\(.status)`\n- Exit code: `\(.exit_code)`\n- Sources: `\(.sources | join(", "))`' cloud-scrape-receipt.json
+              jq -r '"- Status: `\(.status)`\n- Exit code: `\(.exit_code)`\n- Sources: `\(.sources | join(", "))`\n- Network requests skipped: `\(.network_request_skips)`' cloud-scrape-receipt.json
               echo "- Commit: \`${GITHUB_SHA}\`"
             } >> "${GITHUB_STEP_SUMMARY}"
           else

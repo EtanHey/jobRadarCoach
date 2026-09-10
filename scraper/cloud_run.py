@@ -18,6 +18,19 @@ ATS_SOURCES = tuple(harvest.SOURCE_ORDER[1:])
 ALL_SOURCES = ("linkedin", *ATS_SOURCES)
 
 
+class _RequestBudget:
+    def __init__(self, limit: int) -> None:
+        self.remaining = limit
+        self.skipped = 0
+
+    def take(self) -> bool:
+        if self.remaining:
+            self.remaining -= 1
+            return True
+        self.skipped += 1
+        return False
+
+
 class _LastLineTee:
     """Stream stdout while retaining the final non-empty line for parsing."""
 
@@ -49,6 +62,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-pages", type=int, default=1)
     parser.add_argument("--jd-fetch-cap", type=int, default=40)
+    parser.add_argument("--request-cap", type=int, default=60)
     parser.add_argument(
         "--recency", choices=("r10800", "r43200", "r604800", "r2592000")
     )
@@ -74,6 +88,7 @@ def _base_receipt(exit_code: int) -> dict[str, object]:
         "run_id": os.environ.get("GITHUB_RUN_ID", "local"),
         "status": "success" if exit_code == 0 else "failure",
         "exit_code": exit_code,
+        "network_request_skips": 0,
         # LinkedIn is always-on inside harvest; --sources enables only ATS adapters.
         "sources": list(ALL_SOURCES),
     }
@@ -89,6 +104,8 @@ def main(
         raise SystemExit("--max-pages must be at least 1")
     if args.jd_fetch_cap < 0:
         raise SystemExit("--jd-fetch-cap must be non-negative")
+    if args.request_cap < 1:
+        raise SystemExit("--request-cap must be at least 1")
 
     if not os.environ.get("DATABASE_URL", "").strip():
         receipt = _base_receipt(2)
@@ -109,12 +126,51 @@ def main(
     if args.recency:
         harvest_args.extend(("--recency", args.recency))
 
+    budget = _RequestBudget(args.request_cap)
+    original_fetch = harvest.fetch_html
+    original_jd_loader = harvest.load_full_jd_fetcher
+    original_liveness_loader = harvest.load_liveness_checker
+    original_pacer = harvest.RequestPacer
+
+    def bounded_fetch(url: str) -> str | None:
+        return original_fetch(url, backoffs=()) if budget.take() else None
+
+    def bounded_jd_loader():
+        fetch = original_jd_loader()
+        return lambda url: fetch(url) if budget.take() else {
+            "jd_text": "", "jd_chars": 0, "fetch_method": "failed",
+            "fetch_error": "network request budget exhausted",
+        }
+
+    def bounded_liveness_loader():
+        check = original_liveness_loader()
+        return lambda posting: check(posting) if budget.take() else {"alive": None}
+
+    class BudgetedPacer:
+        def __init__(self) -> None:
+            self._pacer = original_pacer()
+
+        def __call__(self) -> None:
+            if budget.remaining:
+                self._pacer()
+
+    harvest.fetch_html = bounded_fetch
+    harvest.load_full_jd_fetcher = bounded_jd_loader
+    harvest.load_liveness_checker = bounded_liveness_loader
+    harvest.RequestPacer = BudgetedPacer
     output = _LastLineTee(sys.stdout)
     try:
-        with redirect_stdout(output):
-            exit_code = harvest_main(harvest_args)
+        try:
+            with redirect_stdout(output):
+                exit_code = harvest_main(harvest_args)
+        finally:
+            harvest.fetch_html = original_fetch
+            harvest.load_full_jd_fetcher = original_jd_loader
+            harvest.load_liveness_checker = original_liveness_loader
+            harvest.RequestPacer = original_pacer
     except Exception:
         receipt = _base_receipt(1)
+        receipt["network_request_skips"] = budget.skipped
         receipt["error_code"] = "HarvesterException"
         _write_receipt(args.receipt, receipt)
         print(json.dumps(receipt, sort_keys=True))
@@ -139,6 +195,7 @@ def main(
     else:
         receipt["error_code"] = "HarvesterFailed"
 
+    receipt["network_request_skips"] = budget.skipped
     _write_receipt(args.receipt, receipt)
     print(json.dumps(receipt, sort_keys=True))
     return exit_code

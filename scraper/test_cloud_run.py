@@ -16,12 +16,19 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
 
     def harvest_main(argv: list[str]) -> int:
         captured["argv"] = argv
+        captured["fetches"] = [
+            cloud_run.harvest.fetch_html("https://example.test/one"),
+            cloud_run.harvest.fetch_html("https://example.test/two"),
+        ]
         print(json.dumps({"fetched_count": 8, "new_count": 3}))
         return 0
 
+    monkeypatch.setattr(
+        cloud_run.harvest, "fetch_html", lambda url, **_kwargs: f"body:{url}"
+    )
     receipt_path = tmp_path / "receipt.json"
     result = cloud_run.main(
-        ["--receipt", str(receipt_path), "--max-pages", "2"],
+        ["--receipt", str(receipt_path), "--max-pages", "2", "--request-cap", "1"],
         harvest_main=harvest_main,
     )
 
@@ -33,10 +40,12 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
         "comeet,greenhouse,lever,workable"
     )
     assert captured["argv"][captured["argv"].index("--max-pages") + 1] == "2"
+    assert captured["fetches"] == ["body:https://example.test/one", None]
 
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt == {
         "exit_code": 0,
+        "network_request_skips": 1,
         "result": {"fetched_count": 8, "new_count": 3},
         "run_id": "local",
         "schema_version": 1,
@@ -61,6 +70,7 @@ def test_cloud_run_records_failure_without_database_url(
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt["status"] == "failure"
     assert receipt["exit_code"] == 2
+    assert receipt["network_request_skips"] == 0
     assert receipt["error_code"] == "MissingDatabaseURL"
     assert "result" not in receipt
 
