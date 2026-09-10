@@ -1,38 +1,114 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createBrowserAuthClient, passkeySignInMessage } from "../../lib/auth/browser-client";
+import {
+  authenticateWithPasskey,
+  browserPasskeyCeremony,
+  startPasskeyAttempt,
+  type PasskeyAuthenticationClient,
+  type PasskeyCeremony,
+  type PasskeyAttempt,
+} from "../../lib/auth/passkey-attempt";
 
 interface Props {
   supabaseUrl: string;
   publishableKey: string;
   nextPath: string;
   recoveryEnabled: boolean;
+  passkeyClient?: PasskeyAuthenticationClient;
+  passkeyCeremony?: PasskeyCeremony;
 }
 
-export function LoginForm({ supabaseUrl, publishableKey, nextPath, recoveryEnabled }: Props) {
+export function LoginForm({
+  supabaseUrl,
+  publishableKey,
+  nextPath,
+  recoveryEnabled,
+  passkeyClient,
+  passkeyCeremony = browserPasskeyCeremony,
+}: Props) {
   const supabase = useMemo(
-    () => createBrowserAuthClient(supabaseUrl, publishableKey),
-    [supabaseUrl, publishableKey],
+    () => passkeyClient ? null : createBrowserAuthClient(supabaseUrl, publishableKey),
+    [passkeyClient, supabaseUrl, publishableKey],
   );
-  const [pending, setPending] = useState<"passkey" | "recovery" | null>(null);
+  const authentication = passkeyClient ?? supabase!.auth.passkey;
+  const [pending, setPending] = useState<"passkey" | "verifying" | "recovery" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const passkeyAttempt = useRef<PasskeyAttempt | null>(null);
+
+  useEffect(() => () => {
+    const attempt = passkeyAttempt.current;
+    passkeyAttempt.current = null;
+    attempt?.cancel();
+  }, []);
 
   async function signInWithPasskey() {
     setPending("passkey");
     setMessage(null);
-    try {
-      const { error } = await supabase.auth.signInWithPasskey();
-      if (error) throw error;
+    const attempt = startPasskeyAttempt(
+      (signal, commit) => authenticateWithPasskey(
+        authentication,
+        passkeyCeremony,
+        signal,
+        commit,
+      ),
+      {
+        onCommit: () => {
+          if (passkeyAttempt.current === attempt) setPending("verifying");
+        },
+      },
+    );
+    passkeyAttempt.current = attempt;
+    const outcome = await attempt.result;
+
+    // A cancelled attempt may still complete inside a credential provider.
+    // Only the current attempt may change UI state or navigate.
+    if (passkeyAttempt.current !== attempt) return;
+    passkeyAttempt.current = null;
+
+    if (outcome.kind === "verification_timed_out") {
+      // Verification is the session-issuing commit point and cannot be safely
+      // cancelled. Navigate so the server resolves whether a session landed.
       window.location.replace(nextPath);
-    } catch (error) {
-      setMessage(passkeySignInMessage(error));
-      setPending(null);
+      return;
+    }
+    setPending(null);
+
+    if (outcome.kind === "success") {
+      window.location.replace(nextPath);
+    } else if (outcome.kind === "error") {
+      setMessage(passkeySignInMessage(outcome.error));
+    } else if (outcome.kind === "timed_out") {
+      setMessage(recoveryEnabled
+        ? "Passkey prompt timed out. Try again or use setup or recovery."
+        : "Passkey prompt timed out. Try again.");
+    } else {
+      setMessage(recoveryEnabled
+        ? "Passkey sign-in cancelled. You can try again or use setup or recovery."
+        : "Passkey sign-in cancelled. You can try again.");
     }
   }
 
+  function cancelPasskey() {
+    const attempt = passkeyAttempt.current;
+    if (!attempt) return;
+    if (!attempt.cancel()) return;
+    passkeyAttempt.current = null;
+    setPending(null);
+    setMessage(recoveryEnabled
+      ? "Passkey sign-in cancelled. You can try again or use setup or recovery."
+      : "Passkey sign-in cancelled. You can try again.");
+  }
+
   async function sendRecovery() {
+    const attempt = passkeyAttempt.current;
+    if (attempt && !attempt.cancel()) {
+      setMessage("Passkey sign-in is finishing. Wait for it to complete.");
+      return;
+    }
+    passkeyAttempt.current = null;
     setPending("recovery");
     setMessage(null);
     try {
@@ -62,13 +138,26 @@ export function LoginForm({ supabaseUrl, publishableKey, nextPath, recoveryEnabl
         disabled={pending !== null}
         className="h-10 w-full rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/85 disabled:opacity-50"
       >
-        {pending === "passkey" ? "Waiting for passkey…" : "Sign in with passkey"}
+        {pending === "passkey"
+          ? "Waiting for passkey…"
+          : pending === "verifying"
+            ? "Finishing sign-in…"
+            : "Sign in with passkey"}
       </button>
+      {pending === "passkey" ? (
+        <button
+          type="button"
+          onClick={cancelPasskey}
+          className="h-9 w-full rounded-lg border bg-background px-4 text-sm font-medium hover:bg-muted"
+        >
+          Cancel passkey prompt
+        </button>
+      ) : null}
       {recoveryEnabled ? (
         <button
           type="button"
           onClick={sendRecovery}
-          disabled={pending !== null}
+          disabled={pending === "recovery" || pending === "verifying"}
           className="h-9 w-full rounded-lg border bg-background px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
         >
           {pending === "recovery" ? "Sending…" : "Send setup or recovery link"}
