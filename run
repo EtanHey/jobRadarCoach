@@ -1,8 +1,0 @@
-#!/usr/bin/env python3
-from pathlib import Path
-import sys
-
-from scripts.runtime_control import main
-
-if __name__ == "__main__":
-    raise SystemExit(main(repo_root=Path(__file__).resolve().parent, argv=sys.argv[1:]))
