@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -67,8 +68,8 @@ def run_once(
 ) -> int:
     """Run ``command`` once without overlap and persist a sanitized outcome."""
 
-    if timeout_seconds <= 0:
-        raise ValueError("timeout_seconds must be positive")
+    if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+        raise ValueError("timeout_seconds must be finite and positive")
     os.umask(0o077)
     state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     logs_dir = state_dir / "logs"
@@ -98,46 +99,85 @@ def run_once(
             "outcome": "running",
             "exit_code": None,
         }
-        _write_status(status_path, status)
         exit_code = 127
         outcome = "launch_error"
         failure: str | None = None
-        with output_path.open("ab") as output, error_path.open("ab") as error:
-            try:
-                process = subprocess.Popen(
-                    command,
-                    stdin=subprocess.DEVNULL,
-                    stdout=output,
-                    stderr=error,
-                    start_new_session=True,
-                )
-            except OSError as exception:
-                failure = type(exception).__name__
-            else:
-                try:
-                    exit_code = process.wait(timeout=timeout_seconds)
-                except subprocess.TimeoutExpired:
-                    _terminate_process_group(process)
-                    exit_code = 124
-                    outcome = "timed_out"
-                else:
-                    outcome = "succeeded" if exit_code == 0 else "failed"
+        interrupted_signum: int | None = None
+        process: subprocess.Popen[bytes] | None = None
+        handled_signals = (signal.SIGTERM, signal.SIGINT)
 
-        finished_at = _now()
-        event: dict[str, object] = {
-            "event": "supervisor",
-            "at": finished_at,
-            "outcome": outcome,
-            "exit_code": exit_code,
+        def handle_interrupt(signum: int, _frame: object) -> None:
+            nonlocal interrupted_signum
+            if interrupted_signum is not None:
+                return
+            interrupted_signum = signum
+            for handled_signal in handled_signals:
+                signal.signal(handled_signal, signal.SIG_IGN)
+            if process is not None:
+                _terminate_process_group(process)
+
+        previous_handlers = {
+            handled_signal: signal.getsignal(handled_signal)
+            for handled_signal in handled_signals
         }
-        if failure:
-            event["failure"] = failure
-        _append_event(supervisor_path, **event)
-        status.update(event)
-        status["finished_at"] = finished_at
-        status.pop("event")
-        _write_status(status_path, status)
-        return exit_code
+        for handled_signal in handled_signals:
+            signal.signal(handled_signal, handle_interrupt)
+        try:
+            try:
+                _write_status(status_path, status)
+                with output_path.open("ab") as output, error_path.open("ab") as error:
+                    try:
+                        process = subprocess.Popen(
+                            command,
+                            stdin=subprocess.DEVNULL,
+                            stdout=output,
+                            stderr=error,
+                            start_new_session=True,
+                        )
+                    except OSError as exception:
+                        failure = type(exception).__name__
+                    else:
+                        if interrupted_signum is not None:
+                            _terminate_process_group(process)
+                        else:
+                            try:
+                                exit_code = process.wait(timeout=timeout_seconds)
+                            except subprocess.TimeoutExpired:
+                                _terminate_process_group(process)
+                                exit_code = 124
+                                outcome = "timed_out"
+                            else:
+                                outcome = "succeeded" if exit_code == 0 else "failed"
+            finally:
+                for handled_signal in handled_signals:
+                    signal.signal(handled_signal, signal.SIG_IGN)
+
+            if interrupted_signum is not None:
+                if process is not None and process.poll() is None:
+                    _terminate_process_group(process)
+                exit_code = 128 + interrupted_signum
+                outcome = "interrupted"
+
+            finished_at = _now()
+            event: dict[str, object] = {
+                "event": "supervisor",
+                "at": finished_at,
+                "outcome": outcome,
+                "exit_code": exit_code,
+            }
+            if failure:
+                event["failure"] = failure
+            if interrupted_signum is not None:
+                event["signal"] = signal.Signals(interrupted_signum).name
+            _append_event(supervisor_path, **event)
+            status.update(event)
+            status["finished_at"] = finished_at
+            status.pop("event")
+            _write_status(status_path, status)
+            return exit_code
+        finally:
+            for handled_signal, previous_handler in previous_handlers.items():
+                signal.signal(handled_signal, previous_handler)
 
 
 def _command_from_environment() -> tuple[list[str], Path, float]:
@@ -153,8 +193,10 @@ def _command_from_environment() -> tuple[list[str], Path, float]:
     analysis_python = os.environ.get("JRC_LOCAL_ANALYSIS_PYTHON", sys.executable)
     op_cli = os.environ.get("JRC_ONEPASSWORD_CLI", "op")
     timeout_seconds = float(os.environ.get("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", "840"))
-    if timeout_seconds > 3600:
-        raise ValueError("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS must be at most 3600")
+    if not math.isfinite(timeout_seconds) or not 0 < timeout_seconds <= 3600:
+        raise ValueError(
+            "JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS must be finite and between 0 and 3600"
+        )
     command = [
         op_cli,
         "run",
