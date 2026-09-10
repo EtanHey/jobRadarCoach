@@ -40,6 +40,34 @@ export function createRequestFence() {
   };
 }
 
+export function createListRefreshCoordinator() {
+  let requestPending = false;
+  let refreshQueued = false;
+  let reconnectPending = false;
+  return {
+    isRequestPending: () => requestPending,
+    beginRequest: () => { requestPending = true; },
+    cancelRequest: () => { requestPending = false; refreshQueued = false; },
+    requestRefresh: () => {
+      if (!requestPending) return true;
+      refreshQueued = true;
+      return false;
+    },
+    finishRequest: () => {
+      requestPending = false;
+      const shouldRefresh = refreshQueued;
+      refreshQueued = false;
+      return shouldRefresh;
+    },
+    markDisconnected: () => { reconnectPending = true; },
+    markReady: () => {
+      const shouldRefresh = reconnectPending;
+      reconnectPending = false;
+      return shouldRefresh;
+    },
+  };
+}
+
 export function createDetailCoordinator() {
   let selection: DetailSelection = { id: null, generation: 0 };
   let readGeneration = 0;

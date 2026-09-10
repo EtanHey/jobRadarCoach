@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createBoundedJobListCache, createDetailCoordinator, createRequestFence, jobListCacheKey, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
 
 test("private list cache keys the complete server query and evicts the least-recently-used view", () => {
   assert.throws(() => createBoundedJobListCache(0), RangeError);
@@ -45,6 +45,35 @@ test("status invalidation rejects an older list response before it can refill ca
   fence.invalidate();
   assert.equal(fence.isCurrent(beforeMutation), false);
   assert.equal(fence.isCurrent(fence.capture()), true);
+});
+
+test("a realtime refresh arriving during a list request schedules one follow-up", () => {
+  const coordinator = createListRefreshCoordinator();
+  coordinator.beginRequest();
+
+  assert.equal(coordinator.requestRefresh(), false);
+  assert.equal(coordinator.requestRefresh(), false);
+  assert.equal(coordinator.finishRequest(), true);
+  assert.equal(coordinator.finishRequest(), false);
+});
+
+test("a reconnect-ready event refreshes loaded cached rows", () => {
+  const coordinator = createListRefreshCoordinator();
+
+  assert.equal(coordinator.markReady(), false);
+  coordinator.markDisconnected();
+  assert.equal(coordinator.markReady(), true);
+  assert.equal(coordinator.markReady(), false);
+});
+
+test("a reconnect-ready refresh queues behind an in-flight list request", () => {
+  const coordinator = createListRefreshCoordinator();
+  coordinator.beginRequest();
+  coordinator.markDisconnected();
+
+  assert.equal(coordinator.markReady(), true);
+  assert.equal(coordinator.requestRefresh(), false);
+  assert.equal(coordinator.finishRequest(), true);
 });
 
 test("a successful mutation invalidates an older SSE detail read", () => {
