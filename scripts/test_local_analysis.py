@@ -40,8 +40,11 @@ def test_failed_item_is_deferred_without_a_tight_retry(monkeypatch, capsys) -> N
 
 def test_launcher_injects_database_url_without_putting_it_in_argv() -> None:
     launcher = (Path(__file__).parent / "run_local_analysis.sh").read_text()
-    assert "run --env-file" in launcher and "DATABASE_URL" not in launcher
-    assert '2>>"${diagnostic_log}"' in launcher
+    supervisor = (Path(__file__).parent / "local_analysis_supervisor.py").read_text()
+    assert "scripts.local_analysis_supervisor" in launcher
+    assert '"--env-file"' in supervisor
+    assert "DATABASE_URL" not in launcher
+    assert "DATABASE_URL" not in supervisor
 
 
 @pytest.fixture(scope="module")

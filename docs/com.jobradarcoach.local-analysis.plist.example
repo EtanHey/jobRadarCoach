@@ -10,6 +10,7 @@
     <key>JRC_LOCAL_ANALYSIS_STATE_DIR</key><string>/Users/OWNER/Library/Application Support/jobRadarCoach/local-analysis</string>
     <key>JRC_LOCAL_ANALYSIS_PYTHON</key><string>/ABSOLUTE/VENV/bin/python</string>
     <key>JRC_ONEPASSWORD_CLI</key><string>/opt/homebrew/bin/op</string>
+    <key>JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS</key><string>840</string>
     <key>CODEX</key><string>/ABSOLUTE/codex-0.153.4/bin/codex</string>
   </dict>
   <key>WorkingDirectory</key><string>/ABSOLUTE/REPO</string>
