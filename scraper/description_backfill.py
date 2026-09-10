@@ -26,8 +26,8 @@ limit %s
 """
 UPDATE = """
 update public.postings set raw_jd = case
-when %s is not null and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
-then %s else raw_jd end, liveness = liveness || %s::jsonb
+when %s::text is not null and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
+then %s::text else raw_jd end, liveness = liveness || %s::jsonb
 where id = %s and url = %s
 """
 
