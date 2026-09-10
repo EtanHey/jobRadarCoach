@@ -23,12 +23,15 @@ const envSchema = z.object({
   SUPABASE_URL: z.url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 });
-const scoreSchema = z.object({
+const summaryScoreSchema = z.object({
+  score: z.number().nullable(), score_payload: z.unknown().nullable(),
+});
+const scoreSchema = summaryScoreSchema.extend({
   score: z.number().nullable(), reasons: z.array(ScoreReasonSchema), labels: z.record(z.string(), z.unknown()),
   brain: z.string(), model: z.string().nullable(), scorer_version: z.string().nullable(),
   score_payload: z.unknown().nullable(), scored_at: z.string(),
 });
-const rawSummarySchema = z.object({
+const rawBaseSchema = z.object({
   source: z.string(), last_seen_at: z.string(), raw_jd: z.string().nullable(),
   posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
@@ -36,14 +39,14 @@ const rawSummarySchema = z.object({
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),
   posted_at: z.string().nullable(), first_seen_at: z.string(),
   posting_status: z.object({ status: z.string(), reason: z.string().nullable() }).nullable(),
-  posting_scores: scoreSchema.nullable(),
 });
-const rawDetailSchema = rawSummarySchema.extend({ raw_jd: z.string().nullable() });
+const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSchema.nullable() });
+const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,raw_jd,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const SUMMARY = "source,last_seen_at,raw_jd,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = SUMMARY;
+const DETAIL = "source,last_seen_at,raw_jd,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -85,6 +88,11 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   });
 }
 
+export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidRowCount: 0 } {
+  const rows = checked(z.array(rawSummarySchema), value);
+  return { jobs: rows.map(summary), invalidRowCount: 0 };
+}
+
 async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
   if (input.filter === "new-for-me") {
     const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
@@ -96,12 +104,12 @@ async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise
       const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
       fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
     }
-    return checked(z.array(rawSummarySchema), await data(fresh)).map(summary);
+    return parseSummaryRows(await data(fresh)).jobs;
   }
   let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY)
     .order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   if (input.filter !== "all") query = query.eq("posting_status.status", input.filter);
-  return checked(z.array(rawSummarySchema), await data(query)).map(summary);
+  return parseSummaryRows(await data(query)).jobs;
 }
 
 async function readDetail(db: SupabaseClient, id: string): Promise<z.infer<typeof rawDetailSchema> | null> {

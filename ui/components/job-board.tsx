@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
-import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createRequestFence, jobListCacheKey, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
@@ -14,9 +14,16 @@ import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
   const response = await fetch(path, { cache: "no-store", ...options });
-  if (!response.ok) throw new Error(response.status === 503 ? "The database is unavailable. Try again shortly." : "That request could not be completed. Please try again.");
+  if (!response.ok) {
+    const reference = response.headers.get("x-request-id");
+    const message = response.status === 503 ? "The database is unavailable. Try again shortly." : "That request could not be completed. Please try again.";
+    throw new Error(reference ? `${message} Reference: ${reference}.` : message);
+  }
   return response.json();
 }
+
+type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
+const listKey = (filter: Filter) => jobListCacheKey({ filter, limit: 1000 });
 
 export function JobBoard() {
   const [preferences, setPreferences] = useState(defaultBoardPreferences);
@@ -38,13 +45,19 @@ export function JobBoard() {
   const [detailCoordinator] = useState(createDetailCoordinator);
   const [refreshWarning, setRefreshWarning] = useState("");
   const detailRequestRef = useRef<AbortController | null>(null);
+  const listCacheRef = useRef(createBoundedJobListCache<CachedList>());
+  const listRequestFenceRef = useRef(createRequestFence());
+  const listRequestPendingRef = useRef(false);
+  const realtimeReadyRef = useRef(false);
+  const readyRetryUsedRef = useRef(false);
   const visitCohortRef = useRef<JobSummary[] | null>(null);
   const preferenceStorageRef = useRef<Storage | null>(null);
   const filterRef = useRef<Filter>(filter);
   const hasLoadedRef = useRef(false);
   const openerRef = useRef<HTMLButtonElement | null>(null);
-  const requestRefresh = useCallback(() => { setError(""); setRevision((value) => value + 1); }, []);
-  const retry = useCallback(() => { visitCohortRef.current = null; hasLoadedRef.current = false; setJobs([]); setLoadedUpdatedAt(null); setRefreshWarning(""); setLoading(true); requestRefresh(); }, [requestRefresh]);
+  const invalidateListCache = useCallback(() => { listRequestFenceRef.current.invalidate(); listRequestPendingRef.current = false; listCacheRef.current.clear(); }, []);
+  const requestRefresh = useCallback(() => { invalidateListCache(); setError(""); setRevision((value) => value + 1); }, [invalidateListCache]);
+  const retry = useCallback(() => { visitCohortRef.current = null; listCacheRef.current.clear(); hasLoadedRef.current = false; setJobs([]); setLoadedUpdatedAt(null); setRefreshWarning(""); setLoading(true); requestRefresh(); }, [requestRefresh]);
   function selectJob(id: string | null) {
     detailRequestRef.current?.abort();
     detailCoordinator.select(id);
@@ -59,7 +72,24 @@ export function JobBoard() {
     setDetailError("");
     setDetailRevision((value) => value + 1);
   }
-  function prepareListSource(value: Filter) { filterRef.current = value; visitCohortRef.current = null; hasLoadedRef.current = false; setLoadedUpdatedAt(null); setLoading(true); setJobs([]); setError(""); setRefreshWarning(""); }
+  function prepareListSource(value: Filter) {
+    filterRef.current = value;
+    visitCohortRef.current = null;
+    const cached = listCacheRef.current.get(listKey(value));
+    if (cached) {
+      listRequestPendingRef.current = false;
+      hasLoadedRef.current = true;
+      setJobs(cached.jobs);
+      setLoadedUpdatedAt(cached.loadedUpdatedAt);
+      setLoading(false);
+    } else {
+      hasLoadedRef.current = false;
+      setJobs([]);
+      setLoadedUpdatedAt(null);
+      setLoading(true);
+    }
+    setError(""); setRefreshWarning("");
+  }
   function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value); setPreferences((current) => preferencesForBoardFilter(current, value)); }
   function changeView(next: ViewOptions) {
     const nextFilter = next.statuses.length > 0 ? "all" : filter;
@@ -107,7 +137,7 @@ export function JobBoard() {
     const events = new EventSource("/api/events");
     let timer: ReturnType<typeof setTimeout> | undefined;
     function refreshListAndDetail() {
-      requestRefresh();
+      if (!listRequestPendingRef.current) requestRefresh();
       detailRequestRef.current?.abort();
       const read = detailCoordinator.beginRead();
       const id = read.selection.id;
@@ -119,7 +149,14 @@ export function JobBoard() {
       }).catch((cause) => { if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) setDetailError(cause instanceof Error ? cause.message : "Could not refresh this job. Try again."); });
     }
     function queueRefresh() { clearTimeout(timer); timer = setTimeout(refreshListAndDetail, 150); }
-    events.addEventListener("ready", () => { setConnection("Live updates connected"); queueRefresh(); });
+    events.addEventListener("ready", () => {
+      realtimeReadyRef.current = true;
+      setConnection("Live updates connected");
+      if (!hasLoadedRef.current && !listRequestPendingRef.current && !readyRetryUsedRef.current) {
+        readyRetryUsedRef.current = true;
+        requestRefresh();
+      }
+    });
     events.addEventListener("refresh", queueRefresh);
     events.addEventListener("error", () => setConnection("Reconnecting live updates…"));
     return () => { events.close(); clearTimeout(timer); detailRequestRef.current?.abort(); };
@@ -127,13 +164,25 @@ export function JobBoard() {
 
   useEffect(() => {
     if (!preferencesReady) return undefined;
+    const key = listKey(filter);
+    const cached = listCacheRef.current.get(key);
+    if (cached) {
+      listRequestPendingRef.current = false;
+      hasLoadedRef.current = true;
+      setJobs(cached.jobs);
+      setLoadedUpdatedAt(cached.loadedUpdatedAt);
+      setLoading(false);
+      return undefined;
+    }
     const controller = new AbortController();
+    const generation = listRequestFenceRef.current.capture();
+    listRequestPendingRef.current = true;
     request(`/api/jobs?filter=${filter}&limit=1000`, { signal: controller.signal })
-      .then((body) => { if (!controller.signal.aborted) { const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs); const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; hasLoadedRef.current = true; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null)); } })
-      .catch((cause: unknown) => { if (!controller.signal.aborted) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); } })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      .then((body) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs); const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; const updatedAt = displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null); listCacheRef.current.set(key, { jobs: displayed, loadedUpdatedAt: updatedAt }); hasLoadedRef.current = true; readyRetryUsedRef.current = false; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(updatedAt); } })
+      .catch((cause: unknown) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); if (realtimeReadyRef.current && !readyRetryUsedRef.current) { readyRetryUsedRef.current = true; queueMicrotask(requestRefresh); } } })
+      .finally(() => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { listRequestPendingRef.current = false; setLoading(false); } });
     return () => controller.abort();
-  }, [filter, preferencesReady, revision]);
+  }, [filter, preferencesReady, requestRefresh, revision]);
 
   useEffect(() => {
     if (!selected) return undefined;
@@ -154,19 +203,18 @@ export function JobBoard() {
         if (controller.signal.aborted) return;
         if (detailCoordinator.commitMutation(identity)) {
           detailRequestRef.current?.abort();
-          const updateStatus = (current: JobSummary) => current.id === selected ? { ...current, status: status.status, status_reason: status.reason } : current;
-          visitCohortRef.current = visitCohortRef.current?.map(updateStatus) ?? null;
-          setJobs((current) => current.map(updateStatus));
+          visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, selected!, status.status, status.reason) : null;
+          setJobs((current) => updateJobStatus(current, selected!, status.status, status.reason));
           setDetail({ ...job, status: status.status, status_reason: status.reason });
+          requestRefresh();
         }
-        requestRefresh();
       } catch (cause) {
         if (!controller.signal.aborted && detailCoordinator.isCurrent(identity) && (patchStarted || detailCoordinator.acceptRead(read))) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
       }
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, selected, detailRevision, requestRefresh]);
+  }, [detailCoordinator, requestRefresh, selected, detailRevision]);
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
@@ -182,6 +230,8 @@ export function JobBoard() {
         setDetail((current) => current?.id === id ? { ...current, status: result.status, status_reason: result.reason } : current);
         setRejecting(false);
       }
+      visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
+      setJobs((current) => updateJobStatus(current, id, result.status, result.reason));
       if (filterRef.current === "new-for-me") {
         visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
         setJobs((current) => current.filter((job) => job.id !== id));

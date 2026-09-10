@@ -6,22 +6,30 @@ export class HttpError extends Error {
   }
 }
 
-export async function safely(run: () => Promise<Response>, operation?: "job_detail"): Promise<Response> {
+export async function safely(run: (context: { requestId?: string }) => Promise<Response>, operation?: "job_detail" | "job_list"): Promise<Response> {
+  const started = performance.now();
+  const requestId = operation ? crypto.randomUUID() : undefined;
+  let response: Response;
   try {
-    return await run();
+    response = await run({ requestId });
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 500;
     if (operation) {
       // Fixed fields only: never log database messages, payloads, URLs or credentials.
-      const requestId = crypto.randomUUID();
       console.error(JSON.stringify({ event: "request_failed", operation, requestId, status, category: error instanceof HttpError ? error.category : "unexpected" }));
-      const response = json({ error: error instanceof HttpError ? error.message : "Unexpected server error." }, status);
-      response.headers.set("x-request-id", requestId);
-      return response;
+      response = json({ error: error instanceof HttpError ? error.message : "Unexpected server error." }, status);
+    } else {
+      if (error instanceof HttpError) return json({ error: error.message }, error.status);
+      return json({ error: "Unexpected server error." }, 500);
     }
-    if (error instanceof HttpError) return json({ error: error.message }, error.status);
-    return json({ error: "Unexpected server error." }, 500);
   }
+  if (operation && requestId) {
+    const duration = Math.round(performance.now() - started);
+    response.headers.set("x-request-id", requestId);
+    response.headers.set("server-timing", `app;dur=${duration}`);
+    console.info(JSON.stringify({ event: "request_complete", operation, requestId, status: response.status, duration_ms: duration }));
+  }
+  return response;
 }
 
 export function json(value: unknown, status = 200): Response {

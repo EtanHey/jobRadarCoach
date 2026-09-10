@@ -10,7 +10,7 @@ export function makeGetJobs(store: ApiStore) {
     const parsed = JobListQuerySchema.safeParse(raw);
     if (!parsed.success) throw new HttpError(400, "Invalid job filters.");
     return output(JobListResponseSchema, { jobs: await store.listJobs(parsed.data) });
-  });
+  }, "job_list");
 }
 
 export function GET(request: Request): Promise<Response> {

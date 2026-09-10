@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 
@@ -29,4 +30,9 @@ test("Next emits standalone output locally and leaves Vercel output to its adapt
   assert.equal(vercel.output, undefined);
   assert.equal(local.poweredByHeader, false);
   assert.equal(vercel.poweredByHeader, false);
+});
+
+test("Vercel functions execute beside the Frankfurt-hosted database", () => {
+  const config = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+  assert.deepEqual(config.regions, ["fra1"]);
 });
