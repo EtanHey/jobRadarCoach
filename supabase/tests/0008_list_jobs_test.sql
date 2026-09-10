@@ -119,10 +119,10 @@ select ok(pg_temp.throws_sqlstate($$select public.list_jobs(false,5,-1)$$,'22023
   'negative minimum score is rejected');
 select ok(pg_temp.throws_sqlstate($$select public.list_jobs(false,5,101)$$,'22023'),
   'minimum score above 100 is rejected');
-select ok(has_function_privilege('anon','public.list_jobs(boolean,integer,integer,text,text,text)','execute')
-  and has_function_privilege('authenticated','public.list_jobs(boolean,integer,integer,text,text,text)','execute')
+select ok(not has_function_privilege('anon','public.list_jobs(boolean,integer,integer,text,text,text)','execute')
+  and not has_function_privilege('authenticated','public.list_jobs(boolean,integer,integer,text,text,text)','execute')
   and has_function_privilege('service_role','public.list_jobs(boolean,integer,integer,text,text,text)','execute'),
-  'named API roles can execute list_jobs');
+  'only the service role can execute list_jobs');
 select ok(not exists(
   select 1 from pg_catalog.pg_proc p
   join pg_catalog.pg_namespace n on n.oid = p.pronamespace

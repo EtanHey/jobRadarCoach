@@ -145,8 +145,8 @@ select is(
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'applied')).status, 'applied', 'status corrections can move to any known state');
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'new')).status, 'new', 'applied can be corrected back to new');
 
-select ok(has_function_privilege('anon', 'public.list_new_for_me()', 'execute'), 'anon can execute the read RPC');
-select ok(has_function_privilege('authenticated', 'public.list_new_for_me()', 'execute'), 'authenticated can execute the read RPC');
+select ok(not has_function_privilege('anon', 'public.list_new_for_me()', 'execute'), 'anon cannot execute the read RPC');
+select ok(not has_function_privilege('authenticated', 'public.list_new_for_me()', 'execute'), 'authenticated cannot execute the read RPC');
 select ok(not has_function_privilege('anon', 'public.set_status(uuid,text,text)', 'execute'), 'anon cannot execute set_status');
 select ok(not has_function_privilege('authenticated', 'public.update_profile(text,jsonb)', 'execute'), 'authenticated cannot execute update_profile');
 select ok(has_function_privilege('service_role', 'public.set_status(uuid,text,text)', 'execute'), 'service role can execute set_status');
