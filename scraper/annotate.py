@@ -25,6 +25,7 @@ DEFAULT_PROFILE_PATH = REPO_ROOT / "profile.yaml"
 LUNA_MODEL = "gpt-5.6-luna"
 LUNA_REASONING_EFFORT = "xhigh"
 SUPPORTED_CODEX_CLI_VERSION = "codex-cli 0.153.4"
+MAX_SUBSCRIPTION_RESPONSE_BYTES = 64_000
 CODEX_DISABLED_FEATURES = (
     "apps",
     "browser_use",
@@ -603,9 +604,29 @@ def _subscription_runner(prompt: str, schema: dict[str, object]) -> object:
                 "stderr": completed.stderr,
             }
         try:
-            data = json.loads(output_path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
+            if output_path.stat().st_size > MAX_SUBSCRIPTION_RESPONSE_BYTES:
+                return {
+                    "status": "error",
+                    "exit_code": 0,
+                    "error": "response_exceeds_byte_limit",
+                    "max_response_bytes": MAX_SUBSCRIPTION_RESPONSE_BYTES,
+                }
+            with output_path.open("rb") as output_file:
+                raw = output_file.read(MAX_SUBSCRIPTION_RESPONSE_BYTES + 1)
+        except FileNotFoundError:
             data = None
+        else:
+            if len(raw) > MAX_SUBSCRIPTION_RESPONSE_BYTES:
+                return {
+                    "status": "error",
+                    "exit_code": 0,
+                    "error": "response_exceeds_byte_limit",
+                    "max_response_bytes": MAX_SUBSCRIPTION_RESPONSE_BYTES,
+                }
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                data = None
         return {"status": "ok", "exit_code": 0, "data": data}
 
 
