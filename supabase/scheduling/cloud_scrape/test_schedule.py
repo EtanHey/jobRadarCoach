@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+import re
+import subprocess
 
 
 HERE = Path(__file__).parent
@@ -53,3 +56,33 @@ def test_target_workflow_remains_manual_and_non_overlapping() -> None:
     assert "schedule:" not in WORKFLOW
     assert "group: cloud-scrape" in WORKFLOW
     assert "cancel-in-progress: false" in normalized
+
+
+def test_workflow_summary_jq_filter_compiles_and_renders() -> None:
+    match = re.search(
+        r"jq -r '([^']+)' cloud-scrape-receipt\.json",
+        WORKFLOW,
+    )
+    assert match is not None
+    receipt = {
+        "status": "success",
+        "exit_code": 0,
+        "sources": ["linkedin", "comeet"],
+        "network_request_skips": 7,
+    }
+
+    result = subprocess.run(
+        ["jq", "-r", match.group(1)],
+        input=json.dumps(receipt),
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "- Status: `success`",
+        "- Exit code: `0`",
+        "- Sources: `linkedin, comeet`",
+        "- Network requests skipped: `7`",
+    ]
