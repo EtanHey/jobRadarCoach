@@ -1,31 +1,20 @@
-# Mac setup
+# Standalone setup
 
-This runs Job Radar Coach on one Mac: OrbStack k3s hosts the jobs and UI, local Supabase stores data, and native Ollama provides the default batch model. The UI has no login. Expose it only with Tailscale Serve, never Funnel or a public route.
+Job Radar Coach uses a Vercel dashboard, hosted Supabase data and authentication,
+a GitHub-hosted Python scraper, and local CLI extraction and scoring. The
+canonical setup does not run Kubernetes, LiveKit, Tailscale Serve, or the legacy
+`jrc` runtime.
 
-## 1. Install the host tools
+Repository source, hosted configuration, an accepted cloud request, a completed
+workflow, and persisted fresh rows are separate proof layers. Follow the release
+gates for the environment you operate; do not infer live behavior from this
+guide or from merged source.
 
-Install Command Line Tools and [Homebrew](https://brew.sh), then install the runtime tools:
+## 1. Prepare a protected checkout
 
-```zsh
-xcode-select -p >/dev/null 2>&1 || xcode-select --install
-brew install --cask orbstack tailscale-app
-brew install node python supabase/tap/supabase ollama
-```
-
-Launch OrbStack, enable Kubernetes in its settings, and sign in to the Tailscale app. In Tailscale settings, install the **CLI integration** ([official CLI setup](https://tailscale.com/docs/reference/tailscale-cli?tab=macos)), then open a new terminal. The app installation alone does not make the `tailscale` command available. Then verify the local cluster and CLI:
-
-```zsh
-open -a OrbStack
-orbctl start
-kubectl config use-context orbstack
-kubectl wait --for=condition=Ready nodes --all --timeout=120s
-open -a Tailscale
-command -v tailscale && tailscale status
-```
-
-## 2. Clone and protect the checkout
-
-Clone the public repository:
+Install Git, Python 3.12, Node.js, and the Supabase CLI. The optional local
+Supabase workflow in step 3 also requires Docker Desktop or another supported
+container runtime. Then clone the repository:
 
 ```zsh
 git clone https://github.com/EtanHey/jobRadarCoach.git
@@ -34,11 +23,21 @@ git config core.hooksPath .githooks
 python3 scripts/check_private_files.py --all-tracked
 ```
 
-The hook and audit command reject private files before they enter a commit. Do not bypass them.
+Install the Python runtime packages pinned in
+[`scraper/Dockerfile`](../scraper/Dockerfile) before running the scraper or
+local model jobs. The Codex provider also requires the CLI version pinned by
+[`build/install_codex.py`](../build/install_codex.py); use `BRAIN=ollama` when
+Codex CLI is not installed.
 
-## 3. Create the private profile
+The hook and audit command reject private runtime files. Keep `profile.yaml`,
+`docs.local/`, database exports, `.env` files, credentials, run logs, and backup
+artifacts outside version control. Never put raw secrets or private rows in a
+commit, PR, issue, CI log, or command argument.
 
-Copy the public shape, keep the private copy ignored, and edit every example value into truthful evidence:
+## 2. Validate a private profile
+
+For a new installation, copy the public schema to the ignored path and replace
+every example value with truthful data:
 
 ```zsh
 cp profile.example.yaml profile.yaml
@@ -55,497 +54,175 @@ print("profile seed is valid")
 PY
 ```
 
-Keep `safe_radar_projection` as the final indented JSON block. Its positioning and fit terms must match the legacy `profile` section. Replace all `Example City` values, example claims, evidence identifiers, scopes, and exclusions. Keep at least one truthful verified fit signal and one global never-claim. `scraper/searches.yaml` supplies the initial role terms and recency; the private profile supplies geographies.
+Keep `safe_radar_projection` as the final indented JSON block. Replace every
+example city, claim, evidence identifier, scope, and exclusion. The database
+profile becomes runtime truth after seeding or import; later edits to
+`profile.yaml` do not overwrite existing rows.
 
-The first scraper transaction validates and inserts the complete profile seed. After that, the database is runtime truth; editing `profile.yaml` does not overwrite existing rows.
+The hosted scraper image deliberately contains no private profile. Seed or
+import a complete profile before activating cloud scraping, or the run must fail
+closed.
 
-## 4. Start storage and the default brain
+## 3. Develop against local Supabase
 
-Apply pending migrations without resetting or deleting an existing database:
+Local Supabase remains useful for migration and contract tests. It is not the
+production topology.
 
 ```zsh
 supabase start
 supabase migration up --local
-brew services start ollama
-ollama pull qwen2.5:7b-instruct
+supabase test db
 ```
 
-Ollama runs on the Mac. Model jobs reach it at `http://host.docker.internal:11434`. Strict schema and evidence checks may reject a model answer: a nonzero `failed` count is a failure receipt, not proof that a result row was stored.
+Never reset a database that contains the only copy of user data. Apply pending
+migrations in order and test them on disposable data before using a hosted
+project.
 
-## 5. Build the local images
-
-One public Python image contains all three batch stages. Give its single build all three names expected by the manifests. Build the UI from the allowlisted `ui` context:
+For a credential-free local fetch to JSONL, with model annotation disabled:
 
 ```zsh
-docker build -f scraper/Dockerfile \
-  -t job-radar:dev \
-  -t job-radar-extractor:dev \
-  -t job-radar-classifier:dev .
-docker build -f ui/Dockerfile -t job-radar-ui:dev ui
+python3 scraper/harvest.py --jsonl --no-annotate \
+  --profile profile.yaml --max-pages 1 --jd-fetch-cap 3 \
+  --sources comeet,greenhouse,lever,workable
 ```
 
-The images stay local; the manifests use `imagePullPolicy: Never`.
+LinkedIn guest search is the always-on source; `--sources` enables the four
+reviewed public ATS adapters. The scraper uses no login, cookies, browser
+profile, stored source credentials, or metered scraping API.
 
-### Preinstall the Kokoro voice container
+## 4. Prepare hosted Supabase
 
-`jrc run` owns an approved, preinstalled Kokoro container. A fresh setup creates it stopped, with its
-HTTP port bound only to loopback. An existing approved `kokoro` container is reused without pulling,
-starting, stopping, replacing, or deleting it. Any conflicting name, shape, or port fails closed.
+Use a dedicated hosted project. Before the first import or any destructive
+schema change:
+
+1. Create an encrypted private backup outside the checkout.
+2. Record table counts and artifact hashes without printing row contents.
+3. Rehearse the ordered restore into a disposable database.
+4. Keep the source backup until hosted counts, constraints, triggers, and access
+   controls have been verified.
+
+Link the Supabase CLI only after confirming the project identifier. Review the
+target again before the operator applies repository migrations:
 
 ```zsh
-set -euo pipefail
-runtime_kokoro_image="ghcr.io/remsky/kokoro-fastapi-cpu:latest"
-runtime_kokoro_created=0
-runtime_kokoro_exists=0
-runtime_kokoro_running=false
-docker info >/dev/null
-runtime_kokoro_names="$(
-  docker container ls --all --filter 'name=^/kokoro$' --format '{{.Names}}'
-)"
-if [[ "${runtime_kokoro_names}" == kokoro ]]; then
-  runtime_kokoro_exists=1
-  runtime_kokoro_running="$(docker container inspect --format '{{.State.Running}}' kokoro)"
-elif [[ -n "${runtime_kokoro_names}" ]]; then
-  printf '%s\n' "conflict: exact container name kokoro is ambiguous" >&2
-  exit 1
-fi
-runtime_kokoro_publishers="$(
-  docker container ls --all --filter publish=8881 --format '{{.Names}}'
-)"
-if [[ -n "${runtime_kokoro_publishers}" ]] && \
-   [[ "${runtime_kokoro_exists}" != 1 || "${runtime_kokoro_publishers}" != "kokoro" ]]; then
-  printf '%s\n' "conflict: another Docker container publishes port 8881" >&2
-  exit 1
-fi
-if [[ "${runtime_kokoro_running}" != true && -n "$(lsof -nP -iTCP:8881 -sTCP:LISTEN -t || true)" ]]; then
-  printf '%s\n' "conflict: another process listens on TCP port 8881" >&2
-  exit 1
-fi
-if [[ "${runtime_kokoro_exists}" == 0 ]]; then
-  docker pull "${runtime_kokoro_image}"
-  docker container create \
-    --name kokoro \
-    --restart=no \
-    --network bridge \
-    --publish 127.0.0.1:8881:8880 \
-    "${runtime_kokoro_image}" ./entrypoint.sh >/dev/null
-  runtime_kokoro_created=1
-fi
-
-KOKORO_CREATED="${runtime_kokoro_created}" python3 - 3< <(
-  docker container inspect kokoro
-) <<'PY'
-import json
-import os
-import re
-
-values = json.load(open(3))
-container = values[0] if isinstance(values, list) and len(values) == 1 else {}
-config = container.get("Config", {})
-host = container.get("HostConfig", {})
-state = container.get("State", {})
-approved_bindings = (
-    {"8880/tcp": [{"HostIp": "127.0.0.1", "HostPort": "8881"}]},
-    {"8880/tcp": [{"HostIp": "", "HostPort": "8881"}]},
-)
-approved = (
-    container.get("Name") == "/kokoro"
-    and re.fullmatch(r"[0-9a-f]{64}", str(container.get("Id", ""))) is not None
-    and re.fullmatch(r"sha256:[0-9a-f]{64}", str(container.get("Image", ""))) is not None
-    and config.get("Image") == "ghcr.io/remsky/kokoro-fastapi-cpu:latest"
-    and config.get("Entrypoint") is None
-    and config.get("Cmd") == ["./entrypoint.sh"]
-    and host.get("PortBindings") in approved_bindings
-    and host.get("RestartPolicy") == {"Name": "no", "MaximumRetryCount": 0}
-    and host.get("AutoRemove") is False
-    and host.get("NetworkMode") == "bridge"
-    and container.get("Mounts") == []
-    and state.get("Status") in {"created", "exited", "running"}
-)
-if not approved:
-    raise SystemExit("conflict: container/kokoro does not match the approved jrc voice shape")
-if os.environ["KOKORO_CREATED"] == "1" and state.get("Status") != "created":
-    raise SystemExit("new container/kokoro was expected to remain stopped")
-print("container/kokoro ready for jrc", state["Status"])
-PY
-unset runtime_kokoro_image runtime_kokoro_created runtime_kokoro_exists
-unset runtime_kokoro_running runtime_kokoro_names runtime_kokoro_publishers
+supabase link --project-ref <project-ref>
+supabase db push --linked
 ```
 
-The empty-host legacy binding is accepted only for an already identified installation. New setups use
-`127.0.0.1:8881`; `jrc run` starts or adopts the exact container and Ctrl-C stops it without removal.
+Do not place database passwords in the command. Supply them through the approved
+secret manager or interactive prompt. Migration `0010_hosted_access.sql` makes
+the browser roles fail closed; the dashboard reaches data only through its
+authenticated server routes and server-side service credential.
 
-## 6. Create runtime-only Kubernetes Secrets
+Create the single owner account before enabling recovery. Configure the exact
+production HTTPS origin as the Supabase site URL and passkey relying-party
+origin. Enroll and verify the primary owner passkey in the intended browser,
+then verify the same-browser recovery callback. Do not enable public sign-up or
+assume that an Auth setting proves the ceremony worked.
 
-The dashboard uses tailnet HTTPS port `8445`, which is also required by `jrc`. These commands preserve existing handlers on `443` or `8443`. If `8445` is occupied, identify and resolve that mapping before setup; do not silently choose a different port. The following Python reads Supabase status on file descriptor 3, replaces only a parsed loopback hostname, preserves URL-encoded database user information, and pipes Secret JSON directly to `kubectl`. It does not put credentials in command arguments, files, or terminal output.
+## 5. Configure the Vercel dashboard
+
+Deploy the `ui` application through Vercel's Git integration. Configure these
+environment contracts in Vercel; never commit their values:
+
+| Variable | Exposure | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | server | Hosted Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | secret, server only | Server-route database access |
+| `NEXT_PUBLIC_SUPABASE_URL` | browser | Hosted Auth URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | browser | Supabase publishable Auth key |
+| `JRC_OWNER_USER_IDS` | server | Comma-separated allowlisted owner UUIDs |
+| `UI_ORIGIN` | server | Exact production HTTPS origin |
+| `JRC_OWNER_RECOVERY_ENABLED` | server | Explicit recovery gate |
+| `JRC_OWNER_RECOVERY_EMAIL` | secret, server only | Existing owner recovery address |
+
+Missing or malformed Auth configuration intentionally returns a private,
+non-cacheable unavailable response. After deployment, verify signed-out denial,
+owner login, non-owner denial, data reads, mutations, and recovery on the exact
+production hostname. A successful Vercel build is not this behavioral proof.
+
+For local UI development:
 
 ```zsh
-set -euo pipefail
-tailscale serve status --json | python3 -c 'import json,sys; assert "8445" not in json.load(sys.stdin).get("TCP", {}), "HTTPS port 8445 is already configured"'
-kubectl apply -f k8s/namespace.yaml
-runtime_tailnet_host="$(
-  tailscale status --json | python3 -c \
-    'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))'
-)"
-runtime_ui_origin="https://${runtime_tailnet_host}:8445"
-
-UI_ORIGIN="${runtime_ui_origin}" \
-python3 - 3< <(supabase status -o json) <<'PY' | kubectl apply -f -
-import json
-import os
-import sys
-from urllib.parse import urlsplit, urlunsplit
-
-status = json.load(os.fdopen(3))
-
-def required(name):
-    value = status.get(name)
-    if not isinstance(value, str) or not value:
-        raise SystemExit(f"supabase status omitted {name}")
-    return value
-
-def pod_url(name, schemes):
-    parsed = urlsplit(required(name))
-    if parsed.scheme not in schemes or parsed.hostname not in {"127.0.0.1", "localhost"}:
-        raise SystemExit(f"unexpected local {name} URL")
-    userinfo, separator, _ = parsed.netloc.rpartition("@")
-    netloc = f"{userinfo}@" if separator else ""
-    netloc += "host.docker.internal"
-    if parsed.port is not None:
-        netloc += f":{parsed.port}"
-    return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
-
-origin = urlsplit(os.environ["UI_ORIGIN"])
-try:
-    origin_port = origin.port
-except ValueError:
-    raise SystemExit("UI_ORIGIN has an invalid port") from None
-if (
-    origin.scheme != "https" or not origin.hostname or origin_port != 8445
-    or origin.username is not None or origin.password is not None
-    or origin.path not in {"", "/"} or origin.query or origin.fragment
-):
-    raise SystemExit("UI_ORIGIN must be a full HTTPS origin on port 8445")
-livekit_host = f"[{origin.hostname}]" if ":" in origin.hostname else origin.hostname
-livekit_public_url = urlunsplit(("wss", f"{livekit_host}:8446", "", "", ""))
-
-def secret(name, values):
-    return {
-        "apiVersion": "v1", "kind": "Secret", "type": "Opaque",
-        "metadata": {"name": name, "namespace": "job-radar-coach"},
-        "stringData": values,
-    }
-
-document = {
-    "apiVersion": "v1", "kind": "List", "items": [
-        secret("supabase-db", {
-            "DATABASE_URL": pod_url("DB_URL", {"postgres", "postgresql"}),
-        }),
-        secret("ui-runtime", {
-            "SUPABASE_URL": pod_url("API_URL", {"http", "https"}),
-            "SUPABASE_SERVICE_ROLE_KEY": required("SERVICE_ROLE_KEY"),
-            "UI_ORIGIN": os.environ["UI_ORIGIN"],
-            "LIVEKIT_PUBLIC_URL": livekit_public_url,
-        }),
-    ],
-}
-json.dump(document, sys.stdout, separators=(",", ":"))
-PY
-
-kubectl -n job-radar-coach create secret generic scraper-profile \
-  --from-file=profile.yaml=profile.yaml \
-  --dry-run=client -o json | kubectl apply -f -
-unset runtime_tailnet_host runtime_ui_origin
+npm --prefix ui ci
+npm --prefix ui run dev
 ```
 
-The service-role key remains server-side. Never commit Secret output, `profile.yaml`, `.env` files, Supabase credentials, or Codex authentication.
+Use a local ignored environment file with synthetic or disposable values. Never
+expose the service-role key through a `NEXT_PUBLIC_` variable.
 
-## 7. Deploy and run one bounded batch
+## 6. Configure cloud fetching
 
-Bootstrap the repository-owned LiveKit signaling resources before the UI, which reads the same
-`livekit-keys` Secret. Existing keys are reused only when both required values are present; values are
-generated into a pipe and never placed in arguments, files, or terminal output:
+The manual workflow is
+[`cloud-scrape.yml`](../.github/workflows/cloud-scrape.yml). It runs the Python
+scraper on GitHub-hosted Linux, disables LLM annotation, bounds network work,
+persists through `DATABASE_URL`, and prevents overlapping runs.
+
+The Supabase package in
+[`supabase/scheduling/cloud_scrape`](../supabase/scheduling/cloud_scrape/README.md)
+dispatches that workflow every six hours through `pg_cron`, `pg_net`, and a
+Vault-held repository-scoped GitHub token. Configure only:
+
+- GitHub Actions secret `DATABASE_URL` for the hosted database.
+- Supabase Vault secret `job_radar_github_actions_token`, restricted to this
+  repository with Actions write.
+
+The scheduling source is merged, but activation still requires release-owner
+approval and live verification. Follow its installer, disable, and rollback
+instructions. Do not paste the token into SQL, shell history, or Cron commands.
+
+The first release proof must connect one Cron invocation to the `pg_net`
+response, GitHub run, cloud receipt, source attempts, and newly persisted hosted
+rows. A queued HTTP request or green workflow alone is incomplete.
+
+## 7. Run local extraction and scoring
+
+LLM work stays on the owner's machine. Load `DATABASE_URL` through the approved
+secret manager, choose an implemented local provider, and run bounded jobs:
 
 ```zsh
-set -euo pipefail
-runtime_livekit_ip="$(tailscale ip -4 | python3 -c 'import ipaddress,sys
-lines=[line.strip() for line in sys.stdin if line.strip()]
-if len(lines) != 1: raise SystemExit("tailscale ip -4 must return exactly one address")
-address=ipaddress.ip_address(lines[0])
-if address.version != 4 or address not in ipaddress.ip_network("100.64.0.0/10"):
-    raise SystemExit("tailscale ip -4 did not return a tailnet IPv4 address")
-print(address)')"
-LIVEKIT_NODE_IP="${runtime_livekit_ip}" python3 - <<'PY'
-import base64
-import ipaddress
-import json
-import os
-import secrets
-import subprocess
-
-kubectl = ["kubectl", "--context", "orbstack", "-n", "job-radar-coach"]
-names = ("configmap/livekit-advertise", "configmap/livekit-config",
-         "deployment/livekit", "service/livekit")
-tailnet_ip = ipaddress.ip_address(os.environ["LIVEKIT_NODE_IP"])
-
-def documents(output):
-    decoder, values, offset = json.JSONDecoder(), [], 0
-    while offset < len(output):
-        offset += len(output[offset:]) - len(output[offset:].lstrip())
-        if offset == len(output):
-            break
-        value, offset = decoder.raw_decode(output, offset)
-        values.append(value)
-    return values
-
-def get(name):
-    result = subprocess.run(
-        [*kubectl, "get", name, "-o", "json", "--ignore-not-found"],
-        check=True, capture_output=True, text=True,
-    )
-    return json.loads(result.stdout) if result.stdout.strip() else None
-
-objects = {name: get(name) for name in names}
-present = [name for name, value in objects.items() if value is not None]
-secret = get("secret/livekit-keys")
-desired_config = json.loads(subprocess.run(
-    [*kubectl, "create", "--dry-run=client", "-f", "k8s/livekit-config.yaml", "-o", "json"],
-    check=True, capture_output=True, text=True,
-).stdout)
-desired_workloads = documents(subprocess.run(
-    [*kubectl, "create", "--dry-run=client", "-f", "k8s/livekit.yaml", "-o", "json"],
-    check=True, capture_output=True, text=True,
-).stdout)
-desired = {item.get("kind", "").lower(): item for item in desired_workloads}
-if set(desired) != {"deployment", "service"}:
-    raise SystemExit("tracked k8s/livekit.yaml must contain one Deployment and one Service")
-
-def validate(advertise, config, deployment, service):
-    pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
-    containers = pod_spec.get("containers", [])
-    container = containers[0] if len(containers) == 1 else {}
-    env = {item.get("name"): item.get("valueFrom", {}).get("secretKeyRef")
-           for item in container.get("env", [])}
-    values = {item.get("name"): item.get("value") for item in container.get("env", [])}
-    node_ip = next((item.get("valueFrom", {}).get("configMapKeyRef")
-                    for item in container.get("env", []) if item.get("name") == "NODE_IP"), None)
-    mounts = {item.get("name"): item.get("mountPath") for item in container.get("volumeMounts", [])}
-    container_ports = {(p.get("containerPort"), p.get("protocol", "TCP"))
-                       for p in container.get("ports", [])}
-    service_ports = {(p.get("name"), p.get("port"), p.get("targetPort"), p.get("protocol", "TCP"))
-                     for p in service.get("spec", {}).get("ports", [])}
-    valid = (
-        advertise.get("data") == {"node_ip": str(tailnet_ip)}
-        and config.get("data") == desired_config.get("data")
-        and container.get("env") == desired["deployment"]["spec"]["template"]["spec"]["containers"][0].get("env")
-        and container.get("volumeMounts") == desired["deployment"]["spec"]["template"]["spec"]["containers"][0].get("volumeMounts")
-        and container.get("name") == "livekit"
-        and container.get("image") == "livekit/livekit-server:latest"
-        and container.get("args") == ["--config", "/etc/livekit/livekit.yaml"]
-        and node_ip == {"name": "livekit-advertise", "key": "node_ip"}
-        and env.get("LIVEKIT_API_KEY") == {"name": "livekit-keys", "key": "LIVEKIT_API_KEY"}
-        and env.get("LIVEKIT_API_SECRET") == {"name": "livekit-keys", "key": "LIVEKIT_API_SECRET"}
-        and values.get("LIVEKIT_KEYS") == "$(LIVEKIT_API_KEY): $(LIVEKIT_API_SECRET)"
-        and mounts == {"config": "/etc/livekit"}
-        and {item.get("name"): item.get("configMap", {}).get("name")
-             for item in pod_spec.get("volumes", [])} == {"config": "livekit-config"}
-        and container_ports == {(7880, "TCP"), (7881, "TCP"), (50000, "UDP")}
-        and len(container.get("ports", [])) == 3
-        and service.get("spec", {}).get("selector") == {"app": "livekit"}
-        and service_ports == {
-            ("http", 7880, 7880, "TCP"), ("rtc-tcp", 7881, 7881, "TCP"),
-            ("rtc-udp", 50000, 50000, "UDP"),
-        }
-        and len(service.get("spec", {}).get("ports", [])) == 3
-    )
-    if not valid:
-        raise SystemExit("conflict: LiveKit resources do not match the tracked voice shape")
-
-advertise = {
-    "apiVersion": "v1", "kind": "ConfigMap",
-    "metadata": {"name": "livekit-advertise", "namespace": "job-radar-coach"},
-    "data": {"node_ip": str(tailnet_ip)},
-}
-validate(advertise, desired_config, desired["deployment"], desired["service"])
-if secret is not None:
-    data = secret.get("data", {})
-    for key in ("LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
-        try:
-            value = base64.b64decode(data[key], validate=True)
-        except Exception:
-            raise SystemExit(f"secret/livekit-keys has invalid {key}") from None
-        if not value:
-            raise SystemExit(f"secret/livekit-keys has empty {key}")
-if not present:
-    if secret is None:
-        secret = {
-            "apiVersion": "v1", "kind": "Secret", "type": "Opaque",
-            "metadata": {"name": "livekit-keys", "namespace": "job-radar-coach"},
-            "stringData": {
-                "LIVEKIT_API_KEY": secrets.token_urlsafe(18),
-                "LIVEKIT_API_SECRET": secrets.token_urlsafe(32),
-            },
-        }
-        subprocess.run([*kubectl, "create", "-f", "-"],
-                       input=json.dumps(secret), text=True, check=True)
-    subprocess.run([*kubectl, "create", "-f", "-"], input=json.dumps(advertise), text=True, check=True)
-    subprocess.run([*kubectl, "create", "-f", "k8s/livekit-config.yaml"], check=True)
-    subprocess.run([*kubectl, "create", "-f", "k8s/livekit.yaml"], check=True)
-elif len(present) != len(names):
-    raise SystemExit(f"conflict: partial LiveKit installation exists: {', '.join(present)}")
-else:
-    if secret is None:
-        raise SystemExit("conflict: LiveKit resources exist without secret/livekit-keys")
-    validate(*(objects[name] for name in names))
-    print("reusing identified LiveKit signaling resources")
-PY
-kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
-unset runtime_livekit_ip
+BRAIN=codex python3 -m extractor.job --limit 10 --timeout-seconds 120
+BRAIN=codex python3 -m classifier.job --limit 10 --timeout-seconds 120
 ```
 
-This installs the tracked source configuration and signaling base. The bridge, Serve mappings, live
-worker availability, and selected-media proof remain separate voice-readiness checks. TCP Serve does
-not expose the Service's UDP port.
+`BRAIN=ollama` is also implemented. Both jobs validate structured model output
+before persistence and return nonzero on failed work. The CLI code exists, but
+the hosted cutover, scheduling, unattended pickup, and end-to-end receipt are
+unfinished. Run it manually and inspect its counts until those gates ship.
 
-Apply the suspended scraper template and UI. Do not apply the extractor or classifier Job manifests directly; the coordinator reads them with client dry-run and creates uniquely named jobs.
+Only the explicitly selected safe professional projection may enter a model
+request. People, connectors, prohibited-claim lists, private paths, and nested
+ownership exclusions stay local as validation guards.
+
+## 8. Validate changes
+
+Run the affected suites before proposing a change:
 
 ```zsh
-kubectl apply -f k8s/scraper-cronjob.yaml
-kubectl apply -f k8s/ui.yaml
-kubectl -n job-radar-coach rollout status deployment/ui --timeout=120s
-python3 scripts/run_batch.py --limit 1 --timeout-seconds 120
+python3 -m pytest -q scraper extractor classifier \
+  supabase/scheduling/cloud_scrape/test_schedule.py \
+  scripts/test_check_private_files.py
+python3 -m ruff check \
+  --per-file-ignores 'extractor/test_persistence.py:E402' \
+  scraper extractor classifier \
+  supabase/scheduling/cloud_scrape/test_schedule.py \
+  scripts/check_private_files.py scripts/test_check_private_files.py
+npm --prefix ui run test
+npm --prefix ui run lint
+npm --prefix ui run build
 ```
 
-The scraper CronJob must remain suspended. The coordinator prints one receipt covering fetched, matched, new, extracted, and scored counts. An empty observed cohort safely skips both model jobs.
-Every generated Job keeps its Job and pod available for logs for one hour after completion, then Kubernetes removes them through `ttlSecondsAfterFinished: 3600`. Keep that TTL on any new or ad-hoc validation Job so completed resources do not accumulate.
+Database migrations also require `supabase test db` against a disposable local
+instance. A mock suite, source inspection, CI pass, deployment, and real hosted
+behavior remain distinct claims.
 
-### Optional Codex batch brain
+## DialogKit and legacy integration
 
-The Python image contains the supported Codex CLI. Mount only an existing subscription authentication file at runtime, then select Codex explicitly for that run:
+DialogKit owns the reusable agent loop, voice/text transport, and rendered
+conversation components. Job Radar Coach owns job facts, status semantics,
+profile rules, and its authenticated semantic API/configuration.
 
-```zsh
-runtime_codex_auth="${CODEX_HOME:-${HOME}/.codex}/auth.json"
-test -s "${runtime_codex_auth}"
-kubectl -n job-radar-coach create secret generic batch-codex-auth \
-  --from-file=auth.json="${runtime_codex_auth}" \
-  --dry-run=client -o json | kubectl apply -f -
-unset runtime_codex_auth
-python3 scripts/run_batch.py --limit 1 --timeout-seconds 120 \
-  --extractor-provider codex --classifier-provider codex
-```
-
-The portable default remains Ollama. Only Ollama and Codex are implemented batch providers.
-
-## 8. Serve the UI on the tailnet
-
-Keep this localhost bridge running in its own terminal:
-
-```zsh
-kubectl --context orbstack -n job-radar-coach port-forward --address 127.0.0.1 service/ui 3410:3000
-```
-
-Wait for the bridge to print `Forwarding from 127.0.0.1:3410`. Port 3410 is the dashboard bridge used by `jrc`; if it is occupied, identify the existing listener before proceeding. In a second terminal, add only the chosen HTTPS handler:
-
-```zsh
-tailscale serve --bg --https=8445 http://127.0.0.1:3410
-tailscale serve status
-```
-
-Open `https://<this-machine-tailnet-name>:8445` from a device on the same tailnet. The exact full origin must match the `UI_ORIGIN` stored above or mutations are rejected. Do not use `tailscale serve reset`: it would remove unrelated handlers.
-
-The foreground port-forward is session-scoped. Restart it after logout, reboot, or a selected UI pod restart. Portable setup does not install a background bridge. Keep this dashboard bridge running independently of `jrc run`; voice Ctrl-C cleanup leaves it and the dashboard mapping intact.
-
-### Prepare the voice transport
-
-Section 7 provisions the current LiveKit configuration and validates its signaling (`7880/TCP`),
-RTC TCP (`7881/TCP`), and UDP (`50000/UDP`) ports. Recheck readiness before starting the bridge;
-these commands read the existing resources and do not patch a borrowed Service:
-
-```zsh
-set -euo pipefail
-# Fail before bridge or mapping work unless both numeric TCP ports are now present.
-kubectl --context orbstack -n job-radar-coach rollout status deployment/livekit --timeout=120s
-python3 - 3< <(kubectl --context orbstack -n job-radar-coach get service/livekit -o json) <<'PY'
-import json
-
-service = json.load(open(3))
-ports = {
-    (item.get("port"), item.get("targetPort"), item.get("protocol", "TCP"))
-    for item in service.get("spec", {}).get("ports", [])
-}
-required = {(7880, 7880, "TCP"), (7881, 7881, "TCP")}
-if not required <= ports:
-    raise SystemExit("service/livekit must expose numeric TCP 7880->7880 and 7881->7881")
-PY
-node --check scripts/livekit_bridge.cjs
-lsof -nP -iTCP:17880 -sTCP:LISTEN -t || true
-lsof -nP -iTCP:17881 -sTCP:LISTEN -t || true
-```
-
-If both `lsof` commands have no output, keep `node scripts/livekit_bridge.cjs` running in its own
-terminal. If both ports already belong to the same PID, reuse it only when `ps -ww -o command= -p
-<PID>` is exactly `node` plus this checkout's `scripts/livekit_bridge.cjs`, and the health checks below
-pass. A single occupied port, different PIDs, or any other command is a conflict; do not stop or replace
-that process.
-
-Check the existing Serve targets before adding anything. This read-only check prints `missing` or
-`reuse` for each voice mapping and exits nonzero on a conflicting handler:
-
-```zsh
-runtime_tailnet_host="$(tailscale status --json | python3 -c \
-  'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')"
-TAILNET_DNS="${runtime_tailnet_host}" python3 - 3< <(tailscale serve status --json) <<'PY'
-import json
-import os
-
-status = json.load(open(3))
-dns = os.environ["TAILNET_DNS"]
-tcp = status.get("TCP", {})
-web = status.get("Web", {})
-
-rtc = tcp.get("7881")
-if rtc not in (None, {"TCPForward": "127.0.0.1:17881"}):
-    raise SystemExit("conflict: TCP 7881 has another target")
-print("tcp:7881", "missing" if rtc is None else "reuse")
-
-signaling = tcp.get("8446")
-handlers = web.get(f"{dns}:8446", {}).get("Handlers", {})
-expected = {"/": {"Proxy": "http://127.0.0.1:17880"}}
-if not (signaling is None and not handlers) and not (
-    signaling == {"HTTPS": True} and handlers == expected
-):
-    raise SystemExit("conflict: HTTPS 8446 has another target")
-print("https:8446", "missing" if signaling is None else "reuse")
-PY
-```
-
-For normal use, `jrc run` creates missing voice mappings and adopts matching existing mappings on ports 7881 and 8446. Ctrl-C removes those exact voice mappings, including adopted ones; dashboard port 8445 stays intact. The commands below are an optional manual transport check before using `jrc`.
-
-For that manual check, if `tcp:7881` printed `missing`, add the media mapping:
-
-```zsh
-tailscale serve --bg --tcp=7881 tcp://127.0.0.1:17881
-```
-
-If `https:8446` printed `missing`, add the signaling mapping:
-
-```zsh
-tailscale serve --bg --https=8446 http://127.0.0.1:17880
-```
-
-During this manual check, leave existing `reuse` mappings unchanged. Then verify signaling:
-
-```zsh
-curl -fsS -o /dev/null http://127.0.0.1:17880/
-curl -fsS -o /dev/null "https://${runtime_tailnet_host}:8446/"
-unset runtime_tailnet_host
-```
-
-Never use `tailscale serve reset` or Funnel. When ending only the manual check, stop the bridge only if this terminal launched
-it, using Ctrl-C or SIGTERM for that exact PID. Remove only a mapping that this setup created, after the
-same status check still reports its exact target, with `tailscale serve --tcp=7881 off` or `tailscale
-serve --https=8446 off`. Preserve processes and mappings borrowed by this manual check. Once `jrc run` adopts the voice mappings, its Ctrl-C cleanup owns their removal regardless of who originally created them.
-
-## Repeat starts
-
-Do not reset Supabase and do not recreate your profile. Start the services, apply pending migrations, rebuild only changed images, reapply changed manifests, restart the foreground port-forward, and run another bounded batch when wanted.
+Do not copy the legacy embedded agent, LiveKit, Kubernetes, or `jrc` setup into
+the standalone deployment. Preserve the legacy integration as reference until
+the separately owned DialogKit replacement map and runtime are proven. This is
+a separation and replacement boundary, not an in-place conversion.

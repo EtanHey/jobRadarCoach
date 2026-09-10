@@ -9,6 +9,7 @@ docs.local/
 !.env.*.sample
 !.env.*.template
 .worktrees/
+.vercel/
 profile.yaml
 auth.json
 credentials*.json
