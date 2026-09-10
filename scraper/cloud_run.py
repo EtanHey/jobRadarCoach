@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 import traceback
 from typing import Callable, TextIO
+from urllib import request as urllib_request
 from scraper import harvest
 
 
@@ -26,6 +27,23 @@ URL_BUCKETS = tuple(
         "workable": "workable.com/",
     }.items()
 )
+class _NoRedirect(urllib_request.HTTPRedirectHandler):
+    def redirect_request(self, *_args, **_kwargs):
+        return None
+
+
+NO_REDIRECT_OPEN = urllib_request.build_opener(_NoRedirect).open
+
+
+def _load_without_redirects(loader):
+    original = urllib_request.urlopen
+    try:
+        urllib_request.urlopen = NO_REDIRECT_OPEN
+        return loader()
+    finally:
+        urllib_request.urlopen = original
+
+
 class _RequestBudget:
     def __init__(self) -> None:
         self.remaining = dict(REQUEST_LIMITS)
@@ -143,17 +161,17 @@ def main(
         if not budget.take(bucket):
             return None
         pacer()
-        return original_fetch(url, backoffs=())
+        return original_fetch(url, backoffs=(), opener=NO_REDIRECT_OPEN)
 
     def bounded_jd_loader():
-        fetch = original_jd_loader()
+        fetch = _load_without_redirects(original_jd_loader)
         return lambda url: fetch(url) if budget.take("jd") else {
             "jd_text": "", "jd_chars": 0, "fetch_method": "failed",
             "fetch_error": "network request budget exhausted",
         }
 
     def bounded_liveness_loader():
-        check = original_liveness_loader()
+        check = _load_without_redirects(original_liveness_loader)
         return lambda posting: check(posting) if budget.take("liveness") else {"alive": None}
 
     harvest.fetch_html = bounded_fetch

@@ -18,9 +18,10 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     for tenant in registry["tenants"]:
         if tenant.get("enabled") is True:
             source_urls[tenant["source"]].append(tenant["careers_url"])
-    attempted: list[tuple[str, tuple[object, ...]]] = []
+    attempted: list[tuple[str, tuple[object, ...], object]] = []
     jd_attempted: list[str] = []
     liveness_attempted: list[object] = []
+    loader_openers: list[object] = []
     captured: dict[str, object] = {}
 
     def harvest_main(argv: list[str]) -> int:
@@ -40,11 +41,11 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
 
     monkeypatch.setattr(
         cloud_run.harvest, "fetch_html",
-        lambda url, **kwargs: attempted.append((url, kwargs["backoffs"])) or "body",
+        lambda url, **kwargs: attempted.append((url, kwargs["backoffs"], kwargs["opener"])) or "body",
     )
     monkeypatch.setattr(cloud_run.harvest, "RequestPacer", lambda: lambda: None)
-    monkeypatch.setattr(cloud_run.harvest, "load_full_jd_fetcher", lambda: lambda url: jd_attempted.append(url) or {})
-    monkeypatch.setattr(cloud_run.harvest, "load_liveness_checker", lambda: lambda row: liveness_attempted.append(row) or {"alive": True})
+    monkeypatch.setattr(cloud_run.harvest, "load_full_jd_fetcher", lambda: loader_openers.append(cloud_run.urllib_request.urlopen) or (lambda url: jd_attempted.append(url) or {}))
+    monkeypatch.setattr(cloud_run.harvest, "load_liveness_checker", lambda: loader_openers.append(cloud_run.urllib_request.urlopen) or (lambda row: liveness_attempted.append(row) or {"alive": True}))
     receipt_path = tmp_path / "receipt.json"
     result = cloud_run.main(
         ["--receipt", str(receipt_path), "--max-pages", "2"],
@@ -59,9 +60,10 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
         "comeet,greenhouse,lever,workable"
     )
     assert captured["argv"][captured["argv"].index("--max-pages") + 1] == "2"
-    attempted_set = {url for url, _backoffs in attempted}
+    attempted_set = {url for url, _backoffs, _opener in attempted}
     assert all(set(urls) <= attempted_set for urls in source_urls.values())
-    assert all(not backoffs for _url, backoffs in attempted)
+    assert all(not backoffs and opener == cloud_run.NO_REDIRECT_OPEN for _url, backoffs, opener in attempted)
+    assert loader_openers == [cloud_run.NO_REDIRECT_OPEN] * 2
     assert len(attempted) == 48 and len(jd_attempted) == 8 and len(liveness_attempted) == 4
 
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -77,47 +79,29 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     assert "postgresql://hosted.example/job_radar" not in capsys.readouterr().out
 
 
-def test_cloud_run_records_failure_without_database_url(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_cloud_run_records_failure_without_database_url(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     receipt_path = tmp_path / "receipt.json"
-
-    result = cloud_run.main(
-        ["--receipt", str(receipt_path)],
-        harvest_main=lambda _argv: (_ for _ in ()).throw(AssertionError("must not run")),
-    )
-
+    result = cloud_run.main(["--receipt", str(receipt_path)], harvest_main=lambda _argv: (_ for _ in ()).throw(AssertionError("must not run")))
     assert result == 2
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    assert receipt["status"] == "failure"
-    assert receipt["exit_code"] == 2
-    assert receipt["network_request_skips"] == 0
+    assert (receipt["status"], receipt["exit_code"], receipt["network_request_skips"]) == ("failure", 2, 0)
     assert receipt["error_code"] == "MissingDatabaseURL"
     assert "result" not in receipt
 
 
-def test_cloud_run_records_exception_and_replays_output(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
+def test_cloud_run_records_exception_and_replays_output(tmp_path: Path, monkeypatch, capsys) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://hosted.example/job_radar")
     receipt_path = tmp_path / "receipt.json"
-
     def failing_harvest(_argv: list[str]) -> int:
         print("fetch_started")
         raise RuntimeError("boom")
-
-    result = cloud_run.main(
-        ["--receipt", str(receipt_path)], harvest_main=failing_harvest
-    )
-
+    result = cloud_run.main(["--receipt", str(receipt_path)], harvest_main=failing_harvest)
     captured = capsys.readouterr()
     assert result == 1
-    assert "fetch_started" in captured.out
-    assert "RuntimeError: boom" in captured.err
+    assert "fetch_started" in captured.out and "RuntimeError: boom" in captured.err
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-    assert receipt["status"] == "failure"
-    assert receipt["error_code"] == "HarvesterException"
+    assert (receipt["status"], receipt["error_code"]) == ("failure", "HarvesterException")
 
 
 def test_workflow_is_manual_bounded_hosted_and_non_overlapping() -> None:
