@@ -118,13 +118,14 @@ def _error_final_url(error: HTTPError, requested_url: str) -> str:
 def _error_location(error: HTTPError, requested_url: str) -> str:
     """Resolve an HTTP redirect Location, falling back to the error URL."""
 
+    error_url = _error_final_url(error, requested_url)
     try:
         location = error.headers.get("Location")
     except Exception:  # noqa: BLE001 - malformed third-party header containers
         location = None
     if isinstance(location, str) and location:
-        return urljoin(requested_url, location)
-    return _error_final_url(error, requested_url)
+        return urljoin(error_url, location)
+    return error_url
 
 
 def check_url(

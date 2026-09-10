@@ -263,6 +263,22 @@ def test_greenhouse_nofollow_302_location_to_same_board_error_is_dead() -> None:
     assert result["liveness_final_url"] == final
 
 
+def test_greenhouse_relative_location_uses_effective_error_url() -> None:
+    liveness = load_liveness()
+    original = "https://job-boards.greenhouse.io/tenableinc/jobs/5114162008"
+    effective = "https://job-boards.greenhouse.io/tenableinc"
+    final = f"{effective}?error=true"
+
+    def opener(_request, **_kwargs):
+        raise HTTPError(effective, 302, "Found", {"Location": "?error=true"}, None)
+
+    result = liveness.check_url(original, opener=opener)
+    assert result["alive"] is False
+    assert result["liveness_status"] == 302
+    assert result["liveness_reason"] == "greenhouse-board-error-redirect"
+    assert result["liveness_final_url"] == final
+
+
 def test_greenhouse_nofollow_302_without_bound_evidence_is_unknown() -> None:
     liveness = load_liveness()
     original = "https://job-boards.greenhouse.io/tenableinc/jobs/5114162008"
