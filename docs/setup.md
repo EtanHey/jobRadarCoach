@@ -153,27 +153,33 @@ expose the service-role key through a `NEXT_PUBLIC_` variable.
 
 ## 6. Configure cloud fetching
 
-The manual workflow is
+The workflow is
 [`cloud-scrape.yml`](../.github/workflows/cloud-scrape.yml). It runs the Python
 scraper on GitHub-hosted Linux, disables LLM annotation, bounds network work,
-persists through `DATABASE_URL`, and prevents overlapping runs.
+persists through `DATABASE_URL`, and prevents overlapping runs. Its native
+GitHub Actions schedule starts four times per day at 00:17, 06:17, 12:17, and
+18:17 UTC. `workflow_dispatch` remains available for bounded manual runs.
 
-The Supabase package in
+Configure the GitHub Actions secret `DATABASE_URL` for the hosted database.
+The default schedule does not require a Supabase-to-GitHub personal access
+token.
+
+The Supabase Cron package in
 [`supabase/scheduling/cloud_scrape`](../supabase/scheduling/cloud_scrape/README.md)
-dispatches that workflow every six hours through `pg_cron`, `pg_net`, and a
-Vault-held repository-scoped GitHub token. Configure only:
+is retained only as an optional alternative dispatcher. Never enable it while
+the native GitHub schedule is active, because both schedulers would request the
+same workflow.
 
-- GitHub Actions secret `DATABASE_URL` for the hosted database.
-- Supabase Vault secret `job_radar_github_actions_token`, restricted to this
-  repository with Actions write.
+Scheduled GitHub runs are best effort: high load can delay them and queued jobs
+can be dropped. GitHub automatically disables scheduled workflows in a public
+repository after 60 days without repository activity. The off-hour `:17` start
+reduces exposure to the documented start-of-hour load peak. See the
+[cloud pipeline](cloud-pipeline.md#schedule-and-cost-contract) for official
+GitHub references and the separate compute and storage limits.
 
-The scheduling source is merged, but activation still requires release-owner
-approval and live verification. Follow its installer, disable, and rollback
-instructions. Do not paste the token into SQL, shell history, or Cron commands.
-
-The first release proof must connect one Cron invocation to the `pg_net`
-response, GitHub run, cloud receipt, source attempts, and newly persisted hosted
-rows. A queued HTTP request or green workflow alone is incomplete.
+The first release proof must connect a scheduled GitHub run to its cloud
+receipt, source attempts, and newly persisted hosted rows. A queued or green
+workflow alone is incomplete.
 
 ## 7. Run local extraction and scoring
 

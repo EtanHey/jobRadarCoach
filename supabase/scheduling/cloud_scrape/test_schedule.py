@@ -11,6 +11,9 @@ ROLLBACK = (HERE / "rollback.sql").read_text(encoding="utf-8")
 WORKFLOW = (HERE.parents[2] / ".github/workflows/cloud-scrape.yml").read_text(
     encoding="utf-8"
 )
+SETUP = (HERE.parents[2] / "docs/setup.md").read_text(encoding="utf-8")
+PIPELINE = (HERE.parents[2] / "docs/cloud-pipeline.md").read_text(encoding="utf-8")
+SCHEDULE_README = (HERE / "README.md").read_text(encoding="utf-8")
 
 
 def test_install_fixes_target_and_keeps_secret_out_of_cron_command() -> None:
@@ -49,13 +52,31 @@ def test_disable_and_rollback_are_bounded_to_named_schedule() -> None:
     assert "vault." not in ROLLBACK.lower()
 
 
-def test_target_workflow_remains_manual_and_non_overlapping() -> None:
+def test_target_workflow_runs_four_times_daily_off_the_hour_and_remains_manual() -> None:
     normalized = " ".join(WORKFLOW.split())
 
     assert "workflow_dispatch:" in WORKFLOW
-    assert "schedule:" not in WORKFLOW
+    assert re.search(
+        r'^  schedule:\n    - cron: "17 \*/6 \* \* \*"$',
+        WORKFLOW,
+        flags=re.MULTILINE,
+    )
     assert "group: cloud-scrape" in WORKFLOW
     assert "cancel-in-progress: false" in normalized
+    assert "timeout-minutes: 30" in WORKFLOW
+    assert "DATABASE_URL: ${{ secrets.DATABASE_URL }}" in WORKFLOW
+
+
+def test_docs_make_native_schedule_default_and_supabase_dispatch_mutually_exclusive() -> None:
+    assert "00:17, 06:17, 12:17, and 18:17 UTC" in " ".join(SETUP.split())
+    assert "job_radar_github_actions_token" not in SETUP
+    assert (
+        "Do not activate this route while the native GitHub schedule is active"
+        in " ".join(SCHEDULE_README.split())
+    )
+    assert "GitHub Actions native schedule" in PIPELINE
+    assert "gpt-5.6-luna" in PIPELINE
+    assert "gpt-5.6-terra" in PIPELINE
 
 
 def test_workflow_summary_jq_filter_compiles_and_renders() -> None:
