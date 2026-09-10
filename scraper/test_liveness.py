@@ -84,9 +84,45 @@ def test_closed_fixture_keeps_the_phrase_in_visible_body_text() -> None:
     assert "no longer accepting applications" in visible
 
 
-def test_active_page_with_hydration_blob_is_alive() -> None:
+def test_linkedin_not_currently_accepting_applications_is_dead() -> None:
+    liveness = load_liveness()
+
+    def opener(request, **_kwargs):
+        return Response(
+            200,
+            request.full_url,
+            fixture("liveness-linkedin-not-accepting.html"),
+        )
+
+    result = liveness.check_url(
+        "https://www.linkedin.com/jobs/view/senior-software-engineer-4462954347",
+        opener=opener,
+    )
+    assert result["alive"] is False
+    assert result["liveness_reason"] == "closed-page-text"
+
+
+def test_greenhouse_no_longer_open_phrase_is_dead() -> None:
+    liveness = load_liveness()
+
+    def opener(request, **_kwargs):
+        return Response(
+            200,
+            request.full_url,
+            fixture("liveness-greenhouse-no-longer-open.html"),
+        )
+
+    result = liveness.check_url(
+        "https://job-boards.greenhouse.io/tenableinc/jobs/5114162008",
+        opener=opener,
+    )
+    assert result["alive"] is False
+    assert result["liveness_reason"] == "closed-page-text"
+
+
+def test_active_page_with_hydration_blob_is_unknown_not_false_dead() -> None:
     """A LIVE ATS page whose ``__NEXT_DATA__`` i18n catalog carries the closed-job
-    string must stay alive. Scanning inline script content marked real jobs dead."""
+    string must not become false-dead. Generic HTML cannot prove applyability."""
 
     liveness = load_liveness()
     page = fixture("liveness-active.html")
@@ -97,8 +133,8 @@ def test_active_page_with_hydration_blob_is_alive() -> None:
         return Response(200, request.full_url, page)
 
     result = liveness.check_url("https://jobs.example/1", opener=opener)
-    assert result["alive"] is True
-    assert result["liveness_reason"] == "http-live"
+    assert result["alive"] is None
+    assert result["liveness_reason"] == "http-200-uncertain"
 
 
 def test_visible_text_drops_script_and_style_content() -> None:
@@ -196,6 +232,81 @@ def test_redirect_from_linkedin_job_to_authwall_is_unknown() -> None:
     )
     assert result["alive"] is None
     assert result["liveness_reason"] == "redirect-to-auth"
+
+
+def test_greenhouse_job_redirect_to_same_board_error_is_dead() -> None:
+    liveness = load_liveness()
+    original = "https://job-boards.greenhouse.io/tenableinc/jobs/5114162008"
+    final = "https://job-boards.greenhouse.io/tenableinc?error=true"
+
+    def opener(_request, **_kwargs):
+        return Response(200, final)
+
+    result = liveness.check_url(original, opener=opener)
+    assert result["alive"] is False
+    assert result["liveness_reason"] == "greenhouse-board-error-redirect"
+    assert result["liveness_final_url"] == final
+
+
+def test_greenhouse_nofollow_302_location_to_same_board_error_is_dead() -> None:
+    liveness = load_liveness()
+    original = "https://job-boards.greenhouse.io/pagayais/jobs/7981453003"
+    final = "https://job-boards.greenhouse.io/pagayais?error=true"
+
+    def opener(_request, **_kwargs):
+        raise HTTPError(original, 302, "Found", {"Location": "/pagayais?error=true"}, None)
+
+    result = liveness.check_url(original, opener=opener)
+    assert result["alive"] is False
+    assert result["liveness_status"] == 302
+    assert result["liveness_reason"] == "greenhouse-board-error-redirect"
+    assert result["liveness_final_url"] == final
+
+
+def test_greenhouse_nofollow_302_without_bound_evidence_is_unknown() -> None:
+    liveness = load_liveness()
+    original = "https://job-boards.greenhouse.io/tenableinc/jobs/5114162008"
+
+    for location in (
+        "https://job-boards.greenhouse.io/tenableinc",
+        "https://job-boards.greenhouse.io/anotherboard?error=true",
+        "https://example.com/tenableinc?error=true",
+    ):
+        def opener(_request, redirect=location, **_kwargs):
+            raise HTTPError(original, 302, "Found", {"Location": redirect}, None)
+
+        result = liveness.check_url(original, opener=opener)
+        assert result["alive"] is None
+        assert result["liveness_reason"] == "http-302-uncertain"
+
+
+def test_greenhouse_board_redirect_without_complete_evidence_is_unknown() -> None:
+    liveness = load_liveness()
+    original = "https://job-boards.greenhouse.io/tenableinc/jobs/5114162008"
+
+    for final in (
+        "https://job-boards.greenhouse.io/tenableinc",
+        "https://job-boards.greenhouse.io/anotherboard?error=true",
+        "https://example.com/tenableinc?error=true",
+    ):
+        result = liveness.check_url(
+            original, opener=lambda _request, **_kwargs: Response(200, final)
+        )
+        assert result["alive"] is None
+        assert result["liveness_reason"] == "http-200-uncertain"
+
+
+def test_generic_200_is_unknown_without_application_evidence() -> None:
+    liveness = load_liveness()
+
+    result = liveness.check_url(
+        "https://jobs.example/1",
+        opener=lambda request, **_kwargs: Response(
+            200, request.full_url, "<main>Software engineer role</main>"
+        ),
+    )
+    assert result["alive"] is None
+    assert result["liveness_reason"] == "http-200-uncertain"
 
 
 def test_network_failure_is_unknown_not_false_dead() -> None:
