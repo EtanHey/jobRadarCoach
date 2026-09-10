@@ -38,8 +38,22 @@ def test_failure_does_not_starve_later_success_and_records_attempts():
 
 
 def test_update_preserves_an_existing_full_description():
-    assert "then %s else raw_jd end" in UPDATE
+    assert "%s::text is not null" in UPDATE
+    assert "then %s::text else raw_jd end" in UPDATE
     assert "raw_jd is null or char_length(btrim(raw_jd)) < %s" in UPDATE
+
+
+@pytest.mark.parametrize("description", [None, "complete description"])
+def test_update_binds_nullable_description_as_explicit_text(description):
+    db = Database([("posting", "https://jobs.lever.co/a")])
+    def fetcher(_url):
+        if description is None:
+            raise TimeoutError
+        return description
+    backfill(db, fetcher=fetcher)
+    assert db.writes[0][0] is description
+    assert db.writes[0][2] is description
+    assert UPDATE.count("%s::text") == 2
 
 
 def test_work_is_bounded():

@@ -9,10 +9,11 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
-from urllib.request import Request, build_opener
+from urllib.request import Request
 
 from scraper.jd_fetch import BROWSER_USER_AGENT, MIN_PLAUSIBLE_JD_CHARS, extract_full_jd
-from scraper.recheck import NoRedirect, public_job_url
+from scraper.public_https import pinned_open
+from scraper.recheck import public_job_url
 
 MAX_ITEMS = 12
 MAX_COMPRESSED_BYTES = 2_000_000
@@ -26,8 +27,8 @@ limit %s
 """
 UPDATE = """
 update public.postings set raw_jd = case
-when %s is not null and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
-then %s else raw_jd end, liveness = liveness || %s::jsonb
+when %s::text is not null and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
+then %s::text else raw_jd end, liveness = liveness || %s::jsonb
 where id = %s and url = %s
 """
 
@@ -35,7 +36,7 @@ where id = %s and url = %s
 def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     if not public_job_url(url):
         raise ValueError("unsupported-public-url")
-    opener = opener or build_opener(NoRedirect()).open
+    opener = opener or pinned_open
     request = Request(url, headers={"User-Agent": BROWSER_USER_AGENT,
         "Accept": "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
     with opener(request, timeout=min(timeout, 20)) as response:
