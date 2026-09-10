@@ -16,8 +16,8 @@ export type OwnerAccessDecision =
   | { kind: "deny"; response: Response };
 
 const publicPaths = new Set(["/login", "/auth/callback", "/auth/recovery"]);
-const publicPrefixes = ["/_next/", "/companies/", "/tech/"];
-const publicAssets = new Set(["/favicon.ico", "/icon.svg"]);
+const publicPrefixes = ["/_next/static/", "/companies/", "/tech/"];
+const publicAssets = new Set(["/_next/image", "/favicon.ico", "/icon.svg"]);
 const userIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function classifyAuthPath(pathname: string): "public" | "private" {
   if (publicPaths.has(pathname) || publicAssets.has(pathname)) return "public";

@@ -34,7 +34,7 @@ test("private pages and APIs deny unauthenticated callers without trusting a coo
     configuredEnvironment,
     verifier(null),
   );
-  assert.equal(page.kind, "deny");
+  assert.ok(page.kind === "deny");
   assert.equal(page.response.status, 307);
   assert.equal(
     page.response.headers.get("location"),
@@ -47,7 +47,7 @@ test("private pages and APIs deny unauthenticated callers without trusting a coo
       configuredEnvironment,
       verifier(null),
     );
-    assert.equal(result.kind, "deny", path);
+    assert.ok(result.kind === "deny", path);
     assert.equal(result.response.status, 401, path);
     assert.deepEqual(await result.response.json(), { error: "Authentication required." }, path);
   }
@@ -59,7 +59,7 @@ test("a valid Supabase identity outside the owner allowlist is forbidden", async
     configuredEnvironment,
     verifier("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
   );
-  assert.equal(result.kind, "deny");
+  assert.ok(result.kind === "deny");
   assert.equal(result.response.status, 403);
   assert.deepEqual(await result.response.json(), { error: "Owner access required." });
 });
@@ -74,7 +74,7 @@ test("missing or malformed auth configuration fails closed", async () => {
     assert.equal(readOwnerAuthConfig(environment).ok, false);
     for (const path of ["/", "/api/jobs", "/api/events", "/api/livekit/token"]) {
       const result = await authorizeOwnerRequest(request(path), environment, verifier(null));
-      assert.equal(result.kind, "deny", path);
+      assert.ok(result.kind === "deny", path);
       assert.equal(result.response.status, 503, path);
       assert.equal(result.response.headers.get("cache-control"), "private, no-store", path);
     }
@@ -121,6 +121,7 @@ test("only the explicit login, callback, recovery, and static paths are public",
     "/auth/passkeys",
     "/auth/callback/extra",
     "/login/anything",
+    "/_next/data/build-id/dashboard.json",
     "/api/jobs",
     "/api/profile",
     "/api/events",
