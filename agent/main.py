@@ -28,6 +28,7 @@ from tools import (
 )
 from user import User
 from model_telemetry import llm_metric_fields
+from audit_model import AuditRuntime, create_auditor
 
 
 def _streaming_stt_url() -> str:
@@ -221,8 +222,19 @@ async def _open_job(ctx: agents.JobContext, posting: Posting) -> str:
         )
 
 
-def wire_observability(session: AgentSession, state: SessionState) -> None:
+def wire_observability(session: AgentSession, state: SessionState, auditor=None) -> None:
     logger = logging.getLogger(__name__)
+
+    def record_model_metrics(metrics: LLMMetrics) -> None:
+        logger.info(
+            "model stage completed",
+            extra={
+                **llm_metric_fields(metrics),
+                "duration_ms": round(metrics.duration * 1000, 3),
+                "time_to_first_token_ms": round(metrics.ttft * 1000, 3),
+                "speech_id": metrics.speech_id,
+            },
+        )
 
     @session.on("conversation_item_added")
     def remember_discussed(event) -> None:
@@ -284,15 +296,7 @@ def wire_observability(session: AgentSession, state: SessionState) -> None:
     def record_stage_timing(event) -> None:
         metrics = event.metrics
         if isinstance(metrics, LLMMetrics):
-            logger.info(
-                "model stage completed",
-                extra={
-                    **llm_metric_fields(metrics),
-                    "duration_ms": round(metrics.duration * 1000, 3),
-                    "time_to_first_token_ms": round(metrics.ttft * 1000, 3),
-                    "speech_id": metrics.speech_id,
-                },
-            )
+            record_model_metrics(metrics)
         elif isinstance(metrics, TTSMetrics):
             logger.info(
                 "text-to-speech stage completed",
@@ -305,6 +309,9 @@ def wire_observability(session: AgentSession, state: SessionState) -> None:
                     "speech_id": metrics.speech_id,
                 },
             )
+
+    if auditor is not None:
+        auditor.on("metrics_collected", record_model_metrics)
 
 
 def register_ping_rpc(ctx: agents.JobContext) -> None:
@@ -377,6 +384,7 @@ async def entrypoint(ctx: agents.JobContext):
     state = SessionState(qa_mode=_env_flag("VOICE_QA_MODE"))
     before_owner_state: dict[str, object] | None = None
     recovery: SpeechRecovery | None = None
+    audit_runtime: AuditRuntime | None = None
     if state.qa_mode:
         before_owner_state = await owner_state_fingerprint()
         logger.info(
@@ -390,25 +398,31 @@ async def entrypoint(ctx: agents.JobContext):
         )
 
     async def shutdown() -> None:
-        if recovery is not None:
-            await recovery.aclose()
         try:
-            if state.qa_mode:
-                after_owner_state = await owner_state_fingerprint()
-                unchanged = after_owner_state == before_owner_state
-                logger.log(
-                    logging.INFO if unchanged else logging.ERROR,
-                    "voice QA owner state verified",
-                    extra={
-                        "voice_qa_mode": True,
-                        "phase": "after",
-                        "owner_state": after_owner_state,
-                        "owner_state_unchanged": unchanged,
-                        "owner_mutations_performed": 0,
-                    },
-                )
+            if recovery is not None:
+                await recovery.aclose()
         finally:
-            await close_pool()
+            try:
+                if audit_runtime is not None:
+                    await audit_runtime.aclose()
+            finally:
+                try:
+                    if state.qa_mode:
+                        after_owner_state = await owner_state_fingerprint()
+                        unchanged = after_owner_state == before_owner_state
+                        logger.log(
+                            logging.INFO if unchanged else logging.ERROR,
+                            "voice QA owner state verified",
+                            extra={
+                                "voice_qa_mode": True,
+                                "phase": "after",
+                                "owner_state": after_owner_state,
+                                "owner_state_unchanged": unchanged,
+                                "owner_mutations_performed": 0,
+                            },
+                        )
+                finally:
+                    await close_pool()
 
     ctx.add_shutdown_callback(shutdown)
     try:
@@ -436,65 +450,76 @@ async def entrypoint(ctx: agents.JobContext):
         },
     )
     whisper, turn_detector = speech_components()
-    session = AgentSession(
-        userdata=state,
-        conn_options=llm_session_connect_options(),
-        vad=silero.VAD.load(),
-        stt=whisper,
-        llm=openai.LLM(
-            base_url=os.environ.get("LLM_BASE_URL", "http://127.0.0.1:11434/v1"),
-            api_key="none",
-            model=os.environ.get("LLM_MODEL", "qwen2.5:7b-instruct"),
-            timeout=float(os.environ.get("LLM_TIMEOUT", "60")),
-            max_retries=int(os.environ.get("LLM_HTTP_RETRIES", "0")),
-        ),
-        tts=openai.TTS(
-            base_url=os.environ.get("TTS_BASE_URL", "http://127.0.0.1:8881/v1"),
-            api_key="none",
-            model=os.environ.get("TTS_MODEL", "kokoro"),
-            voice=os.environ.get("TTS_VOICE", "af_heart"),
-        ),
-        use_tts_aligned_transcript=True,
-        turn_handling=turn_handling_options(
-            whisper, turn_detection=turn_detector
-        ),
-    )
-
-    recovery = SpeechRecovery(session)
-    whisper.set_failure_handler(recovery.notify)
-
-    wire_observability(session, state)
-
-    await session.start(
-        agent=JobCoach(
-            user,
-            open_job=lambda posting: _open_job(ctx, posting),
-            find_jobs=lambda filters: list_jobs(
-                limit=int(os.environ.get("JOB_CANDIDATE_LIMIT", "20")),
-                filters=JobFilters(
-                    location=filters.location,
-                    seniority=filters.seniority,
-                    min_score=(
-                        filters.min_score
-                        if filters.min_score is not None
-                        else int(os.environ.get("JOB_MIN_SCORE", "40"))
-                    ),
-                    query=filters.query,
-                    remote=filters.remote,
-                ),
-                excluded_ids=state.discussed_posting_ids,
+    audit_runtime = await create_auditor()
+    try:
+        session = AgentSession(
+            userdata=state,
+            conn_options=llm_session_connect_options(),
+            vad=silero.VAD.load(),
+            stt=whisper,
+            llm=openai.LLM(
+                base_url=os.environ.get("LLM_BASE_URL", "http://127.0.0.1:11434/v1"),
+                api_key="none",
+                model=os.environ.get("LLM_MODEL", "qwen2.5:7b-instruct"),
+                timeout=float(os.environ.get("LLM_TIMEOUT", "60")),
+                max_retries=int(os.environ.get("LLM_HTTP_RETRIES", "0")),
             ),
-        ),
-        room=ctx.room,
-    )
-    # after the room is connected: local_participant now exists
-    register_ping_rpc(ctx)
-    greeting = (
-        f"Hello {user.first_name}. I'm {AGENT_NAME}. "
-        "Would you like to hear your strongest new job match?"
-    )
-    state.intended_text = greeting
-    await session.say(greeting, allow_interruptions=True).wait_for_playout()
+            tts=openai.TTS(
+                base_url=os.environ.get("TTS_BASE_URL", "http://127.0.0.1:8881/v1"),
+                api_key="none",
+                model=os.environ.get("TTS_MODEL", "kokoro"),
+                voice=os.environ.get("TTS_VOICE", "af_heart"),
+            ),
+            use_tts_aligned_transcript=True,
+            turn_handling=turn_handling_options(
+                whisper, turn_detection=turn_detector
+            ),
+        )
+
+        recovery = SpeechRecovery(session)
+        whisper.set_failure_handler(recovery.notify)
+
+        wire_observability(session, state, audit_runtime.model)
+
+        await session.start(
+            agent=JobCoach(
+                user,
+                auditor=audit_runtime.model,
+                open_job=lambda posting: _open_job(ctx, posting),
+                find_jobs=lambda filters: list_jobs(
+                    limit=int(os.environ.get("JOB_CANDIDATE_LIMIT", "20")),
+                    filters=JobFilters(
+                        location=filters.location,
+                        seniority=filters.seniority,
+                        min_score=(
+                            filters.min_score
+                            if filters.min_score is not None
+                            else int(os.environ.get("JOB_MIN_SCORE", "40"))
+                        ),
+                        query=filters.query,
+                        remote=filters.remote,
+                    ),
+                    excluded_ids=state.discussed_posting_ids,
+                ),
+            ),
+            room=ctx.room,
+        )
+        # after the room is connected: local_participant now exists
+        register_ping_rpc(ctx)
+        greeting = (
+            f"Hello {user.first_name}. I'm {AGENT_NAME}. "
+            "Would you like to hear your strongest new job match?"
+        )
+        state.intended_text = greeting
+        await session.say(greeting, allow_interruptions=True).wait_for_playout()
+    except BaseException:
+        try:
+            await audit_runtime.aclose()
+        except BaseException:
+            logging.getLogger(__name__).exception(
+                "audit runtime cleanup failed during startup rollback"
+            )
+        raise
 
 
 async def guarded_entrypoint(ctx: agents.JobContext) -> None:
