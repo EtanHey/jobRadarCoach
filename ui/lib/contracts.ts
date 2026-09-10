@@ -8,7 +8,9 @@ const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL
 
 export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
-export const JobIdSchema = z.uuid();
+// PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
+// without restricting RFC version or variant bits. Match that database domain.
+export const JobIdSchema = z.guid();
 
 export const ScoreReasonSchema = z.object({
   factor: z.enum([

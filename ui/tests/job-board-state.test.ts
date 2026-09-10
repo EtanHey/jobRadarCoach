@@ -1,6 +1,51 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createDetailCoordinator, retainVisitCohort, uniqueJobsById } from "../lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createRequestFence, jobListCacheKey, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+
+test("private list cache keys the complete server query and evicts the least-recently-used view", () => {
+  assert.throws(() => createBoundedJobListCache(0), RangeError);
+  assert.throws(() => createBoundedJobListCache(-1), RangeError);
+  const cache = createBoundedJobListCache<string>(2);
+  const all = jobListCacheKey({ filter: "all", limit: 1000 });
+  const fresh = jobListCacheKey({ filter: "new-for-me", limit: 1000 });
+  const seen = jobListCacheKey({ filter: "seen", limit: 1000 });
+
+  assert.equal(all, "filter=all&limit=1000");
+  let repeatedFetches = 0;
+  const load = () => cache.get(all) ?? (++repeatedFetches, cache.set(all, "network rows"), "network rows");
+  assert.equal(load(), "network rows");
+  assert.equal(load(), "network rows");
+  assert.equal(repeatedFetches, 1);
+  cache.set(all, "all rows");
+  cache.set(fresh, "fresh rows");
+  assert.equal(cache.get(all), "all rows");
+  cache.set(seen, "seen rows");
+  assert.equal(cache.get(fresh), undefined);
+  assert.equal(cache.get(all), "all rows");
+  assert.equal(cache.get(seen), "seen rows");
+  cache.clear();
+  assert.equal(cache.get(all), undefined);
+});
+
+test("a status mutation updates the active list without resetting unrelated rows", () => {
+  const current = [
+    { id: "job-1", status: "new", status_reason: null },
+    { id: "job-2", status: "seen", status_reason: null },
+  ];
+  const updated = updateJobStatus(current, "job-1", "worth_checking", null);
+
+  assert.deepEqual(updated[0], { id: "job-1", status: "worth_checking", status_reason: null });
+  assert.equal(updated[1], current[1]);
+});
+
+test("status invalidation rejects an older list response before it can refill cache", () => {
+  const fence = createRequestFence();
+  const beforeMutation = fence.capture();
+  assert.equal(fence.isCurrent(beforeMutation), true);
+  fence.invalidate();
+  assert.equal(fence.isCurrent(beforeMutation), false);
+  assert.equal(fence.isCurrent(fence.capture()), true);
+});
 
 test("a successful mutation invalidates an older SSE detail read", () => {
   const coordinator = createDetailCoordinator();

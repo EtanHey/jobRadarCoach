@@ -5,8 +5,10 @@ import { makeGetJob } from "../app/api/jobs/[id]/route";
 import { makePatchStatus } from "../app/api/jobs/[id]/status/route";
 import { GET as getJobs, makeGetJobs } from "../app/api/jobs/route";
 import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
-import { JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
+import { JobIdSchema, JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
+import { HttpError } from "../lib/http";
 import type { ApiStore } from "../lib/server";
+import { parseSummaryRows } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
 const summary: JobSummary = {
@@ -93,6 +95,38 @@ test("job list exposes a bounded nullable unscored contract without raw JD", asy
   assert.deepEqual(received, { filter: "all", limit: 250 });
   assert.deepEqual(body, { jobs: [summary] });
   assert.equal("raw_jd" in body.jobs[0], false);
+  assert.match(response.headers.get("x-request-id") ?? "", /^[0-9a-f-]{36}$/);
+  assert.match(response.headers.get("server-timing") ?? "", /^app;dur=\d+$/);
+});
+
+test("PostgreSQL UUID forms are not rejected by stricter RFC version and variant rules", () => {
+  const postgresUuid = "123e4567-e89b-02d3-0456-426614174000";
+  assert.equal(JobIdSchema.safeParse(postgresUuid).success, true);
+
+  const raw = {
+    source: "fixture", last_seen_at: summary.last_seen_at, raw_jd: null,
+    posting_extractions: null, id: postgresUuid, title: "Engineer", company: "Acme",
+    location: null, remote: null, seniority: null, stack: [], salary: null,
+    url: "https://example.com/job", apply_url: null, posted_at: null, first_seen_at: summary.first_seen_at,
+    posting_status: null, posting_scores: null,
+  };
+  const result = parseSummaryRows([raw]);
+  assert.equal(result.invalidRowCount, 0);
+  assert.equal(result.jobs.length, 1);
+});
+
+test("a non-GUID row fails visibly instead of being silently omitted", () => {
+  const raw = {
+    source: summary.source, last_seen_at: summary.last_seen_at, raw_jd: "3+ years of backend engineering experience",
+    posting_extractions: null, id: summary.id, title: summary.title, company: summary.company,
+    location: summary.location, remote: summary.remote, seniority: summary.seniority, stack: summary.stack,
+    salary: summary.salary, url: summary.url, apply_url: summary.apply_url, posted_at: summary.posted_at,
+    first_seen_at: summary.first_seen_at, posting_status: null, posting_scores: null,
+  };
+  assert.throws(
+    () => parseSummaryRows([{ ...raw, id: "synthetic-non-uuid" }, raw]),
+    (error: unknown) => error instanceof HttpError && error.category === "invalid_response",
+  );
 });
 
 test("frozen status filters are direct values rather than a second status parameter", async () => {
