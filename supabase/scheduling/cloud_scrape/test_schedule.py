@@ -34,7 +34,9 @@ def test_dispatcher_and_transient_queue_are_private() -> None:
     normalized = " ".join(INSTALL.lower().split())
 
     assert "security definer set search_path = ''" in normalized
-    assert "revoke all on function scheduler_private.dispatch_cloud_scrape()" in normalized
+    assert (
+        "revoke all on function scheduler_private.dispatch_cloud_scrape()" in normalized
+    )
     assert "revoke select on table net.http_request_queue" in normalized
     assert "revoke select on table vault.decrypted_secrets" in normalized
     assert "from public, anon, authenticated, service_role" in normalized
@@ -44,7 +46,9 @@ def test_disable_and_rollback_are_bounded_to_named_schedule() -> None:
     assert "job-radar-cloud-scrape" in DISABLE
     assert "cron.alter_job(target_job_id, active := false)" in DISABLE
     assert "cron.unschedule(target_job_id)" in ROLLBACK
-    assert "drop function if exists scheduler_private.dispatch_cloud_scrape()" in ROLLBACK
+    assert (
+        "drop function if exists scheduler_private.dispatch_cloud_scrape()" in ROLLBACK
+    )
     assert "drop extension" not in ROLLBACK.lower()
     assert "vault." not in ROLLBACK.lower()
 
