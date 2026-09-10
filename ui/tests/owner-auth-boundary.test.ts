@@ -148,7 +148,10 @@ test("every current page and route file is covered by the default-private policy
     });
 
   assert.ok(routes.length > 0);
-  for (const path of routes) assert.equal(classifyAuthPath(path), "private", path);
+  const publicRoutes = new Set(["/auth/callback", "/auth/recovery"]);
+  for (const path of routes) {
+    assert.equal(classifyAuthPath(path), publicRoutes.has(path) ? "public" : "private", path);
+  }
 });
 
 test("the proxy verifies claims and forwards refreshed cookies with anti-cache headers", async () => {
