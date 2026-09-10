@@ -4,7 +4,7 @@ create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(29);
+select plan(30);
 
 create function pg_temp.throws_sqlstate(command text, expected_state text)
 returns boolean language plpgsql as $$

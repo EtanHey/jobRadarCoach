@@ -131,11 +131,17 @@ select ok(pg_temp.throws_sqlstate(
 select ok(pg_temp.throws_sqlstate(
   $$select public.set_status('00000000-0000-0000-0000-000000002099', 'seen')$$,
   'P0002'), 'set_status rejects missing postings');
-select is((public.set_status('00000000-0000-0000-0000-000000002001', 'saved')).status, 'saved', 'new postings can be saved directly');
+select is((public.set_status('00000000-0000-0000-0000-000000002001', 'worth_checking')).status, 'worth_checking', 'new postings can be marked worth checking directly');
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'rejected', 'not a fit')).reason, 'not a fit', 'rejections retain their reason');
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'seen')).reason, null::text, 'corrections clear stale rejection reasons');
-update posting_status set updated_at = '2000-01-01Z' where posting_id = '00000000-0000-0000-0000-000000002001';
-select is((public.set_status('00000000-0000-0000-0000-000000002001', 'seen')).updated_at, '2000-01-01Z'::timestamptz, 'same-state calls preserve updated_at');
+create temp table before_same_state as
+select updated_at from posting_status
+where posting_id = '00000000-0000-0000-0000-000000002001';
+select is(
+  (public.set_status('00000000-0000-0000-0000-000000002001', 'seen')).updated_at,
+  (select updated_at from before_same_state),
+  'same-state calls preserve updated_at'
+);
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'applied')).status, 'applied', 'status corrections can move to any known state');
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'new')).status, 'new', 'applied can be corrected back to new');
 

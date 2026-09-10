@@ -1,3 +1,11 @@
+begin;
+
+create schema if not exists extensions;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions;
+
+select plan(1);
+
 do $status_pipeline_test$
 declare
   posting constant uuid := '00000000-0000-0000-0000-000000007001';
@@ -137,3 +145,8 @@ begin
   end if;
 end
 $status_pipeline_test$;
+
+select ok(true, 'status pipeline assertions completed');
+
+select * from finish();
+rollback;
