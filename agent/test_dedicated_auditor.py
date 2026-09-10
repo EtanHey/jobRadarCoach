@@ -120,6 +120,18 @@ class DedicatedAuditorTests(unittest.IsolatedAsyncioTestCase):
                 await create_auditor()
         client.close.assert_awaited_once()
 
+    async def test_client_cleanup_failure_preserves_model_construction_error(self):
+        original = RuntimeError("model construction failed")
+        client = SimpleNamespace(close=AsyncMock(side_effect=OSError("close failed")))
+        with patch("audit_model.openai_sdk.AsyncClient", return_value=client), \
+             patch("audit_model.openai_plugin.LLM", side_effect=original), \
+             self.assertLogs("audit_model", level="ERROR") as logs:
+            with self.assertRaises(RuntimeError) as caught:
+                await create_auditor()
+        self.assertIs(caught.exception, original)
+        client.close.assert_awaited_once()
+        self.assertIn("construction rollback", logs.output[-1])
+
     async def test_entrypoint_startup_failure_closes_dedicated_runtime(self):
         await self.check_startup_cleanup(None)
 
