@@ -19,7 +19,7 @@ export const ScoreReasonSchema = z.object({
   basis: z.enum(["posting", "comparison"]),
   assessment: z.enum(["positive", "mixed", "negative", "unknown"]),
   evidence_ids: z.array(text.min(1)).min(1),
-  detail: text.min(1).max(200),
+  detail: text.min(1),
 }).strict();
 
 export const ScorePayloadSchema = z.object({

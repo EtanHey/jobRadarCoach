@@ -313,6 +313,7 @@ def test_schema_requires_structured_fit_ranking_fields() -> None:
         "minItems": 2,
         "items": {"type": "string", "minLength": 1},
     }
+    assert "maxLength" not in properties["fit_line"]
     reasons = properties["reasons"]
     assert reasons["type"] == "array"
     assert reasons["minItems"] == 5
@@ -336,6 +337,7 @@ def test_schema_requires_structured_fit_ranking_fields() -> None:
         "posting",
         "comparison",
     ]
+    assert "maxLength" not in reasons["items"]["properties"]["detail"]
 
 
 @pytest.mark.parametrize(
@@ -722,19 +724,24 @@ def test_malformed_output_retries_once_then_returns_invalid_status() -> None:
     assert len(runner.calls) == 2
 
 
-def test_overlong_fit_line_is_invalid() -> None:
+def test_long_multiline_fit_line_is_preserved_verbatim() -> None:
     luna = load_annotate_module()
+    fit_line = (
+        "Weak fit — the complete evidence-based explanation is intentionally longer than a "
+        "one-line teaser and includes Unicode עברית 🚀.\n\n"
+        "The model's second paragraph and exact whitespace must survive validation unchanged. \u202c"
+    )
+    assert len(fit_line) > 160
     model_data = structured_annotation(
         "weak-example",
         seniority_real=True,
         fit_score=12,
         fit_tier="weak",
         recommendation="skip",
-        fit_line="Weak fit — " + "x" * 151,
+        fit_line=fit_line,
     )
     runner = SequenceRunner(
         {"status": "ok", "data": model_data},
-        {"status": "ok", "text": "still invalid"},
     )
 
     result = luna.annotate(
@@ -742,7 +749,8 @@ def test_overlong_fit_line_is_invalid() -> None:
     )
 
     assert result is not None
-    assert result["luna_status"] == "invalid"
+    assert result["luna_status"] == "ok"
+    assert result["fit_line"] == fit_line
 
 
 @pytest.mark.parametrize(

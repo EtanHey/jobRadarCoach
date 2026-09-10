@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 from pathlib import Path
 
 import pytest
 
-from classifier import request as scoring_request
+from classifier import core, persistence, request as scoring_request
 from scraper.annotate import (
     FACTOR_BASES,
     PROFILE_EVIDENCE_IDS,
@@ -127,6 +128,108 @@ def test_valid_wire_normalizes_exactly_then_passes_semantic_validation() -> None
     assert normalized["recommendation"] == "apply"
 
 
+def test_long_unicode_multiline_explanations_survive_wire_and_semantic_validation() -> None:
+    posting, profile, history = request_inputs()
+    request = scoring_request.build_request(posting, profile, history)
+    response = valid_wire_response()
+    reason_detail = (
+        "First evidence paragraph preserves the agent's exact wording, including עברית and 🚀.\n\n"
+        "Second paragraph explains the fit with enough detail to exceed the former arbitrary "
+        "two-hundred-character boundary while retaining punctuation, spacing, and the final "
+        "directional mark: \u202c"
+    )
+    fit_line = (
+        "A complete fit explanation can be longer than a teaser and can contain multiple lines.\n"
+        "This second line preserves the model's original spacing and Unicode: התאמה מלאה 🚀 \u202c"
+    )
+    assert len(reason_detail) > 200
+    assert len(fit_line) > 160
+    response["reasons"]["product_role_match"]["detail"] = reason_detail
+    response["fit_line"] = fit_line
+
+    wire_result = BrainResult(response, "ollama", "qwen-test", request=request)
+    normalized = scoring_request.normalize_response(
+        wire_result.data,
+        posting_evidence_id="posting:4459009700",
+        expected_recommendation=None,
+    )
+    allowed = (
+        {"posting:4459009700"}
+        | PROFILE_EVIDENCE_IDS
+        | {str(signal["evidence_id"]) for signal in profile["fit_signals"]}
+        | {str(row["evidence_id"]) for row in history}
+    )
+    validated = _validated_annotation(
+        normalized,
+        profile=profile,
+        allowed_evidence_ids=allowed,
+        posting_evidence_id="posting:4459009700",
+        expected_recommendation=None,
+    )
+
+    assert validated is not None
+    assert validated["reasons"][0]["detail"] == reason_detail
+    assert validated["fit_line"] == fit_line
+    assert json.loads(json.dumps(validated, ensure_ascii=False)) == validated
+
+
+def test_persistence_serializes_complete_explanations_without_a_database(monkeypatch) -> None:
+    explanation = (
+        "First paragraph preserves a complete scoring explanation with עברית and 🚀.\n\n"
+        "Second paragraph exceeds the former two-hundred-character limit while preserving exact "
+        "line breaks, spacing, punctuation, and the final directional mark from the model: \u202c"
+    )
+    annotation = structured_annotation("00000000-0000-4000-8000-000000000001")
+    annotation["reasons"][0]["detail"] = explanation
+    annotation["fit_line"] = explanation
+    annotation["luna_status"] = "ok"
+    captured = persistence._Inputs(
+        posting={"id": "00000000-0000-4000-8000-000000000001"},
+        profile={},
+        history=[],
+        posting_sha256="a" * 64,
+        profile_sha256="b" * 64,
+        history_sha256="c" * 64,
+    )
+    monkeypatch.setattr(persistence, "_capture", lambda *_args, **_kwargs: captured)
+
+    class Result:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class RecordingConnection:
+        inserted_params = None
+
+        def transaction(self):
+            return nullcontext()
+
+        def execute(self, query, params=()):
+            if query.startswith("select score"):
+                return Result(None)
+            if query.startswith("insert into public.posting_scores"):
+                self.inserted_params = params
+                return Result((captured.posting["id"],))
+            raise AssertionError(f"unexpected query: {query}")
+
+    connection = RecordingConnection()
+    outcome = persistence._store(
+        connection,
+        captured,
+        core.ScoringResult(annotation, "codex", "configured:gpt-5.6-luna"),
+    )
+
+    assert outcome == "stored"
+    assert connection.inserted_params is not None
+    stored_reasons = json.loads(connection.inserted_params[2])
+    stored_payload = json.loads(connection.inserted_params[-1])
+    assert stored_reasons[0]["detail"] == explanation
+    assert stored_payload["reasons"][0]["detail"] == explanation
+    assert stored_payload["fit_line"] == explanation
+
+
 def test_request_schema_and_prompt_match_the_constrained_wire_contract() -> None:
     request = build_test_request()
     schema = request.output_schema
@@ -139,6 +242,7 @@ def test_request_schema_and_prompt_match_the_constrained_wire_contract() -> None
     assert "recommendation" not in schema["properties"]
     for factor in REASON_FACTORS:
         slot = reasons["properties"][factor]
+        assert "maxLength" not in slot["properties"]["detail"]
         assert slot["properties"]["factor"]["enum"] == [factor]
         assert slot["properties"]["basis"]["enum"] == [FACTOR_BASES[factor]]
         if factor == "employer_type":
@@ -164,6 +268,7 @@ def test_request_schema_and_prompt_match_the_constrained_wire_contract() -> None
     assert "posting:4459009700" not in normal_ids
     assert not fit_line_ids & WITHHELD_PROFILE_EVIDENCE_IDS
     assert "posting:4459009700" not in fit_line_ids
+    assert "maxLength" not in schema["properties"]["fit_line"]
     assert "reasons is a closed object keyed" in request.prompt
     assert "Copy every evidence ID byte-for-byte" in request.prompt
     assert "exactly one candidate evidence ID" in request.prompt

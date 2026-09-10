@@ -119,11 +119,11 @@ LUNA_SCHEMA: dict[str, object] = {
                         "minItems": 1,
                         "items": {"type": "string", "minLength": 1},
                     },
-                    "detail": {"type": "string", "minLength": 1, "maxLength": 200},
+                    "detail": {"type": "string", "minLength": 1},
                 },
             },
         },
-        "fit_line": {"type": "string", "maxLength": 160},
+        "fit_line": {"type": "string", "minLength": 1},
         "fit_line_evidence_ids": {
             "type": "array",
             "minItems": 2,
@@ -710,8 +710,7 @@ def _validated_annotation(  # skipcq: PY-R1000
             return None
         if not isinstance(detail, str):
             return None
-        detail = " ".join(detail.split())
-        if not detail or len(detail) > 200:
+        if not detail.strip():
             return None
         withheld_evidence_ids = (
             candidate_evidence_ids & WITHHELD_PROFILE_EVIDENCE_IDS
@@ -774,8 +773,7 @@ def _validated_annotation(  # skipcq: PY-R1000
         return None
     if fit_line_candidate_evidence_ids & WITHHELD_PROFILE_EVIDENCE_IDS:
         return None
-    fit_line = " ".join(fit_line.split())
-    if not fit_line or len(fit_line) > 160:
+    if not fit_line.strip():
         return None
     if contains_forbidden(fit_line, global_never_claims):
         return None
