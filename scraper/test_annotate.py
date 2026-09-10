@@ -313,6 +313,7 @@ def test_schema_requires_structured_fit_ranking_fields() -> None:
         "minItems": 2,
         "items": {"type": "string", "minLength": 1},
     }
+    assert "maxLength" not in properties["fit_line"]
     reasons = properties["reasons"]
     assert reasons["type"] == "array"
     assert reasons["minItems"] == 5
@@ -336,6 +337,7 @@ def test_schema_requires_structured_fit_ranking_fields() -> None:
         "posting",
         "comparison",
     ]
+    assert "maxLength" not in reasons["items"]["properties"]["detail"]
 
 
 @pytest.mark.parametrize(
@@ -722,19 +724,24 @@ def test_malformed_output_retries_once_then_returns_invalid_status() -> None:
     assert len(runner.calls) == 2
 
 
-def test_overlong_fit_line_is_invalid() -> None:
+def test_long_multiline_fit_line_is_preserved_verbatim() -> None:
     luna = load_annotate_module()
+    fit_line = (
+        "Weak fit — the complete evidence-based explanation is intentionally longer than a "
+        "one-line teaser and includes Unicode עברית 🚀.\n\n"
+        "The model's second paragraph and exact whitespace must survive validation unchanged. \u202c"
+    )
+    assert len(fit_line) > 160
     model_data = structured_annotation(
         "weak-example",
         seniority_real=True,
         fit_score=12,
         fit_tier="weak",
         recommendation="skip",
-        fit_line="Weak fit — " + "x" * 151,
+        fit_line=fit_line,
     )
     runner = SequenceRunner(
         {"status": "ok", "data": model_data},
-        {"status": "ok", "text": "still invalid"},
     )
 
     result = luna.annotate(
@@ -742,7 +749,8 @@ def test_overlong_fit_line_is_invalid() -> None:
     )
 
     assert result is not None
-    assert result["luna_status"] == "invalid"
+    assert result["luna_status"] == "ok"
+    assert result["fit_line"] == fit_line
 
 
 @pytest.mark.parametrize(
@@ -1408,6 +1416,65 @@ def test_subscription_runner_invokes_luna_through_codex_exec(monkeypatch) -> Non
                 "example-project",
             ],
         },
+    }
+
+
+def _subscription_output_bytes(monkeypatch, output: bytes) -> object:
+    luna = load_annotate_module()
+    monkeypatch.setattr(luna, "_discover_codex", lambda: "/test/bin/codex")
+    monkeypatch.setattr(luna, "_verify_codex_version", lambda _codex: None)
+    monkeypatch.setattr(luna, "_subscription_auth_path", lambda: PROFILE_PATH)
+
+    def fake_run(command, **_kwargs):
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        output_path.write_bytes(output)
+        return SimpleNamespace(returncode=0, stderr="")
+
+    monkeypatch.setattr(luna.subprocess, "run", fake_run)
+    return luna._subscription_runner("annotate me", luna.LUNA_SCHEMA)
+
+
+def _json_bytes_of_size(size: int) -> tuple[bytes, str]:
+    prefix = b'{"detail":"'
+    suffix = b'"}'
+    payload_bytes = size - len(prefix) - len(suffix)
+    unicode_count, ascii_count = divmod(payload_bytes, len("é".encode("utf-8")))
+    detail = "é" * unicode_count + "x" * ascii_count
+    encoded = prefix + detail.encode("utf-8") + suffix
+    assert len(encoded) == size
+    return encoded, detail
+
+
+def test_subscription_runner_accepts_complete_multibyte_output_at_byte_limit(
+    monkeypatch,
+) -> None:
+    luna = load_annotate_module()
+    encoded, detail = _json_bytes_of_size(luna.MAX_SUBSCRIPTION_RESPONSE_BYTES)
+
+    result = _subscription_output_bytes(monkeypatch, encoded)
+
+    assert result == {
+        "status": "ok",
+        "exit_code": 0,
+        "data": {"detail": detail},
+    }
+
+
+def test_subscription_runner_rejects_oversize_multibyte_output_without_truncating(
+    monkeypatch,
+) -> None:
+    luna = load_annotate_module()
+    encoded, _detail = _json_bytes_of_size(
+        luna.MAX_SUBSCRIPTION_RESPONSE_BYTES + 1
+    )
+
+    result = _subscription_output_bytes(monkeypatch, encoded)
+
+    assert result == {
+        "status": "error",
+        "exit_code": 0,
+        "error": "response_exceeds_byte_limit",
+        "max_response_bytes": luna.MAX_SUBSCRIPTION_RESPONSE_BYTES,
     }
 
 

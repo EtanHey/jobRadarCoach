@@ -25,6 +25,7 @@ DEFAULT_PROFILE_PATH = REPO_ROOT / "profile.yaml"
 LUNA_MODEL = "gpt-5.6-luna"
 LUNA_REASONING_EFFORT = "xhigh"
 SUPPORTED_CODEX_CLI_VERSION = "codex-cli 0.153.4"
+MAX_SUBSCRIPTION_RESPONSE_BYTES = 64_000
 CODEX_DISABLED_FEATURES = (
     "apps",
     "browser_use",
@@ -119,11 +120,11 @@ LUNA_SCHEMA: dict[str, object] = {
                         "minItems": 1,
                         "items": {"type": "string", "minLength": 1},
                     },
-                    "detail": {"type": "string", "minLength": 1, "maxLength": 200},
+                    "detail": {"type": "string", "minLength": 1},
                 },
             },
         },
-        "fit_line": {"type": "string", "maxLength": 160},
+        "fit_line": {"type": "string", "minLength": 1},
         "fit_line_evidence_ids": {
             "type": "array",
             "minItems": 2,
@@ -603,9 +604,29 @@ def _subscription_runner(prompt: str, schema: dict[str, object]) -> object:
                 "stderr": completed.stderr,
             }
         try:
-            data = json.loads(output_path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
+            if output_path.stat().st_size > MAX_SUBSCRIPTION_RESPONSE_BYTES:
+                return {
+                    "status": "error",
+                    "exit_code": 0,
+                    "error": "response_exceeds_byte_limit",
+                    "max_response_bytes": MAX_SUBSCRIPTION_RESPONSE_BYTES,
+                }
+            with output_path.open("rb") as output_file:
+                raw = output_file.read(MAX_SUBSCRIPTION_RESPONSE_BYTES + 1)
+        except FileNotFoundError:
             data = None
+        else:
+            if len(raw) > MAX_SUBSCRIPTION_RESPONSE_BYTES:
+                return {
+                    "status": "error",
+                    "exit_code": 0,
+                    "error": "response_exceeds_byte_limit",
+                    "max_response_bytes": MAX_SUBSCRIPTION_RESPONSE_BYTES,
+                }
+            try:
+                data = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                data = None
         return {"status": "ok", "exit_code": 0, "data": data}
 
 
@@ -710,8 +731,7 @@ def _validated_annotation(  # skipcq: PY-R1000
             return None
         if not isinstance(detail, str):
             return None
-        detail = " ".join(detail.split())
-        if not detail or len(detail) > 200:
+        if not detail.strip():
             return None
         withheld_evidence_ids = (
             candidate_evidence_ids & WITHHELD_PROFILE_EVIDENCE_IDS
@@ -774,8 +794,7 @@ def _validated_annotation(  # skipcq: PY-R1000
         return None
     if fit_line_candidate_evidence_ids & WITHHELD_PROFILE_EVIDENCE_IDS:
         return None
-    fit_line = " ".join(fit_line.split())
-    if not fit_line or len(fit_line) > 160:
+    if not fit_line.strip():
         return None
     if contains_forbidden(fit_line, global_never_claims):
         return None

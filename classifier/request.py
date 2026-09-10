@@ -53,7 +53,6 @@ def _reason_schema(
     detail_schema: dict[str, object] = {
         "type": "string",
         "minLength": 1,
-        "maxLength": 200,
     }
     if assessment is not None:
         assessment_schema["enum"] = [assessment]
