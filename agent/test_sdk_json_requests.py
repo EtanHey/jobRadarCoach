@@ -150,16 +150,34 @@ class SdkJsonRequests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.requests), 2)
         self.assertEqual(logs.records[0].reason, "intent_timeout")
 
+    async def test_hiring_gate_schemas_reach_provider_and_refuse_irrelevant_evidence(self):
+        quote = "Built MCP servers, aligning with the role requirements."
+        self.replies = [
+            {"claims": [{"field": "company", "value": "Acme"}],
+             "stance": "neutral", "unsupported": []},
+            {"asserted": True, "evidence": {"field": "reasons", "quote": quote}},
+            {"entails": False},
+        ]
+        with self.assertRaisesRegex(GroundingError, "not_entailed"):
+            await audit_sentence(self.model, "Acme is hiring.", {"company": "Acme", "reasons": quote})
+        self.assertEqual(
+            [r["response_format"]["json_schema"]["name"] for r in self.requests],
+            ["AuditResponse", "HiringExtraction", "HiringEntailment"],
+        )
+        self.assertTrue(all(r["response_format"]["json_schema"]["strict"] for r in self.requests))
+
     async def test_audit_json_mode_reaches_provider_and_rejects_invented_claim(self):
         self.reply = {"claims": [{"field": "company", "value": "Acme"}],
                       "stance": "neutral", "unsupported": []}
+        self.replies = [self.reply, {"asserted": False, "evidence": None}]
         await audit_sentence(self.model, "Acme is the company.", {"company": "Acme"})
+        self.replies = None
         self.assertEqual(self.requests[0]["response_format"]["type"], "json_schema")
         self.assertTrue(self.requests[0]["response_format"]["json_schema"]["strict"])
         self.reply["claims"][0]["value"] = "Invented"
         with self.assertRaisesRegex(GroundingError, "claim_mismatch"):
             await audit_sentence(self.model, "Invented is the company.", {"company": "Acme"})
-        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(len(self.requests), 3)
 
 
 class LlmConnectionBudgetTests(unittest.IsolatedAsyncioTestCase):

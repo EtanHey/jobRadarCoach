@@ -9,9 +9,10 @@ import asyncio
 import json
 import re
 
-from livekit.agents import llm
+from livekit.agents import APIConnectOptions, llm
 from response_schemas import AuditResponse
 from model_telemetry import model_stage
+from hiring_evidence import HiringEvidenceError, verify_hiring_evidence
 
 class GroundingError(ValueError):
     pass
@@ -187,14 +188,21 @@ async def audit_sentence(model, text: str, facts: dict[str, str], *, timeout: fl
     output = ""
     async with asyncio.timeout(timeout):
         with model_stage("audit"):
-            async with model.chat(chat_ctx=context, tools=[], response_format=AuditResponse) as stream:
+            async with model.chat(
+                chat_ctx=context, tools=[], response_format=AuditResponse,
+                conn_options=APIConnectOptions(timeout=timeout, max_retry=0),
+            ) as stream:
                 async for chunk in stream:
                     if chunk.delta and chunk.delta.content:
                         output += chunk.delta.content
                         if len(output) > 4096:
                             raise GroundingError("oversized_claim_audit")
-    try:
-        payload = json.loads(output)
-    except json.JSONDecodeError as error:
-        raise GroundingError("malformed_claim_audit") from error
-    validate_audit(payload, facts, text)
+        try:
+            payload = json.loads(output)
+        except json.JSONDecodeError as error:
+            raise GroundingError("malformed_claim_audit") from error
+        validate_audit(payload, facts, text)
+        try:
+            await verify_hiring_evidence(model, text, facts)
+        except HiringEvidenceError as error:
+            raise GroundingError(str(error)) from error

@@ -54,6 +54,7 @@ class ModelMetricsTests(unittest.IsolatedAsyncioTestCase):
             name = (
                 "intent" if response_format["type"] == "json_object" else
                 "audit" if response_format["json_schema"]["name"] == "AuditResponse" else
+                "audit_hiring_extraction" if response_format["json_schema"]["name"] == "HiringExtraction" else
                 "writer"
             )
             await asyncio.sleep(0.01 if name == "intent" else 0)
@@ -61,6 +62,7 @@ class ModelMetricsTests(unittest.IsolatedAsyncioTestCase):
                 "intent": {"action": "discuss", "filters": {}, "more_options": False},
                 "writer": {"sentence": "Okay.", "stance": "neutral"},
                 "audit": {"claims": [], "stance": "neutral", "unsupported": []},
+                "audit_hiring_extraction": {"asserted": False, "evidence": None},
             }[name]
             content = sse_chunk(name + "-request", json.dumps(payload))
             usage = sse_chunk(name + "-request", usage={
@@ -97,7 +99,7 @@ class ModelMetricsTests(unittest.IsolatedAsyncioTestCase):
             await model.aclose()
             await client.close()
 
-        self.assertEqual({item["stage"] for item in observed}, {"intent", "writer", "audit"})
+        self.assertEqual({item["stage"] for item in observed}, {"intent", "writer", "audit", "audit_hiring_extraction"})
         for item in observed:
             self.assertEqual(item["request_id"], item["stage"] + "-request")
             self.assertEqual(item["prompt_tokens"], 11)

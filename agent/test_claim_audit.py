@@ -10,10 +10,8 @@ EMPTY_AUDIT = {"claims": [], "stance": "neutral", "unsupported": []}
 
 
 def audit_model(payload):
-    encoded = json.dumps(payload)
-
     class Stream:
-        def __init__(self):
+        def __init__(self, encoded):
             self.chunks = iter((encoded[:20], encoded[20:]))
 
         async def __aenter__(self):
@@ -32,7 +30,10 @@ def audit_model(payload):
                 raise StopAsyncIteration
             return SimpleNamespace(delta=SimpleNamespace(content=content))
 
-    return SimpleNamespace(chat=lambda **_kwargs: Stream())
+    return SimpleNamespace(chat=lambda **kwargs: Stream(json.dumps(
+        payload if kwargs["response_format"].__name__ == "AuditResponse"
+        else {"asserted": False, "evidence": None}
+    )))
 
 
 class AuditTests(unittest.TestCase):
