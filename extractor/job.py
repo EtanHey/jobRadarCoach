@@ -82,10 +82,19 @@ def select_postings(
     *,
     limit: int,
     posting_ids: Sequence[str] = (),
+    claimable_stage: str | None = None,
 ) -> list[dict[str, object]]:
     """Select bounded substantive JDs that have no extraction receipt."""
 
+    if claimable_stage not in (None, "extract"):
+        raise ValueError("claimable stage must be extract")
     requested = list(dict.fromkeys(posting_ids)) or None
+    lease_filter = (
+        "and not exists (select 1 from public.local_analysis_leases l "
+        "where l.stage = %s and l.posting_id = p.id and "
+        "(l.lease_expires_at > clock_timestamp() or l.next_attempt_at > clock_timestamp())) "
+        if claimable_stage else ""
+    )
     rows = connection.execute(
         "select p.id::text, p.raw_jd from public.postings p "
         "where p.raw_jd is not null and p.raw_jd ~ '[^[:space:]]' "
@@ -95,8 +104,9 @@ def select_postings(
         "and not exists (select 1 from public.posting_extractions e "
         "where e.posting_id = p.id) "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
-        "order by p.first_seen_at, p.id limit %s",
-        (MIN_RAW_JD_CHARS, MAX_RAW_JD_BYTES, requested, requested, limit),
+        + lease_filter + "order by p.first_seen_at, p.id limit %s",
+        (MIN_RAW_JD_CHARS, MAX_RAW_JD_BYTES, requested, requested)
+        + ((claimable_stage,) if claimable_stage else ()) + (limit,),
     ).fetchall()
     selected = []
     for posting_id, raw_jd in rows:

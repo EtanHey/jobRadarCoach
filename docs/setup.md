@@ -177,8 +177,8 @@ rows. A queued HTTP request or green workflow alone is incomplete.
 
 ## 7. Run local extraction and scoring
 
-LLM work stays on the owner's machine. Load `DATABASE_URL` through the approved
-secret manager, choose an implemented local provider, and run bounded jobs:
+LLM work stays on the owner's machine. For a manual one-off, load `DATABASE_URL`
+through the approved secret manager and run bounded jobs:
 
 ```zsh
 BRAIN=codex python3 -m extractor.job --limit 10 --timeout-seconds 120
@@ -186,9 +186,13 @@ BRAIN=codex python3 -m classifier.job --limit 10 --timeout-seconds 120
 ```
 
 `BRAIN=ollama` is also implemented. Both jobs validate structured model output
-before persistence and return nonzero on failed work. The CLI code exists, but
-the hosted cutover, scheduling, unattended pickup, and end-to-end receipt are
-unfinished. Run it manually and inspect its counts until those gates ship.
+before persistence and return nonzero on failed work.
+
+For unattended pickup, `scripts/run_local_analysis.sh` uses the 1Password env
+and launchd templates under `docs/`. It pins Luna extraction and Terra scoring,
+uses expiring leases and bounded backoff, and appends redacted JSONL receipts.
+After wake it resumes rows lacking validated results; loading the plist is a
+separate operator action.
 
 Only the explicitly selected safe professional projection may enter a model
 request. People, connectors, prohibited-claim lists, private paths, and nested
@@ -201,12 +205,13 @@ Run the affected suites before proposing a change:
 ```zsh
 python3 -m pytest -q scraper extractor classifier \
   supabase/scheduling/cloud_scrape/test_schedule.py \
-  scripts/test_check_private_files.py
+  scripts/test_check_private_files.py scripts/test_local_analysis.py
 python3 -m ruff check \
   --per-file-ignores 'extractor/test_persistence.py:E402' \
   scraper extractor classifier \
   supabase/scheduling/cloud_scrape/test_schedule.py \
-  scripts/check_private_files.py scripts/test_check_private_files.py
+  scripts/check_private_files.py scripts/test_check_private_files.py \
+  scripts/local_analysis.py scripts/test_local_analysis.py
 npm --prefix ui run test
 npm --prefix ui run lint
 npm --prefix ui run build
