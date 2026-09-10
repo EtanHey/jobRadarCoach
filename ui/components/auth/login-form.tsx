@@ -45,6 +45,7 @@ export function LoginForm({
   }, []);
 
   async function signInWithPasskey() {
+    if (passkeyAttempt.current) return;
     setPending("passkey");
     setMessage(null);
     const attempt = startPasskeyAttempt(
@@ -52,7 +53,7 @@ export function LoginForm({
         authentication,
         passkeyCeremony,
         signal,
-        commit,
+        () => passkeyAttempt.current === attempt && commit(),
       ),
       {
         onCommit: () => {
