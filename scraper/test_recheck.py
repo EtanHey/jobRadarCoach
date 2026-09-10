@@ -63,3 +63,16 @@ def test_failed_probe_does_not_block_later_jobs():
 def test_work_is_bounded():
     with pytest.raises(ValueError):
         recheck(Database([]), limit=121)
+
+
+def test_default_transport_preserves_greenhouse_closed_redirect(monkeypatch):
+    from urllib.error import HTTPError
+    import scraper.recheck as module
+
+    url = "https://job-boards.greenhouse.io/acme/jobs/1"
+    error = HTTPError(url, 302, "redirect", {"Location": "/acme?error=true"}, None)
+    monkeypatch.setattr(module, "pinned_open", lambda *_a, **_k: (_ for _ in ()).throw(error))
+    db = Database([("closed", url)])
+    receipt = recheck(db)
+    assert receipt["closed"] == 1
+    assert json.loads(db.writes[0][1][0])["liveness_reason"] == "greenhouse-board-error-redirect"
