@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
 
+import { ThemeToggle } from "../theme-toggle";
+
 export function AuthShell({ title, children }: { title: string; children: ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <section className="w-full max-w-sm rounded-2xl border bg-card p-7 shadow-sm">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Job Radar Coach</p>
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Job Radar Coach</p>
+          <ThemeToggle />
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <div className="mt-6">{children}</div>
       </section>

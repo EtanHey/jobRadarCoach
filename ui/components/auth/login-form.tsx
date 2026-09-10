@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { createBrowserAuthClient } from "../../lib/auth/browser-client";
+import { createBrowserAuthClient, passkeySignInMessage } from "../../lib/auth/browser-client";
 
 interface Props {
   supabaseUrl: string;
@@ -26,8 +26,8 @@ export function LoginForm({ supabaseUrl, publishableKey, nextPath, recoveryEnabl
       const { error } = await supabase.auth.signInWithPasskey();
       if (error) throw error;
       window.location.replace(nextPath);
-    } catch {
-      setMessage("Passkey sign-in did not complete. Try again.");
+    } catch (error) {
+      setMessage(passkeySignInMessage(error));
       setPending(null);
     }
   }
