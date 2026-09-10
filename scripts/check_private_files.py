@@ -42,12 +42,28 @@ def _git_paths(all_tracked: bool) -> list[bytes]:
 def _is_private(path: bytes) -> bool:
     components = path.split(b"/")
     name = components[-1]
+    is_env_template = name.startswith(b".env.") and name.endswith(
+        (b".example", b".sample", b".template")
+    )
     return (
         name in {b"profile.yaml", b"auth.json"}
         or b"docs.local" in components
+        or (name.startswith(b"credentials") and name.endswith(b".json"))
         or name == b".env"
-        or name.startswith(b".env.")
-        or b".local." in name
+        or (name.startswith(b".env.") and not is_env_template)
+        or (b".local." in name and not is_env_template)
+        or any(
+            component
+            in {
+                b"data",
+                b".run-state",
+                b".run-logs",
+                b"logs",
+                b"backups",
+                b".autocursor-runs",
+            }
+            for component in components
+        )
     )
 
 
