@@ -11,6 +11,7 @@ import {
   type OwnerIdentityVerifier,
 } from "../lib/auth/boundary";
 import { verifySupabaseIdentity, type ClaimsClientFactory } from "../lib/auth/proxy-session";
+import { makeProxy } from "../proxy";
 
 const configuredEnvironment = {
   NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
@@ -207,4 +208,74 @@ test("the proxy verifies claims and forwards refreshed cookies with anti-cache h
   );
   assert.equal(response.headers.get("expires"), "0");
   assert.equal(response.headers.get("pragma"), "no-cache");
+});
+
+function loginClaimsClient(userId: string | null, mode: "return" | "throw" = "return") {
+  let calls = 0;
+  const factory: ClaimsClientFactory = (_url, _key, options) => ({
+    auth: {
+      async getClaims() {
+        calls += 1;
+        options.cookies.setAll(
+          [{ name: "sb-auth-token", value: "refreshed", options: { httpOnly: true, path: "/" } }],
+          { "cache-control": "private, no-cache, no-store, must-revalidate, max-age=0" },
+        );
+        if (mode === "throw") throw new Error("transport unavailable");
+        return { data: userId ? { claims: { sub: userId } } : null, error: userId ? null : new Error("anonymous") };
+      },
+    },
+  });
+  return { factory, calls: () => calls };
+}
+
+test("signed-in owner visiting login is redirected with refreshed cookies", async () => {
+  const claims = loginClaimsClient("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  const handler = makeProxy(configuredEnvironment, claims.factory);
+  const response = await handler(new NextRequest("https://jobs.example.com/login?next=%2F%3Fview%3Dall"));
+
+  assert.equal(claims.calls(), 1);
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "https://jobs.example.com/?view=all");
+  assert.match(response.headers.get("set-cookie") ?? "", /sb-auth-token=refreshed/);
+  assert.equal(response.headers.get("cache-control"), "private, no-cache, no-store, must-revalidate, max-age=0");
+});
+
+test("signed-in login redirects allow only private internal next paths", async () => {
+  const cases = [
+    ["/login", "/"],
+    ["/login?next=%2Fauth%2Fpasskeys", "/auth/passkeys"],
+    ["/login?next=%2Flogin", "/"],
+    ["/login?next=%2Fauth%2Fcallback%3Fcode%3Dvalue", "/"],
+    ["/login?next=%2Fauth%2Frecovery", "/"],
+    ["/login?next=https%3A%2F%2Fattacker.example", "/"],
+    ["/login?next=%2F%2Fattacker.example", "/"],
+    ["/login?next=javascript%3Aalert%281%29", "/"],
+  ] as const;
+  for (const [source, expected] of cases) {
+    const claims = loginClaimsClient("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    const response = await makeProxy(configuredEnvironment, claims.factory)(
+      new NextRequest(`https://jobs.example.com${source}`),
+    );
+    assert.equal(response.status, 307, source);
+    assert.equal(response.headers.get("location"), `https://jobs.example.com${expected}`, source);
+  }
+});
+
+test("anonymous, non-owner, claim-error, and invalid-config visitors stay on login", async () => {
+  const cases = [
+    { environment: configuredEnvironment, claims: loginClaimsClient(null) },
+    { environment: configuredEnvironment, claims: loginClaimsClient("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb") },
+    { environment: configuredEnvironment, claims: loginClaimsClient(null, "throw") },
+    { environment: { ...configuredEnvironment, JRC_OWNER_USER_IDS: "" }, claims: loginClaimsClient("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa") },
+  ];
+  for (const { environment, claims } of cases) {
+    const response = await makeProxy(environment, claims.factory)(
+      new NextRequest("https://jobs.example.com/login?next=%2F"),
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("location"), null);
+    assert.match(response.headers.get("cache-control") ?? "", /private/);
+    assert.match(response.headers.get("cache-control") ?? "", /no-store/);
+  }
+  assert.equal(cases[3].claims.calls(), 0);
 });
