@@ -1,8 +1,13 @@
-# Cloud scrape schedule
+# Optional Supabase cloud scrape dispatcher
 
-This package is an operator-applied Supabase Cron schedule. Do not execute it
-until the hosted release owner authorizes creating the schedule and sending its
-first request.
+The default scheduler is the native `schedule` trigger in
+`.github/workflows/cloud-scrape.yml`. This package is retained as an optional
+operator-applied Supabase Cron alternative. Do not activate this route while
+the native GitHub schedule is active. Disable one scheduler before enabling the
+other so a six-hour interval cannot dispatch duplicate runs.
+
+Do not execute this package until the hosted release owner authorizes creating
+the schedule and sending its first request.
 
 The scheduled command calls a private database function every six hours at
 00:00, 06:00, 12:00, and 18:00 UTC. The function reads a GitHub credential from

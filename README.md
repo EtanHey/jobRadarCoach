@@ -7,21 +7,21 @@ place, and scores jobs against an evidence-bounded professional profile.
 The standalone architecture has four parts:
 
 - **Vercel** serves the authenticated Next.js dashboard.
-- **Hosted Supabase** owns Postgres data, owner authentication, Vault, and Cron.
+- **Hosted Supabase** owns Postgres data, owner authentication, and access controls.
 - **GitHub Actions** runs the Python scraper in the cloud against public sources,
-  so fetching does not depend on a Mac being awake.
+  on a native six-hour schedule, so fetching does not depend on a Mac being awake.
 - **A local CLI** performs LLM extraction and scoring with the owner's local
   model subscription. Hosted scorer cutover is unfinished.
 
-The cloud scraper and Supabase scheduling source are merged. Their presence in
-the repository does not prove that the schedule is active or that a hosted run
-has persisted fresh rows; activation and live receipts are separate release
-steps.
+The cloud workflow includes its schedule in source. Its presence does not prove
+that a scheduled run executed or persisted fresh rows; live receipts are a
+separate release step.
 
 DialogKit is the separate generic text and voice agent. Job Radar Coach owns the
 job-domain API, validation, and configuration that DialogKit may consume. The
 legacy embedded agent integration is preserved as legacy evidence and is not
 being converted into DialogKit inside this repository.
 
-See [setup](docs/setup.md) for development and deployment contracts and
-[end state](docs/end-state.md) for the product and ownership boundaries.
+See the [cloud pipeline](docs/cloud-pipeline.md) for the complete data flow and
+scheduling contract, [setup](docs/setup.md) for deployment, and
+[end state](docs/end-state.md) for product and ownership boundaries.

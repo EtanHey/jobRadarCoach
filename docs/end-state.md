@@ -20,9 +20,9 @@ personal profile, row export, credential, or deployment secret belongs in Git.
 | Component | Runs on | Responsibility |
 |---|---|---|
 | Dashboard | Vercel | Next.js owner UI and authenticated server API |
-| Data and Auth | Hosted Supabase | Postgres, owner identity, Vault, Cron, access controls, and backups |
+| Data and Auth | Hosted Supabase | Postgres, owner identity, access controls, and backups |
 | Fetcher | GitHub-hosted Actions | Python fetching, validation, liveness checks, and raw posting persistence without LLM calls |
-| Scheduler | Supabase Cron | Six-hour authenticated dispatch of the cloud workflow through `pg_net` |
+| Scheduler | GitHub Actions | Native workflow schedule at minute 17 every six hours UTC |
 | Extractor and scorer | Owner's local CLI | Bounded LLM work and validated persistence through the hosted database URL |
 | Generic agent | DialogKit, separate project | Reusable text/voice conversation, tools, and rendered components |
 
@@ -32,8 +32,9 @@ Kubernetes, LiveKit, Tailscale, or embedded-agent runtime.
 
 ## Delivery state
 
-The GitHub cloud workflow and Supabase scheduling package are merged source.
-They are not live proof. The release is complete only after a scheduled request
+The GitHub cloud workflow contains the default native schedule. The optional
+Supabase dispatcher must remain disabled while that schedule is active. Source
+is not live proof. The release is complete only after a scheduled request
 produces a GitHub run, attempts every configured source under its bounded budget,
 and persists fresh hosted rows while the Mac is off.
 
@@ -126,9 +127,8 @@ is not converted in place and is not part of standalone setup.
 - Passkey relying-party settings and callback origins match the exact production
   HTTPS origin. Missing configuration fails closed with private, no-store
   responses.
-- The cloud fetcher uses only public, credential-free job sources. GitHub's
-  database URL and Supabase Vault's repository-scoped workflow token remain in
-  their respective secret stores.
+- The cloud fetcher uses only public, credential-free job sources. Its database
+  URL remains in the GitHub repository secret store.
 - Backups are encrypted, excluded from Git, hashed, count-checked, and restored
   into a disposable database before a production import or destructive change.
 - Disable and rollback paths exist for the cloud schedule. No cleanup removes a
@@ -140,8 +140,8 @@ The standalone migration is complete when all of these are proven together:
 
 1. The owner can authenticate to the production Vercel hostname, read hosted
    data, and perform authorized mutations; anonymous and non-owner access fail.
-2. Supabase Cron causes a successful cloud fetch while the Mac is off, and the
-   receipt ties configured sources to newly persisted hosted rows.
+2. The native GitHub schedule causes a successful cloud fetch while the Mac is
+   off, and the receipt ties configured sources to newly persisted hosted rows.
 3. The local CLI extracts and scores hosted unprocessed rows with validated,
    reviewable receipts and no private-context leakage.
 4. Backup restore, schedule disable/rollback, Auth recovery, and deployment

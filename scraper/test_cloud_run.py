@@ -104,13 +104,13 @@ def test_cloud_run_records_exception_and_replays_output(tmp_path: Path, monkeypa
     assert (receipt["status"], receipt["error_code"]) == ("failure", "HarvesterException")
 
 
-def test_workflow_is_manual_bounded_hosted_and_non_overlapping() -> None:
+def test_workflow_is_scheduled_manual_bounded_hosted_and_non_overlapping() -> None:
     workflow = (
         Path(__file__).parents[1] / ".github" / "workflows" / "cloud-scrape.yml"
     ).read_text(encoding="utf-8")
 
     assert "workflow_dispatch:" in workflow
-    assert "schedule:" not in workflow
+    assert 'cron: "17 */6 * * *"' in workflow
     assert "runs-on: ubuntu-24.04" in workflow
     assert "self-hosted" not in workflow
     assert "timeout-minutes:" in workflow
