@@ -41,9 +41,9 @@ test("private pages and APIs deny unauthenticated callers without trusting a coo
     "https://jobs.example.com/login?next=%2F%3Fview%3Dall",
   );
 
-  for (const path of ["/api/jobs", "/api/events", "/api/livekit/events", "/api/livekit/token"]) {
+  for (const path of ["/api/jobs", "/api/events"]) {
     const result = await authorizeOwnerRequest(
-      request(path, path.endsWith("token") ? "POST" : "GET"),
+      request(path),
       configuredEnvironment,
       verifier(null),
     );
@@ -55,7 +55,7 @@ test("private pages and APIs deny unauthenticated callers without trusting a coo
 
 test("a valid Supabase identity outside the owner allowlist is forbidden", async () => {
   const result = await authorizeOwnerRequest(
-    request("/api/livekit/mic", "POST"),
+    request("/api/profile", "PATCH"),
     configuredEnvironment,
     verifier("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
   );
@@ -72,7 +72,7 @@ test("missing or malformed auth configuration fails closed", async () => {
     { ...configuredEnvironment, NEXT_PUBLIC_SUPABASE_URL: "not-a-url" },
   ]) {
     assert.equal(readOwnerAuthConfig(environment).ok, false);
-    for (const path of ["/", "/api/jobs", "/api/events", "/api/livekit/token"]) {
+    for (const path of ["/", "/api/jobs", "/api/events", "/api/profile"]) {
       const result = await authorizeOwnerRequest(request(path), environment, verifier(null));
       assert.ok(result.kind === "deny", path);
       assert.equal(result.response.status, 503, path);
@@ -81,17 +81,13 @@ test("missing or malformed auth configuration fails closed", async () => {
   }
 });
 
-test("the configured owner can reach pages, data, mutations, token minting, and event streams", async () => {
+test("the configured owner can reach pages, data, mutations, and event streams", async () => {
   for (const [path, method] of [
     ["/", "GET"],
-    ["/mic", "GET"],
     ["/api/jobs", "GET"],
     ["/api/jobs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/status", "PATCH"],
     ["/api/profile", "PATCH"],
     ["/api/events", "GET"],
-    ["/api/livekit/events", "GET"],
-    ["/api/livekit/token", "POST"],
-    ["/api/livekit/mic", "POST"],
   ] as const) {
     const result = await authorizeOwnerRequest(
       request(path, method),
@@ -117,7 +113,6 @@ test("only the explicit login, callback, recovery, and static paths are public",
 
   for (const path of [
     "/",
-    "/mic",
     "/auth/passkeys",
     "/auth/callback/extra",
     "/login/anything",
@@ -125,9 +120,6 @@ test("only the explicit login, callback, recovery, and static paths are public",
     "/api/jobs",
     "/api/profile",
     "/api/events",
-    "/api/livekit/events",
-    "/api/livekit/token",
-    "/api/livekit/mic",
   ]) assert.equal(classifyAuthPath(path), "private", path);
 });
 
@@ -148,6 +140,18 @@ test("every current page and route file is covered by the default-private policy
     });
 
   assert.ok(routes.length > 0);
+  assert.deepEqual(routes.toSorted(), [
+    "/",
+    "/api/events",
+    "/api/jobs",
+    "/api/jobs/example",
+    "/api/jobs/example/status",
+    "/api/profile",
+    "/auth/callback",
+    "/auth/passkeys",
+    "/auth/recovery",
+    "/login",
+  ]);
   const publicRoutes = new Set(["/login", "/auth/callback", "/auth/recovery"]);
   for (const path of routes) {
     assert.equal(classifyAuthPath(path), publicRoutes.has(path) ? "public" : "private", path);
