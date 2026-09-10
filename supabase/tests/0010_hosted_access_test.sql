@@ -17,8 +17,9 @@ select ok(not exists(select 1 from pg_catalog.pg_namespace n cross join lateral
   pg_catalog.aclexplode(coalesce(n.nspacl,pg_catalog.acldefault('n',n.nspowner))) a where n.nspname='public' and a.grantee=0),
   'PUBLIC has no public-schema privilege');
 select ok(not exists(select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
-  cross join lateral pg_catalog.aclexplode(coalesce(c.relacl,pg_catalog.acldefault('r',c.relowner))) a
-  where n.nspname='public' and c.relkind in ('r','p') and a.grantee in (0,'anon'::regrole,'authenticated'::regrole)),
+  where n.nspname='public' and c.relkind in ('r','p') and (has_table_privilege('anon',c.oid,'select,insert,update,delete,truncate,references,trigger')
+    or has_table_privilege('authenticated',c.oid,'select,insert,update,delete,truncate,references,trigger')
+    or exists(select 1 from pg_catalog.aclexplode(coalesce(c.relacl,pg_catalog.acldefault('r',c.relowner))) a where a.grantee=0))),
   'browser roles and PUBLIC have no application-table privilege');
 select ok((select bool_and(has_table_privilege('service_role',c.oid,'select,insert,update,delete,truncate,references,trigger'))
   from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
@@ -27,11 +28,11 @@ select ok((select bool_and(has_table_privilege('service_role',c.oid,'select,inse
 select ok(has_table_privilege('service_role','public.active_mic','select')
   and not has_table_privilege('service_role','public.active_mic','insert,update,delete'),'active_mic preserves RPC-only service writes');
 select ok(not exists(select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace
-  cross join lateral pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
   where n.nspname='public' and p.oid=any(array['public.profile_value_is_valid(text,jsonb)'::regprocedure,'public.list_new_for_me()'::regprocedure,'public.set_status(uuid,text,text)'::regprocedure,
     'public.update_profile(text,jsonb)'::regprocedure,'public.record_application_history(text,text,date,text,uuid)'::regprocedure,'public.list_application_history(text)'::regprocedure,'public.prepare_posting_status_change()'::regprocedure,
     'public.record_posting_status_change()'::regprocedure,'public.list_jobs(boolean,integer,integer,text,text,text)'::regprocedure,'public.claim_active_mic(uuid)'::regprocedure,'public.release_active_mic(uuid)'::regprocedure,'public.get_active_mic()'::regprocedure])
-    and a.privilege_type='EXECUTE' and a.grantee in (0,'anon'::regrole,'authenticated'::regrole)),
+    and (has_function_privilege('anon',p.oid,'execute') or has_function_privilege('authenticated',p.oid,'execute')
+      or exists(select 1 from pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a where a.privilege_type='EXECUTE' and a.grantee=0))),
   'browser roles and PUBLIC cannot execute any public routine');
 select ok((select bool_and(has_function_privilege('service_role',routine,'execute')) from (values
   ('public.profile_value_is_valid(text,jsonb)'::regprocedure),('public.list_new_for_me()'::regprocedure),('public.set_status(uuid,text,text)'::regprocedure),
