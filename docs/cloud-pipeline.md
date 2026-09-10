@@ -50,6 +50,12 @@ server routes. The Mac is required for local Codex extraction and scoring. It is
 not required for the scheduled Python scrape or for Vercel to read already
 stored results.
 
+Each cloud run also rechecks up to 60 stored job URLs and retries descriptions
+for up to 12 stored rows whose text is missing or short. Both queues rotate by
+their last-attempt timestamps so an uncertain result does not starve later
+rows. Unknown fetch results remain unknown, and an accepted description is
+stored completely without replacing an existing complete description.
+
 ## Schedule and cost contract
 
 The workflow's GitHub Actions native schedule is `17 */6 * * *`: 00:17, 06:17,

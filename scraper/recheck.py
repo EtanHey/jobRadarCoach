@@ -8,9 +8,10 @@ import json
 import os
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.request import HTTPRedirectHandler, build_opener
+from urllib.request import HTTPRedirectHandler
 
 from scraper.liveness import check_url
+from scraper.public_https import pinned_open
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -51,10 +52,8 @@ def recheck(connection, *, limit: int = 60, checker=None) -> dict:
     if not 1 <= limit <= 120:
         raise ValueError("limit must be 1..120")
     if checker is None:
-        opener = build_opener(NoRedirect()).open
-
         def checker(url):
-            return check_url(url, opener=opener, timeout=8)
+            return check_url(url, opener=pinned_open, timeout=8)
     rows = connection.execute(SELECT_STALE, (limit,)).fetchall()
     receipt = {"checked": 0, "closed": 0, "unknown": 0, "unsupported": 0}
     for posting_id, url in rows:
