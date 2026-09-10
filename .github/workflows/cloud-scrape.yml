@@ -34,6 +34,11 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python -m scraper.recheck --limit 60 --receipt recheck-receipt.json
+      - name: Backfill missing stored descriptions
+        if: ${{ !cancelled() }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scraper.description_backfill --limit 12 --receipt description-backfill-receipt.json
       - name: Write run summary
         if: always()
         run: |
@@ -60,5 +65,6 @@ jobs:
             cloud-scrape.log
             cloud-scrape-receipt.json
             recheck-receipt.json
+            description-backfill-receipt.json
           if-no-files-found: warn
           retention-days: 7
