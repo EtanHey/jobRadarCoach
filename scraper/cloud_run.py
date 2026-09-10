@@ -10,22 +10,29 @@ from pathlib import Path
 import sys
 import traceback
 from typing import Callable, TextIO
-
 from scraper import harvest
 
 
 ATS_SOURCES = tuple(harvest.SOURCE_ORDER[1:])
 ALL_SOURCES = ("linkedin", *ATS_SOURCES)
-
-
+REQUEST_LIMITS = {
+    "linkedin": 10, "comeet": 11, "greenhouse": 13, "lever": 5,
+    "workable": 9, "jd": 8, "liveness": 4,
+}
+URL_BUCKETS = tuple(
+    (host, source) for source, host in {
+        "linkedin": "linkedin.com/", "comeet": "comeet.com/",
+        "greenhouse": "greenhouse.io/", "lever": "lever.co/",
+        "workable": "workable.com/",
+    }.items()
+)
 class _RequestBudget:
-    def __init__(self, limit: int) -> None:
-        self.remaining = limit
+    def __init__(self) -> None:
+        self.remaining = dict(REQUEST_LIMITS)
         self.skipped = 0
-
-    def take(self) -> bool:
-        if self.remaining:
-            self.remaining -= 1
+    def take(self, bucket: str) -> bool:
+        if self.remaining.get(bucket, 0):
+            self.remaining[bucket] -= 1
             return True
         self.skipped += 1
         return False
@@ -62,7 +69,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--max-pages", type=int, default=1)
     parser.add_argument("--jd-fetch-cap", type=int, default=40)
-    parser.add_argument("--request-cap", type=int, default=60)
     parser.add_argument(
         "--recency", choices=("r10800", "r43200", "r604800", "r2592000")
     )
@@ -104,8 +110,6 @@ def main(
         raise SystemExit("--max-pages must be at least 1")
     if args.jd_fetch_cap < 0:
         raise SystemExit("--jd-fetch-cap must be non-negative")
-    if args.request_cap < 1:
-        raise SystemExit("--request-cap must be at least 1")
 
     if not os.environ.get("DATABASE_URL", "").strip():
         receipt = _base_receipt(2)
@@ -126,38 +130,36 @@ def main(
     if args.recency:
         harvest_args.extend(("--recency", args.recency))
 
-    budget = _RequestBudget(args.request_cap)
+    budget = _RequestBudget()
     original_fetch = harvest.fetch_html
     original_jd_loader = harvest.load_full_jd_fetcher
     original_liveness_loader = harvest.load_liveness_checker
     original_pacer = harvest.RequestPacer
 
+    pacer = original_pacer()
+
     def bounded_fetch(url: str) -> str | None:
-        return original_fetch(url, backoffs=()) if budget.take() else None
+        bucket = next((source for host, source in URL_BUCKETS if host in url), "unknown")
+        if not budget.take(bucket):
+            return None
+        pacer()
+        return original_fetch(url, backoffs=())
 
     def bounded_jd_loader():
         fetch = original_jd_loader()
-        return lambda url: fetch(url) if budget.take() else {
+        return lambda url: fetch(url) if budget.take("jd") else {
             "jd_text": "", "jd_chars": 0, "fetch_method": "failed",
             "fetch_error": "network request budget exhausted",
         }
 
     def bounded_liveness_loader():
         check = original_liveness_loader()
-        return lambda posting: check(posting) if budget.take() else {"alive": None}
-
-    class BudgetedPacer:
-        def __init__(self) -> None:
-            self._pacer = original_pacer()
-
-        def __call__(self) -> None:
-            if budget.remaining:
-                self._pacer()
+        return lambda posting: check(posting) if budget.take("liveness") else {"alive": None}
 
     harvest.fetch_html = bounded_fetch
     harvest.load_full_jd_fetcher = bounded_jd_loader
     harvest.load_liveness_checker = bounded_liveness_loader
-    harvest.RequestPacer = BudgetedPacer
+    harvest.RequestPacer = lambda: lambda: None
     output = _LastLineTee(sys.stdout)
     try:
         try:

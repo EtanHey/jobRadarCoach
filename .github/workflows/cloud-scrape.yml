@@ -1,11 +1,8 @@
 name: Cloud scrape
-
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: cloud-scrape
   cancel-in-progress: false
@@ -17,15 +14,12 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
-
       - name: Install scraper dependencies
         run: python -m pip install "psycopg[binary]==3.3.5" "jsonschema==4.26.0"
-
       - name: Fetch and persist public postings
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -33,7 +27,6 @@ jobs:
           set -o pipefail
           python -m scraper.cloud_run --receipt cloud-scrape-receipt.json \
             2>&1 | tee cloud-scrape.log
-
       - name: Write run summary
         if: always()
         run: |
@@ -51,7 +44,6 @@ jobs:
               echo "- Commit: \`${GITHUB_SHA}\`"
             } >> "${GITHUB_STEP_SUMMARY}"
           fi
-
       - name: Preserve run evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
