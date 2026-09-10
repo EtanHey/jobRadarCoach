@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { postingDate, publishedAge, relativeAge, workMode } from "../lib/job-display";
+import { postingDates, publishedAge, relativeAge, workMode } from "../lib/job-display";
 const now = Date.parse("2026-09-08T12:00:00Z");
 test("published dates never substitute observation dates", () => {
   assert.equal(publishedAge(null, now), "Posted date unavailable");
@@ -16,11 +16,15 @@ test("unknown work mode stays unknown", () => {
   assert.equal(workMode(false), "On-site");
 });
 
-test("cards distinguish published dates from first discovery", () => {
+test("cards keep published and first-discovery dates distinct", () => {
   const found = "2026-09-08T10:00:00Z";
-  assert.deepEqual(postingDate(null, found, now), { label: "Found 2h ago", dateTime: found });
-  assert.deepEqual(postingDate("invalid", found, now), { label: "Found 2h ago", dateTime: found });
   const posted = "2026-09-07T12:00:00Z";
-  assert.deepEqual(postingDate(posted, found, now), { label: "Posted 1d ago", dateTime: posted });
-  assert.deepEqual(postingDate(null, null, now), { label: "Found date unavailable", dateTime: undefined });
+  assert.deepEqual(postingDates(posted, found, now), [
+    { label: "Posted 1d ago", dateTime: posted },
+    { label: "Found 2h ago", dateTime: found },
+  ]);
+  assert.deepEqual(postingDates(null, found, now), [{ label: "Found 2h ago", dateTime: found }]);
+  assert.deepEqual(postingDates("invalid", found, now), [{ label: "Found 2h ago", dateTime: found }]);
+  assert.deepEqual(postingDates(posted, null, now), [{ label: "Posted 1d ago", dateTime: posted }]);
+  assert.deepEqual(postingDates(null, null, now), [{ label: "Date unavailable", dateTime: undefined }]);
 });

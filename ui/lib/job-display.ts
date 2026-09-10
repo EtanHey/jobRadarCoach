@@ -11,11 +11,15 @@ export function publishedAge(value: string | null, now = Date.now()): string {
   return age ? `Posted ${age}` : "Posted date unavailable";
 }
 
-export function postingDate(postedAt: string | null, firstSeenAt: string | null, now = Date.now()): { label: string; dateTime: string | undefined } {
+type PostingDate = { label: string; dateTime: string | undefined };
+
+export function postingDates(postedAt: string | null, firstSeenAt: string | null, now = Date.now()): PostingDate[] {
   const posted = relativeAge(postedAt, now);
-  if (posted) return { label: `Posted ${posted}`, dateTime: postedAt ?? undefined };
   const found = relativeAge(firstSeenAt, now);
-  return { label: found ? `Found ${found}` : "Found date unavailable", dateTime: found ? firstSeenAt ?? undefined : undefined };
+  const dates: PostingDate[] = [];
+  if (posted) dates.push({ label: `Posted ${posted}`, dateTime: postedAt ?? undefined });
+  if (found) dates.push({ label: `Found ${found}`, dateTime: firstSeenAt ?? undefined });
+  return dates.length ? dates : [{ label: "Date unavailable", dateTime: undefined }];
 }
 
 export function workMode(remote: boolean | null): string {
