@@ -124,14 +124,11 @@ function ProfileFields({ draft, busy, onChange, onSave }: ProfileFieldsProps) {
       <textarea id="profile-preferences" maxLength={2000} value={draft.preferences} onChange={(event) => onChange("preferences", event.target.value)} placeholder="e.g. I prefer product teams with close customer contact." className={`${inputClass} min-h-28`} />
       <Button type="button" variant="outline" className="mt-3" onClick={() => onSave({ field: "candidate.preferences.free_text", value: draft.preferences.trim() || null }, "Free-text preferences")}>Save preferences</Button>
     </Field>
-    <Field label="Extraction brain" busy={busy}>
-      <label htmlFor="profile-brain" className="text-sm font-medium">Extraction brain</label>
-      <p className="mt-1 text-xs text-muted-foreground">Classifier runs select their own brain independently.</p>
-      <select id="profile-brain" value={draft.brain} onChange={(event) => onChange("brain", event.target.value as Draft["brain"])} className={inputClass}>
-        <option value="ollama">Ollama</option><option value="codex">Codex</option>
-      </select>
-      <Button type="button" className="mt-3" onClick={() => onSave({ field: "runtime.brain", value: draft.brain }, "Extraction brain")}>Save extraction brain</Button>
-    </Field>
+    <section aria-labelledby="analysis-runtime-label" className="rounded-lg border p-4">
+      <h3 id="analysis-runtime-label" className="text-sm font-medium">Analysis worker</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Extraction and fit scoring use the models configured in your analysis worker. They are not changed by profile settings.</p>
+      <p className="mt-2 text-xs text-muted-foreground">Saving your job preferences updates the profile used for future scoring.</p>
+    </section>
   </>;
 }
 
