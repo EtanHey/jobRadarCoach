@@ -12,7 +12,9 @@ guide or from merged source.
 
 ## 1. Prepare a protected checkout
 
-Install Git, Python 3.12, Node.js, and the Supabase CLI, then clone the repository:
+Install Git, Python 3.12, Node.js, and the Supabase CLI. The optional local
+Supabase workflow in step 3 also requires Docker Desktop or another supported
+container runtime. Then clone the repository:
 
 ```zsh
 git clone https://github.com/EtanHey/jobRadarCoach.git
