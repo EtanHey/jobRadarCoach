@@ -27,6 +27,11 @@ jobs:
           set -o pipefail
           python -m scraper.cloud_run --receipt cloud-scrape-receipt.json \
             2>&1 | tee cloud-scrape.log
+      - name: Recheck stored job availability
+        if: ${{ !cancelled() }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m scraper.recheck --limit 60 --receipt recheck-receipt.json
       - name: Write run summary
         if: always()
         run: |
@@ -52,5 +57,6 @@ jobs:
           path: |
             cloud-scrape.log
             cloud-scrape-receipt.json
+            recheck-receipt.json
           if-no-files-found: warn
           retention-days: 7
