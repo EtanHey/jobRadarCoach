@@ -68,6 +68,7 @@ def test_timeout_before_credential_boundary_records_phase(
         state_dir=tmp_path,
         timeout_seconds=0.1,
         credential_boundary=True,
+        credential_timeout_seconds=0.1,
     ) == 124
 
     status = read_status(tmp_path)
@@ -76,6 +77,22 @@ def test_timeout_before_credential_boundary_records_phase(
     events = read_supervisor_events(tmp_path)
     assert [event["outcome"] for event in events] == ["started", "timed_out"]
     assert {event["run_id"] for event in events} == {status["run_id"]}
+
+
+def test_credential_timeout_is_independent_of_analysis_budget(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    monkeypatch.setattr(local_analysis_supervisor, "TERMINATION_GRACE_SECONDS", 0.1)
+    started = time.monotonic()
+    assert local_analysis_supervisor.run_once(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        state_dir=tmp_path,
+        timeout_seconds=5,
+        credential_boundary=True,
+        credential_timeout_seconds=0.1,
+    ) == 124
+    assert time.monotonic() - started < 1
+    assert read_status(tmp_path)["phase"] == "credential_acquisition"
 
 
 def test_credential_boundary_is_durable_before_worker_exec(tmp_path: Path) -> None:
@@ -101,6 +118,27 @@ def test_credential_boundary_is_durable_before_worker_exec(tmp_path: Path) -> No
     ]
     assert set(events[1]) == {"at", "event", "outcome", "phase", "run_id"}
     assert {event["run_id"] for event in events} == {status["run_id"]}
+
+
+def test_analysis_gets_full_budget_after_credential_boundary(tmp_path: Path) -> None:
+    command = [
+        sys.executable,
+        "-m",
+        "scripts.local_analysis_supervisor",
+        "--credential-ready-child",
+        "--",
+        sys.executable,
+        "-c",
+        "import time; time.sleep(0.2)",
+    ]
+    assert local_analysis_supervisor.run_once(
+        command,
+        state_dir=tmp_path,
+        timeout_seconds=0.5,
+        credential_boundary=True,
+        credential_timeout_seconds=0.1,
+    ) == 0
+    assert read_status(tmp_path)["phase"] == "analysis"
 
 
 def test_timeout_kills_child_that_ignores_sigterm(
@@ -189,7 +227,7 @@ def test_environment_refuses_nonfinite_timeout(monkeypatch, value: str) -> None:
 
 def test_environment_wraps_worker_with_credential_boundary(monkeypatch) -> None:
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
-    command, _state_dir, _timeout = (
+    command, _state_dir, _analysis_timeout, _credential_timeout = (
         local_analysis_supervisor._command_from_environment()
     )
 
@@ -199,6 +237,56 @@ def test_environment_wraps_worker_with_credential_boundary(monkeypatch) -> None:
     assert command[boundary + 2:boundary + 5] == [
         sys.executable, "-m", "scripts.local_analysis",
     ]
+
+
+def test_environment_uses_separate_conservative_phase_budgets(monkeypatch) -> None:
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    monkeypatch.delenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", raising=False)
+    monkeypatch.delenv("JRC_LOCAL_ANALYSIS_CREDENTIAL_TIMEOUT_SECONDS", raising=False)
+
+    _command, _state_dir, analysis_timeout, credential_timeout = (
+        local_analysis_supervisor._command_from_environment()
+    )
+    assert analysis_timeout == 1620
+    assert credential_timeout == 60
+    assert analysis_timeout >= 6 * 2 * 120 + 180
+
+
+def test_environment_refuses_inadequate_custom_analysis_budget(monkeypatch) -> None:
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_MAX_ITEMS", "6")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_TIMEOUT_SECONDS", "120")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", "840")
+
+    with pytest.raises(ValueError, match="at least 1620"):
+        local_analysis_supervisor._command_from_environment()
+
+
+def test_environment_derives_budget_from_custom_workload(monkeypatch) -> None:
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_MAX_ITEMS", "3")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_TIMEOUT_SECONDS", "10")
+    monkeypatch.delenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", raising=False)
+
+    command, _state_dir, analysis_timeout, _credential_timeout = (
+        local_analysis_supervisor._command_from_environment()
+    )
+    assert analysis_timeout == 240
+    assert command[command.index("--max-items") + 1] == "3"
+    assert command[command.index("--timeout-seconds") + 1] == "10"
+
+
+def test_credential_child_missing_phase_environment_is_configuration_error(
+    monkeypatch, capsys,
+) -> None:
+    monkeypatch.delenv("JRC_LOCAL_ANALYSIS_STATE_DIR", raising=False)
+    monkeypatch.delenv("JRC_LOCAL_ANALYSIS_SUPERVISOR_LOG", raising=False)
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_RUN_ID", "00000000-0000-0000-0000-000000000001")
+
+    assert local_analysis_supervisor.main(
+        ["--credential-ready-child", "--", sys.executable, "-c", "pass"]
+    ) == 2
+    assert json.loads(capsys.readouterr().err)["outcome"] == "configuration_error"
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
