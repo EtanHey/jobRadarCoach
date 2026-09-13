@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jobradarcoach-analysis"
+version = "0.1.0"
+description = "Private Job Radar extraction and scoring worker"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema==4.26.0",
+  "psycopg[binary]==3.3.5",
+]
+
+[project.scripts]
+jrc-analysis-worker = "scripts.local_analysis:main"
+jrc-analysis-supervisor = "scripts.local_analysis_supervisor:main"
+
+[tool.setuptools]
+include-package-data = false
+py-modules = [
+  "classifier.core",
+  "classifier.job",
+  "classifier.persistence",
+  "classifier.projection",
+  "classifier.request",
+  "extractor.core",
+  "extractor.evidence",
+  "extractor.job",
+  "extractor.payload",
+  "extractor.persistence",
+  "scraper.annotate",
+  "scraper.brain",
+  "scraper.brain_contract",
+  "scraper.codex_process",
+  "scraper.database",
+  "scripts.local_analysis",
+  "scripts.local_analysis_supervisor",
+]
