@@ -48,10 +48,10 @@ def test_wheel_is_self_contained_and_excludes_repository_only_files(tmp_path: Pa
     environment = os.environ.copy()
     environment.pop("PYTHONPATH", None)
     install_root = tmp_path / "installed"
-    venv.EnvBuilder(with_pip=True, system_site_packages=True).create(install_root)
+    venv.EnvBuilder(with_pip=True).create(install_root)
     python = install_root / "bin" / "python"
     subprocess.run(
-        [python, "-m", "pip", "install", "--no-index", "--no-deps", wheels[0]],
+        [python, "-m", "pip", "install", wheels[0]],
         cwd=tmp_path,
         env=environment,
         check=True,
