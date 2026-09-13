@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from urllib.parse import parse_qsl, urlsplit
 from uuid import UUID, uuid4
 
 TERMINATION_GRACE_SECONDS = 2.0
@@ -195,6 +196,8 @@ def run_once(
                 )
                 with output_path.open("ab") as output, error_path.open("ab") as error:
                     child_environment = os.environ.copy()
+                    if credential_boundary:
+                        child_environment.pop("PGPASSWORD", None)
                     child_environment.update(
                         {
                             "JRC_LOCAL_ANALYSIS_RUN_ID": run_id,
@@ -283,9 +286,38 @@ def run_once(
 
 
 def _command_from_environment() -> tuple[list[str], Path, float, float]:
-    env_file = os.environ.get("JRC_LOCAL_ANALYSIS_ENV_FILE", "").strip()
-    if not env_file:
-        raise ValueError("JRC_LOCAL_ANALYSIS_ENV_FILE is required")
+    helper_value = os.environ.get("JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER", "").strip()
+    helper = Path(helper_value)
+    if (
+        not helper_value
+        or not helper.is_absolute()
+        or not helper.is_file()
+        or not os.access(helper, os.X_OK)
+    ):
+        raise ValueError(
+            "JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER must be an absolute executable file"
+        )
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    try:
+        parsed_database_url = urlsplit(database_url)
+        database_options = parse_qsl(
+            parsed_database_url.query, keep_blank_values=True, max_num_fields=100
+        )
+    except (UnicodeDecodeError, ValueError):
+        parsed_database_url = None
+        database_options = []
+    has_query_password = any(
+        key.casefold() in {"password", "sslpassword"} and bool(value)
+        for key, value in database_options
+    )
+    if (
+        parsed_database_url is None
+        or parsed_database_url.scheme not in {"postgres", "postgresql"}
+        or not parsed_database_url.hostname
+        or parsed_database_url.password is not None
+        or has_query_password
+    ):
+        raise ValueError("DATABASE_URL must be a passwordless PostgreSQL URL")
     state_dir = Path(
         os.environ.get(
             "JRC_LOCAL_ANALYSIS_STATE_DIR",
@@ -293,7 +325,6 @@ def _command_from_environment() -> tuple[list[str], Path, float, float]:
         )
     )
     analysis_python = os.environ.get("JRC_LOCAL_ANALYSIS_PYTHON", sys.executable)
-    op_cli = os.environ.get("JRC_ONEPASSWORD_CLI", "op")
     max_items = int(os.environ.get("JRC_LOCAL_ANALYSIS_MAX_ITEMS", "6"))
     item_timeout_seconds = float(
         os.environ.get("JRC_LOCAL_ANALYSIS_TIMEOUT_SECONDS", "120")
@@ -342,10 +373,8 @@ def _command_from_environment() -> tuple[list[str], Path, float, float]:
             "between 0 and 300"
         )
     command = [
-        op_cli,
+        str(helper),
         "run",
-        "--env-file",
-        env_file,
         "--",
         analysis_python,
         "-m",
