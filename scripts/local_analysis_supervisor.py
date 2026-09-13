@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 TERMINATION_GRACE_SECONDS = 2.0
 
@@ -37,6 +38,39 @@ def _write_status(path: Path, status: dict[str, object]) -> None:
 def _append_event(path: Path, **fields: object) -> None:
     with path.open("a", encoding="utf-8") as output:
         output.write(json.dumps(fields, separators=(",", ":"), sort_keys=True) + "\n")
+
+
+def _phase_reached(path: Path, run_id: str, phase: str) -> bool:
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("run_id") == run_id and event.get("phase") == phase:
+            return True
+    return False
+
+
+def _credential_ready_child(command: list[str]) -> int:
+    if not command:
+        raise ValueError("credential-ready child command is required")
+    run_id = os.environ.get("JRC_LOCAL_ANALYSIS_RUN_ID", "").strip()
+    if not run_id or str(UUID(run_id)) != run_id:
+        raise ValueError("JRC_LOCAL_ANALYSIS_RUN_ID must be a canonical UUID")
+    state_dir = Path(os.environ["JRC_LOCAL_ANALYSIS_STATE_DIR"])
+    supervisor_path = Path(os.environ["JRC_LOCAL_ANALYSIS_SUPERVISOR_LOG"])
+    if supervisor_path.parent != state_dir / "logs":
+        raise ValueError("supervisor log must be inside the local-analysis log directory")
+    _append_event(
+        supervisor_path,
+        event="supervisor",
+        at=_now(),
+        outcome="credential_acquired",
+        phase="analysis",
+        run_id=run_id,
+    )
+    os.execvp(command[0], command)
+    return 127
 
 
 def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
@@ -65,6 +99,7 @@ def run_once(
     *,
     state_dir: Path,
     timeout_seconds: float,
+    credential_boundary: bool = False,
 ) -> int:
     """Run ``command`` once without overlap and persist a sanitized outcome."""
 
@@ -93,11 +128,15 @@ def run_once(
             return 0
 
         started_at = _now()
+        run_id = str(uuid4())
+        phase = "credential_acquisition" if credential_boundary else "process"
         status: dict[str, object] = {
             "started_at": started_at,
             "finished_at": None,
             "outcome": "running",
             "exit_code": None,
+            "phase": phase,
+            "run_id": run_id,
         }
         exit_code = 127
         outcome = "launch_error"
@@ -125,7 +164,23 @@ def run_once(
         try:
             try:
                 _write_status(status_path, status)
+                _append_event(
+                    supervisor_path,
+                    event="supervisor",
+                    at=started_at,
+                    outcome="started",
+                    phase=phase,
+                    run_id=run_id,
+                )
                 with output_path.open("ab") as output, error_path.open("ab") as error:
+                    child_environment = os.environ.copy()
+                    child_environment.update(
+                        {
+                            "JRC_LOCAL_ANALYSIS_RUN_ID": run_id,
+                            "JRC_LOCAL_ANALYSIS_STATE_DIR": str(state_dir),
+                            "JRC_LOCAL_ANALYSIS_SUPERVISOR_LOG": str(supervisor_path),
+                        }
+                    )
                     try:
                         process = subprocess.Popen(
                             command,
@@ -133,6 +188,7 @@ def run_once(
                             stdout=output,
                             stderr=error,
                             start_new_session=True,
+                            env=child_environment,
                         )
                     except OSError as exception:
                         failure = type(exception).__name__
@@ -158,12 +214,18 @@ def run_once(
                 exit_code = 128 + interrupted_signum
                 outcome = "interrupted"
 
+            if credential_boundary and _phase_reached(
+                supervisor_path, run_id, "analysis"
+            ):
+                phase = "analysis"
             finished_at = _now()
             event: dict[str, object] = {
                 "event": "supervisor",
                 "at": finished_at,
                 "outcome": outcome,
                 "exit_code": exit_code,
+                "phase": phase,
+                "run_id": run_id,
             }
             if failure:
                 event["failure"] = failure
@@ -205,6 +267,11 @@ def _command_from_environment() -> tuple[list[str], Path, float]:
         "--",
         analysis_python,
         "-m",
+        "scripts.local_analysis_supervisor",
+        "--credential-ready-child",
+        "--",
+        analysis_python,
+        "-m",
         "scripts.local_analysis",
         "--max-items",
         os.environ.get("JRC_LOCAL_ANALYSIS_MAX_ITEMS", "6"),
@@ -218,10 +285,20 @@ def _command_from_environment() -> tuple[list[str], Path, float]:
     return command, state_dir, timeout_seconds
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    arguments = sys.argv[1:] if argv is None else argv
     try:
+        if arguments[:2] == ["--credential-ready-child", "--"]:
+            return _credential_ready_child(arguments[2:])
+        if arguments:
+            raise ValueError("unsupported supervisor arguments")
         command, state_dir, timeout_seconds = _command_from_environment()
-        return run_once(command, state_dir=state_dir, timeout_seconds=timeout_seconds)
+        return run_once(
+            command,
+            state_dir=state_dir,
+            timeout_seconds=timeout_seconds,
+            credential_boundary=True,
+        )
     except (OSError, ValueError) as exception:
         print(
             json.dumps(

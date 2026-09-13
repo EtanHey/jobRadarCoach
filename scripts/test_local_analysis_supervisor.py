@@ -18,6 +18,11 @@ def read_status(state_dir: Path) -> dict[str, object]:
     return json.loads((state_dir / "status.json").read_text(encoding="utf-8"))
 
 
+def read_supervisor_events(state_dir: Path) -> list[dict[str, object]]:
+    path = next((state_dir / "logs").glob("*.supervisor.jsonl"))
+    return [json.loads(line) for line in path.read_text().splitlines()]
+
+
 def test_failed_run_records_status_and_does_not_block_next_cycle(tmp_path: Path) -> None:
     assert local_analysis_supervisor.run_once(
         [sys.executable, "-c", "raise SystemExit(7)"],
@@ -52,6 +57,50 @@ def test_timeout_is_bounded_and_recorded(tmp_path: Path) -> None:
     assert result == 124
     assert time.monotonic() - started < 5
     assert read_status(tmp_path)["outcome"] == "timed_out"
+
+
+def test_timeout_before_credential_boundary_records_phase(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    monkeypatch.setattr(local_analysis_supervisor, "TERMINATION_GRACE_SECONDS", 0.1)
+    assert local_analysis_supervisor.run_once(
+        [sys.executable, "-c", "import time; time.sleep(30)"],
+        state_dir=tmp_path,
+        timeout_seconds=0.1,
+        credential_boundary=True,
+    ) == 124
+
+    status = read_status(tmp_path)
+    assert status["phase"] == "credential_acquisition"
+    assert isinstance(status["run_id"], str)
+    events = read_supervisor_events(tmp_path)
+    assert [event["outcome"] for event in events] == ["started", "timed_out"]
+    assert {event["run_id"] for event in events} == {status["run_id"]}
+
+
+def test_credential_boundary_is_durable_before_worker_exec(tmp_path: Path) -> None:
+    command = [
+        sys.executable,
+        "-m",
+        "scripts.local_analysis_supervisor",
+        "--credential-ready-child",
+        "--",
+        sys.executable,
+        "-c",
+        "print('worker-ran')",
+    ]
+    assert local_analysis_supervisor.run_once(
+        command, state_dir=tmp_path, timeout_seconds=5, credential_boundary=True,
+    ) == 0
+
+    status = read_status(tmp_path)
+    assert status["phase"] == "analysis"
+    events = read_supervisor_events(tmp_path)
+    assert [event["outcome"] for event in events] == [
+        "started", "credential_acquired", "succeeded",
+    ]
+    assert set(events[1]) == {"at", "event", "outcome", "phase", "run_id"}
+    assert {event["run_id"] for event in events} == {status["run_id"]}
 
 
 def test_timeout_kills_child_that_ignores_sigterm(
@@ -136,6 +185,20 @@ def test_environment_refuses_nonfinite_timeout(monkeypatch, value: str) -> None:
 
     with pytest.raises(ValueError, match="finite"):
         local_analysis_supervisor._command_from_environment()
+
+
+def test_environment_wraps_worker_with_credential_boundary(monkeypatch) -> None:
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    command, _state_dir, _timeout = (
+        local_analysis_supervisor._command_from_environment()
+    )
+
+    boundary = command.index("--credential-ready-child")
+    assert command[boundary - 2:boundary] == ["-m", "scripts.local_analysis_supervisor"]
+    assert command[boundary + 1] == "--"
+    assert command[boundary + 2:boundary + 5] == [
+        sys.executable, "-m", "scripts.local_analysis",
+    ]
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
