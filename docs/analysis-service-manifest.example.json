@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "service_id": "com.jobradarcoach.local-analysis",
+  "role": "persistent-production-dependency",
+  "dashboard_origin": "https://REPLACE-WITH-PRODUCTION-HOST",
+  "owner_os_user": "REPLACE_WITH_OS_ACCOUNT",
+  "source_commit": "REPLACE_WITH_FULL_REVIEWED_GIT_SHA",
+  "distribution": {
+    "name": "jobradarcoach-analysis",
+    "version": "0.1.0",
+    "venv_path": "/ABSOLUTE/VENV",
+    "wheel_sha256": "REPLACE_WITH_SHA256"
+  },
+  "launchd": {
+    "label": "com.jobradarcoach.local-analysis",
+    "plist_path": "/Users/OWNER/Library/LaunchAgents/com.jobradarcoach.local-analysis.plist"
+  },
+  "paths": {
+    "state_dir": "/Users/OWNER/Library/Application Support/jobRadarCoach/local-analysis",
+    "database_url_reference": "/ABSOLUTE/PRIVATE/passwordless-database-url",
+    "maintenance_marker": "/Users/OWNER/Library/Application Support/jobRadarCoach/local-analysis/maintenance.json"
+  },
+  "credential_helper": {
+    "source_path": "/ABSOLUTE/REVIEWED/scripts/local_analysis_credentials.swift",
+    "source_sha256": "REPLACE_WITH_SHA256",
+    "binary_path": "/Users/OWNER/.local/share/jobRadarCoach/bin/jobradarcoach-analysis-credentials",
+    "binary_sha256": "REPLACE_WITH_SHA256",
+    "replacement_policy": "explicit-reprovision-required"
+  },
+  "cleanup_policy": {
+    "service_stop": "explicit-only",
+    "remove_state": "never-automatic",
+    "preserve_logs_on_repair": true
+  }
+}
