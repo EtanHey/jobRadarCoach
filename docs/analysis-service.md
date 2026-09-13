@@ -4,7 +4,9 @@ The private extraction and scoring worker is a persistent production dependency 
 
 ## Immutable installation
 
-Build the wheel from the exact reviewed source commit. The thin installer creates or reuses the dedicated virtual environment, installs the wheel and its declared dependencies, and atomically prepares the plist and manifest. It does not call `launchctl`.
+Build the wheel from the exact reviewed source commit. The thin installer creates or reuses the dedicated virtual environment, installs the wheel and its declared dependencies, and atomically replaces the plist and manifest as two separate files. It does not call `launchctl`.
+
+Before an upgrade of a loaded service, record maintenance and deliberately boot out the existing LaunchAgent. Do that before invoking the installer so no running process observes a changing venv or plist. An initial installation has no loaded service to stop.
 
 For the first installation only, compile the reviewed native helper to a staged non-symlink path and install it at the stable identity used by its Keychain access control:
 
@@ -83,7 +85,7 @@ launchctl bootout "gui/$(id -u)" \
   "$HOME/Library/LaunchAgents/com.jobradarcoach.local-analysis.plist"
 ```
 
-Do not delete the plist, manifest, maintenance marker, state directory, or dated logs as part of a stop. For repair or upgrade, preserve those records, install the reviewed artifact in place, validate the manifest and plist, then bootstrap the same label. Do not create a second overlapping daemon or rename the existing production label during repair.
+Do not delete the plist, manifest, maintenance marker, state directory, or dated logs as part of a stop. For repair or upgrade, preserve those records, enter maintenance, boot out the loaded service, install the reviewed artifact in place, validate the manifest and plist, then bootstrap the same label. Clear maintenance only after a real replacement cycle is verified. Do not create a second overlapping daemon or rename the existing production label during repair.
 
 Packaging gives the worker a stable installed identity; it does not by itself prove unattended Keychain access or a successful production analysis cycle.
 
