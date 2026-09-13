@@ -38,13 +38,14 @@ def test_failed_item_is_deferred_without_a_tight_retry(monkeypatch, capsys) -> N
     assert records[-1] == {"attempted": 1, "event": "summary", "failed": 1}
 
 
-def test_launcher_injects_database_url_without_putting_it_in_argv() -> None:
+def test_launcher_uses_native_credential_boundary_without_secret_in_argv() -> None:
     launcher = (Path(__file__).parent / "run_local_analysis.sh").read_text()
     supervisor = (Path(__file__).parent / "local_analysis_supervisor.py").read_text()
     assert "scripts.local_analysis_supervisor" in launcher
-    assert '"--env-file"' in supervisor
+    assert '"run"' in supervisor
+    assert '"--env-file"' not in supervisor
     assert "DATABASE_URL" not in launcher
-    assert "DATABASE_URL" not in supervisor
+    assert "PGPASSWORD" not in launcher
 
 
 @pytest.fixture(scope="module")

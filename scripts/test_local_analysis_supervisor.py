@@ -23,6 +23,15 @@ def read_supervisor_events(state_dir: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
+def configure_native_credentials(monkeypatch) -> Path:
+    helper = Path("/tmp/jobradarcoach-analysis-credentials")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER", str(helper))
+    monkeypatch.setenv("DATABASE_URL", "postgresql://analysis@db.example.test/jobs")
+    monkeypatch.setattr(Path, "is_file", lambda path: path == helper)
+    monkeypatch.setattr(os, "access", lambda path, mode: path == helper and mode == os.X_OK)
+    return helper
+
+
 def test_failed_run_records_status_and_does_not_block_next_cycle(tmp_path: Path) -> None:
     assert local_analysis_supervisor.run_once(
         [sys.executable, "-c", "raise SystemExit(7)"],
@@ -96,7 +105,19 @@ def test_credential_timeout_is_independent_of_analysis_budget(
 
 
 def test_credential_boundary_is_durable_before_worker_exec(tmp_path: Path) -> None:
+    helper = tmp_path / "credential-helper"
+    helper.write_text(
+        f"#!{sys.executable}\n"
+        "import os, sys\n"
+        "assert sys.argv[1:3] == ['run', '--']\n"
+        "os.execv(sys.argv[3], sys.argv[3:])\n",
+        encoding="utf-8",
+    )
+    helper.chmod(0o700)
     command = [
+        str(helper),
+        "run",
+        "--",
         sys.executable,
         "-m",
         "scripts.local_analysis_supervisor",
@@ -218,7 +239,7 @@ def test_signal_records_interruption_and_kills_stubborn_process_group(
 
 @pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
 def test_environment_refuses_nonfinite_timeout(monkeypatch, value: str) -> None:
-    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    configure_native_credentials(monkeypatch)
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", value)
 
     with pytest.raises(ValueError, match="finite"):
@@ -226,11 +247,16 @@ def test_environment_refuses_nonfinite_timeout(monkeypatch, value: str) -> None:
 
 
 def test_environment_wraps_worker_with_credential_boundary(monkeypatch) -> None:
-    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    helper = configure_native_credentials(monkeypatch)
+    monkeypatch.setenv("JRC_ONEPASSWORD_CLI", "/must/not/run/op")
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/must/not/be/read.env")
     command, _state_dir, _analysis_timeout, _credential_timeout = (
         local_analysis_supervisor._command_from_environment()
     )
 
+    assert command[:3] == [str(helper), "run", "--"]
+    assert "/must/not/run/op" not in command
+    assert "/must/not/be/read.env" not in command
     boundary = command.index("--credential-ready-child")
     assert command[boundary - 2:boundary] == ["-m", "scripts.local_analysis_supervisor"]
     assert command[boundary + 1] == "--"
@@ -239,8 +265,68 @@ def test_environment_wraps_worker_with_credential_boundary(monkeypatch) -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("helper", "is_file", "executable"),
+    [
+        ("", False, False),
+        ("relative/helper", True, True),
+        ("/missing/helper", False, False),
+        ("/not-executable/helper", True, False),
+    ],
+)
+def test_environment_refuses_invalid_credential_helper(
+    monkeypatch, helper: str, is_file: bool, executable: bool,
+) -> None:
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER", helper)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://analysis@db.example.test/jobs")
+    monkeypatch.setattr(Path, "is_file", lambda _path: is_file)
+    monkeypatch.setattr(os, "access", lambda _path, _mode: executable)
+
+    with pytest.raises(ValueError, match="CREDENTIAL_HELPER"):
+        local_analysis_supervisor._command_from_environment()
+
+
+@pytest.mark.parametrize(
+    "database_url",
+    ["", "https://db.example.test/jobs", "postgresql://analysis:secret@db.example.test/jobs"],
+)
+def test_environment_refuses_non_passwordless_database_url(
+    monkeypatch, tmp_path: Path, database_url: str,
+) -> None:
+    helper = tmp_path / "credential-helper"
+    helper.write_text("#!/bin/sh\n", encoding="utf-8")
+    helper.chmod(0o700)
+    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER", str(helper))
+    monkeypatch.setenv("DATABASE_URL", database_url)
+
+    with pytest.raises(ValueError, match="passwordless"):
+        local_analysis_supervisor._command_from_environment()
+
+
+def test_credential_boundary_does_not_inherit_password(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("PGPASSWORD", "must-not-reach-child")
+    assert local_analysis_supervisor.run_once(
+        [
+            sys.executable,
+            "-c",
+            "import os; print('password-present' if 'PGPASSWORD' in os.environ else 'clean')",
+        ],
+        state_dir=tmp_path,
+        timeout_seconds=5,
+        credential_boundary=True,
+        credential_timeout_seconds=5,
+    ) == 0
+    output = next(
+        path for path in (tmp_path / "logs").glob("*.jsonl")
+        if not path.name.endswith(".supervisor.jsonl")
+    )
+    assert output.read_text(encoding="utf-8").strip() == "clean"
+
+
 def test_environment_uses_separate_conservative_phase_budgets(monkeypatch) -> None:
-    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    configure_native_credentials(monkeypatch)
     monkeypatch.delenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("JRC_LOCAL_ANALYSIS_CREDENTIAL_TIMEOUT_SECONDS", raising=False)
 
@@ -253,7 +339,7 @@ def test_environment_uses_separate_conservative_phase_budgets(monkeypatch) -> No
 
 
 def test_environment_refuses_inadequate_custom_analysis_budget(monkeypatch) -> None:
-    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    configure_native_credentials(monkeypatch)
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_MAX_ITEMS", "6")
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_TIMEOUT_SECONDS", "120")
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", "840")
@@ -263,7 +349,7 @@ def test_environment_refuses_inadequate_custom_analysis_budget(monkeypatch) -> N
 
 
 def test_environment_derives_budget_from_custom_workload(monkeypatch) -> None:
-    monkeypatch.setenv("JRC_LOCAL_ANALYSIS_ENV_FILE", "/tmp/reference-only.env")
+    configure_native_credentials(monkeypatch)
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_MAX_ITEMS", "3")
     monkeypatch.setenv("JRC_LOCAL_ANALYSIS_TIMEOUT_SECONDS", "10")
     monkeypatch.delenv("JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS", raising=False)
