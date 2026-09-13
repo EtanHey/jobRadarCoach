@@ -205,7 +205,9 @@ def list_scoring_candidates(
         "and (s.posting_id is null "
         "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s)) "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
-        + lease_filter + "order by p.posted_at desc nulls last, p.id limit %s",
+        + lease_filter
+        + "order by (s.posting_id is null) desc, "
+        "coalesce(p.posted_at, p.first_seen_at) desc, p.id limit %s",
         (projection.MIN_JD_CHARS, profile_sha256, requested or None, requested or None)
         + ((claimable_stage,) if claimable_stage else ()) + (limit,),
     ).fetchall()
