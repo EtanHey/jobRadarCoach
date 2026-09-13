@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timezone
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 from uuid import UUID, uuid4
 
 TERMINATION_GRACE_SECONDS = 2.0
@@ -300,13 +300,22 @@ def _command_from_environment() -> tuple[list[str], Path, float, float]:
     database_url = os.environ.get("DATABASE_URL", "").strip()
     try:
         parsed_database_url = urlsplit(database_url)
-    except ValueError:
+        database_options = parse_qsl(
+            parsed_database_url.query, keep_blank_values=True, max_num_fields=100
+        )
+    except (UnicodeDecodeError, ValueError):
         parsed_database_url = None
+        database_options = []
+    has_query_password = any(
+        key.casefold() in {"password", "sslpassword"} and bool(value)
+        for key, value in database_options
+    )
     if (
         parsed_database_url is None
         or parsed_database_url.scheme not in {"postgres", "postgresql"}
         or not parsed_database_url.hostname
         or parsed_database_url.password is not None
+        or has_query_password
     ):
         raise ValueError("DATABASE_URL must be a passwordless PostgreSQL URL")
     state_dir = Path(

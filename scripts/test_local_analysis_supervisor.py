@@ -288,7 +288,15 @@ def test_environment_refuses_invalid_credential_helper(
 
 @pytest.mark.parametrize(
     "database_url",
-    ["", "https://db.example.test/jobs", "postgresql://analysis:secret@db.example.test/jobs"],
+    [
+        "",
+        "https://db.example.test/jobs",
+        "postgresql://analysis:secret@db.example.test/jobs",
+        "postgresql://analysis@db.example.test/jobs?password=secret",
+        "postgresql://analysis@db.example.test/jobs?SSLPassword=secret",
+        "postgresql://analysis@db.example.test/jobs?pass%77ord=secret",
+        "postgresql://analysis@db.example.test/jobs?ssl%70assword=secret",
+    ],
 )
 def test_environment_refuses_non_passwordless_database_url(
     monkeypatch, tmp_path: Path, database_url: str,
