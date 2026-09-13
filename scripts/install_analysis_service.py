@@ -127,13 +127,12 @@ def install(args: argparse.Namespace) -> None:
     database_url = _passwordless_database_url(args.database_url_file)
     if not WHEEL_NAME.fullmatch(args.wheel.name):
         raise ValueError("wheel must be the reviewed jobradarcoach-analysis 0.1.0 artifact")
-    args.state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-    args.state_dir.chmod(0o700)
-    logs_dir = args.state_dir / "logs"
-    logs_dir.mkdir(exist_ok=True, mode=0o700)
-    logs_dir.chmod(0o700)
-    args.launch_agents_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     manifest_path = args.state_dir / "service-manifest.json"
+    plist_path = args.launch_agents_dir / f"{LABEL}.plist"
+    python = args.venv / "bin/python"
+    supervisor = args.venv / "bin/jrc-analysis-supervisor"
+    worker = args.venv / "bin/jrc-analysis-worker"
+    logs_dir = args.state_dir / "logs"
     helper = {
         "source_path": str(args.credential_helper_source),
         "source_sha256": _sha256(args.credential_helper_source),
@@ -157,48 +156,10 @@ def install(args: argparse.Namespace) -> None:
             raise RuntimeError(
                 "credential helper identity changed; preserve it or explicitly reprovision"
             )
-    if not (args.venv / "bin/python").is_file():
-        venv.EnvBuilder(with_pip=True).create(args.venv)
-    python = args.venv / "bin/python"
-    environment = os.environ.copy()
-    environment.pop("PYTHONPATH", None)
-    subprocess.run(
-        [
-            python,
-            "-m",
-            "pip",
-            "install",
-            "--disable-pip-version-check",
-            "--no-input",
-            "--force-reinstall",
-            args.wheel,
-        ],
-        check=True,
-        cwd=args.state_dir,
-        env=environment,
-    )
-    subprocess.run(
-        [python, "-m", "pip", "check"],
-        check=True,
-        cwd=args.state_dir,
-        env=environment,
-    )
-    supervisor = args.venv / "bin/jrc-analysis-supervisor"
-    worker = args.venv / "bin/jrc-analysis-worker"
-    if not supervisor.is_file() or not os.access(supervisor, os.X_OK):
-        raise RuntimeError("installed wheel did not provide jrc-analysis-supervisor")
-    if not worker.is_file() or not os.access(worker, os.X_OK):
-        raise RuntimeError("installed wheel did not provide jrc-analysis-worker")
-    subprocess.run(
-        [worker, "--help"],
-        check=True,
-        cwd=args.state_dir,
-        env=environment,
-        stdout=subprocess.DEVNULL,
-    )
-
     with args.plist_template.open("rb") as source:
         job = plistlib.load(source)
+    if not isinstance(job, dict) or job.get("Label") != LABEL:
+        raise ValueError("plist template does not describe the production service")
     job["Label"] = LABEL
     job["ProgramArguments"] = [str(supervisor)]
     job.pop("WorkingDirectory", None)
@@ -211,16 +172,18 @@ def install(args: argparse.Namespace) -> None:
         "JRC_LOCAL_ANALYSIS_RUN_TIMEOUT_SECONDS": "1620",
         "CODEX": str(args.codex),
     }
-    logs = args.state_dir / "logs"
-    job["StandardOutPath"] = str(logs / "launchd.stdout.log")
-    job["StandardErrorPath"] = str(logs / "launchd.stderr.log")
-    plist_path = args.launch_agents_dir / f"{LABEL}.plist"
-    _write(plist_path, plistlib.dumps(job, sort_keys=False), 0o600)
+    job["StandardOutPath"] = str(logs_dir / "launchd.stdout.log")
+    job["StandardErrorPath"] = str(logs_dir / "launchd.stderr.log")
+    plist_content = plistlib.dumps(job, sort_keys=False)
 
     manifest = json.loads(args.manifest_template.read_text(encoding="utf-8"))
     if (
-        manifest.get("service_id") != LABEL
+        not isinstance(manifest, dict)
+        or manifest.get("service_id") != LABEL
+        or not isinstance(manifest.get("launchd"), dict)
         or manifest.get("launchd", {}).get("label") != LABEL
+        or not isinstance(manifest.get("distribution"), dict)
+        or not isinstance(manifest.get("paths"), dict)
     ):
         raise ValueError("manifest template does not describe the production service")
     manifest.update(
@@ -241,11 +204,31 @@ def install(args: argparse.Namespace) -> None:
         }
     )
     manifest["credential_helper"] = helper
-    _write(
-        manifest_path,
-        (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
-        0o600,
+    manifest_content = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()
+
+    args.state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    args.state_dir.chmod(0o700)
+    logs_dir.mkdir(exist_ok=True, mode=0o700)
+    logs_dir.chmod(0o700)
+    args.launch_agents_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if not python.is_file():
+        venv.EnvBuilder(with_pip=True).create(args.venv)
+    environment = os.environ.copy()
+    environment.pop("PYTHONPATH", None)
+    run_options = {"check": True, "cwd": args.state_dir, "env": environment}
+    subprocess.run(
+        [python, "-m", "pip", "install", "--disable-pip-version-check", "--no-input",
+         "--force-reinstall", args.wheel],
+        **run_options,
     )
+    subprocess.run([python, "-m", "pip", "check"], **run_options)
+    if not supervisor.is_file() or not os.access(supervisor, os.X_OK):
+        raise RuntimeError("installed wheel did not provide jrc-analysis-supervisor")
+    if not worker.is_file() or not os.access(worker, os.X_OK):
+        raise RuntimeError("installed wheel did not provide jrc-analysis-worker")
+    subprocess.run([worker, "--help"], stdout=subprocess.DEVNULL, **run_options)
+    _write(plist_path, plist_content, 0o600)
+    _write(manifest_path, manifest_content, 0o600)
 
 
 def main(argv: list[str] | None = None) -> int:

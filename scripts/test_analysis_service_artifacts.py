@@ -119,6 +119,17 @@ def test_installer_prepares_native_artifacts_without_launchctl(
     assert state_dir.stat().st_mode & 0o777 == 0o700
     assert maintenance.read_text() == '{"reason":"owner approval maintenance"}\n'
 
+    before = (manifest_path.read_bytes(), (launch_agents / f"{LABEL}.plist").read_bytes())
+    manifest_template.write_text("{}")
+    with pytest.raises(ValueError, match="manifest template"):
+        install_analysis_service.main(arguments)
+    assert len(commands) == 3
+    assert before == (
+        manifest_path.read_bytes(),
+        (launch_agents / f"{LABEL}.plist").read_bytes(),
+    )
+
+    manifest_template.write_text(json.dumps(manifest))
     helper_source.write_text("// changed helper\n")
     with pytest.raises(RuntimeError, match="explicitly reprovision"):
         install_analysis_service.main(arguments)
