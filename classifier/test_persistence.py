@@ -334,6 +334,71 @@ def test_selection_is_unscored_plus_open_rows_on_profile_change_only(
     assert saved not in selected
 
 
+def test_selection_prioritizes_unscored_before_newer_stale_refresh(connection) -> None:
+    stale = seed(connection, status="seen")
+    assert persistence.score_and_persist(connection, stale, brain_runner=runner) == "stored"
+    connection.execute(
+        "update public.postings set posted_at='2030-01-01' where id=%s", (stale,)
+    )
+    unscored = seed(connection, status="new")
+    connection.execute(
+        "update public.profile set value = '\"Changed positioning\"'::jsonb "
+        "where field = 'candidate.positioning'"
+    )
+    connection.execute(
+        "update public.postings set posted_at=null, first_seen_at='2026-01-01' where id=%s",
+        (unscored,),
+    )
+
+    assert persistence.list_scoring_candidates(connection, limit=1) == [unscored]
+
+
+def test_unscored_null_posted_dates_order_by_first_seen(connection) -> None:
+    older = seed(connection, status="new")
+    newer = seed(connection, status="new")
+    connection.execute(
+        "update public.postings set posted_at=null, first_seen_at='2026-01-01' where id=%s",
+        (older,),
+    )
+    connection.execute(
+        "update public.postings set posted_at=null, first_seen_at='2026-02-01' where id=%s",
+        (newer,),
+    )
+
+    assert persistence.list_scoring_candidates(connection, limit=2) == [newer, older]
+
+
+def test_candidate_query_keeps_eligibility_leases_and_priority_order() -> None:
+    class Result:
+        def __init__(self, rows):
+            self.rows = rows
+        def fetchall(self):
+            return self.rows
+
+    class Connection:
+        candidate_sql = ""
+        candidate_params = ()
+        def execute(self, sql, params=()):
+            if "from public.profile" in sql:
+                return Result(list(profile_snapshot().items()))
+            self.candidate_sql = sql
+            self.candidate_params = params
+            return Result([("unscored",), ("stale",)])
+
+    connection = Connection()
+    assert persistence.list_scoring_candidates(
+        connection, limit=2, claimable_stage="score"
+    ) == ["unscored", "stale"]
+    normalized = " ".join(connection.candidate_sql.split())
+    assert "s.posting_id is null or (st.status in ('new','seen')" in normalized
+    assert "l.stage = %s" in normalized
+    assert normalized.endswith(
+        "order by (s.posting_id is null) desc, "
+        "coalesce(p.posted_at, p.first_seen_at) desc, p.id limit %s"
+    )
+    assert connection.candidate_params[-2:] == ("score", 2)
+
+
 def test_explicit_eligible_id_beyond_general_scan_is_selected(connection) -> None:
     original = seed(connection)
     ids = [str(UUID(int=(1 << 128) - 1 - index)) for index in range(1002)]
