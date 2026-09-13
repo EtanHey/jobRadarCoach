@@ -48,6 +48,15 @@ _REMOTE_ONSITE_RE = re.compile(
     r"\b(?:on[ _-]?site|office[ -]based)\b",
     re.IGNORECASE,
 )
+_NON_ROLE_REMOTE_RE = re.compile(
+    rf"\b(?:company|organization|business|team|workforce|staff|employees?)\b"
+    rf"[^,.!?;\n]{{0,48}}\b(?:is|are|works?|operates?|collaborates?)\b"
+    rf"[^,.!?;\n]{{0,32}}{_REMOTE_WORD}|"
+    rf"{_REMOTE_WORD}[^,.!?;\n]{{0,24}}"
+    r"\b(?:company|organization|business|team|workforce)\b|"
+    rf"\b(?:benefits?|perks?)\b[^,.!?;\n]{{0,48}}{_REMOTE_WORD}",
+    re.IGNORECASE,
+)
 _REMOTE_NEGATED_BEFORE_RE = re.compile(
     rf"\bnon[ -]?remote\b|"
     rf"\bno\s+(?:longer\s+)?(?:fully\s+)?{_REMOTE_WORD}|"
@@ -109,6 +118,8 @@ def _validate_quote(
 
 
 def _remote_quote_value(quote: str) -> bool | None:
+    if _NON_ROLE_REMOTE_RE.search(quote):
+        return None
     negative = _REMOTE_NEGATED_BEFORE_RE.search(
         quote
     ) or _REMOTE_NEGATED_AFTER_RE.search(quote)
@@ -140,6 +151,25 @@ def _remote_source_values(quote: str, raw_jd: str) -> set[bool | None]:
         values.add(_remote_quote_value(raw_jd[clause_start + 1:clause_end]))
         offset = quote_end
     return values
+
+
+def derive_remote_fact(evidence_quote: object, raw_jd: str) -> dict[str, object]:
+    """Construct remote value only when its exact source evidence is unambiguous."""
+
+    if evidence_quote is None:
+        return {"value": None, "evidence_quote": None}
+    if (
+        not isinstance(evidence_quote, str)
+        or not evidence_quote.strip()
+        or evidence_quote not in raw_jd
+    ):
+        # Preserve invalid evidence so the standard quote validator rejects it.
+        return {"value": None, "evidence_quote": evidence_quote}
+    quote_value = _remote_quote_value(evidence_quote)
+    source_values = _remote_source_values(evidence_quote, raw_jd)
+    if quote_value is not None and source_values == {quote_value}:
+        return {"value": quote_value, "evidence_quote": evidence_quote}
+    return {"value": None, "evidence_quote": None}
 
 
 _NON_ROLE_LOCATION_RE = re.compile(

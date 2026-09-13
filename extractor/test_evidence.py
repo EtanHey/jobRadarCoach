@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from extractor.evidence import validate_facts
+from extractor.evidence import derive_remote_fact, validate_facts
 from scraper.brain_contract import BrainValidationError
 
 
@@ -37,6 +37,52 @@ def remote_only_facts(value: bool, quote: str) -> dict[str, object]:
         "stack": [],
         "salary": {"value": None, "evidence_quote": None},
     }
+
+
+@pytest.mark.parametrize(("raw_jd", "quote", "expected"), [
+    ("Remote work is available.", "Remote work is available", True),
+    ("This is an office-based role.", "office-based", False),
+    ("This is not a remote role.", "remote role", None),
+    ("Flexible hours are available.", "Flexible hours", None),
+])
+def test_remote_fact_is_derived_only_from_self_supporting_source_evidence(
+    raw_jd: str, quote: str, expected: bool | None
+) -> None:
+    derived = derive_remote_fact(quote, raw_jd)
+    assert derived == {
+        "value": expected,
+        "evidence_quote": quote if expected is not None else None,
+    }
+    validate_facts(
+        {
+            **remote_only_facts(True, "Remote work"),
+            "remote": derived,
+        },
+        raw_jd,
+    )
+
+
+def test_unknown_remote_requires_no_evidence_quote() -> None:
+    assert derive_remote_fact(None, "No work mode is stated.") == {
+        "value": None,
+        "evidence_quote": None,
+    }
+
+
+@pytest.mark.parametrize("quote", [
+    "We are a remote-first company.",
+    "Our engineering team works remotely.",
+    "Benefits include remote work support.",
+])
+def test_non_role_remote_wording_does_not_establish_role_availability(
+    quote: str,
+) -> None:
+    assert derive_remote_fact(quote, quote) == {
+        "value": None,
+        "evidence_quote": None,
+    }
+    with pytest.raises(BrainValidationError, match="remote value conflicts"):
+        validate_facts(remote_only_facts(True, quote), quote)
 
 
 @pytest.mark.parametrize("mutation", [

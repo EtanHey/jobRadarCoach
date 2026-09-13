@@ -88,6 +88,12 @@ def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     assert set(captured["schema"]["properties"]) == {
         "location", "remote", "seniority", "stack", "salary",
     }
+    assert set(captured["schema"]["properties"]["remote"]["properties"]) == {
+        "value", "evidence_quote"
+    }
+    assert captured["schema"]["properties"]["remote"]["required"] == [
+        "value", "evidence_quote"
+    ]
     assert not {"source", "external_id", "url", "title", "company", "status"} & set(
         captured["schema"]["properties"]
     )
@@ -95,7 +101,7 @@ def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     assert json.dumps(RAW_JD, ensure_ascii=True) in captured["prompt"]
     assert first == second
     assert first["facts"] == facts()
-    assert first["extractor_version"] == core.EXTRACTOR_VERSION
+    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.4"
     assert first["schema_sha256"] == core.EXTRACTION_SCHEMA_SHA256
     assert first["brain"] == "ollama"
     assert first["model"] == "qwen2.5:7b-instruct"
@@ -123,17 +129,61 @@ def test_remote_prompt_requires_same_quote_support_or_null() -> None:
     prompt = core._prompt(RAW_JD)
 
     assert (
-        "Remote true requires the same exact evidence_quote to contain explicit "
-        "remote/remotely wording that applies to this role."
+        "For remote, use an exact evidence_quote with explicit remote/remotely "
+        "wording that applies to this role, or explicit onsite, office-based, or "
+        "negated-remote wording."
     ) in prompt
     assert (
-        "Remote false requires that quote to contain explicit onsite, office-based, "
-        "or negated-remote wording."
+        "The application derives remote.value from that quote; return the matching "
+        "boolean required by the schema, but do not choose it independently."
     ) in prompt
     assert (
-        "Otherwise return null; never cite a different passage or infer remote "
-        "status from flexibility."
+        "If there is no supporting quote, return both remote fields as null."
     ) in prompt
+
+
+@pytest.mark.parametrize(("raw_jd", "quote"), [
+    (
+        "This role offers flexible hours. " + "Engineering ownership and collaboration. " * 2,
+        "flexible hours",
+    ),
+    (
+        "This is not a remote role. " + "Engineering ownership and collaboration. " * 2,
+        "remote role",
+    ),
+])
+def test_remote_without_self_supporting_quote_becomes_unknown(
+    raw_jd: str, quote: str
+) -> None:
+    candidate = facts()
+    for field in ("location", "seniority", "salary"):
+        candidate[field] = {"value": None, "evidence_quote": None}
+    candidate["stack"] = []
+    candidate["remote"] = {"value": True, "evidence_quote": quote}
+
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+
+    assert result["facts"]["remote"] == {"value": None, "evidence_quote": None}
+
+
+def test_remote_boolean_is_derived_from_its_quote() -> None:
+    candidate = facts()
+    candidate["remote"] = {"value": False, "evidence_quote": "Remote within Israel"}
+
+    result = core.extract_posting(posting(), {}, runner=runner_for(candidate))
+
+    assert result["facts"]["remote"] == {
+        "value": True,
+        "evidence_quote": "Remote within Israel",
+    }
+
+
+def test_non_source_remote_quote_still_fails_closed() -> None:
+    candidate = facts()
+    candidate["remote"] = {"value": True, "evidence_quote": "Fully remote anywhere"}
+
+    with pytest.raises(BrainValidationError, match="unknown remote cannot cite evidence"):
+        core.extract_posting(posting(), {}, runner=runner_for(candidate))
 
 
 def test_prompt_injection_cannot_expand_the_output_contract() -> None:

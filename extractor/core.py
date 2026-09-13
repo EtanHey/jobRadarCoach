@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections.abc import Callable, Mapping
 
-from extractor.evidence import validate_facts
+from extractor.evidence import derive_remote_fact, validate_facts
 from scraper.brain import (
     BrainConfigurationError,
     BrainRequest,
@@ -15,7 +15,7 @@ from scraper.brain import (
     run_brain,
 )
 
-EXTRACTOR_VERSION = "1.3"
+EXTRACTOR_VERSION = "1.4"
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
 MAX_REQUEST_TIMEOUT_SECONDS = 120
@@ -91,9 +91,9 @@ def _prompt(raw_jd: str) -> str:
         "Be complete: use one stack item per named technology; include explicit seniority terms.",
         "Every non-null fact needs a short exact contiguous evidence_quote from the job description.",
         "For string facts, copy the value text from that evidence quote.",
-        "Remote true requires the same exact evidence_quote to contain explicit remote/remotely wording that applies to this role.",
-        "Remote false requires that quote to contain explicit onsite, office-based, or negated-remote wording.",
-        "Otherwise return null; never cite a different passage or infer remote status from flexibility.",
+        "For remote, use an exact evidence_quote with explicit remote/remotely wording that applies to this role, or explicit onsite, office-based, or negated-remote wording.",
+        "The application derives remote.value from that quote; return the matching boolean required by the schema, but do not choose it independently.",
+        "If there is no supporting quote, return both remote fields as null.",
         "Return only JSON matching the supplied schema.",
         "UNTRUSTED_JOB_DESCRIPTION_JSON:",
         json.dumps(raw_jd, ensure_ascii=True),
@@ -144,6 +144,9 @@ def extract_posting(
     if not isinstance(result, BrainResult):
         raise BrainResponseError("brain runner must return BrainResult")
     facts = result.data
+    remote = facts.get("remote")
+    if isinstance(remote, dict):
+        facts["remote"] = derive_remote_fact(remote.get("evidence_quote"), raw_jd)
     validate_facts(facts, raw_jd)
     jd_sha256 = hashlib.sha256(raw_bytes).hexdigest()
     return {
