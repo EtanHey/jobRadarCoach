@@ -110,7 +110,7 @@ export function JobDescription({ text }: { text: string | null }) {
         return <h3 key={index} dir="auto" className={`${size} font-semibold text-foreground`}><Inline text={block.text} /></h3>;
       }
       if (block.kind === "list") {
-        return <ul key={index} className="list-disc space-y-1 pl-5">
+        return <ul key={index} className="list-disc space-y-1 px-5">
           {block.items.map((item, itemIndex) => <li key={itemIndex} dir="auto"><Inline text={item} /></li>)}
         </ul>;
       }
