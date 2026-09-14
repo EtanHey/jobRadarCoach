@@ -107,14 +107,14 @@ export function JobDescription({ text }: { text: string | null }) {
     {parseDescriptionBlocks(text).map((block, index) => {
       if (block.kind === "heading") {
         const size = block.level <= 2 ? "text-base" : "text-sm";
-        return <h3 key={index} className={`${size} font-semibold text-foreground`}><Inline text={block.text} /></h3>;
+        return <h3 key={index} dir="auto" className={`${size} font-semibold text-foreground`}><Inline text={block.text} /></h3>;
       }
       if (block.kind === "list") {
         return <ul key={index} className="list-disc space-y-1 pl-5">
-          {block.items.map((item, itemIndex) => <li key={itemIndex}><Inline text={item} /></li>)}
+          {block.items.map((item, itemIndex) => <li key={itemIndex} dir="auto"><Inline text={item} /></li>)}
         </ul>;
       }
-      return <p key={index} className="whitespace-pre-line"><Inline text={block.text} /></p>;
+      return <p key={index} dir="auto" className="whitespace-pre-line"><Inline text={block.text} /></p>;
     })}
   </div>;
 }

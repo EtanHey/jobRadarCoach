@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   isSafeDescriptionUrl,
+  JobDescription,
   parseDescriptionBlocks,
   parseDescriptionInline,
 } from "../components/job-description";
@@ -40,6 +41,19 @@ test("raw HTML and unmatched Markdown remain text", () => {
   assert.deepEqual(parseDescriptionInline("<script>alert(1)</script> **open"), [
     { kind: "text", text: "<script>alert(1)</script> **open" },
   ]);
+});
+
+test("each rendered description block uses browser bidi auto-direction", () => {
+  const rendered = JobDescription({
+    text: "Hebrew stays here\n\nעברית עם Full-Stack ו-LLMs\n\n- English-first item עם עברית\n- פריט בעברית עם API",
+  });
+  const blocks = rendered.props.children as Array<{ props: { dir?: string; children?: unknown } }>;
+
+  assert.equal(blocks[0].props.dir, "auto");
+  assert.equal(blocks[1].props.dir, "auto");
+  const listItems = (blocks[2].props.children as Array<{ props: { dir?: string } }>);
+  assert.equal(listItems[0].props.dir, "auto");
+  assert.equal(listItems[1].props.dir, "auto");
 });
 
 
