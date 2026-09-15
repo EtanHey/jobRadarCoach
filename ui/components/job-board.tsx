@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
@@ -11,6 +12,8 @@ import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
+import { StatusSelect } from "./status-select";
+import { buttonVariants } from "./ui/button";
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
   const response = await fetch(path, { cache: "no-store", ...options });
@@ -38,8 +41,6 @@ export function JobBoard() {
   const [detailError, setDetailError] = useState("");
   const [detailRevision, setDetailRevision] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [reason, setReason] = useState("");
-  const [rejecting, setRejecting] = useState(false);
   const [revision, setRevision] = useState(0);
   const [connection, setConnection] = useState("Connecting live updates…");
   const [detailCoordinator] = useState(createDetailCoordinator);
@@ -63,7 +64,7 @@ export function JobBoard() {
     detailCoordinator.select(id);
     setSelected(id);
     // Keep the previous body intact during the sheet closing transition.
-    if (id !== null) { setDetail(null); setDetailError(""); setRejecting(false); setReason(""); }
+    if (id !== null) { setDetail(null); setDetailError(""); }
   }
   function retryDetail() {
     if (!selected || saving) return;
@@ -233,7 +234,6 @@ export function JobBoard() {
       if (identity.id === id && detailCoordinator.commitMutation(identity)) {
         detailRequestRef.current?.abort();
         setDetail((current) => current?.id === id ? { ...current, status: result.status, status_reason: result.reason } : current);
-        setRejecting(false);
       }
       visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
       setJobs((current) => updateJobStatus(current, id, result.status, result.reason));
@@ -265,6 +265,19 @@ export function JobBoard() {
       <JobsPanel {...{filter, jobs, groups, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} search={view.search} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
-    <JobDrawer retryDetail={retryDetail} selectedJob={jobs.find((job) => job.id === selected)} {...{selected, relatedJobs, openerRef, selectJob, detail, detailError, saving, rejecting, reason, setReason, setRejecting, changeStatus}} />
+    <JobDrawer
+      retryDetail={retryDetail}
+      retryDisabled={saving || selected === null}
+      selectedJob={jobs.find((job) => job.id === selected)}
+      {...{selected, relatedJobs, openerRef, selectJob, detail, detailError}}
+      actions={detail ? <>
+        <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <StatusSelect key={detail.id} job={detail} saving={saving || selected === null} changeStatus={changeStatus} />
+          <a className={buttonVariants({className:"w-fit"})} href={detail.apply_url ?? detail.url} target="_blank" rel="noopener noreferrer">Apply on company site <ArrowUpRight aria-hidden="true" /></a>
+        </div>
+        {detail.status_reason && <p className="text-xs text-muted-foreground">Status reason: {detail.status_reason}</p>}
+      </> : undefined}
+    />
   </div>;
 }
