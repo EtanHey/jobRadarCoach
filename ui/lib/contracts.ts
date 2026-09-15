@@ -6,7 +6,7 @@ const nonblank = text.trim().min(1).max(2_000);
 const stringList = z.array(text.trim().min(1).max(200)).max(100);
 const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL(value).protocol));
 
-export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
+export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "skipped", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
 export const AvailabilitySchema = z.enum(["active", "inactive", "all"]);
 // PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
@@ -71,13 +71,14 @@ export const JobDetailSchema = JobSummarySchema.extend({
 }).strict();
 
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
+const filterStatus = JobStatusSchema.exclude(["skipped"]);
 export const JobListQuerySchema = z.object({
-  filter: z.enum(["all", "new-for-me", ...JobStatusSchema.options]),
+  filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),
   limit,
 }).strict();
 
-const ordinaryStatus = JobStatusSchema.exclude(["seen", "rejected", "not_relevant"]);
+const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);
 const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);
 export const StatusPatchSchema = z.discriminatedUnion("status", [
   z.object({ status: ordinaryStatus }).strict(),
