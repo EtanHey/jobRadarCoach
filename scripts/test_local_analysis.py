@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import threading
 from uuid import uuid4
 
 import pytest
@@ -64,6 +65,31 @@ def test_scoring_failure_does_not_discard_valid_embedding(monkeypatch) -> None:
     with pytest.raises(RuntimeError, match="score failed"):
         local_analysis._run_stage(object(), "score", POSTING_ID, 30)
     assert stored == [True]
+
+
+def test_scoring_and_lease_do_not_wait_for_embedding_timeout(monkeypatch) -> None:
+    release = threading.Event()
+    finished = threading.Event()
+    timeout_logged = threading.Event()
+    monkeypatch.setattr(local_analysis, "EMBEDDING_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(local_analysis.job_embeddings, "capture_posting", lambda *_: object())
+
+    def embed(*_args):
+        release.wait(1)
+        finished.set()
+        return "stored"
+
+    monkeypatch.setattr(local_analysis.job_embeddings, "embed_prepared", embed)
+    monkeypatch.setattr(local_analysis.classifier_job, "run_batch", lambda *_a, **_k: 0)
+    monkeypatch.setattr(
+        local_analysis, "_log",
+        lambda **fields: timeout_logged.set() if fields.get("outcome") == "timeout" else None,
+    )
+
+    assert local_analysis._run_stage(object(), "score", POSTING_ID, 30) == 0
+    assert timeout_logged.wait(0.2)
+    release.set()
+    assert finished.wait(0.2)
 
 
 def test_remote_url_skips_embedding_but_preserves_scoring(monkeypatch, tmp_path, capsys) -> None:

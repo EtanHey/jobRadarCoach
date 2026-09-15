@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import fcntl
 import json
 import os
 from pathlib import Path
 import re
+import threading
 from uuid import uuid4
 
 from classifier import job as classifier_job
@@ -21,6 +21,8 @@ STAGES = ("extract", "score")
 MAX_ITEMS = 30
 MAX_SCAN = 1000
 FAILURE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
+EMBEDDING_TIMEOUT_SECONDS = 30.0
+_embedding_slot = threading.BoundedSemaphore(1)
 
 
 def _log(**fields: object) -> None:
@@ -76,6 +78,40 @@ def _candidate_ids(connection, stage: str) -> list[str]:
     return list_scoring_candidates(connection, limit=MAX_SCAN, claimable_stage="score")
 
 
+def _start_embedding(prepared, posting_id: str) -> None:
+    if not _embedding_slot.acquire(blocking=False):
+        _log(event="embedding", posting_id=posting_id, outcome="skipped_busy")
+        return
+    lock = threading.Lock()
+    settled = False
+
+    def report(**fields: object) -> None:
+        nonlocal settled
+        with lock:
+            if settled:
+                return
+            settled = True
+        _log(event="embedding", posting_id=posting_id, **fields)
+
+    timer = threading.Timer(
+        EMBEDDING_TIMEOUT_SECONDS, lambda: report(outcome="timeout")
+    )
+    timer.daemon = True
+
+    def work() -> None:
+        try:
+            report(outcome=job_embeddings.embed_prepared(prepared))
+        except Exception as error:
+            report(outcome="failed", failure="EmbeddingFailed", detail=type(error).__name__)
+        finally:
+            timer.cancel()
+            _embedding_slot.release()
+
+    worker = threading.Thread(target=work, name="jrc-embedding", daemon=True)
+    timer.start()
+    worker.start()
+
+
 def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
                *, embeddings_enabled: bool = True) -> int:
     settings = {
@@ -92,19 +128,10 @@ def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
         prepared = None
         _log(event="embedding", posting_id=posting_id, outcome="failed",
              failure=type(error).__name__)
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(job_embeddings.embed_prepared, prepared) if prepared else None
-        try:
-            return runner(connection, limit=1, timeout_seconds=timeout_seconds,
-                          posting_ids=(posting_id,), env=settings)
-        finally:
-            if future:
-                try:
-                    outcome = future.result()
-                    _log(event="embedding", posting_id=posting_id, outcome=outcome)
-                except Exception as error:
-                    _log(event="embedding", posting_id=posting_id, outcome="failed",
-                         failure="EmbeddingFailed", detail=type(error).__name__)
+    if prepared:
+        _start_embedding(prepared, posting_id)
+    return runner(connection, limit=1, timeout_seconds=timeout_seconds,
+                  posting_ids=(posting_id,), env=settings)
 
 
 def run_cycle(connection, *, max_items: int, timeout_seconds: float,
