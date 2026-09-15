@@ -77,6 +77,11 @@ def _connect(path: Path) -> sqlite3.Connection:
     return connection
 
 
+def ensure_store(path: Path | None = None) -> None:
+    with _connect(default_path() if path is None else path):
+        pass
+
+
 def _key(prepared: PreparedEmbedding) -> tuple[str, str, str, str]:
     return (prepared.posting_id, prepared.content_sha256, prepared.model_id, prepared.model_revision)
 

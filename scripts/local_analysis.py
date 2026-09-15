@@ -112,6 +112,38 @@ def _start_embedding(prepared, posting_id: str) -> None:
     worker.start()
 
 
+def _run_embedding_scan(connection, limit: int) -> None:
+    if not _embedding_slot.acquire(blocking=False):
+        _log(event="embedding_scan", outcome="skipped_busy")
+        return
+    result = {}
+
+    def work() -> None:
+        try:
+            result["counts"] = job_embeddings.embed_missing(
+                connection, limit=limit,
+                on_failure=lambda posting_id, failure: _log(
+                    event="embedding_scan_item", posting_id=posting_id,
+                    outcome="failed", failure=failure,
+                ),
+            )
+        except Exception as error:
+            result["error"] = type(error).__name__
+        finally:
+            _embedding_slot.release()
+
+    worker = threading.Thread(target=work, name="jrc-embedding-scan", daemon=True)
+    worker.start()
+    worker.join(timeout=EMBEDDING_TIMEOUT_SECONDS)
+    if worker.is_alive():
+        _log(event="embedding_scan", outcome="timeout")
+    elif "error" in result:
+        _log(event="embedding_scan", embedded=0, failed=1, failure=result["error"])
+    else:
+        embedded, failed = result["counts"]
+        _log(event="embedding_scan", embedded=embedded, failed=failed)
+
+
 def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
                *, embeddings_enabled: bool = True) -> int:
     settings = {
@@ -181,18 +213,7 @@ def run_cycle(connection, *, max_items: int, timeout_seconds: float,
                 failure = "LeaseLost"
             _log(event="deferred", stage=stage, posting_id=posting_id, failure=failure)
     if embeddings_enabled:
-        try:
-            embedded, embedding_failed = job_embeddings.embed_missing(
-                connection, limit=max_items,
-                on_failure=lambda posting_id, failure: _log(
-                    event="embedding_scan_item", posting_id=posting_id,
-                    outcome="failed", failure=failure,
-                ),
-            )
-            _log(event="embedding_scan", embedded=embedded, failed=embedding_failed)
-        except Exception as error:
-            _log(event="embedding_scan", embedded=0, failed=1,
-                 failure=type(error).__name__)
+        _run_embedding_scan(connection, max_items)
     _log(event="summary", attempted=attempted, failed=failed)
     return 1 if failed else 0
 
@@ -226,6 +247,13 @@ def main() -> int:
             _log(event="summary", attempted=0, failed=0, outcome="already_running")
             return 0
         try:
+            if embeddings_enabled:
+                try:
+                    job_embeddings.ensure_store()
+                except Exception as error:
+                    embeddings_enabled = False
+                    _log(event="embedding", outcome="failed",
+                         failure=type(error).__name__)
             import psycopg
             with psycopg.connect(database_url, autocommit=True) as connection:
                 return run_cycle(connection, max_items=args.max_items,
