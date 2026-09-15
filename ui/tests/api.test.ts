@@ -294,7 +294,7 @@ test("missing server configuration is returned as a safe unavailable response", 
 
 
 test("every pipeline state filters and saves, preserving rejection wording", async () => {
-  for (const status of JobStatusSchema.options) {
+  for (const status of JobStatusSchema.options.filter((value) => value !== "skipped")) {
     const reason = status === "rejected" || status === "not_relevant" ? "  Exact owner wording  " : undefined;
     const response = await makePatchStatus(store())(mutation(`/api/jobs/${ID}/status`, {status, ...(reason ? {reason} : {})}), {params:Promise.resolve({id:ID})});
     assert.equal(response.status, 200, status);

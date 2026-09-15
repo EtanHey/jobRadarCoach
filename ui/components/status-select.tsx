@@ -10,7 +10,7 @@ export function StatusSelect({job, saving, changeStatus}: {job: JobDetail; savin
   const [rejecting, setRejecting] = useState(false);
   function choose(value: string) {
     if (value === "rejected") { setReason(job.status === "rejected" ? job.status_reason ?? "" : ""); setRejecting(true); }
-    else { setRejecting(false); void changeStatus({status: value as Exclude<JobStatus, "rejected">}); }
+    else { setRejecting(false); void changeStatus({status: value as Exclude<JobStatus, "rejected" | "skipped">}); }
   }
   return <fieldset disabled={saving} className="min-w-0"><AppSelect label="Application status" value={job.status} options={statusOptions} onValueChange={choose} />
     {job.status === "rejected" && !rejecting && <button type="button" className="mt-2 text-xs underline" onClick={() => choose("rejected")}>Edit rejection reason</button>}

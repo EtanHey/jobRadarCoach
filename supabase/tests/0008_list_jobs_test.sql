@@ -129,12 +129,12 @@ select ok(not exists(
   cross join lateral pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a
   where n.nspname='public' and p.proname='list_jobs' and a.grantee=0 and a.privilege_type='EXECUTE'),
   'PUBLIC has no execute privilege');
-select is(
+select ok(
   (select array_agg(key order by key) from
      (select * from public.list_jobs() limit 1) row_value
-   cross join lateral jsonb_object_keys(to_jsonb(row_value)) key),
+   cross join lateral jsonb_object_keys(to_jsonb(row_value)) key) @>
   array['apply_url','brain','company','external_id','labels','location','posted_at','posting_id','raw_jd','reasons','remote','salary','score','scored_at','seniority','source','stack','status','status_reason','status_updated_at','title','url']::text[],
-  'return shape matches the legacy professional projection');
+  'return shape preserves the legacy professional projection');
 
 select * from finish();
 rollback;

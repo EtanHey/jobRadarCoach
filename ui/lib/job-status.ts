@@ -6,9 +6,10 @@ export const pipelineStatusValues = [
 ] as const;
 export type PipelineStatus = typeof pipelineStatusValues[number];
 export const statusLabels: Record<JobStatus, string> = {
-  new: "New", seen: "Seen", worth_checking: "Worth checking", applied: "Applied", screen: "Screen",
+  new: "New", seen: "Seen", worth_checking: "Worth checking", skipped: "Skipped", applied: "Applied", screen: "Screen",
   interview_technical: "Technical interview", interview_final: "Final interview", offer: "Offer",
   contract: "Contract", rejected: "Rejected", archived: "Archived", not_relevant: "Not relevant",
 };
-export const statusOptions = JobStatusSchema.options.map((value) => ({value, label: statusLabels[value]}));
+export const statusOptions = JobStatusSchema.options.filter((value) => value !== "skipped")
+  .map((value) => ({value, label: statusLabels[value]}));
 export const pipelineStatusOptions = pipelineStatusValues.map((value) => ({ value, label: statusLabels[value] }));
