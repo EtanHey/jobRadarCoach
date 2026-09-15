@@ -12,6 +12,9 @@ dependencies = [
   "psycopg[binary]==3.3.5",
 ]
 
+[project.optional-dependencies]
+embeddings = ["sentence-transformers==5.2.2"]
+
 [project.scripts]
 jrc-analysis-worker = "scripts.local_analysis:main"
 jrc-analysis-supervisor = "scripts.local_analysis_supervisor:main"
@@ -20,6 +23,7 @@ jrc-analysis-supervisor = "scripts.local_analysis_supervisor:main"
 include-package-data = false
 py-modules = [
   "classifier.core",
+  "classifier.embeddings",
   "classifier.job",
   "classifier.persistence",
   "classifier.projection",

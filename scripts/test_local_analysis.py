@@ -38,6 +38,69 @@ def test_failed_item_is_deferred_without_a_tight_retry(monkeypatch, capsys) -> N
     assert records[-1] == {"attempted": 1, "event": "summary", "failed": 1}
 
 
+def test_embedding_failure_does_not_block_scoring(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(local_analysis.job_embeddings, "capture_posting", lambda *_: object())
+    monkeypatch.setattr(
+        local_analysis.job_embeddings, "embed_prepared",
+        lambda *_: (_ for _ in ()).throw(RuntimeError("embedding failed")),
+    )
+    monkeypatch.setattr(local_analysis.classifier_job, "run_batch", lambda *_a, **_k: 0)
+
+    assert local_analysis._run_stage(object(), "score", POSTING_ID, 30) == 0
+    assert "EmbeddingFailed" in capsys.readouterr().out
+
+
+def test_scoring_failure_does_not_discard_valid_embedding(monkeypatch) -> None:
+    stored = []
+    monkeypatch.setattr(local_analysis.job_embeddings, "capture_posting", lambda *_: object())
+    monkeypatch.setattr(
+        local_analysis.job_embeddings, "embed_prepared", lambda *_: stored.append(True) or "stored",
+    )
+    monkeypatch.setattr(
+        local_analysis.classifier_job, "run_batch",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("score failed")),
+    )
+
+    with pytest.raises(RuntimeError, match="score failed"):
+        local_analysis._run_stage(object(), "score", POSTING_ID, 30)
+    assert stored == [True]
+
+
+def test_remote_url_skips_embedding_but_preserves_scoring(monkeypatch, tmp_path, capsys) -> None:
+    lock = tmp_path / "analysis.lock"
+    score_calls = []
+    claims = iter([1, None])
+    monkeypatch.setenv("DATABASE_URL", "postgresql://analysis@db.example.test/jobs")
+    monkeypatch.setattr("sys.argv", ["local-analysis", "--lock-file", str(lock)])
+    monkeypatch.setattr(
+        psycopg, "connect",
+        lambda *_a, **_k: __import__("contextlib").nullcontext(object()),
+    )
+    monkeypatch.setattr(
+        local_analysis, "_candidate_ids",
+        lambda _connection, stage: [POSTING_ID] if stage == "score" else [],
+    )
+    monkeypatch.setattr(local_analysis, "claim", lambda *_args: next(claims))
+    monkeypatch.setattr(local_analysis, "complete", lambda *_args: True)
+    monkeypatch.setattr(
+        local_analysis.classifier_job, "run_batch",
+        lambda *_a, **_k: score_calls.append(True) or 0,
+    )
+    def fail_embedding(*_args, **_kwargs):
+        raise AssertionError("embedding must skip")
+
+    for name in ("capture_posting", "embed_prepared", "embed_missing"):
+        monkeypatch.setattr(
+            local_analysis.job_embeddings, name, fail_embedding,
+        )
+
+    assert local_analysis.main() == 0
+    assert score_calls == [True]
+    records = [__import__("json").loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert sum(record == {"event": "embedding", "outcome": "skipped_remote_db"}
+               for record in records) == 1
+
+
 def test_launcher_uses_native_credential_boundary_without_secret_in_argv() -> None:
     launcher = (Path(__file__).parent / "run_local_analysis.sh").read_text()
     supervisor = (Path(__file__).parent / "local_analysis_supervisor.py").read_text()
