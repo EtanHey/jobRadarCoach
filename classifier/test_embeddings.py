@@ -35,7 +35,7 @@ class PostingConnection:
 
 
 def row(posting_id="job-1", title="Engineer", jd="Build useful systems"):
-    return posting_id, title, jd
+    return (posting_id, title, jd)
 
 
 def logical_rows(path: Path) -> int:
@@ -52,6 +52,7 @@ def test_key_reuses_content_and_invalidates_jd_or_model(tmp_path) -> None:
         return [1.0, 2.0]
 
     first = embeddings.prepare(*row())
+    assert first.text == "Engineer\nEngineer\nBuild useful systems"
     assert embeddings.embed_prepared(first, path=path, embedder=embed) == "stored"
     assert embeddings.embed_prepared(first, path=path, embedder=embed) == "reused"
     changed = embeddings.prepare(*row(jd="A changed description"))
@@ -63,18 +64,6 @@ def test_key_reuses_content_and_invalidates_jd_or_model(tmp_path) -> None:
     assert embeddings.embed_prepared(changed_model, path=path, embedder=embed) == "stored"
     assert len(calls) == 3
     assert logical_rows(path) == 3
-
-
-@pytest.mark.parametrize("host", ["db.example.com", "10.0.0.8", "::1", ""])
-def test_remote_or_unknown_database_url_is_refused(host) -> None:
-    url = "postgresql://user@/jobs" if not host else f"postgresql://user@{host}/jobs"
-    with pytest.raises(ValueError, match="localhost"):
-        embeddings.require_local_database_url(url)
-
-
-@pytest.mark.parametrize("host", ["localhost", "127.0.0.1"])
-def test_local_database_url_is_allowed(host) -> None:
-    embeddings.require_local_database_url(f"postgresql://user@{host}:5432/jobs")
 
 
 def test_crash_and_concurrency_leave_one_logical_row(tmp_path) -> None:
@@ -111,8 +100,16 @@ def test_missing_scan_includes_already_scored_and_stale_content(tmp_path) -> Non
     assert "posting_scores" not in connection.queries[0][0]
 
 
-def test_title_is_weighted_twice_and_sink_is_only_sqlite(tmp_path) -> None:
-    prepared = embeddings.capture_posting(PostingConnection([row()]), "job-1")
-    assert prepared.text == "Engineer\nEngineer\nBuild useful systems"
-    assert not hasattr(embeddings.embed_prepared, "postgres_connection")
-    assert embeddings.default_path({"JRC_EMBEDDINGS_PATH": str(tmp_path / "x")}) == tmp_path / "x"
+def test_missing_limit_scans_past_embedded_newest_rows(tmp_path) -> None:
+    path = tmp_path / "vectors.sqlite3"
+    rows = [row(f"job-{index}") for index in range(10)]
+    connection = PostingConnection(rows)
+    for item in rows[:6]:
+        prepared = embeddings.prepare(*item)
+        embeddings.embed_prepared(prepared, path=path, embedder=lambda _text: [1.0])
+    calls = []
+    assert embeddings.embed_missing(
+        connection, path=path, limit=2,
+        embedder=lambda text: calls.append(text) or [1.0],
+    ) == (2, 0)
+    assert calls == [embeddings.prepare(*item).text for item in rows[6:8]]

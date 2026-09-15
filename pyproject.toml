@@ -10,8 +10,10 @@ requires-python = ">=3.11"
 dependencies = [
   "jsonschema==4.26.0",
   "psycopg[binary]==3.3.5",
-  "sentence-transformers==5.2.2",
 ]
+
+[project.optional-dependencies]
+embeddings = ["sentence-transformers==5.2.2"]
 
 [project.scripts]
 jrc-analysis-worker = "scripts.local_analysis:main"

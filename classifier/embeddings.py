@@ -32,17 +32,16 @@ class PreparedEmbedding:
 
 def require_local_database_url(database_url: str) -> None:
     parsed = urlsplit(database_url)
-    if parsed.scheme not in {"postgres", "postgresql"} or parsed.hostname not in {
-        "localhost", "127.0.0.1",
-    }:
+    if (parsed.scheme not in {"postgres", "postgresql"}
+            or parsed.hostname not in {"localhost", "127.0.0.1"}):
         raise ValueError("DATABASE_URL must use localhost or 127.0.0.1")
 
 
 def default_path(environment: Mapping[str, str] = os.environ) -> Path:
     configured = environment.get("JRC_EMBEDDINGS_PATH", "").strip()
-    return Path(configured).expanduser() if configured else (
-        Path.home() / ".local/share/jobradar-coach/job-embeddings.sqlite3"
-    )
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".local/share/jobradar-coach/job-embeddings.sqlite3"
 
 
 def prepare(posting_id: str, title: str, raw_jd: str) -> PreparedEmbedding:
@@ -79,10 +78,7 @@ def _connect(path: Path) -> sqlite3.Connection:
 
 
 def _key(prepared: PreparedEmbedding) -> tuple[str, str, str, str]:
-    return (
-        prepared.posting_id, prepared.content_sha256,
-        prepared.model_id, prepared.model_revision,
-    )
+    return (prepared.posting_id, prepared.content_sha256, prepared.model_id, prepared.model_revision)
 
 
 def _exists(connection: sqlite3.Connection, prepared: PreparedEmbedding) -> bool:
@@ -109,8 +105,7 @@ def _load_model():
 
 def embed_text(text: str) -> list[float]:
     vector = _load_model().encode(
-        [text], normalize_embeddings=True, convert_to_numpy=True,
-        show_progress_bar=False,
+        [text], normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=False,
     )[0]
     return [float(value) for value in vector]
 
@@ -142,20 +137,26 @@ def list_missing(connection, *, path: Path | None = None, limit: int = MAX_SCAN)
     rows = connection.execute(
         "select p.id::text,p.title,p.raw_jd from public.postings p "
         "where p.raw_jd is not null and length(trim(p.raw_jd))>=80 "
-        "order by coalesce(p.posted_at,p.first_seen_at) desc,p.id limit %s", (limit,),
+        "order by coalesce(p.posted_at,p.first_seen_at) desc,p.id limit %s", (MAX_SCAN,),
     ).fetchall()
     prepared = [prepare(*row) for row in rows]
     sink = default_path() if path is None else path
     with _connect(sink) as sqlite:
-        return [item for item in prepared if not _exists(sqlite, item)]
+        return [item for item in prepared if not _exists(sqlite, item)][:limit]
 
 
-def embed_missing(connection, *, path: Path | None = None, limit: int = 6) -> tuple[int, int]:
+def embed_missing(
+    connection, *, path: Path | None = None, limit: int = 6,
+    embedder: Callable[[str], list[float]] = embed_text,
+    on_failure: Callable[[str, str], None] | None = None,
+) -> tuple[int, int]:
     stored = failed = 0
     for prepared in list_missing(connection, path=path, limit=limit):
         try:
-            embed_prepared(prepared, path=path)
+            embed_prepared(prepared, path=path, embedder=embedder)
             stored += 1
-        except Exception:
+        except Exception as error:
             failed += 1
+            if on_failure:
+                on_failure(prepared.posting_id, type(error).__name__)
     return stored, failed
