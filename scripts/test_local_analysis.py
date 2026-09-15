@@ -38,6 +38,44 @@ def test_failed_item_is_deferred_without_a_tight_retry(monkeypatch, capsys) -> N
     assert records[-1] == {"attempted": 1, "event": "summary", "failed": 1}
 
 
+def test_embedding_failure_does_not_block_scoring(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(local_analysis.job_embeddings, "capture_posting", lambda *_: object())
+    monkeypatch.setattr(
+        local_analysis.job_embeddings, "embed_prepared",
+        lambda *_: (_ for _ in ()).throw(RuntimeError("embedding failed")),
+    )
+    monkeypatch.setattr(local_analysis.classifier_job, "run_batch", lambda *_a, **_k: 0)
+
+    assert local_analysis._run_stage(object(), "score", POSTING_ID, 30) == 0
+    assert "EmbeddingFailed" in capsys.readouterr().out
+
+
+def test_scoring_failure_does_not_discard_valid_embedding(monkeypatch) -> None:
+    stored = []
+    monkeypatch.setattr(local_analysis.job_embeddings, "capture_posting", lambda *_: object())
+    monkeypatch.setattr(
+        local_analysis.job_embeddings, "embed_prepared", lambda *_: stored.append(True) or "stored",
+    )
+    monkeypatch.setattr(
+        local_analysis.classifier_job, "run_batch",
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("score failed")),
+    )
+
+    with pytest.raises(RuntimeError, match="score failed"):
+        local_analysis._run_stage(object(), "score", POSTING_ID, 30)
+    assert stored == [True]
+
+
+def test_main_refuses_remote_url_before_creating_lock(monkeypatch, tmp_path, capsys) -> None:
+    lock = tmp_path / "should-not-exist.lock"
+    monkeypatch.setenv("DATABASE_URL", "postgresql://analysis@db.example.test/jobs")
+    monkeypatch.setattr("sys.argv", ["local-analysis", "--lock-file", str(lock)])
+
+    assert local_analysis.main() == 1
+    assert not lock.exists()
+    assert '"failure":"RemoteDatabaseURL"' in capsys.readouterr().out
+
+
 def test_launcher_uses_native_credential_boundary_without_secret_in_argv() -> None:
     launcher = (Path(__file__).parent / "run_local_analysis.sh").read_text()
     supervisor = (Path(__file__).parent / "local_analysis_supervisor.py").read_text()

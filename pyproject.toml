@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
   "jsonschema==4.26.0",
   "psycopg[binary]==3.3.5",
+  "sentence-transformers==5.2.2",
 ]
 
 [project.scripts]
@@ -20,6 +21,7 @@ jrc-analysis-supervisor = "scripts.local_analysis_supervisor:main"
 include-package-data = false
 py-modules = [
   "classifier.core",
+  "classifier.embeddings",
   "classifier.job",
   "classifier.persistence",
   "classifier.projection",

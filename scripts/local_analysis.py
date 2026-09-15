@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import fcntl
 import json
 import os
@@ -12,6 +13,7 @@ import re
 from uuid import uuid4
 
 from classifier import job as classifier_job
+from classifier import embeddings as job_embeddings
 from classifier.persistence import list_scoring_candidates
 from extractor import job as extractor_job
 
@@ -80,8 +82,28 @@ def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float) 
         "CODEX_MODEL": "gpt-5.6-luna" if stage == "extract" else "gpt-5.6-terra",
     }
     runner = extractor_job.run_batch if stage == "extract" else classifier_job.run_batch
-    return runner(connection, limit=1, timeout_seconds=timeout_seconds,
-                  posting_ids=(posting_id,), env=settings)
+    if stage != "score":
+        return runner(connection, limit=1, timeout_seconds=timeout_seconds,
+                      posting_ids=(posting_id,), env=settings)
+    try:
+        prepared = job_embeddings.capture_posting(connection, posting_id)
+    except Exception as error:
+        prepared = None
+        _log(event="embedding", posting_id=posting_id, outcome="failed",
+             failure=type(error).__name__)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(job_embeddings.embed_prepared, prepared) if prepared else None
+        try:
+            return runner(connection, limit=1, timeout_seconds=timeout_seconds,
+                          posting_ids=(posting_id,), env=settings)
+        finally:
+            if future:
+                try:
+                    outcome = future.result()
+                    _log(event="embedding", posting_id=posting_id, outcome=outcome)
+                except Exception as error:
+                    _log(event="embedding", posting_id=posting_id, outcome="failed",
+                         failure="EmbeddingFailed", detail=type(error).__name__)
 
 
 def run_cycle(connection, *, max_items: int, timeout_seconds: float,
@@ -124,6 +146,14 @@ def run_cycle(connection, *, max_items: int, timeout_seconds: float,
             if not defer(connection, stage, posting_id, worker_id, failure):
                 failure = "LeaseLost"
             _log(event="deferred", stage=stage, posting_id=posting_id, failure=failure)
+    try:
+        embedded, embedding_failed = job_embeddings.embed_missing(
+            connection, limit=max_items,
+        )
+        _log(event="embedding_scan", embedded=embedded, failed=embedding_failed)
+    except Exception as error:
+        _log(event="embedding_scan", embedded=0, failed=1,
+             failure=type(error).__name__)
     _log(event="summary", attempted=attempted, failed=failed)
     return 1 if failed else 0
 
@@ -142,6 +172,11 @@ def main() -> int:
     database_url = os.environ.get("DATABASE_URL", "").strip()
     if not database_url:
         _log(event="summary", attempted=0, failed=1, failure="MissingDatabaseURL")
+        return 1
+    try:
+        job_embeddings.require_local_database_url(database_url)
+    except ValueError:
+        _log(event="summary", attempted=0, failed=1, failure="RemoteDatabaseURL")
         return 1
     os.umask(0o077)
     args.lock_file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
