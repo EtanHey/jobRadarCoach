@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import threading
+import time
 from uuid import uuid4
 
 import pytest
@@ -64,6 +66,80 @@ def test_scoring_failure_does_not_discard_valid_embedding(monkeypatch) -> None:
     with pytest.raises(RuntimeError, match="score failed"):
         local_analysis._run_stage(object(), "score", POSTING_ID, 30)
     assert stored == [True]
+
+
+def test_scoring_and_lease_do_not_wait_for_embedding_timeout(monkeypatch) -> None:
+    release = threading.Event()
+    finished = threading.Event()
+    timeout_logged = threading.Event()
+    monkeypatch.setattr(local_analysis, "EMBEDDING_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(local_analysis.job_embeddings, "capture_posting", lambda *_: object())
+
+    def embed(*_args):
+        release.wait(1)
+        finished.set()
+        return "stored"
+
+    monkeypatch.setattr(local_analysis.job_embeddings, "embed_prepared", embed)
+    monkeypatch.setattr(local_analysis.classifier_job, "run_batch", lambda *_a, **_k: 0)
+    monkeypatch.setattr(
+        local_analysis, "_log",
+        lambda **fields: timeout_logged.set() if fields.get("outcome") == "timeout" else None,
+    )
+
+    assert local_analysis._run_stage(object(), "score", POSTING_ID, 30) == 0
+    assert timeout_logged.wait(0.2)
+    release.set()
+    assert finished.wait(0.2)
+    assert local_analysis._embedding_slot.acquire(timeout=0.2)
+    local_analysis._embedding_slot.release()
+
+
+def test_hung_backfill_scan_times_out_without_holding_cycle(monkeypatch) -> None:
+    release = threading.Event()
+    finished = threading.Event()
+    records = []
+    monkeypatch.setattr(local_analysis, "EMBEDDING_TIMEOUT_SECONDS", 0.01)
+    monkeypatch.setattr(local_analysis, "_candidate_ids", lambda *_: [])
+
+    def embed_missing(*_args, **_kwargs):
+        release.wait(1)
+        finished.set()
+        return 0, 0
+
+    monkeypatch.setattr(local_analysis.job_embeddings, "embed_missing", embed_missing)
+    monkeypatch.setattr(local_analysis, "_log", lambda **fields: records.append(fields))
+    started = time.monotonic()
+    assert local_analysis.run_cycle(
+        object(), max_items=1, timeout_seconds=30, lease_seconds=90,
+        worker_id=str(uuid4()),
+    ) == 0
+    assert time.monotonic() - started < 0.2
+    assert {"event": "embedding_scan", "outcome": "timeout"} in records
+    release.set()
+    assert finished.wait(0.2)
+    assert local_analysis._embedding_slot.acquire(timeout=0.2)
+    local_analysis._embedding_slot.release()
+
+
+def test_local_main_initializes_sink_before_cycle(monkeypatch, tmp_path) -> None:
+    events = []
+    monkeypatch.setenv("DATABASE_URL", "postgresql://analysis@localhost/jobs")
+    monkeypatch.setattr("sys.argv", ["local-analysis", "--lock-file", str(tmp_path / "lock")])
+    monkeypatch.setattr(
+        psycopg, "connect",
+        lambda *_a, **_k: __import__("contextlib").nullcontext(object()),
+    )
+    monkeypatch.setattr(
+        local_analysis.job_embeddings, "ensure_store", lambda: events.append("schema"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        local_analysis, "run_cycle", lambda *_a, **_k: events.append("cycle") or 0,
+    )
+
+    assert local_analysis.main() == 0
+    assert events == ["schema", "cycle"]
 
 
 def test_remote_url_skips_embedding_but_preserves_scoring(monkeypatch, tmp_path, capsys) -> None:

@@ -31,7 +31,8 @@ class PostingConnection:
         if "where p.id = %s" in query:
             wanted = params[0]
             return Rows([row for row in self.rows if row[0] == wanted])
-        return Rows(self.rows)
+        limit = params[-1] if "limit %s" in query else len(self.rows)
+        return Rows(self.rows[:limit])
 
 
 def row(posting_id="job-1", title="Engineer", jd="Build useful systems"):
@@ -64,6 +65,14 @@ def test_key_reuses_content_and_invalidates_jd_or_model(tmp_path) -> None:
     assert embeddings.embed_prepared(changed_model, path=path, embedder=embed) == "stored"
     assert len(calls) == 3
     assert logical_rows(path) == 3
+
+
+def test_database_url_predicate() -> None:
+    for host in ("localhost", "127.0.0.1"):
+        embeddings.require_local_database_url(f"postgresql://user@{host}/jobs")
+    for url in ("postgresql://user@remote/jobs", "postgresql://user@[::1]/jobs", ""):
+        with pytest.raises(ValueError, match="localhost"):
+            embeddings.require_local_database_url(url)
 
 
 def test_crash_and_concurrency_leave_one_logical_row(tmp_path) -> None:
