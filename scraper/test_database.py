@@ -277,6 +277,34 @@ def test_first_insert_falls_back_to_posting_url_for_apply_url(connection) -> Non
     ).fetchone() == ("https://example.test/fallback",)
 
 
+def test_repeated_workable_observation_repairs_apply_url_without_changing_url(connection) -> None:
+    external_id = "workable-apply-url-repair"
+    old = {
+        "source": "workable", "id": external_id,
+        "url": "https://apply.workable.com/acme/jobs/view/ABC123.md",
+        "title": "Engineer", "company": "Acme",
+    }
+    new = {
+        **old,
+        "apply_url": "https://apply.workable.com/acme/j/ABC123/",
+    }
+
+    [posting_id] = database.persist_postings(
+        connection, [old], "2026-09-17T12:00:00Z"
+    )
+    [repeated_id] = database.persist_postings(
+        connection, [new], "2026-09-17T12:01:00Z"
+    )
+
+    assert repeated_id == posting_id
+    assert connection.execute(
+        "select url, apply_url from public.postings where id = %s", (posting_id,)
+    ).fetchone() == (
+        "https://apply.workable.com/acme/jobs/view/ABC123.md",
+        "https://apply.workable.com/acme/j/ABC123/",
+    )
+
+
 def test_posting_disposition_marks_only_first_observation_inserted(connection) -> None:
     external_id = f"cheap-gate-repeat-{uuid4()}"
     posting = {
