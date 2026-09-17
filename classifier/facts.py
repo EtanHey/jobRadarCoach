@@ -18,6 +18,7 @@ _ISRAEL = {
     "jerusalem": ("IL", "IL-JM", "Jerusalem"), "haifa": ("IL", "IL-HA", "Haifa"),
     "herzliya": ("IL", "IL-TA", "Herzliya"), "petah tikva": ("IL", "IL-TA", "Petah Tikva"),
     "ramat gan": ("IL", "IL-TA", "Ramat Gan"), "ra'anana": ("IL", "IL-TA", "Ra'anana"),
+    "raanana": ("IL", "IL-TA", "Ra'anana"),
     "yavne": ("IL", "IL-TA", "Yavne"), "kfar saba": ("IL", "IL-TA", "Kfar Saba"),
     "netanya": ("IL", "IL-TA", "Netanya"), "yokneam": ("IL", "IL-HA", "Yokneam"),
     "beer sheva": ("IL", "IL-D", "Be'er Sheva"), "be'er sheva": ("IL", "IL-D", "Be'er Sheva"),
@@ -50,7 +51,7 @@ _METROS = {
     "san antonio, texas metropolitan area": ("US", "US-TX", "San Antonio"),
     "columbia, south carolina metropolitan area": ("US", "US-SC", "Columbia"),
 }
-_COUNTRIES = {"israel": ("IL", None, None), "il": ("IL", None, None), "united states": ("US", None, None), "united states of america": ("US", None, None), "usa": ("US", None, None), "u.s.": ("US", None, None), "us": ("US", None, None)}
+_COUNTRIES = {"israel": ("IL", None, None), "il": ("IL", None, None), "united states": ("US", None, None), "united states of america": ("US", None, None), "usa": ("US", None, None), "u.s.": ("US", None, None), "u.s.a.": ("US", None, None), "us": ("US", None, None)}
 
 
 def _text(value: object) -> str:
