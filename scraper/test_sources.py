@@ -219,6 +219,12 @@ def test_workable_adapter_fetches_real_markdown_board_and_jd_fixture() -> None:
     assert postings[0]["posted_at"] == "2024-09-08T00:00:00Z"
     assert postings[0]["posted_ago"] == "2024-09-08"
     assert "posted_precision" not in postings[0]
+    assert postings[0]["url"] == (
+        "https://apply.workable.com/myteam/jobs/view/99FDF530F1.md"
+    )
+    assert postings[0]["apply_url"] == (
+        "https://apply.workable.com/myteam/j/99FDF530F1/"
+    )
     assert requested == [
         "https://apply.workable.com/myteam/jobs.md",
         "https://apply.workable.com/myteam/jobs/view/99FDF530F1.md",

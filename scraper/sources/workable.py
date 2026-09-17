@@ -61,6 +61,7 @@ def fetch(
             "company": company,
             "location": location,
             "url": url,
+            "apply_url": f"https://apply.workable.com/{account}/j/{token}/",
             "posted_at": posted_at,
             "posted_ago": posted_ago,
             "source": "workable",
