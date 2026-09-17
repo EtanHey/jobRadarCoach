@@ -24,6 +24,7 @@ include-package-data = false
 py-modules = [
   "classifier.core",
   "classifier.embeddings",
+  "classifier.facts",
   "classifier.job",
   "classifier.persistence",
   "classifier.projection",
@@ -39,5 +40,6 @@ py-modules = [
   "scraper.codex_process",
   "scraper.database",
   "scripts.local_analysis",
+  "scripts.backfill_posting_facts",
   "scripts.local_analysis_supervisor",
 ]
