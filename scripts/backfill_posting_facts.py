@@ -44,11 +44,12 @@ def backfill_connection(connection, *, batch_size: int = 100) -> dict[str, objec
     unresolved: Counter[str] = Counter()
     last_id = UUID(int=0)
     while True:
-        rows = connection.execute(
-            """select id, title, location, remote, seniority, stack, raw_jd, apply_url, url
-               from public.postings where id > %s order by id limit %s""",
-            (last_id, batch_size),
-        ).fetchall()
+        with connection.cursor(row_factory=dict_row) as cursor:
+            rows = cursor.execute(
+                """select id, title, location, remote, seniority, stack, raw_jd, apply_url, url
+                   from public.postings where id > %s order by id limit %s""",
+                (last_id, batch_size),
+            ).fetchall()
         if not rows:
             break
         receipt["batches"] = int(receipt["batches"]) + 1
@@ -59,13 +60,14 @@ def backfill_connection(connection, *, batch_size: int = 100) -> dict[str, objec
             seniority_levels[facts.seniority_level or "unknown"] += 1
             unresolved.update(facts.unresolved_locations)
         ids = list(facts_by_id)
-        existing = {
-            row["posting_id"]: (row["normalizer_version"], row["facts_sha256"])
-            for row in connection.execute(
-                "select posting_id, normalizer_version, facts_sha256 from public.posting_facts where posting_id = any(%s)",
-                (ids,),
-            ).fetchall()
-        }
+        with connection.cursor(row_factory=dict_row) as cursor:
+            existing = {
+                row["posting_id"]: (row["normalizer_version"], row["facts_sha256"])
+                for row in cursor.execute(
+                    "select posting_id, normalizer_version, facts_sha256 from public.posting_facts where posting_id = any(%s)",
+                    (ids,),
+                ).fetchall()
+            }
         changed = []
         for posting_id, facts in facts_by_id.items():
             if existing.get(posting_id) == (facts.normalizer_version, facts.facts_sha256):
