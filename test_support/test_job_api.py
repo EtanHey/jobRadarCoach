@@ -23,8 +23,8 @@ def _seed(connection: psycopg.Connection) -> None:
           (%s, 'fixture', 'one', 'https://example.test/one', 'Senior Python Engineer', 'Acme', 'Tel Aviv, Israel', true, 'Senior', array['Python','PostgreSQL'], '$100k', 'https://apply.workable.com/acme/jobs/view/ABC123.md', '2026-09-10 10:00Z', '2026-09-10 10:00Z'),
           (%s, 'fixture', 'two', 'https://example.test/two', 'Backend Engineer', 'Beta', 'Remote - Israel', false, 'Mid', array['Python'], null, 'https://example.test/apply/two', '2026-09-09 10:00Z', '2026-09-09 10:00Z'),
           (%s, 'fixture', 'three', 'https://example.test/three', 'Platform Engineer', 'Gamma', 'Haifa', true, 'Senior', array['Go'], null, '', '2026-09-08 10:00Z', '2026-09-08 10:00Z'),
-          (%s, 'fixture', 'four', 'https://example.test/four', 'Junior Engineer', 'Delta', 'Jerusalem', null, 'Junior', array['Ruby'], null, null, '2026-09-07 10:00Z'),
-          (%s, 'fixture', 'five', 'https://example.test/five', 'Unscored Engineer', 'Epsilon', 'Tel Aviv', true, 'Senior', array['Rust'], null, null, '2026-09-06 10:00Z')""",
+          (%s, 'fixture', 'four', 'https://example.test/four', 'Junior Engineer', 'Delta', 'Jerusalem', null, 'Junior', array['Ruby'], null, null, '2026-09-07 10:00Z', '2026-09-07 10:00Z'),
+          (%s, 'fixture', 'five', 'https://example.test/five', 'Unscored Engineer', 'Epsilon', 'Tel Aviv', true, 'Senior', array['Rust'], null, null, '2026-09-06 10:00Z', '2026-09-06 10:00Z')""",
         IDS,
     )
     payload = {"employer_type": "unknown", "seniority_real": None, "fit_score": 95, "fit_tier": "strong", "recommendation": "review", "reasons": [], "fit_line": "fixture", "fit_line_evidence_ids": [], "luna_status": "ok"}
