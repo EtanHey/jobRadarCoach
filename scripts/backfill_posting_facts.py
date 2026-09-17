@@ -79,21 +79,22 @@ def backfill_connection(connection, *, batch_size: int = 100) -> dict[str, objec
                             output["skills_mentioned"], output["link_status"], facts.normalizer_version,
                             facts.facts_sha256))
         if changed:
-            connection.executemany(
-                """insert into public.posting_facts
-                   (posting_id, countries, regions, cities, work_mode, seniority_level,
-                    seniority_source, skills_mentioned, link_status, normalizer_version, facts_sha256)
-                   values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                   on conflict (posting_id) do update set
-                     countries = excluded.countries, regions = excluded.regions, cities = excluded.cities,
-                     work_mode = excluded.work_mode, seniority_level = excluded.seniority_level,
-                     seniority_source = excluded.seniority_source, skills_mentioned = excluded.skills_mentioned,
-                     link_status = excluded.link_status, normalizer_version = excluded.normalizer_version,
-                     facts_sha256 = excluded.facts_sha256, updated_at = pg_catalog.clock_timestamp()
-                   where public.posting_facts.normalizer_version is distinct from excluded.normalizer_version
-                      or public.posting_facts.facts_sha256 is distinct from excluded.facts_sha256""",
-                changed,
-            )
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.executemany(
+                    """insert into public.posting_facts
+                       (posting_id, countries, regions, cities, work_mode, seniority_level,
+                        seniority_source, skills_mentioned, link_status, normalizer_version, facts_sha256)
+                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                       on conflict (posting_id) do update set
+                         countries = excluded.countries, regions = excluded.regions, cities = excluded.cities,
+                         work_mode = excluded.work_mode, seniority_level = excluded.seniority_level,
+                         seniority_source = excluded.seniority_source, skills_mentioned = excluded.skills_mentioned,
+                         link_status = excluded.link_status, normalizer_version = excluded.normalizer_version,
+                         facts_sha256 = excluded.facts_sha256, updated_at = pg_catalog.clock_timestamp()
+                       where public.posting_facts.normalizer_version is distinct from excluded.normalizer_version
+                          or public.posting_facts.facts_sha256 is distinct from excluded.facts_sha256""",
+                    changed,
+                )
             receipt["rows_written"] = int(receipt["rows_written"]) + len(changed)
         connection.commit()
         last_id = max(ids)
