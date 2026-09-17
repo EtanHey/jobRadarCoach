@@ -15,6 +15,7 @@ from classifier.facts import Facts, link_status, normalize
         ("Israel - Tel Aviv", ["IL"], ["IL-TA"], ["Tel Aviv"]),
         ("Austin, TX", ["US"], ["US-TX"], ["Austin"]),
         ("New York, NY", ["US"], ["US-NY"], ["New York"]),
+        ("United States, NY", ["US"], ["US-NY"], []),
     ],
 )
 def test_location_aliases(location, countries, regions, cities):
@@ -91,6 +92,16 @@ def test_skills_use_stack_and_ui_aliases():
 def test_skill_prose_guards_match_ui_aliases():
     facts = normalize({"raw_jd": "Python, Go, Rust. Please express interest this spring."})
     assert facts.skills_mentioned == ("Python", "Go", "Rust")
+
+
+@pytest.mark.parametrize(
+    ("raw_jd", "expected"),
+    [
+        ("skills:\nGo\nPython", ("Python", "Go")),
+    ],
+)
+def test_skill_line_start_matches_ui_multiline_behavior(raw_jd, expected):
+    assert normalize({"raw_jd": raw_jd}).skills_mentioned == expected
 
 
 @pytest.mark.parametrize(

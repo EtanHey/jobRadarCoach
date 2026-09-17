@@ -10,7 +10,7 @@ import re
 from urllib.parse import urlsplit
 
 
-NORMALIZER_VERSION = "1"
+NORMALIZER_VERSION = "2"
 LINK_STATUSES = frozenset({"no_link", "available", "invalid_url"})
 
 _ISRAEL = {
@@ -73,6 +73,9 @@ def _resolve_location(value: str) -> tuple[str, str | None, str | None] | None:
         return combined[key]
     match = re.fullmatch(r"([^,]+),\s*([A-Z]{2})", value.strip())
     if match and match[2] in _US_STATE_CODES:
+        country = _COUNTRIES.get(_key(match[1]))
+        if country is not None and country[0] == "US":
+            return (country[0], f"US-{match[2]}", None)
         return ("US", f"US-{match[2]}", match[1].strip())
     for alias, result in sorted((_ISRAEL | _US_CITIES | _METROS).items(), key=lambda item: len(item[0]), reverse=True):
         if re.search(rf"(?<![a-z]){re.escape(alias)}(?![a-z])", key):
@@ -123,7 +126,7 @@ _SKILL_PATTERNS = (
     ("Docker", re.compile(r"\bdocker\b", re.I)), ("Kubernetes", re.compile(r"\b(?:kubernetes|k8s)\b", re.I)),
     ("AWS", re.compile(r"\b(?:aws|amazon web services)\b", re.I)), ("Azure", re.compile(r"\b(?:azure|microsoft cloud)\b", re.I)),
     ("GCP", re.compile(r"\b(?:gcp|google cloud(?: platform)?)\b", re.I)),
-    ("Go", re.compile(r"\bgolang\b|\b(?:experience|proficiency|expertise|development)\s+(?:with|in|using)\s+go\b|\b(?:tech(?:nology)?\s+stack|programming\s+languages?|languages?)\s*:?[^.\n]{0,80}\bgo\b|(?:^|[,;/|])\s*go\s*(?=\s*(?:[,);/|]|$))", re.I)),
+    ("Go", re.compile(r"\bgolang\b|\b(?:experience|proficiency|expertise|development)\s+(?:with|in|using)\s+go\b|\b(?:tech(?:nology)?\s+stack|programming\s+languages?|languages?)\s*:?[^.\n]{0,80}\bgo\b|(?:^|[,;/|])\s*go\s*(?=\s*(?:[,);/|]|$))", re.I | re.M)),
     ("Java", re.compile(r"\bjava\b", re.I)), ("Vue", re.compile(r"\bvue(?:\.js|js)?\b", re.I)),
     ("Angular", re.compile(r"\bangular\b", re.I)), ("C#", re.compile(r"\bc#(?=\W|$)", re.I)), ("C++", re.compile(r"\bc\+\+(?=\W|$)", re.I)),
     ("MongoDB", re.compile(r"\bmongodb\b", re.I)), ("Redis", re.compile(r"\bredis\b", re.I)), ("Kafka", re.compile(r"\bkafka\b", re.I)),
