@@ -10,7 +10,7 @@ import re
 from urllib.parse import urlsplit
 
 
-NORMALIZER_VERSION = "2"
+NORMALIZER_VERSION = "3"
 LINK_STATUSES = frozenset({"no_link", "available", "invalid_url"})
 
 _ISRAEL = {
@@ -90,7 +90,7 @@ def _seniority(value: object) -> str | None:
     text = _text(value)
     if re.search(r"\b(?:intern|internship)\b", text, re.I):
         return "intern"
-    if re.search(r"\b(?:junior|jr\.?|graduate|entry[- ]level)\b", text, re.I):
+    if re.search(r"\b(?:junior|jr\.?|graduate|entry(?:[- ]level)?)\b", text, re.I):
         return "junior"
     if re.search(r"\b(?:staff|principal)\b", text, re.I):
         return "staff_principal"
@@ -98,7 +98,7 @@ def _seniority(value: object) -> str | None:
         return "lead_manager"
     if re.search(r"\b(?:senior|sr\.?)\b", text, re.I):
         return "senior"
-    if re.search(r"\b(?:mid[- ]level|intermediate)\b", text, re.I):
+    if re.search(r"\b(?:mid(?:[- ]level)?|intermediate)\b", text, re.I):
         return "mid"
     return None
 

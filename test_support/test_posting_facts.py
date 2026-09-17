@@ -5,7 +5,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from scripts.backfill_posting_facts import backfill_connection, backfill_database
+from scripts.backfill_posting_facts import backfill_connection, backfill_database, require_local_database_url
 from test_support.postgres import DatabaseUnavailable, migrated_database
 
 
@@ -70,3 +70,26 @@ def test_remote_database_is_rejected_before_connect(monkeypatch):
     monkeypatch.setattr("scripts.backfill_posting_facts.psycopg.connect", lambda *_a, **_k: pytest.fail("connected"))
     with pytest.raises(ValueError, match="localhost or 127.0.0.1"):
         backfill_database()
+
+
+@pytest.mark.parametrize(
+    "database_url",
+    [
+        "postgresql://user:password@localhost/jobs?host=remote.example",
+        "postgresql://user:password@127.0.0.1/jobs?hostaddr=10.0.0.1",
+        "postgresql://user:password@localhost/jobs?host=localhost,remote.example",
+    ],
+)
+def test_database_url_rejects_remote_libpq_routing_overrides(monkeypatch, database_url):
+    monkeypatch.delenv("PGHOST", raising=False)
+    monkeypatch.delenv("PGHOSTADDR", raising=False)
+    with pytest.raises(ValueError, match="localhost or 127.0.0.1"):
+        require_local_database_url(database_url)
+
+
+@pytest.mark.parametrize("variable", ["PGHOST", "PGHOSTADDR"])
+def test_database_url_rejects_remote_libpq_environment_override(monkeypatch, variable):
+    monkeypatch.setenv(variable, "remote.example")
+    monkeypatch.delenv("PGHOST" if variable == "PGHOSTADDR" else "PGHOSTADDR", raising=False)
+    with pytest.raises(ValueError, match="localhost or 127.0.0.1"):
+        require_local_database_url("postgresql://user:password@localhost/jobs")

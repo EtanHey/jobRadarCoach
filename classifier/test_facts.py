@@ -81,6 +81,15 @@ def test_seniority_precedence_and_title_fallback():
     assert (title.seniority_level, title.seniority_source) == ("staff_principal", "title")
 
 
+@pytest.mark.parametrize(
+    ("title", "expected"),
+    [("Entry Software Engineer", "junior"), ("Mid Software Engineer", "mid")],
+)
+def test_title_fallback_matches_ui_entry_and_mid_buckets(title, expected):
+    facts = normalize({"seniority": None, "title": title})
+    assert (facts.seniority_level, facts.seniority_source) == (expected, "title")
+
+
 def test_skills_use_stack_and_ui_aliases():
     facts = normalize({
         "stack": ["nodejs", "microsoft cloud"],

@@ -7,10 +7,11 @@ import json
 import os
 from pathlib import Path
 import sys
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 from uuid import UUID
 
 import psycopg
+from psycopg.conninfo import conninfo_to_dict
 from psycopg.rows import dict_row
 
 if __package__ in {None, ""}:
@@ -19,10 +20,35 @@ if __package__ in {None, ""}:
 from classifier.facts import NORMALIZER_VERSION, normalize
 
 
+_LOCAL_DATABASE_HOSTS = frozenset({"localhost", "127.0.0.1"})
+
+
+def _local_host_list(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    hosts = [host.strip().lower() for host in value.split(",")]
+    return bool(hosts) and all(host in _LOCAL_DATABASE_HOSTS for host in hosts)
+
+
 def require_local_database_url(database_url: str) -> None:
-    parsed = urlsplit(database_url)
-    if (parsed.scheme not in {"postgres", "postgresql"}
-            or parsed.hostname not in {"localhost", "127.0.0.1"}):
+    try:
+        parsed = urlsplit(database_url)
+        conninfo = conninfo_to_dict(database_url)
+        url_host = parsed.hostname
+    except (TypeError, ValueError, psycopg.Error) as error:
+        raise ValueError("DATABASE_URL must use localhost or 127.0.0.1") from error
+
+    query_hosts = [
+        value for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        if key.lower() in {"host", "hostaddr"}
+    ]
+    effective_hosts = [url_host, conninfo.get("host"), conninfo.get("hostaddr"), *query_hosts]
+    environment_hosts = [os.environ.get("PGHOST"), os.environ.get("PGHOSTADDR")]
+    if (
+        parsed.scheme not in {"postgres", "postgresql"}
+        or not _local_host_list(url_host)
+        or any(value is not None and not _local_host_list(value) for value in (*effective_hosts, *environment_hosts))
+    ):
         raise ValueError("DATABASE_URL must use localhost or 127.0.0.1")
 
 
