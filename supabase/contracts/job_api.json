@@ -1,0 +1,554 @@
+{
+  "functions": {
+    "score_band": {
+      "args": [
+        {
+          "name": "score",
+          "type": "smallint",
+          "order": 1
+        }
+      ],
+      "returns": {
+        "type": "text",
+        "set": false,
+        "columns": [
+          {
+            "name": "score_band",
+            "type": "text",
+            "order": 1
+          }
+        ]
+      }
+    },
+    "job_link_url": {
+      "args": [
+        {
+          "name": "apply_url",
+          "type": "text",
+          "order": 1
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "order": 2
+        }
+      ],
+      "returns": {
+        "type": "text",
+        "set": false,
+        "columns": [
+          {
+            "name": "job_link_url",
+            "type": "text",
+            "order": 1
+          }
+        ]
+      }
+    },
+    "job_link_status": {
+      "args": [
+        {
+          "name": "value",
+          "type": "text",
+          "order": 1
+        }
+      ],
+      "returns": {
+        "type": "text",
+        "set": false,
+        "columns": [
+          {
+            "name": "job_link_status",
+            "type": "text",
+            "order": 1
+          }
+        ]
+      }
+    },
+    "search_jobs": {
+      "args": [
+        {
+          "name": "seen",
+          "type": "boolean",
+          "order": 1
+        },
+        {
+          "name": "min_score",
+          "type": "integer",
+          "order": 2
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "order": 3
+        },
+        {
+          "name": "seniority",
+          "type": "text",
+          "order": 4
+        },
+        {
+          "name": "query",
+          "type": "text",
+          "order": 5
+        },
+        {
+          "name": "remote",
+          "type": "boolean",
+          "order": 6
+        },
+        {
+          "name": "exclude_ids",
+          "type": "uuid[]",
+          "order": 7
+        },
+        {
+          "name": "scored_only",
+          "type": "boolean",
+          "order": 8
+        },
+        {
+          "name": "max",
+          "type": "integer",
+          "order": 9
+        }
+      ],
+      "returns": {
+        "type": "job_card",
+        "set": true,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "order": 1
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "order": 2
+          },
+          {
+            "name": "company",
+            "type": "text",
+            "order": 3
+          },
+          {
+            "name": "location",
+            "type": "text",
+            "order": 4
+          },
+          {
+            "name": "score",
+            "type": "smallint",
+            "order": 5
+          },
+          {
+            "name": "reasons",
+            "type": "jsonb",
+            "order": 6
+          },
+          {
+            "name": "apply_url",
+            "type": "text",
+            "order": 7
+          },
+          {
+            "name": "stack",
+            "type": "text[]",
+            "order": 8
+          },
+          {
+            "name": "remote",
+            "type": "boolean",
+            "order": 9
+          },
+          {
+            "name": "seniority",
+            "type": "text",
+            "order": 10
+          },
+          {
+            "name": "source",
+            "type": "text",
+            "order": 11
+          },
+          {
+            "name": "last_seen_at",
+            "type": "timestamp with time zone",
+            "order": 12
+          },
+          {
+            "name": "experience",
+            "type": "text",
+            "order": 13
+          },
+          {
+            "name": "description_available",
+            "type": "boolean",
+            "order": 14
+          },
+          {
+            "name": "seniority_origin",
+            "type": "text",
+            "order": 15
+          },
+          {
+            "name": "extraction_state",
+            "type": "text",
+            "order": 16
+          },
+          {
+            "name": "salary",
+            "type": "text",
+            "order": 17
+          },
+          {
+            "name": "url",
+            "type": "text",
+            "order": 18
+          },
+          {
+            "name": "posted_at",
+            "type": "timestamp with time zone",
+            "order": 19
+          },
+          {
+            "name": "first_seen_at",
+            "type": "timestamp with time zone",
+            "order": 20
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "order": 21
+          },
+          {
+            "name": "status_reason",
+            "type": "text",
+            "order": 22
+          },
+          {
+            "name": "fit_line",
+            "type": "text",
+            "order": 23
+          },
+          {
+            "name": "recommendation",
+            "type": "text",
+            "order": 24
+          },
+          {
+            "name": "alive",
+            "type": "boolean",
+            "order": 25
+          },
+          {
+            "name": "link_url",
+            "type": "text",
+            "order": 26
+          },
+          {
+            "name": "link_status",
+            "type": "text",
+            "order": 27
+          },
+          {
+            "name": "score_band",
+            "type": "text",
+            "order": 28
+          },
+          {
+            "name": "fit_tier",
+            "type": "text",
+            "order": 29
+          },
+          {
+            "name": "seen",
+            "type": "boolean",
+            "order": 30
+          },
+          {
+            "name": "seen_at",
+            "type": "timestamp with time zone",
+            "order": 31
+          },
+          {
+            "name": "pipeline_status",
+            "type": "text",
+            "order": 32
+          }
+        ]
+      }
+    },
+    "count_jobs": {
+      "args": [
+        {
+          "name": "seen",
+          "type": "boolean",
+          "order": 1
+        },
+        {
+          "name": "min_score",
+          "type": "integer",
+          "order": 2
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "order": 3
+        },
+        {
+          "name": "seniority",
+          "type": "text",
+          "order": 4
+        },
+        {
+          "name": "query",
+          "type": "text",
+          "order": 5
+        },
+        {
+          "name": "remote",
+          "type": "boolean",
+          "order": 6
+        },
+        {
+          "name": "exclude_ids",
+          "type": "uuid[]",
+          "order": 7
+        },
+        {
+          "name": "scored_only",
+          "type": "boolean",
+          "order": 8
+        }
+      ],
+      "returns": {
+        "type": "job_counts",
+        "set": false,
+        "columns": [
+          {
+            "name": "strong",
+            "type": "integer",
+            "order": 1
+          },
+          {
+            "name": "more",
+            "type": "integer",
+            "order": 2
+          },
+          {
+            "name": "below",
+            "type": "integer",
+            "order": 3
+          },
+          {
+            "name": "unscored",
+            "type": "integer",
+            "order": 4
+          }
+        ]
+      }
+    },
+    "get_job": {
+      "args": [
+        {
+          "name": "posting_id",
+          "type": "uuid",
+          "order": 1
+        }
+      ],
+      "returns": {
+        "type": "job_detail",
+        "set": true,
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "order": 1
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "order": 2
+          },
+          {
+            "name": "company",
+            "type": "text",
+            "order": 3
+          },
+          {
+            "name": "location",
+            "type": "text",
+            "order": 4
+          },
+          {
+            "name": "score",
+            "type": "smallint",
+            "order": 5
+          },
+          {
+            "name": "reasons",
+            "type": "jsonb",
+            "order": 6
+          },
+          {
+            "name": "apply_url",
+            "type": "text",
+            "order": 7
+          },
+          {
+            "name": "stack",
+            "type": "text[]",
+            "order": 8
+          },
+          {
+            "name": "remote",
+            "type": "boolean",
+            "order": 9
+          },
+          {
+            "name": "seniority",
+            "type": "text",
+            "order": 10
+          },
+          {
+            "name": "source",
+            "type": "text",
+            "order": 11
+          },
+          {
+            "name": "last_seen_at",
+            "type": "timestamp with time zone",
+            "order": 12
+          },
+          {
+            "name": "experience",
+            "type": "text",
+            "order": 13
+          },
+          {
+            "name": "description_available",
+            "type": "boolean",
+            "order": 14
+          },
+          {
+            "name": "seniority_origin",
+            "type": "text",
+            "order": 15
+          },
+          {
+            "name": "extraction_state",
+            "type": "text",
+            "order": 16
+          },
+          {
+            "name": "salary",
+            "type": "text",
+            "order": 17
+          },
+          {
+            "name": "url",
+            "type": "text",
+            "order": 18
+          },
+          {
+            "name": "posted_at",
+            "type": "timestamp with time zone",
+            "order": 19
+          },
+          {
+            "name": "first_seen_at",
+            "type": "timestamp with time zone",
+            "order": 20
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "order": 21
+          },
+          {
+            "name": "status_reason",
+            "type": "text",
+            "order": 22
+          },
+          {
+            "name": "fit_line",
+            "type": "text",
+            "order": 23
+          },
+          {
+            "name": "recommendation",
+            "type": "text",
+            "order": 24
+          },
+          {
+            "name": "alive",
+            "type": "boolean",
+            "order": 25
+          },
+          {
+            "name": "link_url",
+            "type": "text",
+            "order": 26
+          },
+          {
+            "name": "link_status",
+            "type": "text",
+            "order": 27
+          },
+          {
+            "name": "score_band",
+            "type": "text",
+            "order": 28
+          },
+          {
+            "name": "fit_tier",
+            "type": "text",
+            "order": 29
+          },
+          {
+            "name": "seen",
+            "type": "boolean",
+            "order": 30
+          },
+          {
+            "name": "seen_at",
+            "type": "timestamp with time zone",
+            "order": 31
+          },
+          {
+            "name": "pipeline_status",
+            "type": "text",
+            "order": 32
+          },
+          {
+            "name": "raw_jd",
+            "type": "text",
+            "order": 33
+          },
+          {
+            "name": "labels",
+            "type": "jsonb",
+            "order": 34
+          },
+          {
+            "name": "score_payload",
+            "type": "jsonb",
+            "order": 35
+          },
+          {
+            "name": "brain",
+            "type": "text",
+            "order": 36
+          },
+          {
+            "name": "scored_at",
+            "type": "timestamp with time zone",
+            "order": 37
+          }
+        ]
+      }
+    }
+  }
+}
