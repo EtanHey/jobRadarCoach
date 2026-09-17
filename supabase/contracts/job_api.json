@@ -45,26 +45,6 @@
         ]
       }
     },
-    "job_link_status": {
-      "args": [
-        {
-          "name": "value",
-          "type": "text",
-          "order": 1
-        }
-      ],
-      "returns": {
-        "type": "text",
-        "set": false,
-        "columns": [
-          {
-            "name": "job_link_status",
-            "type": "text",
-            "order": 1
-          }
-        ]
-      }
-    },
     "search_jobs": {
       "args": [
         {
@@ -248,34 +228,29 @@
             "order": 26
           },
           {
-            "name": "link_status",
+            "name": "score_band",
             "type": "text",
             "order": 27
           },
           {
-            "name": "score_band",
+            "name": "fit_tier",
             "type": "text",
             "order": 28
           },
           {
-            "name": "fit_tier",
-            "type": "text",
-            "order": 29
-          },
-          {
             "name": "seen",
             "type": "boolean",
-            "order": 30
+            "order": 29
           },
           {
             "name": "seen_at",
             "type": "timestamp with time zone",
-            "order": 31
+            "order": 30
           },
           {
             "name": "pipeline_status",
             "type": "text",
-            "order": 32
+            "order": 31
           }
         ]
       }
@@ -493,59 +468,54 @@
             "order": 26
           },
           {
-            "name": "link_status",
+            "name": "score_band",
             "type": "text",
             "order": 27
           },
           {
-            "name": "score_band",
+            "name": "fit_tier",
             "type": "text",
             "order": 28
           },
           {
-            "name": "fit_tier",
-            "type": "text",
-            "order": 29
-          },
-          {
             "name": "seen",
             "type": "boolean",
-            "order": 30
+            "order": 29
           },
           {
             "name": "seen_at",
             "type": "timestamp with time zone",
-            "order": 31
+            "order": 30
           },
           {
             "name": "pipeline_status",
             "type": "text",
-            "order": 32
+            "order": 31
           },
           {
             "name": "raw_jd",
             "type": "text",
-            "order": 33
+            "order": 32
           },
           {
             "name": "labels",
             "type": "jsonb",
-            "order": 34
+            "order": 33
           },
           {
             "name": "score_payload",
             "type": "jsonb",
-            "order": 35
+            "order": 34
           },
           {
             "name": "brain",
             "type": "text",
-            "order": 36
+            "order": 35
           },
           {
             "name": "scored_at",
             "type": "timestamp with time zone",
-            "order": 37
+            "order": 36
           }
         ]
       }

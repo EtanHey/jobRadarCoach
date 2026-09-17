@@ -10,44 +10,7 @@ as $$
     '\1/\2/j/\3/\4', 'i')
 $$;
 
-create function public.job_link_status(value text)
-returns text language plpgsql immutable security invoker set search_path = ''
-as $$
-declare authority text; host_text text; port_text text; suffix text;
-  host_ip inet; closing_bracket integer;
-begin
-  if value is null or value = '' then return 'no_link'; end if;
-  if value ~ '[[:space:]]' or value !~* '^https?://' then return 'invalid_url'; end if;
-  authority := substring(value from '^https?://([^/?#]*)');
-  if authority is null or authority = '' or authority ~ '@' then return 'invalid_url'; end if;
-  if pg_catalog.left(authority, 1) = '[' then
-    closing_bracket := pg_catalog.strpos(authority, ']');
-    if closing_bracket <= 2 then return 'invalid_url'; end if;
-    host_text := substring(authority from 2 for closing_bracket - 2);
-    if host_text !~ ':' then return 'invalid_url'; end if;
-    host_ip := host_text::inet;
-    suffix := substring(authority from closing_bracket + 1);
-    if suffix <> '' and suffix !~ '^:[0-9]*$' then return 'invalid_url'; end if;
-    port_text := substring(suffix from 2);
-  else
-    if pg_catalog.length(authority) - pg_catalog.length(pg_catalog.replace(authority, ':', '')) > 1 then
-      return 'invalid_url';
-    end if;
-    if pg_catalog.strpos(authority, ':') > 0 then
-      if pg_catalog.split_part(authority, ':', 1) = '' then return 'invalid_url'; end if;
-      port_text := pg_catalog.split_part(authority, ':', 2);
-      if port_text !~ '^[0-9]*$' then return 'invalid_url'; end if;
-    end if;
-  end if;
-  if port_text is not null and port_text <> ''
-     and (pg_catalog.length(port_text) > 5 or port_text::integer > 65535) then
-    return 'invalid_url';
-  end if;
-  return 'available';
-exception when invalid_text_representation or numeric_value_out_of_range then
-  return 'invalid_url';
-end
-$$;
+-- Link validity arrives via posting_facts (J2a) and has one Python implementation.
 
 create type public.job_card as (
   id uuid, title text, company text, location text, score smallint, reasons jsonb,
@@ -55,7 +18,7 @@ create type public.job_card as (
   last_seen_at timestamptz, experience text, description_available boolean,
   seniority_origin text, extraction_state text, salary text, url text,
   posted_at timestamptz, first_seen_at timestamptz, status text, status_reason text,
-  fit_line text, recommendation text, alive boolean, link_url text, link_status text,
+  fit_line text, recommendation text, alive boolean, link_url text,
   score_band text, fit_tier text, seen boolean, seen_at timestamptz, pipeline_status text
 );
 create type public.job_counts as (strong integer, more integer, below integer, unscored integer);
@@ -65,7 +28,7 @@ create type public.job_detail as (
   last_seen_at timestamptz, experience text, description_available boolean,
   seniority_origin text, extraction_state text, salary text, url text,
   posted_at timestamptz, first_seen_at timestamptz, status text, status_reason text,
-  fit_line text, recommendation text, alive boolean, link_url text, link_status text,
+  fit_line text, recommendation text, alive boolean, link_url text,
   score_band text, fit_tier text, seen boolean, seen_at timestamptz, pipeline_status text,
   raw_jd text, labels jsonb, score_payload jsonb, brain text, scored_at timestamptz
 );
@@ -89,7 +52,7 @@ as $$
     ps.score_payload->>'recommendation',
     case when pg_catalog.jsonb_typeof(p.liveness->'alive') = 'boolean'
       then (p.liveness->>'alive')::boolean end,
-    p.link_url, public.job_link_status(p.link_url), public.score_band(ps.score),
+    p.link_url, public.score_band(ps.score),
     ps.score_payload->>'fit_tier', coalesce(s.seen, false), s.seen_at,
     case when s.status in ('new', 'seen') then null else s.status end
   from links p left join public.posting_status s on s.posting_id = p.id
@@ -168,12 +131,12 @@ as $$
 $$;
 
 revoke all on function public.score_band(smallint), public.job_link_url(text, text),
-  public.job_link_status(text), public._job_card(uuid),
+  public._job_card(uuid),
   public.search_jobs(boolean, integer, text, text, text, boolean, uuid[], boolean, integer),
   public.count_jobs(boolean, integer, text, text, text, boolean, uuid[], boolean),
   public.get_job(uuid) from public, anon, authenticated;
 grant execute on function public.score_band(smallint), public.job_link_url(text, text),
-  public.job_link_status(text), public._job_card(uuid),
+  public._job_card(uuid),
   public.search_jobs(boolean, integer, text, text, text, boolean, uuid[], boolean, integer),
   public.count_jobs(boolean, integer, text, text, text, boolean, uuid[], boolean),
   public.get_job(uuid) to service_role;

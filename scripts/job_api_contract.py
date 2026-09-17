@@ -10,7 +10,6 @@ import psycopg
 FUNCTIONS = {
     "score_band": "public.score_band(smallint)",
     "job_link_url": "public.job_link_url(text,text)",
-    "job_link_status": "public.job_link_status(text)",
     "search_jobs": "public.search_jobs(boolean,integer,text,text,text,boolean,uuid[],boolean,integer)",
     "count_jobs": "public.count_jobs(boolean,integer,text,text,text,boolean,uuid[],boolean)",
     "get_job": "public.get_job(uuid)",
