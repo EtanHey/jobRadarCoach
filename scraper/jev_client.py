@@ -23,7 +23,9 @@ DEFAULT_LOG = Path("~/.local/state/jev/decisions.jsonl").expanduser()
 DEFAULT_USAGE = Path("~/.local/state/jev/usage.jsonl").expanduser()
 API_URL = "https://api.typesafe.ai/v1/systemone"
 MAX_REQUEST_TOKENS = 64_000
-DEFAULT_USD_PER_MTOK = 0.042
+MODEL = "jev-1.13.0"
+MODEL_USD_PER_MTOK = {MODEL: 0.042}
+DEFAULT_USD_PER_MTOK = MODEL_USD_PER_MTOK[MODEL]
 
 class JevError(RuntimeError):
     """A sanitized Jev boundary failure."""
@@ -77,8 +79,11 @@ def _append(path: Path, row: Mapping[str, object]) -> None:
         handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
 
 def _money_rate() -> float:
-    rate = float(os.getenv("JEV_USD_PER_MTOK", str(DEFAULT_USD_PER_MTOK)))
-    if not math.isfinite(rate) or rate < 0:
+    try:
+        rate = float(os.getenv("JEV_USD_PER_MTOK", str(DEFAULT_USD_PER_MTOK)))
+    except ValueError as exc:
+        raise JevError("invalid Jev price") from exc
+    if not math.isfinite(rate) or rate < DEFAULT_USD_PER_MTOK:
         raise JevError("invalid Jev price")
     return rate
 
@@ -140,17 +145,20 @@ def _http_transport(payload: dict[str, object], api_key: str) -> Mapping[str, ob
         raise JevError("Jev returned a non-object response")
     return decoded
 
-def _fallbacks(state_hash: str, questions: Sequence[Question], site: str, log_path: Path, ts: str) -> list[JevAnswer]:
+def _fallbacks(state_hash: str, questions: Sequence[Question], site: str, log_path: Path, ts: str, *,
+               called: bool = False, model: str = "fallback", cost_usd: float = 0.0,
+               input_tokens: int = 0, output_tokens: int = 0) -> list[JevAnswer]:
     rows = []
     for question in questions:
         _append(log_path, {"ts": ts, "site": site, "state_hash": state_hash, "question_id": question.id,
                            "answer": question.fallback, "confidence": 0.0, "fallback_answer": question.fallback,
                            "acted": False})
-        rows.append(JevAnswer(question.id, question.type, question.fallback, 0.0, {}, False, "fallback", True))
+        rows.append(JevAnswer(question.id, question.type, question.fallback, 0.0, {}, False, model, True, called,
+                              cost_usd, input_tokens, output_tokens))
     return rows
 
 def _number(value: object, field: str) -> float:
-    if isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"invalid {field}")
     number = float(value)
     if not math.isfinite(number):
@@ -165,6 +173,19 @@ def _probabilities(item: Mapping[str, object], expected: set[str]) -> dict[str, 
     if any(value < 0 or value > 1 for value in values.values()) or not math.isclose(sum(values.values()), 1.0, abs_tol=1e-6):
         raise ValueError("invalid probabilities")
     return values
+
+def _usage(raw: Mapping[str, object]) -> tuple[int, int]:
+    if not isinstance(raw, Mapping):
+        raise ValueError("invalid response")
+    usage = raw.get("usage")
+    if not isinstance(usage, Mapping):
+        raise ValueError("invalid usage")
+    input_tokens, output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
+    if isinstance(input_tokens, bool) or isinstance(output_tokens, bool) or not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
+        raise ValueError("invalid usage")
+    if not 0 <= input_tokens <= MAX_REQUEST_TOKENS or output_tokens < 0:
+        raise ValueError("invalid usage")
+    return input_tokens, output_tokens
 
 def _parse_response(raw: Mapping[str, object], question: Question) -> tuple[object, float, dict[str, float], str, int, int]:
     if not isinstance(raw, Mapping) or not isinstance(raw.get("model"), str) or not raw["model"]:
@@ -209,14 +230,7 @@ def _parse_response(raw: Mapping[str, object], question: Question) -> tuple[obje
         probabilities = {}
     if not 0 <= confidence <= 1 or question.type == "noul" and not 0 <= float(answer) <= 1:
         raise ValueError("answer outside range")
-    usage = raw.get("usage")
-    if not isinstance(usage, Mapping):
-        raise ValueError("invalid usage")
-    input_tokens, output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
-    if isinstance(input_tokens, bool) or isinstance(output_tokens, bool) or not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
-        raise ValueError("invalid usage")
-    if not 0 <= input_tokens <= MAX_REQUEST_TOKENS or output_tokens < 0:
-        raise ValueError("invalid usage")
+    input_tokens, output_tokens = _usage(raw)
     return answer, confidence, probabilities, str(raw["model"]), input_tokens, output_tokens
 
 def jev(state: object, questions: Sequence[Question], *, site: str, sanitizer: Callable[[object], object],
@@ -243,13 +257,28 @@ def jev(state: object, questions: Sequence[Question], *, site: str, sanitizer: C
     body: dict[str, object] = {"type": question.type, "instructions": question.instructions}
     if question.criteria is not None:
         body["criteria"] = question.criteria
-    payload = {"state": sanitized, "model": "jev-latest", "questions": {question.id: body}}
+    payload = {"state": sanitized, "model": MODEL, "questions": {question.id: body}}
     call = transport or _http_transport
+    called = False
     try:
-        raw = call(payload, _api_key() if transport is None else os.getenv("TYPESAFE_API_KEY", ""))
+        api_key = _api_key()
+        called = True
+        raw = call(payload, api_key)
         answer, confidence, probabilities, model, input_tokens, output_tokens = _parse_response(raw, question)
     except Exception:
-        return _fallbacks(state_digest, questions, site, log_path, ts)
+        if not called:
+            return _fallbacks(state_digest, questions, site, log_path, ts)
+        try:
+            input_tokens, output_tokens = _usage(raw)
+        except (TypeError, ValueError, UnboundLocalError):
+            return _fallbacks(state_digest, questions, site, log_path, ts, called=True)
+        model = str(raw["model"]) if isinstance(raw.get("model"), str) and raw["model"] else "fallback"
+        cost = input_tokens * _money_rate() / 1_000_000
+        _reconcile(usage_path, reserved=reserved, actual=cost,
+                   row={"ts": ts, "site": site, "model": model,
+                        "input_tokens": input_tokens, "output_tokens": output_tokens})
+        return _fallbacks(state_digest, questions, site, log_path, ts, called=True, model=model,
+                          cost_usd=cost, input_tokens=input_tokens, output_tokens=output_tokens)
 
     cost = input_tokens * _money_rate() / 1_000_000
     _reconcile(usage_path, reserved=reserved, actual=cost,
