@@ -74,11 +74,20 @@ def test_seniority_buckets(value, expected):
     assert facts.seniority_source == "extracted"
 
 
-def test_seniority_precedence_and_title_fallback():
-    extracted = normalize({"seniority": "Junior", "title": "Senior Engineer"})
-    title = normalize({"seniority": None, "title": "Staff Engineer"})
-    assert (extracted.seniority_level, extracted.seniority_source) == ("junior", "extracted")
-    assert (title.seniority_level, title.seniority_source) == ("staff_principal", "title")
+@pytest.mark.parametrize(
+    ("posting", "expected_level", "expected_source"),
+    [
+        ({"seniority": "Experienced Professional", "title": "Senior Engineer"}, "senior", "title"),
+        ({"seniority": "IC4", "title": "Software Engineer"}, None, None),
+        ({"seniority": "", "title": "Staff Engineer"}, "staff_principal", "title"),
+        ({"seniority": "Junior", "title": "Senior Engineer"}, "junior", "extracted"),
+        ({"seniority": "IC4", "ats_seniority": "Lead", "title": "Senior Engineer"}, "lead_manager", "ats"),
+        ({"ats_seniority": "Experienced Professional", "title": "Mid Engineer"}, "mid", "title"),
+    ],
+)
+def test_seniority_precedence_and_title_fallback(posting, expected_level, expected_source):
+    facts = normalize(posting)
+    assert (facts.seniority_level, facts.seniority_source) == (expected_level, expected_source)
 
 
 @pytest.mark.parametrize(

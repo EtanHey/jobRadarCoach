@@ -10,7 +10,7 @@ import re
 from urllib.parse import urlsplit
 
 
-NORMALIZER_VERSION = "3"
+NORMALIZER_VERSION = "4"
 LINK_STATUSES = frozenset({"no_link", "available", "invalid_url"})
 
 _ISRAEL = {
@@ -222,16 +222,18 @@ def normalize(posting_row: Mapping[str, object]) -> Facts:
     else:
         work_mode = "onsite"
 
-    extracted = posting_row.get("seniority")
-    if _text(extracted):
-        seniority_level, seniority_source = _seniority(extracted), "extracted"
-    elif any(_text(posting_row.get(key)) for key in ("ats_seniority", "ats_level")):
-        seniority_level = _seniority(posting_row.get("ats_seniority") or posting_row.get("ats_level"))
-        seniority_source = "ats"
-    else:
-        seniority_level, seniority_source = _seniority(posting_row.get("title")), "title"
-        if seniority_level is None:
-            seniority_source = None
+    seniority_level = None
+    seniority_source = None
+    for candidate, source in (
+        (posting_row.get("seniority"), "extracted"),
+        (posting_row.get("ats_seniority"), "ats"),
+        (posting_row.get("ats_level"), "ats"),
+        (posting_row.get("title"), "title"),
+    ):
+        level = _seniority(candidate)
+        if level is not None:
+            seniority_level, seniority_source = level, source
+            break
 
     skills: list[str] = []
     seen_skills: set[str] = set()
