@@ -6,11 +6,11 @@ import argparse
 import hashlib
 import json
 import math
-from pathlib import Path
 import re
 import statistics
-from typing import Any, Mapping, Sequence
-
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
 
 LABELS = ("Pursue", "Maybe", "No")
 FIXED_FLOOR = 0.70
@@ -57,12 +57,12 @@ def reference_prediction(score: object) -> str:
 
 def jev_prediction(answer: object, confidence: object, floor: float) -> str:
     if not isinstance(answer, str):
-        raise ValueError("Jev answer must be a label")
+        raise TypeError("Jev answer must be a label")
     labels = {label.casefold(): label for label in LABELS}
     if answer.casefold() not in labels:
         raise ValueError("Jev answer is outside the three-label contract")
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
-        raise ValueError("Jev confidence must be numeric")
+        raise TypeError("Jev confidence must be numeric")
     confidence = float(confidence)
     if not math.isfinite(confidence) or not 0 <= confidence <= 1:
         raise ValueError("Jev confidence must be between zero and one")

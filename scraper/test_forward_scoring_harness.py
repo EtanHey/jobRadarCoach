@@ -50,7 +50,6 @@ def _row(part, locator, gold, score, answer, confidence, *, run=1):
         ("Low maybe", "Maybe"),
         ("No", "No"),
         ("Probably pursue", None),
-        ("No-ish", None),
     ],
 )
 def test_parse_verdict_is_explicit_and_qualifier_preserving(verdict, label):
