@@ -5,6 +5,7 @@ import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl } from 
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, scoreBands, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
+import { viewportPostingIds } from "@/lib/globe-viewport";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).href);
@@ -16,12 +17,12 @@ function landingZoom(map: Map, latitude: number) {
   return Math.min(1.3, Math.log2(edge * Math.max(0.15, Math.cos(latitude * Math.PI / 180)) / 180));
 }
 
-type Props = { points: GlobePoint[]; selected: string | null; onSelect: (id: string) => void; onFailure: () => void };
-export default function JobGlobe({ points, selected, onSelect, onFailure }: Props) {
+type Props = { onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; onSelect: (id: string) => void; onFailure: () => void };
+export default function JobGlobe({ points, selected, onSelect, onFailure, onViewportChange }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const overlayRef = useRef<MapLibreOverlay | null>(null);
-  const callbacks = useRef({ onSelect, onFailure });
+  const callbacks = useRef({ onSelect, onFailure, onViewportChange });
   const [clusters, setClusters] = useState<PointCluster[]>([]);
   const [choiceIds, setChoiceIds] = useState<string[]>([]);
   const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
@@ -29,7 +30,7 @@ export default function JobGlobe({ points, selected, onSelect, onFailure }: Prop
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const hovered = hover?.selection === selected ? hover.point : null;
   const [location, setLocation] = useState("Centered near Rehovot · location stays on this device");
-  useEffect(() => { callbacks.current = { onSelect, onFailure }; }, [onSelect, onFailure]);
+  useEffect(() => { callbacks.current = { onSelect, onFailure, onViewportChange }; }, [onSelect, onFailure, onViewportChange]);
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const locate = useCallback(() => {
     if (!navigator.geolocation) { setLocation("Location unavailable · you can still explore"); return; }
@@ -81,6 +82,24 @@ export default function JobGlobe({ points, selected, onSelect, onFailure }: Prop
     resize.observe(container.current);
     return () => { active = false; clearTimeout(timeout); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
   }, [locate]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    let frame: number | null = null;
+    const update = () => {
+      if (frame !== null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const canvas = map.getContainer();
+        callbacks.current.onViewportChange(viewportPostingIds(points, canvas.clientWidth, canvas.clientHeight,
+          point => map.project([point.lng, point.lat]), screen => map.unproject([screen.x, screen.y])));
+      });
+    };
+    update();
+    map.on("move", update);
+    map.on("resize", update);
+    return () => { if (frame !== null) cancelAnimationFrame(frame); map.off("move", update); map.off("resize", update); };
+  }, [points, ready]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
