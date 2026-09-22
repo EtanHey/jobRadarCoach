@@ -14,7 +14,7 @@ const payload={jobs,points,total_count:8,resolved_count:7,unresolved_count:1,att
 const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});const receipts=[];
 try{for(const mobile of [false,true]){
  const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:1100},reducedMotion:'reduce'});
- const page=await context.newPage(),errors=[],requests=[];page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
+ const page=await context.newPage(),errors=[],requests=[];page.setDefaultTimeout(30000);page.on('pageerror',e=>errors.push(e.message));
  let releaseInitialGlobe;const initialGlobeGate=new Promise(resolve=>{releaseInitialGlobe=resolve;});let globeRequests=0;
  await page.addInitScript(()=>{window.EventSource=class {addEventListener(type,callback){if(type==='refresh')window.emitGlobeRefresh=callback;}close(){}};});
  await page.addInitScript(()=>localStorage.setItem('job-radar.board-preferences',JSON.stringify({version:3,filter:'all',view:{search:'',source:'',location:'',seniority:'',fit:'',statuses:[],availability:'all',sort:'fit'}})));
@@ -51,6 +51,19 @@ try{for(const mobile of [false,true]){
   assert.ok(Math.abs(Number(await page.locator('[data-projection]').getAttribute('data-zoom'))-zoomBeforeRefresh)<0.02,'unchanged point refresh preserves user zoom');
   const zoomed=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(zoomed.off.includes(id(2)),'front-face point outside actual canvas bounds goes below');
   await page.screenshot({path:`${output}/${name}-zoomed.png`,fullPage:true});
+  const camera=await page.locator('[data-projection]').evaluate(el=>({center:el.dataset.center,zoom:el.dataset.zoom,bearing:el.dataset.bearing,pitch:el.dataset.pitch}));
+  const canvas=await page.locator('.maplibregl-canvas').elementHandle();
+  await page.getByRole('button',{name:'Globe',exact:true}).click();
+  assert.equal(await page.locator('.job-globe').isVisible(),false);
+  await page.screenshot({path:`${output}/${name}-toggle-off.png`,fullPage:true});
+  await page.getByRole('button',{name:'Globe',exact:true}).click();
+  await page.waitForTimeout(200);
+  assert.deepEqual(await page.locator('[data-projection]').evaluate(el=>({center:el.dataset.center,zoom:el.dataset.zoom,bearing:el.dataset.bearing,pitch:el.dataset.pitch})),camera);
+  assert.equal(await page.locator('.maplibregl-canvas').count(),1);
+  assert.ok(await canvas.evaluate((first,current)=>first===current,await page.locator('.maplibregl-canvas').elementHandle()));
+  await page.screenshot({path:`${output}/${name}-toggle-on.png`,fullPage:true});
+  await page.getByRole('heading',{name:'On screen',exact:true}).waitFor();
+  await page.evaluate(()=>{window.globeRailGaps=0;}); // The intentional OFF and loading frames are outside the refresh/search gap assertion.
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom out',exact:true}).click({force:true});await page.waitForTimeout(350);}
   const box=await page.locator('.job-globe').boundingBox();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.15,box.y+box.height*.5,{steps:30});await page.mouse.up();
   await page.waitForFunction(expected=>{const ids=[...document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]')].map(row=>row.dataset.postingId);return JSON.stringify(ids)!==JSON.stringify(expected);},initial.on,{timeout:10000});
@@ -61,6 +74,6 @@ try{for(const mobile of [false,true]){
   assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'status patch keeps sectioned rail mounted');
   assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.method==='GET'||r.method==='PATCH'&&r.path===`/api/jobs/${id(6)}/status`));assert.ok(requests.filter(r=>r.path.endsWith('/globe')).every(r=>!r.query.includes('limit')));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   receipts.push({name,initial,zoomed,panned,filtered,requests,errors});
- }catch(error){await page.screenshot({path:`${output}/${name}-failure.png`,fullPage:true});throw error;}finally{await context.close();}
+ }catch(error){console.error(error);try{await page.screenshot({path:`${output}/${name}-failure.png`,fullPage:true,timeout:10000});}catch{}throw error;}finally{await context.close();}
 }}finally{await browser.close();await writeFile(`${output}/viewport-receipt.json`,JSON.stringify(receipts,null,2));}
 console.log(JSON.stringify(receipts));

@@ -17,6 +17,12 @@ test("round trip handles antimeridian wrapping, nonfinite and mismatched latitud
   assert.deepEqual(viewportPostingIds([p],100,80,()=>({x:50,y:40}),()=>({lng:-180,lat:32})),[p.posting_id]);
   for (const back of [{lng:NaN,lat:32},{lng:180,lat:NaN},{lng:180,lat:33}]) assert.deepEqual(viewportPostingIds([p],100,80,()=>({x:50,y:40}),()=>back),[]);
 });
+test("a collapsed or unstable globe never propagates Invalid LngLat during projection", () => {
+  const p = point(1);
+  const invalid = () => { throw new Error("Invalid LngLat object: (0, NaN)"); };
+  assert.deepEqual(viewportPostingIds([p], NaN, 80, invalid, invalid), []);
+  assert.deepEqual(viewportPostingIds([p], 100, 80, () => ({x:50,y:40}), invalid), []);
+});
 test("partition preserves sorted group identities, counts, alternates and unavailable/unresolved rows", () => {
   const groups=Array.from({length:5},(_,n)=>({job:job(n),alternates:n===3?[job(9)]:[]}));
   groups[1].job.alive=false;
