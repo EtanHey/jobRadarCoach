@@ -37,12 +37,21 @@ def _row(part, locator, gold, score, answer, confidence, *, run=1):
     }
 
 
-def _manifest(rows, dropped=()):
-    expected = {row["locator"]: row["part"] for row in [*rows, *dropped]}
+def _manifest(rows):
+    expected = {row["locator"]: row["part"] for row in rows}
+    dropped = []
+    for part, planned in ((1, 20), (2, 10), (3, 10)):
+        missing = planned - sum(value == part for value in expected.values())
+        for index in range(missing):
+            locator = f"planned-part{part}-{index + 1}"
+            expected[locator] = part
+            dropped.append(
+                {"locator": locator, "part": part, "reason": "fixture exclusion"}
+            )
     return {
         "schema_version": 1,
         "expected_locators": expected,
-        "dropped": list(dropped),
+        "dropped": dropped,
         "rows": rows,
     }
 
@@ -98,18 +107,14 @@ def test_summary_requires_expected_locator_drop_ledger_and_all_parts():
         _row(3, "three", "Maybe", 50, "maybe", 0.9),
     ]
     manifest = _manifest(rows)
-    manifest["expected_locators"]["four"] = 3
+    omitted = manifest["dropped"].pop()
     with pytest.raises(ValueError, match="included or explicitly dropped"):
         summarize_manifest(manifest)
 
-    manifest["dropped"] = [{"locator": "four", "part": 3, "reason": "ambiguous truth"}]
+    manifest["dropped"].append(omitted)
     assert summarize_manifest(manifest)["row_count"] == 3
-    missing_parts = _manifest(rows)
-    missing_parts["rows"] = [rows[0]]
-    missing_parts["dropped"] = [
-        {"locator": "two", "part": 2, "reason": "ambiguous truth"},
-        {"locator": "three", "part": 3, "reason": "ambiguous truth"},
-    ]
+    assert len(manifest["expected_locators"]) == 40
+    missing_parts = _manifest([rows[0]])
     with pytest.raises(
         ValueError, match="included rows must contain parts 1, 2, and 3"
     ):
@@ -131,12 +136,35 @@ def test_summary_rejects_non_integer_included_and_dropped_parts(target, bad_part
     if target == "included":
         manifest["rows"][0]["part"] = bad_part
     else:
-        manifest["expected_locators"]["four"] = 1
-        manifest["dropped"] = [
-            {"locator": "four", "part": bad_part, "reason": "ambiguous truth"}
-        ]
+        manifest["dropped"][0]["part"] = bad_part
 
     with pytest.raises(
         ValueError, match=f"{target} row part must be integer 1, 2, or 3"
     ):
         summarize_manifest(manifest)
+
+
+def test_summary_rejects_wrong_planned_total_and_part_distribution():
+    rows = [
+        _row(1, "one", "Pursue", 80, "pursue", 0.9),
+        _row(2, "two", "No", 20, "no", 0.9),
+        _row(3, "three", "Maybe", 50, "maybe", 0.9),
+    ]
+    too_small = {
+        "schema_version": 1,
+        "expected_locators": {row["locator"]: row["part"] for row in rows},
+        "dropped": [],
+        "rows": rows,
+    }
+    with pytest.raises(ValueError, match="exactly 20/10/10 planned locators"):
+        summarize_manifest(too_small)
+
+    wrong_distribution = _manifest(rows)
+    part1_locator = next(
+        locator
+        for locator, part in wrong_distribution["expected_locators"].items()
+        if part == 1 and locator != "one"
+    )
+    wrong_distribution["expected_locators"][part1_locator] = 2
+    with pytest.raises(ValueError, match="exactly 20/10/10 planned locators"):
+        summarize_manifest(wrong_distribution)

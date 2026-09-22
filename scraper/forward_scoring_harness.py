@@ -188,9 +188,16 @@ def _validate_cohort(
         or type(part) is not int
         or part not in {1, 2, 3}
         for locator, part in expected.items()
-    ) or set(expected.values()) != {1, 2, 3}:
+    ):
         raise ValueError(
             "expected_locators must declare stable locators for parts 1, 2, and 3"
+        )
+    planned_counts = {
+        part: sum(value == part for value in expected.values()) for part in (1, 2, 3)
+    }
+    if planned_counts != {1: 20, 2: 10, 3: 10}:
+        raise ValueError(
+            "expected_locators must declare exactly 20/10/10 planned locators"
         )
     if any(
         type(row.get("part")) is not int or row["part"] not in {1, 2, 3} for row in rows
