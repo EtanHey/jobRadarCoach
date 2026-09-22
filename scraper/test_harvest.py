@@ -449,7 +449,7 @@ def test_round4_named_jd_fixture_reproduces_reported_score_boundaries() -> None:
 
     assert result.returncode == 0, result.stderr
     assert "| 17 | -23 | Full Stack Developer - JB-731 |" in result.stdout
-    assert "| 15 | -1 | Senior Backend Engineer |" in result.stdout
+    assert "| 15 | -4 | Senior Backend Engineer |" in result.stdout
     assert "| 10 | 10 | Full Stack Developer (React / Next.js / Node.js) |" in result.stdout
     assert "| 10 | 10 | Forward Deployed Engineer, Data & AI |" in result.stdout
     assert "| 13 | 13 | Full Stack Engineer |" in result.stdout
@@ -537,8 +537,11 @@ def test_k8s_alias_is_an_infra_wall() -> None:
         ("Semiconductor EDA background", "semiconductor/eda", -10),
         ("Hardware verification", "verification", -6),
         ("React Native experience", "react-native", -1),
+        ("5 years required", "5+ years", -4),
+        ("6 years required", "6+ years (stretch)", -7),
+        ("6+ years required", "6+ years (stretch)", -7),
         ("8+ years required", "8-9+ years", -10),
-        ("6+ years required", "5-7+ years", -4),
+        ("10+ years required", "10+ years", -12),
     ],
 )
 def test_live_triage_negative_rules(
@@ -591,7 +594,7 @@ def test_react_or_vue_alternative_does_not_trigger_vue_negative() -> None:
 
     assert "react" in scored["matched_keywords"]
     assert "vue" not in scored["negative_hits"]
-    assert "5-7+ years" in scored["negative_hits"]
+    assert "5+ years" in scored["negative_hits"]
 
 
 def test_example_list_with_core_term_waives_negative_term() -> None:
@@ -936,7 +939,7 @@ def test_high_year_requirements_match_common_jd_phrasings(requirement: str) -> N
 @pytest.mark.parametrize(
     ("requirement", "expected_hit"),
     [
-        ("6-10 years of experience", "5-7+ years"),
+        ("6-10 years of experience", "6+ years (stretch)"),
         ("10-12 years of experience", "10+ years"),
         ("at least 10 years of experience", "10+ years"),
     ],
@@ -1403,9 +1406,9 @@ def test_model_title_gate_hard_excludes_seniority_rules(
 @pytest.mark.parametrize(
     ("blocked_requirement", "allowed_requirement"),
     [
-        ("6+ years of backend experience required", "5+ years of backend experience required"),
-        ("6-8 years of product experience", "3-5 years of product experience"),
-        ("At least 8 years in software engineering", "At least 4 years in software engineering"),
+        ("7+ years of backend experience required", "6+ years of backend experience required"),
+        ("At least 8 years in software engineering", "6 years in software engineering"),
+        ("Minimum 10 years of product experience", "5 years of product experience"),
     ],
 )
 def test_year_requirement_hard_block_uses_highest_lower_bound(
@@ -1415,6 +1418,17 @@ def test_year_requirement_hard_block_uses_highest_lower_bound(
 
     assert harvest._has_blocking_years_requirement(blocked_requirement) is True
     assert harvest._has_blocking_years_requirement(allowed_requirement) is False
+
+
+def test_exactly_six_year_minimum_and_six_plus_are_stretch_not_hard_block() -> None:
+    harvest = load_harvest_module()
+
+    for requirement in (
+        "Requirements: minimum 6 years of SaaS experience",
+        "Requirements: 6+ years of SaaS experience",
+    ):
+        assert harvest._has_blocking_years_requirement(requirement) is False
+        assert harvest._score_years_requirement(requirement) == ("6+ years (stretch)", -7)
 
 
 @pytest.mark.parametrize(
@@ -1427,6 +1441,7 @@ def test_year_requirement_hard_block_uses_highest_lower_bound(
         "Our company has 10 years of experience serving customers",
         "We have been 12 years in business",
         "Founded 15 years ago",
+        "The partnership lasted 9 years.",
     ],
 )
 def test_year_hard_gate_ignores_optional_and_company_history(
@@ -1629,18 +1644,18 @@ def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
     assert annotations == ["linkedin-repeat"]
 
 
-def test_db_pipeline_hard_blocks_six_year_requirement_before_persistence(
+def test_db_pipeline_penalizes_six_and_hard_blocks_seven_before_persistence(
     tmp_path: Path, monkeypatch
 ) -> None:
     harvest = load_harvest_module()
     postings = [
         {
-            "id": "allowed",
+            "id": "stretch",
             "title": "Software Engineer",
             "company": "Allowed",
             "location": "Israel",
-            "url": "https://example.test/allowed",
-            "jd_text": "Build React products. 3-5 years of experience required.",
+            "url": "https://example.test/stretch",
+            "jd_text": "Build React products. 6+ years of experience required.",
             "jd_fetched": True,
         },
         {
@@ -1649,7 +1664,7 @@ def test_db_pipeline_hard_blocks_six_year_requirement_before_persistence(
             "company": "Blocked",
             "location": "Israel",
             "url": "https://example.test/blocked",
-            "jd_text": "Build React products. 6+ years of experience required.",
+            "jd_text": "Build React products. 7+ years of experience required.",
             "jd_fetched": True,
         },
     ]
@@ -1699,7 +1714,8 @@ def test_db_pipeline_hard_blocks_six_year_requirement_before_persistence(
         posting_writer=writer,
     )
 
-    assert [row["id"] for row in persisted] == ["allowed"]
+    assert [row["id"] for row in persisted] == ["stretch"]
+    assert persisted[0]["negative_hits"] == ["6+ years (stretch)"]
     assert result["new_count"] == 1
 
 

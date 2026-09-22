@@ -31,9 +31,9 @@
     "jd_text": "What is the Opportunity? We are looking for a Senior Backend Engineer to join a high-impact, multi-disciplinary team building a customer-facing product trusted by health industry specialists. This team is solving complex technical challenges with a modern stack to power Eleos’ core growth engine. In this role you will collaborate closely with other R&D, Product, and Data teams. Who Are You? You are a seasoned Backend Engineer who thrives on building large-scale, cloud-native systems. You bring deep expertise in system architecture, data models, and service design, with a strong instinct for performance, security, and reliability. You take complete accountability for your work — from system design to production monitoring and bring a genuine \"can-do\" attitude to complex technical challenges. You are comfortable working across backend domains, whether architecting event-driven microservices or pairing with data science teams to deliver robust applicative backends. What You’ll Do Architect & Build: Design and construct high-performance, production-grade backend systems and applicative services built for reliability and maintainability. Own E2E Lifecycle: Take complete end-to-end ownership of backend features from concept to production- including architectural design, testing, shipping, and active monitoring. Cross-Domain Collaboration: Partner closely with Product Managers, Data Scientists, and R&D teams to translate complex data pipelines and product needs into scalable technical solutions. Elevate Engineering Standards: Participate in rigorous code reviews, establish architectural best practices, and help mentor team members across the organization. What You Bring 7+ years of hands-on experience building, deploying, and operating large-scale, production cloud systems end-to-end. Strong Computer Science foundations: Solid grasp of software design principles, concurrency, data structures, and cost/performance trade-offs. Cloud-Native & Event-Driven Systems: Hands-on experience designing and operating cloud-native, event-driven architectures and working with modern databases (SQL, NoSQL, or vector DBs). Language Proficiency: Deep proficiency in **Python** (or equivalent backend languages). Cross-Domain Adaptability: Comfortable working across backend contexts, including data pipelines, backend core logic, and applicative microservices. Ownership Mindset: A strong sense of personal accountability and a proven track record of taking complex backend systems from zero to production. Education BSc in Computer Science, Software Engineering, or equivalent practical experience. Advantages AI Agent Workflows Experience building or integrating AI agents, LLM orchestration, or modern AI frameworks into production services. DevOps & CI/CD: Hands-on experience setting up robust, automated CI/CD pipelines and infrastructure-as-code. Full Stack Flexibility: Prior exposure to modern Frontend/UI frameworks (e.g., React, TypeScript)",
     "jd_fetched": true,
     "before_score": 15,
-    "expected_score": -1,
+    "expected_score": -4,
     "expected_negative_hits": [
-      "5-7+ years",
+      "6+ years (stretch)",
       "python-primary"
     ],
     "source_endpoint": "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4443906501",
@@ -52,7 +52,7 @@
     "before_score": 10,
     "expected_score": 10,
     "expected_negative_hits": [
-      "5-7+ years"
+      "5+ years"
     ],
     "source_endpoint": "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4452438205",
     "fetched_at": "2026-08-11"
