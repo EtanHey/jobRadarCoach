@@ -28,3 +28,8 @@ export function partitionGlobeGroups(groups: DuplicateJobGroup[], visiblePosting
   }
   return { visible, outside };
 }
+export function countGlobeRoles(groups: DuplicateJobGroup[], points: GlobePoint[]) {
+  const mappedIds = new Set(points.map(point => point.posting_id));
+  const mapped = groups.filter(group => [group.job, ...group.alternates].some(job => mappedIds.has(job.id))).length;
+  return { total: groups.length, mapped, unmapped: groups.length - mapped };
+}
