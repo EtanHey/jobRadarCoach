@@ -55,3 +55,15 @@ export function clusterPoints(points: GlobePoint[], project: (point: GlobePoint)
 }
 // A cluster uses the best existing member score. Individual scores never change.
 export const clusterScore = (cluster: PointCluster) => cluster.members.reduce<number | null>((best, point) => point.job.score === null ? best : Math.max(best ?? 0, point.job.score), null);
+
+export function globeChoices(points: GlobePoint[], choiceIds: string[]): GlobePoint[] {
+  if (!choiceIds.length) return [];
+  const byId = new Map<string, GlobePoint[]>();
+  for (const point of points) {
+    const id = point.posting_id;
+    const matches = byId.get(id);
+    if (matches) matches.push(point);
+    else byId.set(id, [point]);
+  }
+  return choiceIds.flatMap(id => byId.get(id) ?? []);
+}
