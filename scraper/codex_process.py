@@ -49,14 +49,16 @@ def _read_version(process, command, timeout):
     return bytes(output)
 
 
-def verify_codex_version(codex, *, cwd, env, timeout):
+def verify_codex_version(
+    codex, *, cwd, env, timeout, expected_version=SUPPORTED_CODEX_CLI_VERSION
+):
     command = [codex, '--version']
     with subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL, cwd=cwd, env=env,
                           start_new_session=True) as process:
         try:
             output = _read_version(process, command, timeout)
-            if process.returncode != 0 or output.strip() != SUPPORTED_CODEX_CLI_VERSION.encode():
+            if process.returncode != 0 or output.strip() != expected_version.encode():
                 raise RuntimeError("Codex version is unsupported")
         finally:
             _stop_group(process)

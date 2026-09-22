@@ -134,6 +134,33 @@ def test_codex_dispatch_preserves_isolation_and_configured_provenance(
     )
 
 
+def test_codex_dispatch_accepts_a_call_scoped_version_verifier(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def fake_process(command, **_kwargs):
+        output_path = Path(command[command.index("--output-last-message") + 1])
+        output_path.write_text(
+            '{"role_family":"backend","mentions_typescript":true}',
+            encoding="utf-8",
+        )
+        return SimpleNamespace(returncode=0)
+
+    _, default_verified = install_runtime(monkeypatch, tmp_path, fake_process)
+    experiment_verified: list[str] = []
+
+    brain.run_brain(
+        request(),
+        env={"BRAIN": "codex"},
+        codex_version_verifier=lambda path, **_kwargs: experiment_verified.append(
+            path
+        ),
+    )
+
+    assert experiment_verified == ["/test/bin/codex"]
+    assert default_verified == []
+
+
 @pytest.mark.parametrize(
     "mode,error,match",
     [

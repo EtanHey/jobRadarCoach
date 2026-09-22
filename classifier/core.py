@@ -77,6 +77,35 @@ def score_posting(
         profile = _profile_contract(profile_snapshot)
         luna_posting = _public_posting(posting)
         history = _history_projection(application_history)
+    except Exception:
+        _diagnose(diagnostic, "projection")
+        return None
+    return score_projected(
+        profile,
+        luna_posting,
+        history,
+        profile_snapshot=profile_snapshot,
+        brain_runner=brain_runner,
+        diagnostic=diagnostic,
+    )
+
+
+def score_projected(
+    profile: Mapping[str, object],
+    posting: Mapping[str, object],
+    application_history: Sequence[Mapping[str, object]],
+    *,
+    profile_snapshot: Mapping[str, object] | None = None,
+    brain_runner: BrainRunner = run_brain,
+    diagnostic: DiagnosticCallback | None = None,
+) -> ScoringResult | None:
+    """Score an already-frozen production projection through the same validator."""
+
+    if diagnostic is None:
+        diagnostic = _DIAGNOSTIC_CALLBACK.get()
+    try:
+        luna_posting = dict(posting)
+        history = [dict(row) for row in application_history]
         request = _request(luna_posting, profile, history)
         posting_evidence_id = f"posting:{luna_posting['id']}"
         allowed_evidence_ids = (
@@ -93,7 +122,9 @@ def score_posting(
     attempted_brain: str | None = None
     for _attempt in range(MAX_ATTEMPTS):
         try:
-            result = brain_runner(request, profile_snapshot)
+            result = brain_runner(
+                request, profile if profile_snapshot is None else profile_snapshot
+            )
         except BrainResponseError:
             _diagnose(diagnostic, "wire")
             return None
