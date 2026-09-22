@@ -8,6 +8,18 @@ from scraper.test_annotate import safe_projection
 from scraper.test_forward_scoring_inputs import _inputs
 
 
+@pytest.fixture(autouse=True)
+def _offline_only(monkeypatch):
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("JEV_API_KEY", raising=False)
+    monkeypatch.setattr(runtime.jev_client, "_api_key", lambda: "offline-test-only")
+
+    def reject_network(*_args, **_kwargs):
+        raise AssertionError("network transport is disabled in runner tests")
+
+    monkeypatch.setattr(runtime.jev_client, "_http_transport", reject_network)
+
+
 def _manifest():
     return assemble_manifest(safe_projection(), *_inputs())
 
@@ -49,7 +61,6 @@ def test_reference_scoring_uses_hosted_projection_and_local_validation_profile(
 def test_jev_scoring_sends_only_the_frozen_hosted_payload(tmp_path, monkeypatch):
     row = _manifest()["rows"][0]
     seen = []
-    monkeypatch.setenv("TYPESAFE_API_KEY", "test-secret")
     monkeypatch.setenv("JEV_DAILY_USD_CAP", "0.50")
 
     def transport(payload, _key):

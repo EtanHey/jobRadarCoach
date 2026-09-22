@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import ssl
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -102,9 +103,43 @@ def prepare(manifest_path: Path, **options: object) -> dict[str, Any]:
     return manifest
 
 
+def tls_ca_bundle() -> Path:
+    """Resolve and validate the CA file urllib will use for the Jev call."""
+
+    explicit = os.getenv("SSL_CERT_FILE")
+    defaults = ssl.get_default_verify_paths()
+    candidates = (
+        [Path(explicit)]
+        if explicit
+        else [
+            Path(value)
+            for value in (
+                defaults.cafile,
+                defaults.openssl_cafile,
+                "/etc/ssl/cert.pem",
+                "/etc/ssl/certs/ca-certificates.crt",
+                "/opt/homebrew/etc/openssl@3/cert.pem",
+            )
+            if value
+        ]
+    )
+    for candidate in dict.fromkeys(candidates):
+        if not candidate.is_file():
+            continue
+        try:
+            context = ssl.create_default_context(cafile=str(candidate))
+        except (OSError, ssl.SSLError):
+            continue
+        if context.cert_store_stats().get("x509_ca", 0) > 0:
+            return candidate.resolve()
+    source = "configured" if explicit else "system"
+    raise ValueError(f"no valid {source} TLS CA bundle is available")
+
+
 @contextmanager
-def _provider_environment() -> Iterator[None]:
+def _provider_environment(ca_bundle: Path) -> Iterator[None]:
     values = runtime.provider_environment()
+    values["SSL_CERT_FILE"] = str(ca_bundle)
     prior = {name: os.environ.get(name) for name in values}
     os.environ.update(values)
     try:
@@ -148,6 +183,7 @@ def execute(
     maximum_remaining = len(pending_jev) * runtime.jev_client.maximum_call_cost()
     if spent + maximum_remaining > runtime.CAP_USD:
         raise RuntimeError("maximum planned Jev cost exceeds the lane cap")
+    ca_bundle = tls_ca_bundle()
 
     remaining_reference = sum("reference" not in row for row in rows)
     print(
@@ -160,6 +196,7 @@ def execute(
                 "maximum_jev_cost_usd": maximum_remaining,
                 "recorded_jev_cost_usd": spent,
                 "hard_cap_usd": runtime.CAP_USD,
+                "tls_ca_bundle": str(ca_bundle),
                 **runtime.execution_metadata(),
             }
         ),
@@ -176,7 +213,7 @@ def execute(
                 row["reference"] = runtime.score_reference(row, reference_runner)
             write_json(manifest_path, manifest)
 
-    with _provider_environment():
+    with _provider_environment(ca_bundle):
         for row in pending_jev:
             row["jev"].append(runtime.score_jev(row, run_dir, jev_transport))
             write_json(manifest_path, manifest)

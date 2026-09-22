@@ -1,5 +1,6 @@
 import copy
 import os
+import ssl
 
 import pytest
 
@@ -8,6 +9,18 @@ from scraper import forward_scoring_runtime as runtime
 from scraper.forward_scoring_inputs import assemble_manifest
 from scraper.test_annotate import safe_projection
 from scraper.test_forward_scoring_inputs import _inputs
+
+
+@pytest.fixture(autouse=True)
+def _offline_only(monkeypatch):
+    monkeypatch.delenv("TYPESAFE_API_KEY", raising=False)
+    monkeypatch.delenv("JEV_API_KEY", raising=False)
+    monkeypatch.setattr(runtime.jev_client, "_api_key", lambda: "offline-test-only")
+
+    def reject_network(*_args, **_kwargs):
+        raise AssertionError("network transport is disabled in runner tests")
+
+    monkeypatch.setattr(runtime.jev_client, "_http_transport", reject_network)
 
 
 def _manifest():
@@ -87,6 +100,14 @@ def test_execute_single_run_is_atomic_resumable_and_restores_environment(
     assert runner.load_manifest(tmp_path / "manifest.json") == manifest
 
 
+def test_tls_preflight_selects_a_valid_ca_without_network():
+    ca_bundle = runner.tls_ca_bundle()
+    context = ssl.create_default_context(cafile=str(ca_bundle))
+
+    assert ca_bundle.is_file()
+    assert context.cert_store_stats()["x509_ca"] > 0
+
+
 def test_cap_failure_precedes_reference_calls(tmp_path, monkeypatch):
     manifest = _manifest()
     calls = []
@@ -95,6 +116,24 @@ def test_cap_failure_precedes_reference_calls(tmp_path, monkeypatch):
     monkeypatch.setattr(runtime.jev_client, "maximum_call_cost", lambda: 0.02)
 
     with pytest.raises(RuntimeError, match="cap"):
+        runner.execute(manifest, tmp_path / "manifest.json", tmp_path / "run")
+
+    assert calls == []
+
+
+def test_invalid_explicit_ca_fails_before_reference_calls(tmp_path, monkeypatch):
+    manifest = _manifest()
+    calls = []
+    invalid_ca = tmp_path / "invalid-ca.pem"
+    invalid_ca.write_text("not a certificate\n", encoding="utf-8")
+    monkeypatch.setenv(runner.PROVIDER_GATE, manifest["freeze_receipt"]["sha256"])
+    monkeypatch.setenv("SSL_CERT_FILE", str(invalid_ca))
+    monkeypatch.setattr(
+        runtime, "score_reference", lambda *_: calls.append("reference")
+    )
+    monkeypatch.setattr(runtime, "score_jev", lambda *_: calls.append("jev"))
+
+    with pytest.raises(ValueError, match="CA bundle"):
         runner.execute(manifest, tmp_path / "manifest.json", tmp_path / "run")
 
     assert calls == []
