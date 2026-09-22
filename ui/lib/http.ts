@@ -6,7 +6,7 @@ export class HttpError extends Error {
   }
 }
 
-export async function safely(run: (context: { requestId?: string }) => Promise<Response>, operation?: "job_detail" | "job_list"): Promise<Response> {
+export async function safely(run: (context: { requestId?: string }) => Promise<Response>, operation?: "job_detail" | "job_list" | "job_globe"): Promise<Response> {
   const started = performance.now();
   const requestId = operation ? crypto.randomUUID() : undefined;
   let response: Response;

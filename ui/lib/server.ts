@@ -49,7 +49,7 @@ const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
 const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
-function client(): SupabaseClient {
+export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
   if (!env.success) throw new HttpError(503, "Server database configuration is unavailable.");
   return createClient(env.data.SUPABASE_URL, env.data.SUPABASE_SERVICE_ROLE_KEY, {
@@ -57,7 +57,7 @@ function client(): SupabaseClient {
   });
 }
 
-async function data(result: PromiseLike<{ data: unknown; error: unknown }>): Promise<unknown> {
+export async function data(result: PromiseLike<{ data: unknown; error: unknown }>): Promise<unknown> {
   const response = await result;
   if (response.error) throw new HttpError(503, "Database request failed.", "database");
   return response.data;
