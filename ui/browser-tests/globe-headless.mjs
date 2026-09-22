@@ -92,7 +92,7 @@ try {
   await page.screenshot({path:`${output}/globe.png`,fullPage:true});
   const firstCanvas = await page.locator(".maplibregl-canvas").elementHandle();
   assert.equal(await page.locator(".maplibregl-canvas").count(),1);
-  assert.equal(await page.getByText("1 posting not on globe",{exact:true}).count(),1);
+  assert.equal(await page.getByText("1 role not on globe",{exact:true}).count(),1);
   assert.ok(globeRequests.every(query => !query.includes("limit=")));
   assert.equal(await page.evaluate(() => window.locationRequests),0);
   await page.getByRole("button",{name:"Use my location",exact:true}).click();
@@ -171,7 +171,7 @@ try {
   await page.getByRole("combobox",{name:"Location",exact:true}).click();
   await page.getByRole("option",{name:"Israel",exact:true}).click();
   assert.equal(await page.locator("[data-posting-id]").count(),2);
-  assert.equal(await page.getByText("0 postings not on globe",{exact:true}).count(),1);
+  assert.equal(await page.getByText("0 roles not on globe",{exact:true}).count(),1);
   await page.getByRole("combobox",{name:"Work mode",exact:true}).click();
   await page.getByRole("option",{name:"On-site / hybrid",exact:true}).click();
   assert.equal(await page.locator("[data-posting-id]").count(),0);
@@ -182,10 +182,10 @@ try {
   const search = page.getByPlaceholder("Search title, company, or stack");
   await search.fill("Remote Studio");
   assert.equal(await page.locator("[data-posting-id]").count(),1);
-  assert.equal(await page.getByText("1 posting not on globe",{exact:true}).count(),1);
+  assert.equal(await page.getByText("1 role not on globe",{exact:true}).count(),1);
   assert.equal(await page.locator('[data-globe-selected="true"]').count(),0);
   await search.fill("no results anywhere");
-  assert.equal(await page.getByText("0 postings not on globe",{exact:true}).count(),1);
+  assert.equal(await page.getByText("0 roles not on globe",{exact:true}).count(),1);
   await search.fill("");
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(300);

@@ -63,6 +63,7 @@ try{for(const mobile of [false,true]){
   assert.ok(await canvas.evaluate((first,current)=>first===current,await page.locator('.maplibregl-canvas').elementHandle()));
   await page.screenshot({path:`${output}/${name}-toggle-on.png`,fullPage:true});
   await page.getByRole('heading',{name:'On screen',exact:true}).waitFor();
+  await page.evaluate(()=>{window.globeRailGaps=0;}); // The intentional OFF and loading frames are outside the refresh/search gap assertion.
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom out',exact:true}).click({force:true});await page.waitForTimeout(350);}
   const box=await page.locator('.job-globe').boundingBox();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.15,box.y+box.height*.5,{steps:30});await page.mouse.up();
   await page.waitForFunction(expected=>{const ids=[...document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]')].map(row=>row.dataset.postingId);return JSON.stringify(ids)!==JSON.stringify(expected);},initial.on,{timeout:10000});
