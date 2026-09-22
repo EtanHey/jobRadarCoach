@@ -118,7 +118,8 @@ YEAR_COMPANY_HISTORY_PATTERN = re.compile(
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
     (8, "8-9+ years", -10),
-    (5, "5-7+ years", -4),
+    (6, "6+ years (stretch)", -7),
+    (5, "5+ years", -4),
 )
 
 SENIOR_TITLE_PATTERN = re.compile(r"\b(?:senior|staff|principal|lead)\b", re.I)
@@ -633,10 +634,10 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
 
 
 def _has_blocking_years_requirement(text: str) -> bool:
-    """Block when any single stated experience minimum is six years or higher."""
+    """Block when any single stated experience minimum is seven years or higher."""
 
     for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
-        if int(match.group("minimum")) < 6:
+        if int(match.group("minimum")) < 7:
             continue
         item = _requirement_list_item(text, match.start(), match.end())
         if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
