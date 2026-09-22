@@ -112,6 +112,15 @@ def _verdict(parts: Mapping[str, Any], pooled: Mapping[str, Any]) -> dict[str, A
 
 
 def summarize_forward(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    rows = manifest.get("rows")
+    if isinstance(rows, list):
+        for row in rows:
+            gold = row.get("gold") if isinstance(row, Mapping) else None
+            verbatim = gold.get("verbatim") if isinstance(gold, Mapping) else None
+            if isinstance(verbatim, str) and parse_verdict(verbatim) != gold.get(
+                "label"
+            ):
+                raise ValueError("verbatim verdict does not match declared gold label")
     summary = summarize_manifest(manifest)
     rows = manifest["rows"]
     for run in summary["runs"]:
@@ -140,8 +149,11 @@ def _matrix(lines: list[str], label: str, metric: Mapping[str, Any]) -> None:
 
 def render_report(manifest: Mapping[str, Any]) -> str:
     summary = summarize_forward(manifest)
+    executed = summary["row_count"]
+    planned = len(manifest["expected_locators"])
+    clear_no_count = sum(row["gold"]["label"] == "No" for row in manifest["rows"])
     lines = [
-        "# Forward scoring — frozen 30-label experiment",
+        f"# Forward scoring — {executed} executed labels ({planned} planned)",
         "",
         "## Human-label parse table",
         "",
@@ -154,7 +166,7 @@ def render_report(manifest: Mapping[str, Any]) -> str:
             row["part"],
             f"{posting['company']} — {posting['title']}",
             gold["verbatim"],
-            gold["label"],
+            parse_verdict(gold["verbatim"]),
         )
         lines.append(
             "| " + " | ".join(str(value).replace("|", "\\|") for value in values) + " |"
@@ -188,6 +200,8 @@ def render_report(manifest: Mapping[str, Any]) -> str:
                     f"({low:.3f}–{high:.3f}) | {metric['pursue_recall']:.3f} | "
                     f"{metric['misses']} | {metric['false_fires']} |"
                 )
+            for arm in ("reference", "jev"):
+                metric = run["parts"][part][arm]
                 _matrix(lines, arm, metric)
         lines += [
             "",
@@ -233,7 +247,7 @@ def render_report(manifest: Mapping[str, Any]) -> str:
         f"- Reference runtime: `{execution.get('codex_cli_version', 'not recorded')}`; production pin: `{execution.get('production_codex_pin', 'not recorded')}`. The installed runtime is an approved experiment-only deviation; the production pin was not changed.",
         "- Hosted requests contained the professional profile projection and public posting only; application history and truth labels were excluded.",
         "- Production decision bands: >=70 Pursue, 40–69 Maybe, <40 No. Fixed Jev decision floor: 0.70.",
-        "- Only five labels are clear No's, so the reject class is thin; Part 3 is the stratified remedy.",
+        f"- Only {clear_no_count} executed labels are clear No's, so the reject class is thin; Part 3 is the stratified remedy.",
     ]
     if len(summary["runs"]) > 1:
         values = [run["pooled"]["jev"]["exact_accuracy"] for run in summary["runs"]]

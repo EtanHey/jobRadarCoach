@@ -94,6 +94,18 @@ def test_supplementary_prefilter_interval_does_not_change_acceptance_bar():
     ]
 
 
+@pytest.mark.parametrize(
+    ("verbatim", "declared"),
+    [("No", "Maybe"), ("Probably pursue", "Pursue")],
+)
+def test_summary_rejects_gold_that_does_not_match_verbatim_parser(verbatim, declared):
+    manifest = _manifest()
+    manifest["rows"][0]["gold"] = {"verbatim": verbatim, "label": declared}
+
+    with pytest.raises(ValueError, match="verbatim verdict"):
+        summarize_forward(manifest)
+
+
 def test_report_discloses_runtime_privacy_parts_and_both_intervals():
     report = render_report(_manifest())
 
@@ -103,3 +115,17 @@ def test_report_discloses_runtime_privacy_parts_and_both_intervals():
     assert "actual prefiltered | 0/3" in report
     assert "codex-cli 0.154.0" in report and "codex-cli 0.153.4" in report
     assert "application history and truth labels were excluded" in report
+    assert report.index("| jev |") < report.index("**reference confusion**")
+
+
+def test_report_derives_executed_and_clear_no_counts_after_drop():
+    manifest = _manifest()
+    dropped = manifest["rows"].pop()
+    manifest["dropped"] = [
+        {"locator": dropped["locator"], "part": dropped["part"], "reason": "ambiguous"}
+    ]
+
+    report = render_report(manifest)
+
+    assert "29 executed labels (30 planned)" in report
+    assert "Only 2 executed labels are clear No's" in report
