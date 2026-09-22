@@ -50,7 +50,8 @@ CORE_STACK_PATTERN = re.compile(
     re.I,
 )
 HARD_TITLE_EXCLUSION_PATTERN = re.compile(
-    r"\bembedded\b|\bmechanical\b|\bdata[\s-]+scien(?:ces?|tists?)\b",
+    r"\bembedded\b|\bmechanical\b|\bdata[\s-]+scien(?:ces?|tists?)\b|"
+    r"\bstaff\b|\bprincipal\b|\bhead[\s-]+of\b|\bleads?\b",
     re.I,
 )
 ROLE_TYPE_NEGATIVE_LABELS = {
@@ -93,6 +94,25 @@ NEGATIVE_RULES: tuple[tuple[str, re.Pattern[str], int, str], ...] = (
 YEARS_REQUIREMENT_PATTERN = re.compile(
     r"\b(?:(?:minimum(?:\s+of)?|at\s+least)\s+)?"
     r"(?P<minimum>\d{1,2})\s*(?:\+|-\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
+    re.I,
+)
+YEAR_QUALIFICATION_CONTEXT_PATTERN = re.compile(
+    r"\b(?:requirements?|qualifications?|required|must|minimum|at\s+least|"
+    r"experience|expertise|background|proficien\w*|candidates?|"
+    r"you(?:'ll|\s+will)?\s+(?:have|bring|need)|years?\s+(?:of|in|with|"
+    r"building|creating|delivering|designing|developing|leading|managing|"
+    r"operating|programming|shipping|working))\b",
+    re.I,
+)
+YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
+    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
+    re.I,
+)
+YEAR_COMPANY_HISTORY_PATTERN = re.compile(
+    r"\b(?:our|the|this)\s+(?:company|business|firm|organization|organisation)\s+"
+    r"(?:has|have)\b.*\b\d{1,2}\s*years?\b|"
+    r"\b\d{1,2}\s*years?\s+in\s+business\b|"
+    r"\bfounded\b.*\b\d{1,2}\s*years?\s+ago\b",
     re.I,
 )
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
@@ -520,6 +540,19 @@ def _requirement_clause(text: str, start: int, end: int) -> str:
     return text[left + 1 : right].strip()
 
 
+def _requirement_list_item(text: str, start: int, end: int) -> str:
+    """Return the comma/list item containing one requirement occurrence."""
+
+    boundaries = [
+        match.start()
+        for match in re.finditer(r"[,;\n•]|[.!?](?=\s+[A-Z]|\s*$)", text)
+    ]
+    left = max((index for index in boundaries if index < start), default=-1)
+    right_candidates = [index for index in boundaries if index >= end]
+    right = min(right_candidates) if right_candidates else len(text)
+    return text[left + 1 : right].strip()
+
+
 def _infra_or_list_has_claimable_alternative(clause: str) -> bool:
     """Return true when an or-list offers at least one non-wall technology."""
 
@@ -597,6 +630,22 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
         if highest_minimum >= threshold:
             return label, weight
     return None
+
+
+def _has_blocking_years_requirement(text: str) -> bool:
+    """Block when any single stated experience minimum is six years or higher."""
+
+    for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
+        if int(match.group("minimum")) < 6:
+            continue
+        item = _requirement_list_item(text, match.start(), match.end())
+        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
+            continue
+        if YEAR_COMPANY_HISTORY_PATTERN.search(item):
+            continue
+        if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(item):
+            return True
+    return False
 
 
 def _is_non_required_stack_context(
@@ -2142,6 +2191,11 @@ def run_pipeline(  # skipcq: PY-R1000
         sleep=jd_sleep,
         max_fetches=jd_fetch_cap,
     )
+    fresh_with_jds = [
+        posting
+        for posting in fresh_with_jds
+        if not _has_blocking_years_requirement(str(posting.get("jd_text", "")))
+    ]
     jd_fetch_failed = jd_warning_count
     jd_fetch_degraded = jd_fetch_is_degraded(
         attempted=jd_fetch_attempted,
