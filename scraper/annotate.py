@@ -401,7 +401,11 @@ def _professional_profile(profile: dict[str, object]) -> dict[str, object]:
     }
 
 
-def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str:
+def provider_payload_projection(
+    posting: dict[str, object], profile: dict[str, object]
+) -> dict[str, dict[str, object]]:
+    """Return the exact professional profile and posting sent to a provider."""
+
     posting_id = str(posting.get("id", "")).strip()
     public_posting = {
         "id": posting_id,
@@ -413,6 +417,16 @@ def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str
     human_recommendation = _expected_human_recommendation(posting)
     if human_recommendation is not None:
         public_posting["explicit_human_recommendation"] = human_recommendation
+    return {
+        "professional_profile": _professional_profile(profile),
+        "public_posting": public_posting,
+    }
+
+
+def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str:
+    payload = provider_payload_projection(posting, profile)
+    public_posting = payload["public_posting"]
+    posting_id = str(public_posting["id"])
     allowed_evidence_ids = sorted(
         {f"posting:{posting_id}"}
         | PROFILE_EVIDENCE_IDS
@@ -455,7 +469,9 @@ def _build_prompt(posting: dict[str, object], profile: dict[str, object]) -> str
             "Allowed evidence IDs:",
             json.dumps(allowed_evidence_ids, ensure_ascii=False),
             "Professional fit profile:",
-            json.dumps(_professional_profile(profile), ensure_ascii=False, sort_keys=True),
+            json.dumps(
+                payload["professional_profile"], ensure_ascii=False, sort_keys=True
+            ),
             "Public posting:",
             json.dumps(public_posting, ensure_ascii=False, sort_keys=True),
         ]
