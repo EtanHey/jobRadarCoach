@@ -99,7 +99,13 @@ YEARS_REQUIREMENT_PATTERN = re.compile(
 YEAR_QUALIFICATION_CONTEXT_PATTERN = re.compile(
     r"\b(?:requirements?|qualifications?|required|must|minimum|at\s+least|"
     r"experience|expertise|background|proficien\w*|candidates?|"
-    r"you(?:'ll|\s+will)?\s+(?:have|bring|need)|years?\s+(?:of|in|with))\b",
+    r"you(?:'ll|\s+will)?\s+(?:have|bring|need)|years?\s+(?:of|in|with|"
+    r"building|creating|delivering|designing|developing|leading|managing|"
+    r"operating|programming|shipping|working))\b",
+    re.I,
+)
+YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
+    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
     re.I,
 )
 YEAR_COMPANY_HISTORY_PATTERN = re.compile(
@@ -220,7 +226,7 @@ LUNA_INVALID: dict[str, object] = {
 }
 CONTEXTUAL_STACK_LABELS = {".net", "c#", "c++", "angular", "vue"}
 OPTIONAL_REQUIREMENT_PATTERN = re.compile(
-    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
+    r"\b(?:advantage|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
     re.I,
 )
 INFRA_WALL_PATTERNS = {
@@ -534,6 +540,19 @@ def _requirement_clause(text: str, start: int, end: int) -> str:
     return text[left + 1 : right].strip()
 
 
+def _requirement_list_item(text: str, start: int, end: int) -> str:
+    """Return the comma/list item containing one requirement occurrence."""
+
+    boundaries = [
+        match.start()
+        for match in re.finditer(r"[,;\n•]|[.!?](?=\s+[A-Z]|\s*$)", text)
+    ]
+    left = max((index for index in boundaries if index < start), default=-1)
+    right_candidates = [index for index in boundaries if index >= end]
+    right = min(right_candidates) if right_candidates else len(text)
+    return text[left + 1 : right].strip()
+
+
 def _infra_or_list_has_claimable_alternative(clause: str) -> bool:
     """Return true when an or-list offers at least one non-wall technology."""
 
@@ -619,12 +638,12 @@ def _has_blocking_years_requirement(text: str) -> bool:
     for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
         if int(match.group("minimum")) < 6:
             continue
-        clause = _requirement_clause(text, match.start(), match.end())
-        if OPTIONAL_REQUIREMENT_PATTERN.search(clause):
+        item = _requirement_list_item(text, match.start(), match.end())
+        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
             continue
-        if YEAR_COMPANY_HISTORY_PATTERN.search(clause):
+        if YEAR_COMPANY_HISTORY_PATTERN.search(item):
             continue
-        if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(clause):
+        if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(item):
             return True
     return False
 

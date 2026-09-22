@@ -492,6 +492,33 @@ def test_python_primary_wording_outweighs_an_earlier_language_or_list() -> None:
     ) == [("python-primary", -16)]
 
 
+@pytest.mark.parametrize(
+    ("requirement", "expected_hit"),
+    [
+        (
+            "Deep proficiency in Python is required, annual bonus offered.",
+            ("python-primary", -16),
+        ),
+        (
+            "Hands-on experience with Kubernetes is required, annual bonus offered.",
+            ("infra:kubernetes", -8),
+        ),
+    ],
+)
+def test_compensation_bonus_does_not_waive_required_stack_wall(
+    requirement: str, expected_hit: tuple[str, int]
+) -> None:
+    harvest = load_harvest_module()
+
+    assert expected_hit in harvest._score_requirement_walls(requirement)
+
+
+def test_shared_optional_requirement_pattern_does_not_treat_bonus_as_optional() -> None:
+    harvest = load_harvest_module()
+
+    assert harvest.OPTIONAL_REQUIREMENT_PATTERN.search("annual bonus offered") is None
+
+
 def test_k8s_alias_is_an_infra_wall() -> None:
     harvest = load_harvest_module()
 
@@ -1415,6 +1442,22 @@ def test_year_hard_gate_blocks_mandatory_requirement_clause() -> None:
 
     assert harvest._has_blocking_years_requirement(
         "Requirements: 7+ years of Python"
+    ) is True
+
+
+def test_year_hard_gate_binds_optional_marker_to_the_year_list_item() -> None:
+    harvest = load_harvest_module()
+
+    assert harvest._has_blocking_years_requirement(
+        "Requirements: 7+ years of Python experience required, Docker is a bonus"
+    ) is True
+
+
+def test_year_hard_gate_blocks_standalone_requirement_bullet() -> None:
+    harvest = load_harvest_module()
+
+    assert harvest._has_blocking_years_requirement(
+        "7+ years building production Python systems"
     ) is True
 
 
