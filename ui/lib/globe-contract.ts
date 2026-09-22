@@ -14,11 +14,12 @@ export const GlobeQuerySchema = JobListQuerySchema.omit({ limit: true }).extend(
   remote: z.enum(["true", "false"]).transform((s) => s === "true").optional(),
   min_score: z.coerce.number().int().min(0).max(100).optional(),
 }).strict();
+const hqSource = /^https:\/\/[A-Za-z0-9.-]+(?::[0-9]+)?(?:\/[^\s|]*)? \| nominatim:osm:(node|way|relation):[1-9][0-9]*$/;
 export const GlobePointSchema = z.object({
   posting_id: JobIdSchema, lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180),
   precision: z.enum(["city", "region", "country", "hq"]), source: z.string().trim().min(1),
   resolved_at: z.iso.datetime({ offset: true }),
-}).strict();
+}).strict().refine((point) => point.precision !== "hq" || hqSource.test(point.source), "HQ requires HTTPS evidence and a provider object");
 export const GlobeResponseSchema = z.object({
   jobs: z.array(JobSummarySchema), points: z.array(GlobePointSchema),
   total_count: z.number().int().nonnegative(), resolved_count: z.number().int().nonnegative(),

@@ -101,7 +101,7 @@ export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidR
   return { jobs: rows.map(summary), invalidRowCount: 0 };
 }
 
-export async function selectSummaries(db: SupabaseClient, input: JobListQuery, offset = 0): Promise<JobSummary[]> {
+async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
   if (input.filter === "new-for-me") {
     const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
       db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
@@ -115,7 +115,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery, o
       const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
       fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
     }
-    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").range(offset, offset + input.limit - 1);
+    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
     return parseSummaryRows(await data(fresh)).jobs;
   }
   let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
@@ -123,7 +123,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery, o
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
-  query = query.order("first_seen_at", { ascending: false }).order("id").range(offset, offset + input.limit - 1);
+  query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   return parseSummaryRows(await data(query)).jobs;
 }
 
