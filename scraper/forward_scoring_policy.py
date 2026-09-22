@@ -49,10 +49,18 @@ def _threshold_curve(
             str(part): _accuracy(
                 [row for row in rows if row["part"] == part], run, floor
             )
-            for part in (1, 2)
+            for part in (1, 2, 3)
         }
+        non_radar = _accuracy(
+            [row for row in rows if row["part"] in {2, 3}], run, floor
+        )
         curve.append(
-            {"floor": floor, "parts": parts, "pooled": _accuracy(rows, run, floor)}
+            {
+                "floor": floor,
+                "parts": parts,
+                "non_radar": non_radar,
+                "pooled": _accuracy(rows, run, floor),
+            }
         )
     return curve
 
@@ -93,7 +101,7 @@ def _verdict(parts: Mapping[str, Any], pooled: Mapping[str, Any]) -> dict[str, A
             "value": margin,
         }
     upper = pooled["jev"]["false_rejection_wilson_95"][1]
-    prefilter_guards = pooled["jev"]["predicted_no"] >= 3 and all(
+    prefilter_guards = pooled["jev"]["predicted_no"] >= 4 and all(
         item["jev"]["false_rejections"] == 0 for item in parts.values()
     )
     if prefilter_guards and upper <= 0.20:
@@ -102,7 +110,7 @@ def _verdict(parts: Mapping[str, Any], pooled: Mapping[str, Any]) -> dict[str, A
             "metric": "eligible_positive_wilson_upper",
             "value": upper,
         }
-    if pooled["jev"]["predicted_no"] < 3:
+    if pooled["jev"]["predicted_no"] < 4:
         metric, value = "confident_no_count", pooled["jev"]["predicted_no"]
     elif not all(item["jev"]["false_rejections"] == 0 for item in parts.values()):
         metric, value = "false_rejections", pooled["jev"]["false_rejections"]
@@ -147,6 +155,28 @@ def _matrix(lines: list[str], label: str, metric: Mapping[str, Any]) -> None:
         )
 
 
+def _arm_section(
+    lines: list[str], heading: str, arms: Mapping[str, Mapping[str, Any]]
+) -> None:
+    lines += [
+        "",
+        f"### {heading}",
+        "",
+        "| Arm | Exact accuracy (95% Wilson) | Pursue recall | Misses | False fires |",
+        "|---|---:|---:|---:|---:|",
+    ]
+    for arm in ("reference", "jev"):
+        metric = arms[arm]
+        low, high = metric["exact_accuracy_wilson_95"]
+        lines.append(
+            f"| {arm} | {metric['exact_hits']}/{metric['n']} = {metric['exact_accuracy']:.3f} "
+            f"({low:.3f}–{high:.3f}) | {metric['pursue_recall']:.3f} | "
+            f"{metric['misses']} | {metric['false_fires']} |"
+        )
+    for arm in ("reference", "jev"):
+        _matrix(lines, arm, arms[arm])
+
+
 def render_report(manifest: Mapping[str, Any]) -> str:
     summary = summarize_forward(manifest)
     executed = summary["row_count"]
@@ -161,7 +191,8 @@ def render_report(manifest: Mapping[str, Any]) -> str:
         "|---:|---|---|---|",
     ]
     for row in manifest["rows"]:
-        posting, gold = row["frozen_input"]["public_posting"], row["gold"]
+        posting = row["frozen_input"]["hosted_payload"]["public_posting"]
+        gold = row["gold"]
         values = (
             row["part"],
             f"{posting['company']} — {posting['title']}",
@@ -184,35 +215,26 @@ def render_report(manifest: Mapping[str, Any]) -> str:
             "",
             f"VERDICT: **{verdict['label']}** — `{verdict['metric']}` = **{verdict['value']:.4f}**.",
         ]
-        for part in ("1", "2"):
-            lines += [
-                "",
-                f"### Part {part}",
-                "",
-                "| Arm | Exact accuracy (95% Wilson) | Pursue recall | Misses | False fires |",
-                "|---|---:|---:|---:|---:|",
-            ]
-            for arm in ("reference", "jev"):
-                metric = run["parts"][part][arm]
-                low, high = metric["exact_accuracy_wilson_95"]
-                lines.append(
-                    f"| {arm} | {metric['exact_hits']}/{metric['n']} = {metric['exact_accuracy']:.3f} "
-                    f"({low:.3f}–{high:.3f}) | {metric['pursue_recall']:.3f} | "
-                    f"{metric['misses']} | {metric['false_fires']} |"
-                )
-            for arm in ("reference", "jev"):
-                metric = run["parts"][part][arm]
-                _matrix(lines, arm, metric)
+        for part in ("1", "2", "3"):
+            _arm_section(lines, f"Part {part}", run["parts"][part])
+        _arm_section(
+            lines,
+            "Non-radar subtotal (Parts 2+3)",
+            run["subtotals"]["non_radar"],
+        )
+        _arm_section(lines, "Pooled", run["pooled"])
         lines += [
             "",
             "### Accuracy vs Jev confidence floor",
             "",
-            "| Floor | Part 1 | Part 2 | Pooled |",
-            "|---:|---:|---:|---:|",
+            "| Floor | Part 1 | Part 2 | Part 3 | Non-radar | Pooled |",
+            "|---:|---:|---:|---:|---:|---:|",
         ]
         for point in run["threshold_curve"]:
             lines.append(
-                f"| {point['floor']:.2f} | {point['parts']['1']:.3f} | {point['parts']['2']:.3f} | {point['pooled']:.3f} |"
+                f"| {point['floor']:.2f} | {point['parts']['1']:.3f} | "
+                f"{point['parts']['2']:.3f} | {point['parts']['3']:.3f} | "
+                f"{point['non_radar']:.3f} | {point['pooled']:.3f} |"
             )
         intervals = run["false_rejection_intervals"]
         lines += [
@@ -247,7 +269,7 @@ def render_report(manifest: Mapping[str, Any]) -> str:
         f"- Reference runtime: `{execution.get('codex_cli_version', 'not recorded')}`; production pin: `{execution.get('production_codex_pin', 'not recorded')}`. The installed runtime is an approved experiment-only deviation; the production pin was not changed.",
         "- Hosted requests contained the professional profile projection and public posting only; application history and truth labels were excluded.",
         "- Production decision bands: >=70 Pursue, 40–69 Maybe, <40 No. Fixed Jev decision floor: 0.70.",
-        f"- Only {clear_no_count} executed labels are clear No's, so the reject class is thin; Part 3 is the stratified remedy.",
+        f"- Only {clear_no_count} executed labels are clear No's, so the reject class remains thin despite the stratified Part 3 sample.",
     ]
     if len(summary["runs"]) > 1:
         values = [run["pooled"]["jev"]["exact_accuracy"] for run in summary["runs"]]
