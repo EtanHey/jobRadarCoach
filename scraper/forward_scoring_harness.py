@@ -6,7 +6,6 @@ import argparse
 import hashlib
 import json
 import math
-import re
 import statistics
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -14,24 +13,10 @@ from typing import Any
 
 LABELS = ("Pursue", "Maybe", "No")
 FIXED_FLOOR = 0.70
-FLOORS = tuple(value / 100 for value in range(50, 100, 5))
 
 
 def canonical_json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-
-
-def parse_verdict(verbatim: str) -> str | None:
-    """Map only Etan's explicit verdict head; qualifiers never change its class."""
-    plain = re.sub(r"[*_`]", "", verbatim).strip().casefold()
-    patterns = (
-        ("Pursue", r"^(?:low\s+)?pursue(?:\s*\([^)]*\))?$"),
-        ("Maybe", r"^(?:(?:very\s+)?low\s+|strong\s+)?maybe(?:\s*\([^)]*\))?$"),
-        ("No", r"^no(?:\s*\([^)]*\))?$"),
-    )
-    return next(
-        (label for label, pattern in patterns if re.fullmatch(pattern, plain)), None
-    )
 
 
 def wilson(successes: int, total: int) -> tuple[float, float]:
@@ -128,11 +113,26 @@ def _percentile(values: Sequence[float], fraction: float) -> float | None:
     return ordered[index]
 
 
+def _finite_measurement(value: object, field: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError(f"{field} must be a finite non-negative number")
+    measurement = float(value)
+    if not math.isfinite(measurement) or measurement < 0:
+        raise ValueError(f"{field} must be a finite non-negative number")
+    return measurement
+
+
 def _cost_latency(rows: Sequence[Mapping[str, Any]], run: int) -> dict[str, Any]:
     jev_rows = [next(item for item in row["jev"] if item["run"] == run) for row in rows]
-    jev_costs = [float(item["cost_usd"]) for item in jev_rows]
-    jev_latencies = [float(item["latency_seconds"]) for item in jev_rows]
-    reference_latencies = [float(row["reference"]["latency_seconds"]) for row in rows]
+    jev_costs = [_finite_measurement(item["cost_usd"], "cost_usd") for item in jev_rows]
+    jev_latencies = [
+        _finite_measurement(item["latency_seconds"], "latency_seconds")
+        for item in jev_rows
+    ]
+    reference_latencies = [
+        _finite_measurement(row["reference"]["latency_seconds"], "latency_seconds")
+        for row in rows
+    ]
     reference_costs = {row["reference"].get("cost_per_row_usd") for row in rows}
     if reference_costs != {None}:
         raise ValueError(
@@ -176,44 +176,44 @@ def _predictions(
     return gold, reference, jev
 
 
-def _verdict(
-    part_metrics: Mapping[str, Mapping[str, Any]], pooled: Mapping[str, Any]
-) -> dict[str, Any]:
-    margin = (
-        pooled["jev"]["exact_accuracy_wilson_95"][0]
-        - pooled["reference"]["exact_accuracy"]
-    )
-    replace_guards = all(
-        item["jev"]["exact_accuracy"] >= item["reference"]["exact_accuracy"]
-        and item["jev"]["misses"] <= item["reference"]["misses"]
-        and item["jev"]["false_fires"] <= item["reference"]["false_fires"]
-        for item in part_metrics.values()
-    )
-    if margin >= 0 and replace_guards:
-        return {
-            "label": "REPLACE",
-            "deciding_metric": "replace_accuracy_margin",
-            "value": margin,
-        }
-    false_rejection_upper = pooled["jev"]["false_rejection_wilson_95"][1]
-    prefilter_guards = pooled["jev"]["predicted_no"] >= 3 and all(
-        item["jev"]["false_rejections"] == 0 for item in part_metrics.values()
-    )
-    if prefilter_guards and false_rejection_upper <= 0.20:
-        return {
-            "label": "PREFILTER-ONLY",
-            "deciding_metric": "false_rejection_wilson_upper",
-            "value": false_rejection_upper,
-        }
-    if pooled["jev"]["predicted_no"] < 3:
-        metric, value = "confident_no_count", pooled["jev"]["predicted_no"]
-    elif not all(
-        item["jev"]["false_rejections"] == 0 for item in part_metrics.values()
-    ):
-        metric, value = "false_rejections", pooled["jev"]["false_rejections"]
-    else:
-        metric, value = "false_rejection_wilson_upper", false_rejection_upper
-    return {"label": "NO-GO", "deciding_metric": metric, "value": value}
+def _validate_cohort(
+    manifest: Mapping[str, Any], rows: Sequence[Mapping[str, Any]], locators: set[str]
+) -> None:
+    expected = manifest.get("expected_locators")
+    if not isinstance(expected, Mapping) or not expected:
+        raise ValueError("manifest must declare expected_locators")
+    if any(
+        not isinstance(locator, str)
+        or not locator
+        or type(part) is not int
+        or part not in {1, 2}
+        for locator, part in expected.items()
+    ) or set(expected.values()) != {1, 2}:
+        raise ValueError(
+            "expected_locators must declare stable locators for parts 1 and 2"
+        )
+    if {row.get("part") for row in rows} != {1, 2}:
+        raise ValueError("included rows must contain parts 1 and 2")
+    if any(expected.get(row["locator"]) != row.get("part") for row in rows):
+        raise ValueError("included locator does not match its expected part")
+    dropped = manifest.get("dropped")
+    if not isinstance(dropped, list):
+        raise TypeError("manifest must declare a dropped-row ledger")
+    dropped_locators: set[str] = set()
+    for item in dropped:
+        if (
+            not isinstance(item, Mapping)
+            or expected.get(item.get("locator")) != item.get("part")
+            or not isinstance(item.get("reason"), str)
+            or not item["reason"].strip()
+            or item["locator"] in dropped_locators
+        ):
+            raise ValueError("invalid dropped-row ledger entry")
+        dropped_locators.add(item["locator"])
+    if locators & dropped_locators or locators | dropped_locators != set(expected):
+        raise ValueError(
+            "every expected locator must be included or explicitly dropped"
+        )
 
 
 def summarize_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:
@@ -236,14 +236,21 @@ def summarize_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:
         ).hexdigest()
         if row.get("input_sha256") != expected:
             raise ValueError(f"frozen input sha256 mismatch for {locator}")
-        if parse_verdict(row["gold"]["verbatim"]) != row["gold"].get("label"):
-            raise ValueError(f"gold parse mismatch for {locator}")
+        gold = row.get("gold")
+        if (
+            not isinstance(gold, Mapping)
+            or gold.get("label") not in LABELS
+            or not isinstance(gold.get("verbatim"), str)
+            or not gold["verbatim"].strip()
+        ):
+            raise ValueError(f"invalid gold label for {locator}")
         runs = [item.get("run") for item in row.get("jev", [])]
         if any(type(run) is not int or run < 1 for run in runs) or len(runs) != len(
             set(runs)
         ):
             raise ValueError(f"invalid Jev runs for {locator}")
         run_sets.append(set(runs))
+    _validate_cohort(manifest, rows, locators)
     if not run_sets[0] or any(runs != run_sets[0] for runs in run_sets[1:]):
         raise ValueError("every posting must have the same complete Jev run set")
 
@@ -259,29 +266,12 @@ def summarize_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:
             }
         gold, reference, jev = _predictions(rows, run, FIXED_FLOOR)
         pooled = {"reference": _metrics(gold, reference), "jev": _metrics(gold, jev)}
-        curve = []
-        for floor in FLOORS:
-            floor_parts = {}
-            for part in sorted({row["part"] for row in rows}):
-                subset = [row for row in rows if row["part"] == part]
-                part_gold, _, part_jev = _predictions(subset, run, floor)
-                floor_parts[str(part)] = _metrics(part_gold, part_jev)
-            floor_gold, _, floor_jev = _predictions(rows, run, floor)
-            curve.append(
-                {
-                    "floor": floor,
-                    "parts": floor_parts,
-                    "pooled": _metrics(floor_gold, floor_jev),
-                }
-            )
         output_runs.append(
             {
                 "run": run,
                 "parts": parts,
                 "pooled": pooled,
-                "threshold_curve": curve,
                 "cost_latency": _cost_latency(rows, run),
-                "verdict": _verdict(parts, pooled),
             }
         )
     return {"schema_version": 1, "row_count": len(rows), "runs": output_runs}
@@ -294,7 +284,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     print(
         json.dumps(
-            summarize_manifest(manifest), ensure_ascii=False, indent=2, sort_keys=True
+            summarize_manifest(manifest),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
         )
     )
     return 0

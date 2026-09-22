@@ -4,7 +4,6 @@ import pytest
 
 from scraper.forward_scoring_harness import (
     canonical_json,
-    parse_verdict,
     summarize_manifest,
 )
 
@@ -20,7 +19,7 @@ def _row(part, locator, gold, score, answer, confidence, *, run=1):
         "locator": locator,
         "frozen_input": frozen,
         "input_sha256": hashlib.sha256(canonical_json(frozen).encode()).hexdigest(),
-        "gold": {"verbatim": gold, "label": parse_verdict(gold)},
+        "gold": {"verbatim": gold, "label": gold.split()[0]},
         "reference": {
             "fit_score": score,
             "latency_seconds": 2.0,
@@ -38,58 +37,63 @@ def _row(part, locator, gold, score, answer, confidence, *, run=1):
     }
 
 
-@pytest.mark.parametrize(
-    ("verdict", "label"),
-    [
-        ("Pursue", "Pursue"),
-        ("Pursue (with stack question mark)", "Pursue"),
-        ("Low pursue", "Pursue"),
-        ("Maybe (leaning yes)", "Maybe"),
-        ("Very low maybe", "Maybe"),
-        ("Strong maybe", "Maybe"),
-        ("Low maybe", "Maybe"),
-        ("No", "No"),
-        ("Probably pursue", None),
-    ],
-)
-def test_parse_verdict_is_explicit_and_qualifier_preserving(verdict, label):
-    assert parse_verdict(verdict) == label
+def _manifest(rows, dropped=()):
+    expected = {row["locator"]: row["part"] for row in [*rows, *dropped]}
+    return {
+        "schema_version": 1,
+        "expected_locators": expected,
+        "dropped": list(dropped),
+        "rows": rows,
+    }
 
 
-def test_summary_recomputes_parts_curve_cost_latency_and_prefilter_verdict():
+def test_summary_recomputes_parts_and_cost_latency():
     rows = [
         _row(1, "one", "Pursue", 80, "pursue", 0.90),
-        _row(1, "two", "Maybe", 60, "maybe", 0.80),
-        _row(1, "three", "No", 20, "no", 0.95),
-        _row(2, "four", "Pursue", 80, "maybe", 0.90),
-        _row(2, "five", "Maybe", 60, "no", 0.60),
-        _row(2, "six", "No", 20, "no", 0.95),
+        _row(2, "two", "No", 20, "no", 0.95),
     ]
-    rows.append(_row(2, "seven", "No", 20, "no", 0.95))
-    for index in range(21):
-        rows.append(
-            _row(1 if index % 2 else 2, f"extra-{index}", "Maybe", 60, "maybe", 0.90)
-        )
-    summary = summarize_manifest({"schema_version": 1, "rows": rows})
+    summary = summarize_manifest(_manifest(rows))
 
     run = summary["runs"][0]
-    assert run["parts"]["1"]["jev"]["exact_hits"] == 13
-    assert run["parts"]["2"]["jev"]["exact_hits"] == 13
-    assert run["pooled"]["jev"]["predicted_no"] == 3
-    assert run["threshold_curve"][0]["floor"] == 0.5
-    assert run["threshold_curve"][-1]["floor"] == 0.95
+    assert run["parts"]["1"]["jev"]["exact_hits"] == 1
+    assert run["parts"]["2"]["jev"]["exact_hits"] == 1
     assert run["cost_latency"]["jev"]["cost_per_row_usd"] == pytest.approx(0.0001)
     assert run["cost_latency"]["reference"]["cost_per_row_usd"] is None
-    assert run["verdict"]["label"] == "PREFILTER-ONLY"
 
 
-def test_summary_rejects_changed_frozen_input_and_keeps_reruns_separate():
-    first = _row(1, "one", "Pursue", 80, "pursue", 0.9)
-    second = {**first["jev"][0], "run": 2, "answer": "no"}
-    manifest = {"schema_version": 1, "rows": [first]}
-    manifest["rows"][0]["jev"].append(second)
-    assert [item["run"] for item in summarize_manifest(manifest)["runs"]] == [1, 2]
+@pytest.mark.parametrize(
+    ("target", "field", "value"),
+    [
+        ("reference", "latency_seconds", float("nan")),
+        ("jev", "latency_seconds", True),
+        ("jev", "cost_usd", -1),
+    ],
+)
+def test_summary_rejects_non_finite_measurements(target, field, value):
+    row = _row(1, "one", "Pursue", 80, "pursue", 0.9)
+    measurement = row["reference"] if target == "reference" else row["jev"][0]
+    measurement[field] = value
 
+    with pytest.raises(
+        (TypeError, ValueError), match=f"{field} must be a finite non-negative number"
+    ):
+        summarize_manifest(_manifest([row, _row(2, "two", "No", 20, "no", 0.9)]))
+
+
+def test_summary_requires_expected_locator_drop_ledger_and_both_parts():
+    rows = [
+        _row(1, "one", "Pursue", 80, "pursue", 0.9),
+        _row(2, "two", "No", 20, "no", 0.9),
+    ]
+    manifest = _manifest(rows)
+    manifest["expected_locators"]["three"] = 2
+    with pytest.raises(ValueError, match="included or explicitly dropped"):
+        summarize_manifest(manifest)
+
+    manifest["dropped"] = [{"locator": "three", "part": 2, "reason": "ambiguous truth"}]
+    assert summarize_manifest(manifest)["row_count"] == 2
+    with pytest.raises(ValueError, match="included rows must contain parts 1 and 2"):
+        summarize_manifest(_manifest([rows[0]], manifest["dropped"]))
     manifest["rows"][0]["frozen_input"]["posting"]["jd_text"] = "mutated"
     with pytest.raises(ValueError, match="sha256"):
         summarize_manifest(manifest)
