@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
-import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type MapOptions } from "maplibre-gl";
+import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type IControl, type MapOptions } from "maplibre-gl";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
@@ -19,6 +19,33 @@ function landingZoomForSize(width: number, height: number, latitude: number) {
 function landingZoom(map: Map, latitude: number) {
   return landingZoomForSize(map.getContainer().clientWidth, map.getContainer().clientHeight, latitude);
 }
+function reducedMotion() { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+function makeLocationControl(locate: () => void): IControl {
+  let root: HTMLDivElement | null = null;
+  return {
+    onAdd() {
+      root = document.createElement("div");
+      root.className = "maplibregl-ctrl-location-wrap";
+      const group = document.createElement("div");
+      group.className = "maplibregl-ctrl maplibregl-ctrl-group";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "maplibregl-ctrl-location";
+      button.setAttribute("aria-label", "Use my location");
+      button.title = "Use my location. Your location stays on this device.";
+      button.textContent = "◎";
+      button.onclick = locate;
+      const status = document.createElement("span");
+      status.className = "maplibregl-ctrl-location-status";
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      group.append(button);
+      root.append(group, status);
+      return root;
+    },
+    onRemove() { root?.remove(); root = null; },
+  };
+}
 
 type Props = { active: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; onSelect: (id: string) => void; onFailure: () => void };
 export default function JobGlobe({ active, points, selected, onSelect, onFailure, onViewportChange }: Props) {
@@ -34,7 +61,6 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const hovered = hover?.selection === selected ? hover.point : null;
-  const [location, setLocation] = useState("");
   const canInteract = useCallback(() => {
     const element = container.current;
     const canvas = mapRef.current?.getCanvas();
@@ -63,15 +89,25 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
     return () => clearTimeout(timeout);
   }, [active, ready]);
-  const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const locate = useCallback(() => {
-    if (!navigator.geolocation) { setLocation("Location unavailable · you can still explore"); return; }
-    setLocation("Waiting for location permission…");
+    const map = mapRef.current;
+    const status = map?.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-location-status");
+    const button = map?.getContainer().querySelector<HTMLButtonElement>(".maplibregl-ctrl-location");
+    if (!navigator.geolocation) {
+      if (status) status.textContent = "Location unavailable · you can still explore";
+      if (button) button.setAttribute("aria-label", "Retry location");
+      return;
+    }
+    if (status) status.textContent = "Waiting for location permission…";
     navigator.geolocation.getCurrentPosition(({ coords }) => {
-      if (!mapRef.current) return;
-      mapRef.current.flyTo({ center: [coords.longitude, coords.latitude], zoom: landingZoom(mapRef.current, coords.latitude), duration: reducedMotion() ? 0 : 1600 });
-      setLocation("Centered near you · location stays on this device");
-    }, () => { if (mapRef.current) setLocation("Location unavailable · you can still explore"); }, { timeout: 8000, maximumAge: 300000 });
+      if (!map) return;
+      map.flyTo({ center: [coords.longitude, coords.latitude], zoom: Math.min(map.getMaxZoom(), Math.max(map.getZoom(), 10)), duration: reducedMotion() ? 0 : 1600 });
+      if (status) status.textContent = "Centered near you · location stays on this device";
+      if (button) button.setAttribute("aria-label", "Use my location");
+    }, () => {
+      if (map && status) status.textContent = "Location unavailable · you can still explore";
+      if (button) button.setAttribute("aria-label", "Retry location");
+    }, { timeout: 8000, maximumAge: 300000 });
   }, []);
   useEffect(() => {
     if (!container.current) return;
@@ -93,6 +129,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
         mapRef.current = map;
         map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
         map.addControl(new FullscreenControl({ container: container.current }), "top-right");
+        map.addControl(makeLocationControl(locate), "top-right");
         const publishCamera = () => { if (container.current && map) {
           container.current.dataset.projection = String(map.getProjection()?.type);
           container.current.dataset.zoom = String(map.getZoom());
@@ -228,7 +265,6 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
       <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{ready ? "Drag to explore · select a posting" : "Preparing the globe…"}</p>
       {choices.length > 0 && <div className="absolute left-3 top-28 z-10 max-h-[calc(100%-8rem)] w-64 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
       {focused && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
-      <div className="absolute left-3 top-12 z-10 flex max-w-[calc(100%-5rem)] flex-wrap items-center gap-2"><button type="button" onClick={locate} title="Map starts near Rehovot. Your location stays on this device." className="min-h-11 rounded-lg border bg-card px-3 py-2 text-sm shadow-md focus-visible:outline-2">{location.startsWith("Location unavailable") ? "Retry location" : "Use my location"}</button>{location && <p role="status" className="rounded-lg bg-card/95 px-2 py-1 text-xs shadow-md">{location}</p>}</div>
     </div>
   </section>;
 }
