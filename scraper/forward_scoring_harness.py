@@ -186,18 +186,18 @@ def _validate_cohort(
         not isinstance(locator, str)
         or not locator
         or type(part) is not int
-        or part not in {1, 2}
+        or part not in {1, 2, 3}
         for locator, part in expected.items()
-    ) or set(expected.values()) != {1, 2}:
+    ) or set(expected.values()) != {1, 2, 3}:
         raise ValueError(
-            "expected_locators must declare stable locators for parts 1 and 2"
+            "expected_locators must declare stable locators for parts 1, 2, and 3"
         )
     if any(
-        type(row.get("part")) is not int or row["part"] not in {1, 2} for row in rows
+        type(row.get("part")) is not int or row["part"] not in {1, 2, 3} for row in rows
     ):
-        raise ValueError("included row part must be integer 1 or 2")
-    if {row["part"] for row in rows} != {1, 2}:
-        raise ValueError("included rows must contain parts 1 and 2")
+        raise ValueError("included row part must be integer 1, 2, or 3")
+    if {row["part"] for row in rows} != {1, 2, 3}:
+        raise ValueError("included rows must contain parts 1, 2, and 3")
     if any(expected.get(row["locator"]) != row["part"] for row in rows):
         raise ValueError("included locator does not match its expected part")
     dropped = manifest.get("dropped")
@@ -206,9 +206,9 @@ def _validate_cohort(
     dropped_locators: set[str] = set()
     for item in dropped:
         if isinstance(item, Mapping) and (
-            type(item.get("part")) is not int or item["part"] not in {1, 2}
+            type(item.get("part")) is not int or item["part"] not in {1, 2, 3}
         ):
-            raise ValueError("dropped row part must be integer 1 or 2")
+            raise ValueError("dropped row part must be integer 1, 2, or 3")
         if (
             not isinstance(item, Mapping)
             or expected.get(item.get("locator")) != item.get("part")
@@ -272,12 +272,21 @@ def summarize_manifest(manifest: Mapping[str, Any]) -> dict[str, Any]:
                 "reference": _metrics(gold, reference),
                 "jev": _metrics(gold, jev),
             }
+        non_radar = [row for row in rows if row["part"] in {2, 3}]
+        gold, reference, jev = _predictions(non_radar, run, FIXED_FLOOR)
+        subtotals = {
+            "non_radar": {
+                "reference": _metrics(gold, reference),
+                "jev": _metrics(gold, jev),
+            }
+        }
         gold, reference, jev = _predictions(rows, run, FIXED_FLOOR)
         pooled = {"reference": _metrics(gold, reference), "jev": _metrics(gold, jev)}
         output_runs.append(
             {
                 "run": run,
                 "parts": parts,
+                "subtotals": subtotals,
                 "pooled": pooled,
                 "cost_latency": _cost_latency(rows, run),
             }

@@ -51,12 +51,15 @@ def test_summary_recomputes_parts_and_cost_latency():
     rows = [
         _row(1, "one", "Pursue", 80, "pursue", 0.90),
         _row(2, "two", "No", 20, "no", 0.95),
+        _row(3, "three", "Maybe", 50, "maybe", 0.90),
     ]
     summary = summarize_manifest(_manifest(rows))
 
     run = summary["runs"][0]
     assert run["parts"]["1"]["jev"]["exact_hits"] == 1
     assert run["parts"]["2"]["jev"]["exact_hits"] == 1
+    assert run["parts"]["3"]["jev"]["exact_hits"] == 1
+    assert run["subtotals"]["non_radar"]["jev"]["n"] == 2
     assert run["cost_latency"]["jev"]["cost_per_row_usd"] == pytest.approx(0.0001)
     assert run["cost_latency"]["reference"]["cost_per_row_usd"] is None
 
@@ -77,23 +80,40 @@ def test_summary_rejects_non_finite_measurements(target, field, value):
     with pytest.raises(
         (TypeError, ValueError), match=f"{field} must be a finite non-negative number"
     ):
-        summarize_manifest(_manifest([row, _row(2, "two", "No", 20, "no", 0.9)]))
+        summarize_manifest(
+            _manifest(
+                [
+                    row,
+                    _row(2, "two", "No", 20, "no", 0.9),
+                    _row(3, "three", "Maybe", 50, "maybe", 0.9),
+                ]
+            )
+        )
 
 
-def test_summary_requires_expected_locator_drop_ledger_and_both_parts():
+def test_summary_requires_expected_locator_drop_ledger_and_all_parts():
     rows = [
         _row(1, "one", "Pursue", 80, "pursue", 0.9),
         _row(2, "two", "No", 20, "no", 0.9),
+        _row(3, "three", "Maybe", 50, "maybe", 0.9),
     ]
     manifest = _manifest(rows)
-    manifest["expected_locators"]["three"] = 2
+    manifest["expected_locators"]["four"] = 3
     with pytest.raises(ValueError, match="included or explicitly dropped"):
         summarize_manifest(manifest)
 
-    manifest["dropped"] = [{"locator": "three", "part": 2, "reason": "ambiguous truth"}]
-    assert summarize_manifest(manifest)["row_count"] == 2
-    with pytest.raises(ValueError, match="included rows must contain parts 1 and 2"):
-        summarize_manifest(_manifest([rows[0]], manifest["dropped"]))
+    manifest["dropped"] = [{"locator": "four", "part": 3, "reason": "ambiguous truth"}]
+    assert summarize_manifest(manifest)["row_count"] == 3
+    missing_parts = _manifest(rows)
+    missing_parts["rows"] = [rows[0]]
+    missing_parts["dropped"] = [
+        {"locator": "two", "part": 2, "reason": "ambiguous truth"},
+        {"locator": "three", "part": 3, "reason": "ambiguous truth"},
+    ]
+    with pytest.raises(
+        ValueError, match="included rows must contain parts 1, 2, and 3"
+    ):
+        summarize_manifest(missing_parts)
     manifest["rows"][0]["frozen_input"]["posting"]["jd_text"] = "mutated"
     with pytest.raises(ValueError, match="sha256"):
         summarize_manifest(manifest)
@@ -105,15 +125,18 @@ def test_summary_rejects_non_integer_included_and_dropped_parts(target, bad_part
     rows = [
         _row(1, "one", "Pursue", 80, "pursue", 0.9),
         _row(2, "two", "No", 20, "no", 0.9),
+        _row(3, "three", "Maybe", 50, "maybe", 0.9),
     ]
     manifest = _manifest(rows)
     if target == "included":
         manifest["rows"][0]["part"] = bad_part
     else:
-        manifest["expected_locators"]["three"] = 1
+        manifest["expected_locators"]["four"] = 1
         manifest["dropped"] = [
-            {"locator": "three", "part": bad_part, "reason": "ambiguous truth"}
+            {"locator": "four", "part": bad_part, "reason": "ambiguous truth"}
         ]
 
-    with pytest.raises(ValueError, match=f"{target} row part must be integer 1 or 2"):
+    with pytest.raises(
+        ValueError, match=f"{target} row part must be integer 1, 2, or 3"
+    ):
         summarize_manifest(manifest)
