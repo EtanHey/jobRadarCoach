@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } fr
 import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type MapOptions } from "maplibre-gl";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
-import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, scoreBands, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
+import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
 import { usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -13,8 +13,8 @@ setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).hr
 function landingZoomForSize(width: number, height: number, latitude: number) {
   const edge = Math.min(width, height);
   // The first visible container supplies the landing size; later resizes retain the camera.
-  if (edge <= 0) return 1.3;
-  return Math.min(1.3, Math.log2(edge * Math.max(0.15, Math.cos(latitude * Math.PI / 180)) / 180));
+  if (edge <= 0) return 1.7;
+  return Math.min(1.9, Math.log2(edge * Math.max(0.15, Math.cos(latitude * Math.PI / 180)) / 180) + 0.55);
 }
 function landingZoom(map: Map, latitude: number) {
   return landingZoomForSize(map.getContainer().clientWidth, map.getContainer().clientHeight, latitude);
@@ -34,7 +34,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const hovered = hover?.selection === selected ? hover.point : null;
-  const [location, setLocation] = useState("Centered near Rehovot · location stays on this device");
+  const [location, setLocation] = useState("");
   const canInteract = useCallback(() => {
     const element = container.current;
     const canvas = mapRef.current?.getCanvas();
@@ -226,15 +226,9 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     <div onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{ready ? "Drag to explore · select a posting" : "Preparing the globe…"}</p>
-    </div>
-    <div className="globe-footer">
-      <div className="flex flex-wrap gap-4 text-xs">{scoreBands.map(band => <span key={band.label} className="flex items-center gap-1.5"><i aria-hidden="true" className="inline-block size-3 rounded-full" style={{backgroundColor:scoreCss(band.score)}} />{band.label}</span>)}</div>
-      <p className="mt-2 text-xs text-muted-foreground">Counts group nearby postings · color shows the highest fit in the group.</p>
-      {choices.length > 0 && <div className="mt-3 rounded-lg border p-2" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
-      <div className="mt-3 flex flex-wrap items-center gap-3"><button type="button" onClick={locate} className="min-h-11 rounded-lg border px-3 py-2 text-sm focus-visible:outline-2">{location.startsWith("Location unavailable") ? "Retry location" : "Use my location"}</button><p role="status" className="text-xs">{location}</p></div>
-      <div className="mt-3 min-h-24 rounded-lg border p-3" data-globe-posting={focused?.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite">
-        {focused ? <><p className="text-xs">{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1 text-xs">{pointLabel(focused)}</p><p className="mt-1 break-all text-xs">Source: {focused.source}</p></> : <p className="text-sm text-muted-foreground">Select a posting to see its location and source.</p>}
-      </div>
+      {choices.length > 0 && <div className="absolute left-3 top-28 z-10 w-64 max-w-[calc(100%-1.5rem)] rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
+      {focused && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
+      <div className="absolute left-3 top-12 z-10 flex max-w-[calc(100%-5rem)] flex-wrap items-center gap-2"><button type="button" onClick={locate} className="min-h-11 rounded-lg border bg-card px-3 py-2 text-sm shadow-md focus-visible:outline-2">{location.startsWith("Location unavailable") ? "Retry location" : "Use my location"}</button>{location && <p role="status" className="rounded-lg bg-card/95 px-2 py-1 text-xs shadow-md">{location}</p>}</div>
     </div>
   </section>;
 }

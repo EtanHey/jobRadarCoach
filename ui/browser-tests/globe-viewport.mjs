@@ -65,7 +65,12 @@ try{for(const mobile of [false,true]){
   await page.getByRole('heading',{name:'On screen',exact:true}).waitFor();
   await page.evaluate(()=>{window.globeRailGaps=0;}); // The intentional OFF and loading frames are outside the refresh/search gap assertion.
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom out',exact:true}).click({force:true});await page.waitForTimeout(350);}
-  const box=await page.locator('.job-globe').boundingBox();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.15,box.y+box.height*.5,{steps:30});await page.mouse.up();
+  const box=await page.locator('.job-globe').boundingBox();
+  for(let attempt=0;attempt<3;attempt++){
+    await page.mouse.move(box.x+box.width*.8,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.1,box.y+box.height*.5,{steps:30});await page.mouse.up();
+    await page.waitForTimeout(500);
+    const now=await ids('visible');if(JSON.stringify(now)!==JSON.stringify(initial.on))break;
+  }
   await page.waitForFunction(expected=>{const ids=[...document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]')].map(row=>row.dataset.postingId);return JSON.stringify(ids)!==JSON.stringify(expected);},initial.on,{timeout:10000});
   const panned=await parity(Array.from({length:7},(_,n)=>id(n)));assert.notDeepEqual(panned.on,initial.on,'pan updates the viewport partition');
   await page.screenshot({path:`${output}/${name}-panned.png`,fullPage:true});

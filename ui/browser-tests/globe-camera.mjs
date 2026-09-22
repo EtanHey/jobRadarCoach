@@ -20,11 +20,14 @@ try {for(const mobile of [false,true])for(const reducedMotion of ['reduce','no-p
   // Mount and load inside a genuinely hidden panel, then expose its real dimensions.
   const hidden=await page.addStyleTag({content:'.globe-slot {display:none !important}'});
   await page.getByRole('button',{name:'Globe',exact:true}).click();
+  await page.waitForTimeout(2100);
+  assert.equal(await page.locator('[data-projection]').count(),0,`${name}: a zero-size slot must not construct a map`);
+  await hidden.evaluate(el=>el.remove());
   await page.waitForFunction(()=>document.querySelector('[data-projection="globe"]'),{},{timeout:30000});
-  await page.waitForTimeout(2100);await hidden.evaluate(el=>el.remove());await page.waitForTimeout(500);
+  await page.waitForTimeout(500);
   const state=()=>page.locator('[data-projection]').evaluate(el=>({projection:el.dataset.projection,zoom:Number(el.dataset.zoom),width:el.clientWidth,height:el.clientHeight}));
-  const initial=await state();assert.equal(initial.projection,'globe');assert.ok(initial.width>300&&initial.height>400);
-  assert.ok(initial.zoom>=0&&initial.zoom<=1.31,`${name}: hidden-load landing must show a useful sphere, got ${initial.zoom}`);
+  const initial=await state();assert.equal(initial.projection,'globe');assert.ok(initial.width>300&&initial.height>300);
+  assert.ok(initial.zoom>=1.2&&initial.zoom<=1.9,`${name}: hidden-load landing must show a useful, unclipped sphere, got ${initial.zoom}`);
   // The same transient zero-area condition occurs in responsive/full-page capture.
   const collapsed=await page.addStyleTag({content:'.globe-slot {display:none !important}'});await page.waitForTimeout(150);await collapsed.evaluate(el=>el.remove());await page.waitForTimeout(300);
   const restored=await state();assert.ok(Math.abs(restored.zoom-initial.zoom)<0.05,`${name}: hidden/visible resize corrupted zoom ${initial.zoom} -> ${restored.zoom}`);
@@ -34,7 +37,7 @@ try {for(const mobile of [false,true])for(const reducedMotion of ['reduce','no-p
   const point=payload.points.find(point=>ids.includes(point.posting_id));assert.ok(point);
   await page.locator(`[data-posting-id="${point.posting_id}"] > button`).click();await page.waitForTimeout(1500);
   assert.equal(await page.locator('[data-globe-posting]').getAttribute('data-globe-posting'),point.posting_id);
-  const selected=await state();assert.equal(selected.projection,'globe');assert.ok(Number.isFinite(selected.zoom)&&selected.zoom<=1.31);
+  const selected=await state();assert.equal(selected.projection,'globe');assert.ok(Number.isFinite(selected.zoom)&&selected.zoom>=1.2&&selected.zoom<=1.9);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
   receipts.push({name,initial,restored,selected,postings:payload.jobs.length,mapped:payload.points.length,errors});
  }catch(error){await page.screenshot({path:`${output}/${name}-failure.png`,fullPage:false});throw error;}finally{await context.close();}

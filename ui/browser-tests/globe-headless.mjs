@@ -146,7 +146,7 @@ try {
   assert.equal((await page.locator(".job-globe").boundingBox()).y,mapTop);
   assert.match(await page.locator('[data-globe-posting]').innerText(), /Meridian · 85 fit/);
   assert.equal(await map.getAttribute("data-projection"),"globe");
-  assert.ok(Number(await map.getAttribute("data-zoom")) <= 1.5);
+  assert.ok(Number(await map.getAttribute("data-zoom")) >= 1.2 && Number(await map.getAttribute("data-zoom")) <= 1.9, "selected camera keeps the larger, unclipped globe");
   const cameraBeforeToggle = await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch}));
   await page.evaluate(() => {
     window.mapMouseEvents = 0;
