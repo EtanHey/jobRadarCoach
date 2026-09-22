@@ -192,15 +192,23 @@ def _validate_cohort(
         raise ValueError(
             "expected_locators must declare stable locators for parts 1 and 2"
         )
-    if {row.get("part") for row in rows} != {1, 2}:
+    if any(
+        type(row.get("part")) is not int or row["part"] not in {1, 2} for row in rows
+    ):
+        raise ValueError("included row part must be integer 1 or 2")
+    if {row["part"] for row in rows} != {1, 2}:
         raise ValueError("included rows must contain parts 1 and 2")
-    if any(expected.get(row["locator"]) != row.get("part") for row in rows):
+    if any(expected.get(row["locator"]) != row["part"] for row in rows):
         raise ValueError("included locator does not match its expected part")
     dropped = manifest.get("dropped")
     if not isinstance(dropped, list):
         raise TypeError("manifest must declare a dropped-row ledger")
     dropped_locators: set[str] = set()
     for item in dropped:
+        if isinstance(item, Mapping) and (
+            type(item.get("part")) is not int or item["part"] not in {1, 2}
+        ):
+            raise ValueError("dropped row part must be integer 1 or 2")
         if (
             not isinstance(item, Mapping)
             or expected.get(item.get("locator")) != item.get("part")

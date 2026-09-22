@@ -97,3 +97,23 @@ def test_summary_requires_expected_locator_drop_ledger_and_both_parts():
     manifest["rows"][0]["frozen_input"]["posting"]["jd_text"] = "mutated"
     with pytest.raises(ValueError, match="sha256"):
         summarize_manifest(manifest)
+
+
+@pytest.mark.parametrize("bad_part", [True, 1.0])
+@pytest.mark.parametrize("target", ["included", "dropped"])
+def test_summary_rejects_non_integer_included_and_dropped_parts(target, bad_part):
+    rows = [
+        _row(1, "one", "Pursue", 80, "pursue", 0.9),
+        _row(2, "two", "No", 20, "no", 0.9),
+    ]
+    manifest = _manifest(rows)
+    if target == "included":
+        manifest["rows"][0]["part"] = bad_part
+    else:
+        manifest["expected_locators"]["three"] = 1
+        manifest["dropped"] = [
+            {"locator": "three", "part": bad_part, "reason": "ambiguous truth"}
+        ]
+
+    with pytest.raises(ValueError, match=f"{target} row part must be integer 1 or 2"):
+        summarize_manifest(manifest)
