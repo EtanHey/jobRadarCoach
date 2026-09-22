@@ -113,13 +113,19 @@ def run_brain(
     env: Mapping[str, str] | None = None,
     opener: Callable[..., object] = urlopen,
     timeout_seconds: int | float = 60,
+    codex_version_verifier: Callable[..., None] | None = None,
 ) -> BrainResult:
     settings = os.environ if env is None else env
     provider = resolve_brain(profile_snapshot, settings)
     if type(timeout_seconds) not in (int, float) or not 0 < timeout_seconds <= MAX_TIMEOUT_SECONDS:
         raise BrainConfigurationError("timeout must be between 0 and 120 seconds")
     if provider == "codex":
-        return _run_codex(request, settings, timeout_seconds)
+        return _run_codex(
+            request,
+            settings,
+            timeout_seconds,
+            codex_version_verifier or _verify_codex_version,
+        )
     if provider != "ollama":
         raise UnsupportedBrainError(f"brain provider '{provider}' is not implemented")
     model = _model_setting(settings, "OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
@@ -159,6 +165,7 @@ def _run_codex(
     request: BrainRequest,
     settings: Mapping[str, str],
     timeout_seconds: int | float,
+    codex_version_verifier: Callable[..., None],
 ) -> BrainResult:
     deadline = time.monotonic() + timeout_seconds
     model = _model_setting(settings, "CODEX_MODEL", DEFAULT_CODEX_MODEL)
@@ -185,8 +192,12 @@ def _run_codex(
             (codex_home / "auth.json").symlink_to(auth_path)
             environment = _isolated_codex_environment(codex_home)
             try:
-                _verify_codex_version(codex, cwd=workspace, env=environment,
-                                      timeout=min(10, max(0, deadline - time.monotonic())))
+                codex_version_verifier(
+                    codex,
+                    cwd=workspace,
+                    env=environment,
+                    timeout=min(10, max(0, deadline - time.monotonic())),
+                )
             except RuntimeError as error:
                 raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
             schema_path = workspace / "schema.json"

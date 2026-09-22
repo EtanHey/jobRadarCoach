@@ -145,6 +145,26 @@ def test_emitted_request_is_professional_only_and_returns_provenance() -> None:
     assert '"open_to": {' not in prompt and '"preferences": {' not in prompt
 
 
+def test_score_projected_reuses_production_validation_without_history() -> None:
+    profile = projection.profile_contract(profile_snapshot())
+    public_posting = projection.public_posting(posting())
+    runner = SequenceBrain(wire_annotation(posting()["id"]))
+
+    result = core.score_projected(
+        profile,
+        public_posting,
+        [],
+        profile_snapshot=profile,
+        brain_runner=runner,
+    )
+
+    assert result is not None and result.annotation["fit_score"] == 72
+    request, passed_snapshot = runner.calls[0]
+    assert passed_snapshot is profile
+    assert "Bounded professional application history:\n[]" in request.prompt
+    assert PRIVATE not in request.prompt
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [

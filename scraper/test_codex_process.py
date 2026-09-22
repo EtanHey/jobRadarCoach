@@ -57,3 +57,17 @@ def test_version_probe_obeys_small_timeout(tmp_path):
     path = executable(tmp_path, 'import time\ntime.sleep(60)\n')
     with pytest.raises(subprocess.TimeoutExpired):
         verify_codex_version(path, cwd=tmp_path, env={}, timeout=0.1)
+
+
+def test_version_probe_supports_an_explicit_experiment_version(tmp_path):
+    path = executable(tmp_path, 'print("codex-cli 0.154.0")\n')
+
+    verify_codex_version(
+        path,
+        cwd=tmp_path,
+        env={},
+        timeout=1,
+        expected_version="codex-cli 0.154.0",
+    )
+    with pytest.raises(RuntimeError, match="unsupported"):
+        verify_codex_version(path, cwd=tmp_path, env={}, timeout=1)
