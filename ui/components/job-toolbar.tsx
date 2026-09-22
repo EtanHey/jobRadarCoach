@@ -14,8 +14,9 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false 
 }) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const active = [options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit"].filter(Boolean).length;
-  const fields: { key: "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
+  const active = [options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit"].filter(Boolean).length;
+  const fields: { key: "remote" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
+    { key: "remote", label: "Work mode", choices: [{ value: "", label: "Any work mode" }, { value: "true", label: "Remote" }, { value: "false", label: "On-site / hybrid" }] },
     { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(jobs, options.source).map((source) => ({value: source, label: source}))] },
     { key: "location", label: "Location", choices: [{value: "", label: "All locations"}, {value: "israel", label: "Israel"}, {value: "united-states", label: "United States"}, {value: "other", label: "Other"}] },
     { key: "seniority", label: "Seniority", choices: [{value: "", label: "All levels"}, {value: "non-senior", label: "Hide senior+ (keep unknown)"}, ...levelOrder.map((level) => ({value: level, label: level}))] },
@@ -25,10 +26,10 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false 
   ] as const;
   const controls = fields.flatMap(({key, label, choices}) => [
     ...(key === "sort" ? [<PipelineStatusFilter key="statuses" value={options.statuses} onChange={(statuses) => onChange({ ...options, statuses })} />] : []),
-    <div key={key} className="min-w-0"><AppSelect label={label} value={options[key]} options={choices} onValueChange={(value) => onChange({ ...options, [key]: value })} /></div>,
+    <div key={key} className="min-w-0"><AppSelect label={label} value={options[key] === undefined ? "" : String(options[key])} options={choices} onValueChange={(value) => onChange({ ...options, [key]: key === "remote" ? value === "" ? undefined : value === "true" : value })} /></div>,
   ]);
   return <>
-    <div className="hidden pb-3 md:block"><div className="grid grid-cols-3 items-end gap-3 xl:grid-cols-7">{controls}</div><div className="mt-2 flex justify-end"><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button></div></div>
+    <div className="hidden pb-3 md:block"><div className="grid grid-cols-3 items-end gap-3 xl:grid-cols-8">{controls}</div><div className="mt-2 flex justify-end"><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button></div></div>
     <div className="flex gap-2 pb-3 md:hidden"><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>}</Button><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button></div>
     <Sheet open={open} onOpenChange={setOpen}><SheetContent finalFocus={opener} className="overflow-y-auto data-[side=right]:w-full">
       <SheetHeader><SheetTitle>Filters</SheetTitle><SheetDescription>Narrow the roles and choose their order.</SheetDescription></SheetHeader>

@@ -26,6 +26,7 @@ export const DEFAULT_BOARD_PREFERENCES: BoardPreferences = {
 };
 
 const viewSchema = z.object({
+  remote: z.boolean().optional(),
   search: z.string().max(500),
   source: z.string().max(200),
   location: z.enum(["", "israel", "united-states", "other"]),
@@ -84,6 +85,7 @@ export function boardPreferenceStorage(host: StorageHost): Storage | null {
 
 export function isDefaultBoardPreferences(preferences: BoardPreferences): boolean {
   return preferences.filter === DEFAULT_BOARD_PREFERENCES.filter
+    && preferences.view.remote === undefined
     && preferences.view.statuses.length === 0
     && Object.entries(DEFAULT_BOARD_PREFERENCES.view).every(
       ([key, value]) => key === "statuses" || preferences.view[key as keyof ViewOptions] === value,
