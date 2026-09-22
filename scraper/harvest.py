@@ -96,6 +96,19 @@ YEARS_REQUIREMENT_PATTERN = re.compile(
     r"(?P<minimum>\d{1,2})\s*(?:\+|-\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
     re.I,
 )
+YEAR_QUALIFICATION_CONTEXT_PATTERN = re.compile(
+    r"\b(?:requirements?|qualifications?|required|must|minimum|at\s+least|"
+    r"experience|expertise|background|proficien\w*|candidates?|"
+    r"you(?:'ll|\s+will)?\s+(?:have|bring|need)|years?\s+(?:of|in|with))\b",
+    re.I,
+)
+YEAR_COMPANY_HISTORY_PATTERN = re.compile(
+    r"\b(?:our|the|this)\s+(?:company|business|firm|organization|organisation)\s+"
+    r"(?:has|have)\b.*\b\d{1,2}\s*years?\b|"
+    r"\b\d{1,2}\s*years?\s+in\s+business\b|"
+    r"\bfounded\b.*\b\d{1,2}\s*years?\s+ago\b",
+    re.I,
+)
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
     (8, "8-9+ years", -10),
@@ -207,7 +220,7 @@ LUNA_INVALID: dict[str, object] = {
 }
 CONTEXTUAL_STACK_LABELS = {".net", "c#", "c++", "angular", "vue"}
 OPTIONAL_REQUIREMENT_PATTERN = re.compile(
-    r"\b(?:advantage|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
+    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
     re.I,
 )
 INFRA_WALL_PATTERNS = {
@@ -603,10 +616,17 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
 def _has_blocking_years_requirement(text: str) -> bool:
     """Block when any single stated experience minimum is six years or higher."""
 
-    return any(
-        int(match.group("minimum")) >= 6
-        for match in YEARS_REQUIREMENT_PATTERN.finditer(text)
-    )
+    for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
+        if int(match.group("minimum")) < 6:
+            continue
+        clause = _requirement_clause(text, match.start(), match.end())
+        if OPTIONAL_REQUIREMENT_PATTERN.search(clause):
+            continue
+        if YEAR_COMPANY_HISTORY_PATTERN.search(clause):
+            continue
+        if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(clause):
+            return True
+    return False
 
 
 def _is_non_required_stack_context(

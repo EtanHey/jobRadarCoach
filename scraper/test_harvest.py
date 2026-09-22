@@ -1390,6 +1390,34 @@ def test_year_requirement_hard_block_uses_highest_lower_bound(
     assert harvest._has_blocking_years_requirement(allowed_requirement) is False
 
 
+@pytest.mark.parametrize(
+    "non_requirement",
+    [
+        "Preferred: 8+ years of backend experience",
+        "Bonus: at least 6 years in B2B SaaS",
+        "Nice-to-have: 9+ years of platform experience",
+        "Advantage: 7 years of frontend experience",
+        "Our company has 10 years of experience serving customers",
+        "We have been 12 years in business",
+        "Founded 15 years ago",
+    ],
+)
+def test_year_hard_gate_ignores_optional_and_company_history(
+    non_requirement: str,
+) -> None:
+    harvest = load_harvest_module()
+
+    assert harvest._has_blocking_years_requirement(non_requirement) is False
+
+
+def test_year_hard_gate_blocks_mandatory_requirement_clause() -> None:
+    harvest = load_harvest_module()
+
+    assert harvest._has_blocking_years_requirement(
+        "Requirements: 7+ years of Python"
+    ) is True
+
+
 def test_us_only_onsite_posting_survives_source_scope() -> None:
     harvest = load_harvest_module()
     searches = [{"keywords": "Software Engineer", "location": "United States", "recency": "r10800"}]
