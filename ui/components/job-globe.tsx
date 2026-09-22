@@ -142,11 +142,14 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
     });
     return () => { markers.forEach(marker => marker.remove()); };
   }, [clusters, selected, hovered, ready]);
+  const selectedPoint = points.find(point => point.posting_id === selected);
+  const selectedLat = selectedPoint?.lat, selectedLng = selectedPoint?.lng;
   useEffect(() => {
-    const point = points.find(point => point.posting_id === selected);
-    if (ready && point && mapRef.current) mapRef.current.flyTo({ center: [point.lng, point.lat], zoom: landingZoom(mapRef.current, point.lat), duration: reducedMotion() ? 0 : 1200 });
-  }, [selected, ready, points]);
-  const focused = hovered && points.some(point => point.posting_id === hovered.posting_id) ? hovered : points.find(point => point.posting_id === selected);
+    if (ready && selectedLat !== undefined && selectedLng !== undefined && mapRef.current) {
+      mapRef.current.flyTo({ center: [selectedLng, selectedLat], zoom: landingZoom(mapRef.current, selectedLat), duration: reducedMotion() ? 0 : 1200 });
+    }
+  }, [selected, ready, selectedLat, selectedLng]);
+  const focused = hovered && points.some(point => point.posting_id === hovered.posting_id) ? hovered : selectedPoint;
   return <section className="job-globe-shell" aria-label="Posting locations globe">
     <div onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />

@@ -15,6 +15,7 @@ const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshade
 try{for(const mobile of [false,true]){
  const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:1100},reducedMotion:'reduce'});
  const page=await context.newPage(),errors=[],requests=[];page.setDefaultTimeout(10000);page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{window.EventSource=class {addEventListener(type,callback){if(type==='refresh')window.emitGlobeRefresh=callback;}close(){}};});
  await page.addInitScript(()=>localStorage.setItem('job-radar.board-preferences',JSON.stringify({version:3,filter:'all',view:{search:'',source:'',location:'',seniority:'',fit:'',statuses:[],availability:'all',sort:'fit'}})));
  await page.route('**/*',route=>{const r=route.request(),u=new URL(r.url());if(u.hostname!=='127.0.0.1')return u.hostname.endsWith('.cartocdn.com')?route.continue():route.abort();if(!u.pathname.startsWith('/api/'))return route.continue();requests.push({method:r.method(),path:u.pathname,query:u.search});if(u.pathname==='/api/jobs/globe')return route.fulfill({json:payload});if(u.pathname==='/api/jobs')return route.fulfill({json:{jobs}});if(u.pathname==='/api/events')return route.fulfill({contentType:'text/event-stream',body:'event: ready\ndata: {}\n\n'});return route.fulfill({status:404,json:{error:'Fixture boundary'}});});
  const section=kind=>page.locator(`[data-globe-section="${kind}"] [data-posting-id]`);
@@ -26,8 +27,14 @@ try{for(const mobile of [false,true]){
   await page.getByRole('heading',{name:'Outside of screen',exact:true}).waitFor();await page.waitForTimeout(600);
   const initial=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'long labels cannot widen viewport sections');assert.ok(initial.on.includes(id(0))&&initial.on.includes(id(6)));assert.ok(initial.off.includes(id(1)),'back-facing point must not count as visible');
   await page.locator('.job-globe').scrollIntoViewIfNeeded();await page.screenshot({path:`${output}/${name}-initial.png`,fullPage:true});
+  await page.locator(`[data-posting-id="${id(0)}"] > button`).click();await page.waitForTimeout(350);
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom in',exact:true}).click();await page.waitForTimeout(350);}
-  await page.waitForTimeout(350);const zoomed=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(zoomed.off.includes(id(2)),'front-face point outside actual canvas bounds goes below');
+  await page.waitForTimeout(350);
+  const zoomBeforeRefresh=Number(await page.locator('[data-projection]').getAttribute('data-zoom'));
+  const refreshed=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/jobs/globe');
+  await page.evaluate(()=>window.emitGlobeRefresh());await refreshed;await page.waitForTimeout(600);
+  assert.ok(Math.abs(Number(await page.locator('[data-projection]').getAttribute('data-zoom'))-zoomBeforeRefresh)<0.02,'unchanged point refresh preserves user zoom');
+  const zoomed=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(zoomed.off.includes(id(2)),'front-face point outside actual canvas bounds goes below');
   await page.screenshot({path:`${output}/${name}-zoomed.png`,fullPage:true});
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom out',exact:true}).click();await page.waitForTimeout(350);}
   const box=await page.locator('.job-globe').boundingBox();await page.mouse.move(box.x+box.width*.7,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.15,box.y+box.height*.5,{steps:30});await page.mouse.up();await page.waitForTimeout(700);
