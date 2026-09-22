@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl } from "maplibre-gl";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
-import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, scoreBands, thinPoints, clusterPoints, clusterScore, type PointCluster, type GlobePoint } from "@/lib/globe-model";
+import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, scoreBands, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).href);
@@ -24,7 +24,7 @@ export default function JobGlobe({ points, selected, onSelect, onFailure }: Prop
   const callbacks = useRef({ onSelect, onFailure });
   const [clusters, setClusters] = useState<PointCluster[]>([]);
   const [choiceIds, setChoiceIds] = useState<string[]>([]);
-  const choices = choiceIds.flatMap(id => points.filter(point => point.posting_id === id));
+  const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const hovered = hover?.selection === selected ? hover.point : null;
