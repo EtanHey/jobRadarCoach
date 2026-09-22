@@ -1,8 +1,10 @@
+import sys
 from types import SimpleNamespace
 
 import pytest
 
 from scraper import forward_scoring_runtime as runtime
+from scraper.codex_process import verify_codex_version
 from scraper.forward_scoring_inputs import assemble_manifest
 from scraper.test_annotate import safe_projection
 from scraper.test_forward_scoring_inputs import _inputs
@@ -22,6 +24,49 @@ def _offline_only(monkeypatch):
 
 def _manifest():
     return assemble_manifest(safe_projection(), *_inputs())
+
+
+def test_execution_metadata_records_the_exact_experiment_deviation():
+    assert runtime.execution_metadata() == {
+        "codex_cli_version": "codex-cli 0.155.1",
+        "production_codex_pin": "codex-cli 0.153.4",
+        "reference_model": "gpt-5.6-terra",
+        "reference_reasoning_effort": "xhigh",
+        "experiment_only_deviation": True,
+        "scorer_version": runtime.persistence.SCORER_VERSION,
+    }
+
+
+@pytest.mark.parametrize(
+    ("reported_version", "accepted"),
+    [
+        ("codex-cli 0.155.1", True),
+        ("codex-cli 0.154.0", False),
+        ("codex-cli 0.153.4", False),
+        ("codex-cli 0.155.2", False),
+    ],
+)
+def test_reference_version_is_exact(tmp_path, reported_version, accepted):
+    executable = tmp_path / "codex"
+    executable.write_text(
+        f"#!{sys.executable}\nprint({reported_version!r})\n", encoding="utf-8"
+    )
+    executable.chmod(0o755)
+
+    def invoke():
+        verify_codex_version(
+            executable,
+            cwd=tmp_path,
+            env={},
+            timeout=1,
+            expected_version=runtime.EXPERIMENT_CODEX_VERSION,
+        )
+
+    if accepted:
+        invoke()
+    else:
+        with pytest.raises(RuntimeError, match="unsupported"):
+            invoke()
 
 
 def test_validate_frozen_accepts_only_bound_forty_row_manifest():

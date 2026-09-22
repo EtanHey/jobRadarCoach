@@ -25,6 +25,7 @@ from scraper.forward_scoring_policy import render_report, summarize_forward
 
 PROVIDER_GATE = "JRC_FORWARD_SCORING_APPROVED_FREEZE_SHA256"
 ROOT = Path(__file__).resolve().parents[1]
+RUN_LEDGER_DIR = ROOT / ".run-state" / "forward-scoring-40"
 
 
 def _sha(value: object) -> str:
@@ -164,7 +165,6 @@ def _finite_cost(value: object) -> float:
 def execute(
     manifest: dict[str, Any],
     manifest_path: Path,
-    run_dir: Path,
     *,
     reference_runner=None,
     jev_transport=None,
@@ -178,11 +178,33 @@ def execute(
     if manifest.get("execution") != runtime.execution_metadata():
         raise ValueError("execution metadata does not match the approved runtime")
 
+    run_receipt = manifest.get("run_receipt")
+    started = any(
+        "reference" in row or row.get("jev_attempt") is not None or row["jev"]
+        for row in rows
+    )
+    if run_receipt is None:
+        if started:
+            raise ValueError("run state exists without a durable run receipt")
+    elif (
+        not isinstance(run_receipt, Mapping)
+        or run_receipt.get("run") != 1
+        or run_receipt.get("freeze_sha256") != receipt_sha
+    ):
+        raise ValueError("run receipt does not match the approved frozen run")
+    elif "run_sha256" in run_receipt:
+        raise RuntimeError("the approved run is already complete")
+
+    blocked_jev = [
+        row for row in rows if row.get("jev_attempt") == {"run": 1} and not row["jev"]
+    ]
+    if blocked_jev:
+        raise RuntimeError("a Jev row was already attempted; retries are forbidden")
     pending_jev = [row for row in rows if not row["jev"]]
     spent = sum(_finite_cost(item["cost_usd"]) for row in rows for item in row["jev"])
     maximum_remaining = len(pending_jev) * runtime.jev_client.maximum_call_cost()
-    if spent + maximum_remaining > runtime.CAP_USD:
-        raise RuntimeError("maximum planned Jev cost exceeds the lane cap")
+    if spent + maximum_remaining > runtime.REMAINING_CAP_USD:
+        raise RuntimeError("maximum planned Jev cost exceeds the remaining lane cap")
     ca_bundle = tls_ca_bundle()
 
     remaining_reference = sum("reference" not in row for row in rows)
@@ -195,14 +217,18 @@ def execute(
                 "jev_calls": len(pending_jev),
                 "maximum_jev_cost_usd": maximum_remaining,
                 "recorded_jev_cost_usd": spent,
-                "hard_cap_usd": runtime.CAP_USD,
+                "lane_cap_usd": runtime.CAP_USD,
+                "incident_reservation_usd": runtime.INCIDENT_RESERVATION_USD,
+                "remaining_experiment_cap_usd": runtime.REMAINING_CAP_USD,
+                "run_ledger_dir": str(RUN_LEDGER_DIR),
                 "tls_ca_bundle": str(ca_bundle),
                 **runtime.execution_metadata(),
             }
         ),
         flush=True,
     )
-    manifest["run_receipt"] = {"run": 1, "freeze_sha256": receipt_sha}
+    if run_receipt is None:
+        manifest["run_receipt"] = {"run": 1, "freeze_sha256": receipt_sha}
     write_json(manifest_path, manifest)
 
     for row in rows:
@@ -215,7 +241,9 @@ def execute(
 
     with _provider_environment(ca_bundle):
         for row in pending_jev:
-            row["jev"].append(runtime.score_jev(row, run_dir, jev_transport))
+            row["jev_attempt"] = {"run": 1}
+            write_json(manifest_path, manifest)
+            row["jev"].append(runtime.score_jev(row, RUN_LEDGER_DIR, jev_transport))
             write_json(manifest_path, manifest)
 
     summarize_forward(manifest)
@@ -242,6 +270,7 @@ def render_final_report(manifest: Mapping[str, Any]) -> str:
         f"- Freeze SHA-256: `{freeze}`",
         f"- Run SHA-256: `{run}`",
         "- Run count: 1 (no pooled reruns)",
+        f"- Approved experiment-only deviation: `{runtime.EXPERIMENT_CODEX_VERSION}` with model `{runtime.REFERENCE_MODEL}`; production pin `{runtime.SUPPORTED_CODEX_CLI_VERSION}` remains unchanged.",
         "",
         "## Per-row disagreement ledger",
         "",
@@ -279,7 +308,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     prepare_parser.add_argument("--database-url", required=True)
     execute_parser = subcommands.add_parser("execute")
     execute_parser.add_argument("manifest", type=Path)
-    execute_parser.add_argument("run_dir", type=Path)
     report_parser = subcommands.add_parser("report")
     report_parser.add_argument("manifest", type=Path)
     report_parser.add_argument("output", type=Path)
@@ -300,7 +328,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     elif arguments.command == "execute":
         manifest = load_manifest(arguments.manifest)
-        execute(manifest, arguments.manifest, arguments.run_dir)
+        execute(manifest, arguments.manifest)
     else:
         write_text(
             arguments.output, render_final_report(load_manifest(arguments.manifest))
