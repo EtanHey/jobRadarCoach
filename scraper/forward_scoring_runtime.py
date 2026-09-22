@@ -17,11 +17,13 @@ from scraper.codex_process import verify_codex_version
 from scraper.forward_scoring_inputs import verify_freeze_receipt
 from scraper.forward_scoring_policy import parse_verdict
 
-EXPERIMENT_CODEX_VERSION = "codex-cli 0.154.0"
+EXPERIMENT_CODEX_VERSION = "codex-cli 0.155.1"
 REFERENCE_MODEL = "gpt-5.6-terra"
 REFERENCE_REASONING = "xhigh"
 SITE = "jrc-forward-scoring"
 CAP_USD = 0.50
+INCIDENT_RESERVATION_USD = 0.002688
+REMAINING_CAP_USD = CAP_USD - INCIDENT_RESERVATION_USD
 
 
 def execution_metadata() -> dict[str, object]:
@@ -30,6 +32,7 @@ def execution_metadata() -> dict[str, object]:
         "production_codex_pin": SUPPORTED_CODEX_CLI_VERSION,
         "reference_model": REFERENCE_MODEL,
         "reference_reasoning_effort": REFERENCE_REASONING,
+        "experiment_only_deviation": True,
         "scorer_version": persistence.SCORER_VERSION,
     }
 
@@ -113,6 +116,13 @@ def validate_frozen(manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
             )
         ):
             raise ValueError("the experiment permits one Jev run only")
+        attempt = row.get("jev_attempt")
+        if attempt is not None and (
+            not isinstance(attempt, Mapping) or dict(attempt) != {"run": 1}
+        ):
+            raise ValueError("invalid Jev attempt marker")
+        if runs and attempt is None:
+            raise ValueError("a Jev result requires its durable attempt marker")
     verify_freeze_receipt(manifest)
     return rows
 
@@ -211,7 +221,7 @@ def provider_environment():
     """Return the exact temporary Jev environment used by orchestration."""
 
     return {
-        "JEV_DAILY_USD_CAP": str(CAP_USD),
+        "JEV_DAILY_USD_CAP": str(REMAINING_CAP_USD),
         "JEV_SITE_JRC_FORWARD_SCORING": "shadow",
         "JEV_ENABLED": os.getenv("JEV_ENABLED", "1"),
     }
