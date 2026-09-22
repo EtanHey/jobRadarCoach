@@ -49,7 +49,7 @@ const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
 const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
-function client(): SupabaseClient {
+export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
   if (!env.success) throw new HttpError(503, "Server database configuration is unavailable.");
   return createClient(env.data.SUPABASE_URL, env.data.SUPABASE_SERVICE_ROLE_KEY, {
@@ -57,7 +57,7 @@ function client(): SupabaseClient {
   });
 }
 
-async function data(result: PromiseLike<{ data: unknown; error: unknown }>): Promise<unknown> {
+export async function data(result: PromiseLike<{ data: unknown; error: unknown }>): Promise<unknown> {
   const response = await result;
   if (response.error) throw new HttpError(503, "Database request failed.", "database");
   return response.data;
@@ -101,7 +101,7 @@ export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidR
   return { jobs: rows.map(summary), invalidRowCount: 0 };
 }
 
-async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
+export async function selectSummaries(db: SupabaseClient, input: JobListQuery, offset = 0): Promise<JobSummary[]> {
   if (input.filter === "new-for-me") {
     const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
       db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
@@ -115,7 +115,7 @@ async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise
       const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
       fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
     }
-    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").range(offset, offset + input.limit - 1);
     return parseSummaryRows(await data(fresh)).jobs;
   }
   let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
@@ -123,7 +123,7 @@ async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
-  query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+  query = query.order("first_seen_at", { ascending: false }).order("id").range(offset, offset + input.limit - 1);
   return parseSummaryRows(await data(query)).jobs;
 }
 
