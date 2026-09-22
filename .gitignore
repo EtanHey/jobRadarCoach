@@ -27,3 +27,6 @@ build/lib/
 *.egg-info/
 .run-state/
 .run-logs/
+
+# Generated standalone MapLibre worker
+ui/lib/generated/
