@@ -6,6 +6,7 @@ import pytest
 from scraper import forward_scoring_runtime as runtime
 from scraper.codex_process import verify_codex_version
 from scraper.forward_scoring_inputs import assemble_manifest
+from scraper.forward_scoring_inputs import _freeze_identity, _sha
 from scraper.test_annotate import safe_projection
 from scraper.test_forward_scoring_inputs import _inputs
 
@@ -78,6 +79,21 @@ def test_validate_frozen_accepts_only_bound_forty_row_manifest():
     part3 = next(row for row in manifest["rows"] if row["part"] == 3)
     part3["gold"]["comment"] = "changed after freeze"
     with pytest.raises(ValueError, match="freeze receipt"):
+        runtime.validate_frozen(manifest)
+
+
+@pytest.mark.parametrize("label", [pytest.param("missing", id="missing"), None])
+def test_validate_frozen_rejects_unparseable_verdict_without_a_label(label):
+    manifest = _manifest()
+    gold = manifest["rows"][0]["gold"]
+    gold["verbatim"] = "not an approved verdict"
+    if label != "missing":
+        gold["label"] = label
+    manifest["freeze_receipt"]["sha256"] = _sha(_freeze_identity(manifest))
+
+    with pytest.raises(
+        ValueError, match="gold label does not match the approved parser"
+    ):
         runtime.validate_frozen(manifest)
 
 

@@ -101,10 +101,16 @@ def validate_frozen(manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
             != dict(hosted)
         ):
             raise ValueError("hosted payload differs from the production projection")
+        parsed_label = (
+            parse_verdict(gold["verbatim"])
+            if isinstance(gold, Mapping) and isinstance(gold.get("verbatim"), str)
+            else None
+        )
         if (
             not isinstance(gold, Mapping)
             or not isinstance(gold.get("verbatim"), str)
-            or parse_verdict(gold["verbatim"]) != gold.get("label")
+            or parsed_label is None
+            or parsed_label != gold.get("label")
         ):
             raise ValueError("gold label does not match the approved parser")
         runs = row.get("jev", [])
