@@ -25,7 +25,7 @@ const payload = { jobs, points, total_count: jobs.length, resolved_count: jobs.l
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const receipts = [];
 try {
-  for (const [name, viewport] of [["desktop", { width: 1440, height: 900 }], ["mobile", { width: 390, height: 844 }]]) {
+  for (const [name, viewport] of [["desktop", { width: 1440, height: 900 }], ["laptop", { width: 1280, height: 720 }], ["short-desktop", { width: 1024, height: 600 }], ["mobile", { width: 390, height: 844 }]]) {
     const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
     const page = await context.newPage();
     const errors = [];
@@ -44,7 +44,7 @@ try {
     try {
       await page.goto(base);
       await page.getByRole("button", { name: "Globe", exact: true }).click();
-      await page.getByText("Drag to explore", { exact: false }).waitFor({ timeout: 30000 }).catch(() => {});
+      await page.getByText("Drag to explore", { exact: false }).waitFor({ timeout: 30000 });
       await page.waitForTimeout(900);
       const metrics = await page.evaluate(() => {
         const box = selector => document.querySelector(selector)?.getBoundingClientRect();
@@ -72,8 +72,22 @@ try {
         if (Math.abs(data[offset] - 8) + Math.abs(data[offset + 1] - 15) + Math.abs(data[offset + 2] - 28) > 10) hits.push(x);
       }
       metrics.globeDiameterRatio = hits.length ? (hits.at(-1) - hits[0]) / Math.min(info.width, info.height) : 0;
+      metrics.zoomButtons = await Promise.all(["Zoom in", "Zoom out"].map(async name => {
+        const box = await page.getByRole("button", { name, exact: true }).boundingBox();
+        return box && { top: box.y, bottom: box.y + box.height };
+      }));
       await page.screenshot({ path: `${output}/${name}-${phase}.png`, fullPage: true });
       await page.screenshot({ path: `${output}/${name}-${phase}-viewport.png` });
+      if (name === "mobile" && phase === "after") {
+        await page.locator(".globe-cluster").first().click();
+        const choices = await page.getByRole("region", { name: "Postings at this point" }).boundingBox();
+        const location = await page.getByRole("button", { name: "Use my location" }).boundingBox();
+        assert.ok(choices && location, "cluster choices and location control are visible");
+        assert.ok(choices.y >= metrics.globe.y && choices.y + choices.height <= metrics.globe.y + metrics.globe.height, "choices stay inside the map");
+        assert.ok(choices.y >= location.y + location.height, "choices do not cover the location control");
+        assert.equal(await page.locator("[data-globe-posting]:visible").count(), 0, "focused card does not cover open choices");
+        await page.screenshot({ path: `${output}/mobile-cluster-open.png` });
+      }
       receipts.push({ name, metrics, errors });
       if (phase === "after") {
         assert.deepEqual(errors, []);
@@ -83,14 +97,22 @@ try {
         assert.equal(metrics.removedTextCount, 0);
         assert.ok(metrics.globeDiameterRatio > .7 && metrics.globeDiameterRatio < 1.05, "globe fills the shorter map dimension without clipping");
         assert.ok(metrics.documentWidth <= viewport.width, "no horizontal overflow");
-        if (name === "desktop") {
+        if (name !== "mobile") {
+          assert.ok(metrics.globe.height >= 320, "desktop map keeps a usable height");
+          assert.ok(metrics.zoomButtons.every(button => button && button.top >= metrics.globe.y && button.bottom <= metrics.globe.y + metrics.globe.height), "both zoom buttons stay inside the map");
+        }
+        if (name === "desktop" || name === "laptop") {
           assert.ok(metrics.documentHeight <= viewport.height + 1, "document does not scroll in globe mode");
           assert.ok(metrics.railScrollHeight > metrics.railClientHeight + 100, "rail owns vertical scroll");
           assert.ok(Math.abs(metrics.globe.y - metrics.rail.y) < 5, "map and rail align");
           assert.ok(metrics.layout.height >= viewport.height - metrics.layout.y - 45, "map and rail fill remaining viewport above connection status");
-          assert.ok(metrics.layout.y < viewport.height * .37, "header and filters are compact");
+          assert.ok(metrics.layout.y < 320, "header and filters are compact");
+        } else if (name === "short-desktop") {
+          assert.ok(metrics.documentHeight > viewport.height + 100, "short desktop allows page scrolling to recover map height");
+          assert.equal(metrics.railScrollHeight, metrics.railClientHeight, "short desktop uses one page scrollbar");
         } else {
           assert.ok(metrics.globe.y < metrics.rail.y, "mobile stacks map first");
+          assert.ok(metrics.layout.y < 330, "mobile header and filters leave more room for the map");
         }
       }
     } finally { await context.close(); }

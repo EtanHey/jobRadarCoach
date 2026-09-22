@@ -26,7 +26,7 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
   ] as const;
   const controls = fields.flatMap(({key, label, choices}) => [
     ...(key === "sort" ? [<PipelineStatusFilter key="statuses" value={options.statuses} onChange={(statuses) => onChange({ ...options, statuses })} />] : []),
-    <div key={key} className="min-w-0"><AppSelect label={label} value={options[key] === undefined ? "" : String(options[key])} options={choices} onValueChange={(value) => onChange({ ...options, [key]: key === "remote" ? value === "" ? undefined : value === "true" : value })} /></div>,
+    <div key={key} className="min-w-0"><AppSelect compact label={label} value={options[key] === undefined ? "" : String(options[key])} options={choices} onValueChange={(value) => onChange({ ...options, [key]: key === "remote" ? value === "" ? undefined : value === "true" : value })} /></div>,
   ]);
   return <div data-job-toolbar>
     <div className="hidden items-end gap-3 pb-2 md:flex"><div className="grid min-w-0 flex-1 grid-cols-3 items-end gap-3 xl:grid-cols-8">{controls}</div><div className="flex shrink-0 items-center gap-1"><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div></div>

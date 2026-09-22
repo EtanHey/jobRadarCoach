@@ -17,5 +17,5 @@ try { await symlink(resolve(ui,"node_modules"),resolve(target,"node_modules"),"d
 let root = ui;
 while (relative(root,target).startsWith("..")) root = dirname(root);
 await writeFile(resolve(target,"next.config.ts"), `export default { turbopack: { root: ${JSON.stringify(root)} }, devIndicators: false };\n`);
-await writeFile(resolve(target,"app/page.tsx"), 'import { JobBoard } from "@/components/job-board"; export default function Page() { return <><div style={{position:"fixed",bottom:4,left:4,zIndex:1000,background:"#8b2d18",color:"white",padding:4,fontSize:10}}>DEVELOPMENT FIXTURES — synthetic postings and coordinates</div><JobBoard /></> }');
+await writeFile(resolve(target,"app/page.tsx"), 'import { JobBoard } from "@/components/job-board"; export default function Page() { return <JobBoard /> }');
 console.log(target);

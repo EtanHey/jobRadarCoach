@@ -5,15 +5,16 @@ import { Check, ChevronDown } from "lucide-react";
 
 export type SelectOption = { value: string; label: string };
 
-export function AppSelect({ label, value, options, onValueChange }: {
+export function AppSelect({ label, value, options, onValueChange, compact = false }: {
   label: string;
   value: string;
   options: readonly SelectOption[];
   onValueChange: (value: string) => void;
+  compact?: boolean;
 }) {
   return <Select.Root items={options} value={value} onValueChange={(next) => next !== null && onValueChange(next)}>
     <Select.Label className="cursor-default text-xs font-medium text-muted-foreground">{label}</Select.Label>
-    <Select.Trigger className="mt-1.5 flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border bg-background px-3 text-left text-sm text-foreground outline-none transition hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-muted/60">
+    <Select.Trigger className={`mt-1.5 flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border bg-background text-left text-foreground outline-none transition hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-muted/60 ${compact ? "px-2 text-xs" : "px-3 text-sm"}`}>
       <Select.Value className="min-w-0 truncate" />
       <Select.Icon className="shrink-0 text-muted-foreground"><ChevronDown aria-hidden="true" size={15} /></Select.Icon>
     </Select.Trigger>
