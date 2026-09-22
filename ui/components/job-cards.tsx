@@ -19,11 +19,11 @@ export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, ope
   if (!sections) return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{cards(groups)}</div>;
   return <div className="space-y-5">
     <section data-globe-section="visible" aria-labelledby="globe-visible-heading">
-      <div className="mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">On screen</h2><span className="text-xs text-muted-foreground">{sections.visible.length} roles</span></div>
+      <div className="mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">On screen</h2><span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span></div>
       {sections.visible.length ? <div className="grid grid-cols-1 gap-3">{cards(sections.visible)}</div> : <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No roles in this part of the globe. Pan or zoom to explore.</p>}
     </section>
     <section data-globe-section="outside" aria-labelledby="globe-outside-heading">
-      <div className="mb-3 flex items-center justify-between border-t px-1 pt-4"><h2 id="globe-outside-heading" className="text-sm font-semibold">Outside of screen</h2><span className="text-xs text-muted-foreground">{sections.outside.length} roles</span></div>
+      <div className="mb-3 flex items-center justify-between border-t px-1 pt-4"><h2 id="globe-outside-heading" className="text-sm font-semibold">Outside of screen</h2><span className="text-xs text-muted-foreground">{sections.outside.length} {sections.outside.length === 1 ? "role" : "roles"}</span></div>
       <p className="mb-3 px-1 text-xs text-muted-foreground">Other locations, unavailable listings and roles without mapped locations.</p>
       <div className="grid grid-cols-1 gap-3">{cards(sections.outside)}</div>
     </section>
