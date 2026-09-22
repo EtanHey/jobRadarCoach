@@ -73,8 +73,11 @@ try {
   await page.getByRole("button",{name:"Zoom out",exact:true}).click();
   await page.waitForTimeout(400);
   const count = page.getByRole("button",{name:"2 postings near Rehovot, Israel",exact:true});
+  const clusterZoomBefore = Number(await map.getAttribute("data-zoom"));
   await count.focus();
   await page.keyboard.press("Enter");
+  await page.waitForFunction(before => Number(document.querySelector("[data-projection]")?.getAttribute("data-zoom")) > before + 1, clusterZoomBefore);
+  assert.equal(await map.getAttribute("data-projection"), "globe");
   await page.getByRole("button",{name:"Frontend Engineer · Atlas",exact:true}).focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.locator('[data-globe-posting]').getAttribute('data-globe-posting'),id(0));
@@ -151,5 +154,5 @@ try {
   assert.equal(await page.locator("[data-posting-id]").count(),6);
   const screenshots = {};
   for (const name of ["list", "globe", "selected", "mobile", "overlapping", "denied-location", "api-error", "webgl-error"]) screenshots[`${name}.png`] = createHash("sha256").update(await readFile(`${output}/${name}.png`)).digest("hex");
-  await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",widths,globeRequests,errors,checks:["animated width transition","globe render","no limit","overlapping count keyboard selection, both identities", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "44px map controls", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
+  await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",widths,globeRequests,errors,checks:["animated width transition","globe render","no limit","cluster keyboard activation zooms in and retains exact posting choices", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "44px map controls", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
 } catch (error) { await page.screenshot({path:`${output}/failure.png`,fullPage:true}); console.error(errors); throw error; } finally { await browser.close(); }

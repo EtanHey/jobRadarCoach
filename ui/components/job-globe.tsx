@@ -118,7 +118,11 @@ export default function JobGlobe({ points, selected, onSelect, onFailure }: Prop
       button.setAttribute("aria-controls", "globe-posting-choices");
       button.textContent = String(cluster.members.length);
       button.style.setProperty("--cluster-color", scoreCss(clusterScore(cluster)));
-      button.onclick = () => { setHover(null); setChoiceIds(cluster.members.map(point => point.posting_id)); };
+      button.onclick = () => {
+        setHover(null);
+        setChoiceIds(cluster.members.map(point => point.posting_id));
+        map.flyTo({ center: [cluster.anchor.lng, cluster.anchor.lat], zoom: Math.min(map.getZoom() + 2, map.getMaxZoom()), duration: reducedMotion() ? 0 : 800 });
+      };
       return new Marker({ element: button }).setLngLat([cluster.anchor.lng, cluster.anchor.lat]).addTo(map);
     });
     return () => { markers.forEach(marker => marker.remove()); };
