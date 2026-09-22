@@ -6,7 +6,7 @@ import type { PipelineStatus } from "./job-status";
 export type JobSort = "found" | "posted" | "fit" | "seniority";
 export type LocationFilter = "" | "israel" | "united-states" | "other";
 export type LocationGroup = Exclude<LocationFilter, ""> | "unknown";
-export type ViewOptions = { search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
+export type ViewOptions = { remote?: boolean; search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
 export const levelOrder = ["Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"];
 export function sourceFilterValues(jobs: Pick<JobSummary, "source">[], selected: string): string[] {
   return [...new Set([...jobs.map((job) => job.source), ...(selected ? [selected] : [])])].sort();
@@ -53,6 +53,7 @@ function matchesView(job: JobSummary, options: ViewOptions, needle: string): boo
   return (
     (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
     (!options.source || job.source === options.source) &&
+    (options.remote === undefined || job.remote === options.remote) &&
     (!options.location || locationGroup(job.location) === options.location) &&
     (!options.seniority || (options.seniority === "non-senior" ? !["Senior", "Lead / Manager", "Staff / Principal"].includes(levelGroup(job.seniority)) : levelGroup(job.seniority) === options.seniority)) &&
     (options.statuses.length === 0 || options.statuses.includes(job.status as PipelineStatus)) &&

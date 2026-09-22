@@ -135,3 +135,13 @@ test("reset removes stored state and defaults are not written back", () => {
 
   assert.equal(storage.value(BOARD_PREFERENCES_KEY), null);
 });
+
+test("remote and non-remote filters survive reload without changing old defaults", () => {
+  for (const remote of [true, false]) {
+    const storage = memoryStorage();
+    const preferences = defaultBoardPreferences();
+    preferences.view.remote = remote;
+    writeBoardPreferences(storage, preferences);
+    assert.equal(readBoardPreferences(storage).view.remote, remote);
+  }
+});

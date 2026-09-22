@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { GlobeBoundary } from "./globe-boundary";
+import { useGlobeData } from "./use-globe-data";
+import { globePoints } from "@/lib/globe-model";
+import { Button } from "./ui/button";
 import { ArrowUpRight } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
@@ -25,6 +30,8 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
   return response.json();
 }
 
+const JobGlobe = dynamic(() => import("./job-globe"), { ssr: false });
+
 type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
 const listKey = (filter: Filter, availability: ViewOptions["availability"]) => jobListCacheKey({ filter, availability, limit: 1000 });
 
@@ -42,6 +49,27 @@ export function JobBoard() {
   const [detailRevision, setDetailRevision] = useState(0);
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [globeOpen, setGlobeOpen] = useState(false);
+  const [globeSelected, setGlobeSelected] = useState<string | null>(null);
+  const [globeWarning, setGlobeWarning] = useState("");
+  const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
+  const patchGlobeStatus = globe.patchStatus;
+  const globeActive = globeOpen && !globe.failure;
+  const displayJobs = globeActive && globe.data ? globe.data.jobs : jobs;
+  const groups = useMemo(() => filterJobGroups(displayJobs, view), [displayJobs, view]);
+  const points = useMemo(() => globePoints(groups, globe.data?.points ?? []), [groups, globe.data]);
+  const selectedGlobeGroup = groups.find(group => [group.job, ...group.alternates].some(job => job.id === globeSelected));
+  const activeGlobeSelection = selectedGlobeGroup ? globeSelected : null;
+  function failGlobe() { setGlobeOpen(false); setGlobeWarning("The globe could not load. Your list is still here."); }
+  function focusGlobeRow(id: string | null) {
+    setGlobeSelected(id);
+    const rowId = groups.find(group => [group.job, ...group.alternates].some(job => job.id === id))?.job.id;
+    if (rowId) requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-posting-id="${rowId}"]`);
+      const rail = row?.closest<HTMLElement>(".globe-rail");
+      if (row && rail && rail.scrollHeight > rail.clientHeight) rail.scrollTop += row.getBoundingClientRect().top - rail.getBoundingClientRect().top - 3;
+    });
+  }
   const [connection, setConnection] = useState("Connecting live updates…");
   const [detailCoordinator] = useState(createDetailCoordinator);
   const [refreshWarning, setRefreshWarning] = useState("");
@@ -212,6 +240,7 @@ export function JobBoard() {
           visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, selected!, status.status, status.reason) : null;
           setJobs((current) => updateJobStatus(current, selected!, status.status, status.reason));
           setDetail({ ...job, status: status.status, status_reason: status.reason });
+          patchGlobeStatus(selected!, status, false);
           requestRefresh();
         }
       } catch (cause) {
@@ -220,7 +249,7 @@ export function JobBoard() {
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, requestRefresh, selected, detailRevision]);
+  }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus]);
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
@@ -237,6 +266,7 @@ export function JobBoard() {
       }
       visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
       setJobs((current) => updateJobStatus(current, id, result.status, result.reason));
+      patchGlobeStatus(id, result, filterRef.current === "new-for-me");
       if (filterRef.current === "new-for-me") {
         visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
         setJobs((current) => current.filter((job) => job.id !== id));
@@ -253,22 +283,27 @@ export function JobBoard() {
     <main className="grid min-h-[35rem] place-items-center px-4 py-16"><p role="status" className="text-sm text-muted-foreground">Restoring saved view…</p></main>
   </div>;
 
-  const groups = filterJobGroups(jobs, view);
   const relatedId = selected ?? detail?.id;
-  const relatedJobs = relatedId ? relatedDuplicateJobs(jobs, relatedId, detail) : [];
+  const relatedJobs = relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   return <div className="min-h-screen bg-background text-foreground">
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="w-full px-4 py-4 sm:px-6 lg:px-8">
       <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1><span className="rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{filter, jobs, groups, loading, error, openerRef, selectJob, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} search={view.search} reload={retry} resultLimit={1000} toolbar={<JobToolbar jobs={jobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Button variant={globeActive ? "default" : "outline"} aria-pressed={globeActive} onClick={() => { setGlobeOpen(!globeActive); setGlobeWarning(""); if (globe.failure) setRevision(value => value + 1); }}>Globe</Button>
+        {globeActive && globe.data && <><span className="rounded-full bg-muted px-3 py-1 text-xs">{groups.reduce((sum, group) => sum + 1 + group.alternates.length, 0) - points.length} {groups.reduce((sum, group) => sum + 1 + group.alternates.length, 0) - points.length === 1 ? "posting" : "postings"} not on globe</span><span className="text-xs text-muted-foreground">{points.length} mapped{points.length > 5000 ? " · showing a sample of up to 5,000" : ""}</span></>}
+        {globeActive && !globe.data && <span role="status" className="text-xs">Loading all posting locations…</span>}
+        {(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-950">{globeWarning || globe.failure} Use Globe to retry.</span>}
+      </div>
+      <JobsPanel {...{filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onSelect={focusGlobeRow} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer
       retryDetail={retryDetail}
       retryDisabled={saving || selected === null}
-      selectedJob={jobs.find((job) => job.id === selected)}
+      selectedJob={displayJobs.find((job) => job.id === selected)}
       {...{selected, relatedJobs, openerRef, selectJob, detail, detailError}}
       actions={detail ? <>
         <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
