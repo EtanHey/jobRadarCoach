@@ -51,6 +51,8 @@ export function JobBoard() {
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [globeOpen, setGlobeOpen] = useState(false);
+  const [visiblePostingIds, setVisiblePostingIds] = useState<string[]>([]);
+  const updateViewport = useCallback((ids: string[]) => setVisiblePostingIds(current => current.length === ids.length && current.every((id, index) => id === ids[index]) ? current : ids), []);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
   const [globeWarning, setGlobeWarning] = useState("");
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
@@ -307,7 +309,7 @@ export function JobBoard() {
         {globeActive && !globe.data && <span role="status" className="text-xs">Loading all posting locations…</span>}
         {(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-950">{globeWarning || globe.failure} Use Globe to retry.</span>}
       </div>
-      <JobsPanel {...{filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
+      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer
