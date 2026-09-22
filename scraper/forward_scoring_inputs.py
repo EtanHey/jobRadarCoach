@@ -120,7 +120,7 @@ def fetch_part2(mapping: dict[str, Any]) -> dict[str, dict[str, object]]:
                 f"public Ashby locator is not uniquely live: {row['p_number']}"
             )
         job = matches[0]
-        if job.get("title") != row["title"]:
+        if " ".join(job.get("title", "").split()) != " ".join(row["title"].split()):
             raise ValueError(f"public Ashby title changed: {row['p_number']}")
         description = job.get("descriptionPlain") or _plain_html(
             job.get("descriptionHtml", "")

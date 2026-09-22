@@ -176,6 +176,52 @@ def test_part2_fetch_rejects_non_ashby_locator_before_network():
         fetch_part2(mapping)
 
 
+def _fetch_part2_with_title(monkeypatch, title):
+    url = "https://jobs.ashbyhq.com/board/posting"
+    row = {
+        "p_number": "P1",
+        "url": url,
+        "company": "WarpStream",
+        "title": "Distributed Systems Software Engineer - WarpStream",
+    }
+    job = {
+        "isListed": True,
+        "jobUrl": url,
+        "title": title,
+        "descriptionPlain": "A job description long enough for projection. " * 10,
+    }
+    response = io.BytesIO(json.dumps({"jobs": [job]}).encode())
+    monkeypatch.setattr(inputs_module, "urlopen", lambda *_args, **_kwargs: response)
+
+    return fetch_part2({"postings": [row]})
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        " Distributed Systems Software Engineer - WarpStream",
+        "Distributed Systems Software Engineer - WarpStream  ",
+        "Distributed   Systems Software Engineer - WarpStream",
+    ],
+)
+def test_part2_title_comparison_ignores_whitespace(monkeypatch, title):
+    result = _fetch_part2_with_title(monkeypatch, title)
+
+    assert result["P1"]["title"] == title.strip()
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Distributed Systems Software Engineer - WarpStream II",
+        "distributed Systems Software Engineer - WarpStream",
+    ],
+)
+def test_part2_title_comparison_still_rejects_changes(monkeypatch, title):
+    with pytest.raises(ValueError, match="public Ashby title changed: P1"):
+        _fetch_part2_with_title(monkeypatch, title)
+
+
 @pytest.mark.parametrize(
     ("parser", "text"),
     [
