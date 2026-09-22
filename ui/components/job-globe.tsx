@@ -51,12 +51,18 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
       return;
     }
     if (!container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
-    const restore = () => { map.resize(); if (cameraRef.current) map.jumpTo(cameraRef.current); };
+    const savedCamera = cameraRef.current;
+    const restore = () => { map.resize(); if (savedCamera) map.jumpTo(savedCamera); };
     restore();
-    const frame = requestAnimationFrame(() => { restore(); cameraRef.current = null; });
+    const frame = requestAnimationFrame(() => { restore(); if (cameraRef.current === savedCamera) cameraRef.current = null; });
     return () => cancelAnimationFrame(frame);
   }, [active]);
   useEffect(() => { callbacks.current = { onSelect, onFailure, onViewportChange }; }, [onSelect, onFailure, onViewportChange]);
+  useEffect(() => {
+    if (!active || ready) return;
+    const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
+    return () => clearTimeout(timeout);
+  }, [active, ready]);
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const locate = useCallback(() => {
     if (!navigator.geolocation) { setLocation("Location unavailable · you can still explore"); return; }
@@ -72,46 +78,52 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     let map: Map | undefined;
     let mounted = true;
     let loaded = false;
+    let pendingFailure = false;
     let style: MapOptions["style"];
     const request = new AbortController();
-    const fail = () => { if (mounted) callbacks.current.onFailure(); };
-    const timeout = window.setTimeout(() => { if (!loaded) fail(); }, 20000);
+    const fail = () => {
+      if (!mounted) return;
+      if (!activeRef.current) { pendingFailure = true; return; }
+      callbacks.current.onFailure();
+    };
     const startMap = () => {
       if (!mounted || map || !style || !activeRef.current || !container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
       try {
-      map = new Map({ container: container.current, style, center: FALLBACK_CENTER, zoom: landingZoomForSize(container.current.clientWidth, container.current.clientHeight, FALLBACK_CENTER[1]), maxZoom: 12, canvasContextAttributes: { antialias: true }, attributionControl: { compact: true } });
-      mapRef.current = map;
-      map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
-      map.addControl(new FullscreenControl({ container: container.current }), "top-right");
-      const publishCamera = () => { if (container.current && map) {
-        container.current.dataset.projection = String(map.getProjection()?.type);
-        container.current.dataset.zoom = String(map.getZoom());
-        container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
-        container.current.dataset.bearing = String(map.getBearing());
-        container.current.dataset.pitch = String(map.getPitch());
-      } };
-      map.on("moveend", publishCamera);
-      map.on("webglcontextlost", fail);
-      map.on("error", event => { if (!loaded) { console.error("Globe initialization error", event.error); fail(); } });
-      map.once("load", () => {
-        if (!mounted || !map) return;
-        publishCamera();
-        const overlay = new MapLibreOverlay({ interleaved: false, layers: [], onError: fail });
-        map.addControl(overlay);
-        overlayRef.current = overlay;
-        loaded = true;
-        clearTimeout(timeout);
-        setReady(true);
-        // A prompt requires the explicit button; an already granted permission may be reused.
-        navigator.permissions?.query({ name: "geolocation" }).then(permission => {
-          if (mounted && permission.state === "granted") locate();
-        }).catch(() => {});
-      });
+        map = new Map({ container: container.current, style, center: FALLBACK_CENTER, zoom: landingZoomForSize(container.current.clientWidth, container.current.clientHeight, FALLBACK_CENTER[1]), maxZoom: 12, trackResize: false, canvasContextAttributes: { antialias: true }, attributionControl: { compact: true } });
+        mapRef.current = map;
+        map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
+        map.addControl(new FullscreenControl({ container: container.current }), "top-right");
+        const publishCamera = () => { if (container.current && map) {
+          container.current.dataset.projection = String(map.getProjection()?.type);
+          container.current.dataset.zoom = String(map.getZoom());
+          container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
+          container.current.dataset.bearing = String(map.getBearing());
+          container.current.dataset.pitch = String(map.getPitch());
+        } };
+        map.on("moveend", publishCamera);
+        map.on("webglcontextlost", fail);
+        map.on("error", event => { if (!loaded) { console.error("Globe initialization error", event.error); fail(); } });
+        map.once("load", () => {
+          if (!mounted || !map) return;
+          publishCamera();
+          const overlay = new MapLibreOverlay({ interleaved: false, layers: [], onError: fail });
+          map.addControl(overlay);
+          overlayRef.current = overlay;
+          loaded = true;
+          setReady(true);
+          // A prompt requires the explicit button; an already granted permission may be reused.
+          navigator.permissions?.query({ name: "geolocation" }).then(permission => {
+            if (mounted && permission.state === "granted") locate();
+          }).catch(() => {});
+        });
       } catch (error) { console.error("Globe construction error", error); fail(); }
     };
     const resize = new ResizeObserver(() => {
       if (!container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
-      if (map) { map.resize(); if (activeRef.current && cameraRef.current) map.jumpTo(cameraRef.current); }
+      if (map) {
+        map.resize();
+        if (activeRef.current && cameraRef.current) { map.jumpTo(cameraRef.current); cameraRef.current = null; }
+      } else if (pendingFailure && activeRef.current) fail();
       else startMap();
     });
     resize.observe(container.current);
@@ -119,7 +131,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
       .then(response => { if (!response.ok) throw new Error(`Map style: ${response.status}`); return response.json(); })
       .then(body => { style = { ...(body as object), projection: { type: "globe" } } as MapOptions["style"]; startMap(); })
       .catch(error => { if (mounted && !request.signal.aborted) { console.error("Globe style error", error); fail(); } });
-    return () => { mounted = false; request.abort(); clearTimeout(timeout); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
+    return () => { mounted = false; request.abort(); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
   }, [locate]);
   useEffect(() => {
     const map = mapRef.current;

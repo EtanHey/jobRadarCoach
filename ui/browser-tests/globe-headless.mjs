@@ -45,31 +45,45 @@ try {
   await page.getByRole("button",{name:"All roles",exact:true}).click();
   await page.waitForFunction(() => document.querySelectorAll("[data-posting-id]").length === 6);
   await page.screenshot({path:`${output}/list.png`,fullPage:true});
+  // Hold the first style request so an immediate OFF leaves the map uninitialized.
+  const styleUrl = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+  await page.route(styleUrl, async route => { await new Promise(resolve => setTimeout(resolve, 2000)); await route.continue(); });
+  await page.clock.install();
+  const styleRequest = page.waitForRequest(styleUrl);
+  await page.getByRole("button",{name:"Globe",exact:true}).click();
+  await styleRequest;
+  await page.getByRole("button",{name:"Globe",exact:true}).click();
+  await page.clock.fastForward(21000);
+  assert.equal(await page.getByText("The globe could not load. Your list is still here.",{exact:false}).count(),0,"a hidden globe must not report a late load failure");
+  assert.equal(await page.locator(".job-globe").count(),1,"the hidden globe stays mounted");
+  await page.clock.resume();
+  await page.waitForTimeout(2200);
+  await page.unroute(styleUrl);
   await page.emulateMedia({reducedMotion:"no-preference"});
-  const sampleToggle = async () => page.evaluate(async () => {
-    [...document.querySelectorAll("button")].find(button => button.textContent === "Globe").click();
+  const sampleToggle = async () => {
+    const oldMapBox = await page.locator(".job-globe").boundingBox();
+    await page.getByRole("button",{name:"Globe",exact:true}).click();
     const frames = [];
     for (let i = 0; i < 32; i++) {
-      await new Promise(requestAnimationFrame);
-      const layout = document.querySelector(".globe-layout"), rail = document.querySelector(".globe-rail");
-      const card = rail.querySelector("article"), badge = card?.querySelector("[aria-label^='Fit score']");
-      const shell = document.querySelector(".job-globe");
-      const canvas = document.querySelector(".maplibregl-canvas");
-      const chip = [...document.querySelectorAll("button")].find(button => button.textContent === "Globe");
-      if (shell) {
-        const rect = shell.getBoundingClientRect();
-        shell.dispatchEvent(new PointerEvent("pointermove", {bubbles:true,clientX:rect.x+rect.width/2,clientY:rect.y+rect.height/2}));
-        shell.dispatchEvent(new MouseEvent("mousemove", {bubbles:true,clientX:rect.x+rect.width/2,clientY:rect.y+rect.height/2}));
-      }
-      frames.push({open:layout.classList.contains("globe-layout-open"),rail:rail.getBoundingClientRect().width,layout:layout.getBoundingClientRect().width,
-        slot:document.querySelector(".globe-slot").getBoundingClientRect().width,
-        badgeInside:!card||!badge||badge.getBoundingClientRect().right<=card.getBoundingClientRect().right+1,
-        chipLegible:!!chip&&chip.getBoundingClientRect().width>48&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
-        canvasUsable:!canvas||!layout.classList.contains("globe-layout-open")||(canvas.clientWidth>0&&canvas.clientHeight>0),
-        projection:canvas?document.querySelector("[data-projection]")?.getAttribute("data-projection"):null});
+      await page.evaluate(() => new Promise(requestAnimationFrame));
+      const mapBox = await page.locator(".maplibregl-canvas-container").boundingBox();
+      const target = mapBox ?? oldMapBox;
+      if (target) await page.mouse.move(target.x + target.width * (0.3 + (i % 10) * 0.04), target.y + target.height * (0.4 + (i % 5) * 0.03));
+      frames.push(await page.evaluate(() => {
+        const layout = document.querySelector(".globe-layout"), rail = document.querySelector(".globe-rail");
+        const card = rail.querySelector("article"), badge = card?.querySelector("[aria-label^='Fit score']");
+        const canvas = document.querySelector(".maplibregl-canvas");
+        const chip = [...document.querySelectorAll("button")].find(button => button.textContent === "Globe");
+        return {open:layout.classList.contains("globe-layout-open"),rail:rail.getBoundingClientRect().width,layout:layout.getBoundingClientRect().width,
+          slot:document.querySelector(".globe-slot").getBoundingClientRect().width,
+          badgeInside:!card||!badge||badge.getBoundingClientRect().right<=card.getBoundingClientRect().right+1,
+          chipLegible:!!chip&&chip.getBoundingClientRect().width>48&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
+          canvasUsable:!canvas||!layout.classList.contains("globe-layout-open")||(canvas.clientWidth>0&&canvas.clientHeight>0),
+          projection:canvas?document.querySelector("[data-projection]")?.getAttribute("data-projection"):null};
+      }));
     }
     return frames;
-  });
+  };
   const onFrames = await sampleToggle();
   assert.ok(onFrames.every(frame => frame.open && frame.rail/frame.layout < .43 && frame.rail/frame.layout > .2 && frame.slot > 0 && frame.badgeInside && frame.chipLegible && frame.canvasUsable && (!frame.projection||frame.projection==="globe")), "ON keeps a stable two-column layout, globe projection, chip and badges in every frame");
   await page.emulateMedia({reducedMotion:"reduce"});
@@ -134,14 +148,23 @@ try {
   assert.equal(await map.getAttribute("data-projection"),"globe");
   assert.ok(Number(await map.getAttribute("data-zoom")) <= 1.5);
   const cameraBeforeToggle = await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch}));
+  await page.evaluate(() => {
+    window.mapMouseEvents = 0;
+    document.querySelector(".maplibregl-canvas-container").addEventListener("mousemove", event => {
+      if (event.isTrusted) window.mapMouseEvents++;
+    }, {capture:true});
+  });
   const offFrames = await sampleToggle();
   assert.ok(offFrames.every(frame => !frame.open && frame.rail/frame.layout > .95 && frame.badgeInside && frame.chipLegible), "OFF keeps the full-width grid, chip and badges in every frame");
   await page.screenshot({path:`${output}/toggle-off.png`,fullPage:true});
+  await page.waitForTimeout(150); // Beyond MapLibre's throttled hidden resize observer.
   const onAgainFrames = await sampleToggle();
   assert.ok(onAgainFrames.every(frame => frame.open && frame.rail/frame.layout < .43 && frame.rail/frame.layout > .2 && frame.badgeInside));
   assert.equal(await page.locator(".maplibregl-canvas").count(),1);
   assert.ok(await firstCanvas.evaluate((canvas,other) => canvas === other, await page.locator(".maplibregl-canvas").elementHandle()), "canvas identity survives OFF/ON");
   assert.deepEqual(await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch})),cameraBeforeToggle);
+  const trustedCanvasMouseEvents = await page.evaluate(() => window.mapMouseEvents);
+  assert.ok(trustedCanvasMouseEvents > 0,"real pointer events must reach MapLibre's canvas container after re-opening");
   await page.screenshot({path:`${output}/toggle-on-again.png`,fullPage:true});
   await page.evaluate(() => window.scrollTo(0,0));
   await page.screenshot({path:`${output}/selected.png`,fullPage:true});
@@ -204,5 +227,5 @@ try {
   assert.equal(await page.locator("[data-posting-id]").count(),6);
   const screenshots = {};
   for (const name of ["list", "globe", "toggle-off", "toggle-on-again", "selected", "mobile", "mobile-toggle-off", "mobile-toggle-on", "overlapping", "denied-location", "api-error", "webgl-error"]) screenshots[`${name}.png`] = createHash("sha256").update(await readFile(`${output}/${name}.png`)).digest("hex");
-  await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",onFrames,offFrames,onAgainFrames,mobileOffFrames,mobileOnFrames,globeRequests,errors,checks:["stable width on every toggle frame","one canvas and preserved camera across OFF/ON on desktop and mobile","contained badges","pointer movement during toggles","globe render","no limit","cluster keyboard activation zooms in and retains exact posting choices", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "44px map controls", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
+  await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",onFrames,offFrames,onAgainFrames,mobileOffFrames,mobileOnFrames,globeRequests,trustedCanvasMouseEvents,errors,checks:["hidden delayed-load timeout does not fail after 21 s","stable width on every toggle frame","one canvas and preserved camera across OFF/ON on desktop and mobile","contained badges","trusted canvas pointer movement during toggles, including after 150 ms hidden","globe render","no limit","cluster keyboard activation zooms in and retains exact posting choices", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "44px map controls", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
 } catch (error) { await page.screenshot({path:`${output}/failure.png`,fullPage:true}); console.error(errors); throw error; } finally { await browser.close(); }
