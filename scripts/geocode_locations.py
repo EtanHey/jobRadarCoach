@@ -53,7 +53,7 @@ def location_query(value):
     if len({aliases.get(country.lower(), country.lower()) for country in countries}) > 1:
         return None
     # Eligibility/territory prose and ambiguous abbreviations are not a single named place.
-    if re.search(r'\b(global|customer|client|locations|timezone|candidates|based|within|continental|midtown)\b|location\s*(country|state|city)', value, re.I):
+    if re.search(r'\b(global|anywhere|customer|client|locations|timezone|candidates|based|within|continental|midtown)\b|location\s*(country|state|city)', value, re.I):
         return None
     if (re.search(r'\barea\b', value, re.I) and value.casefold() not in {'san francisco bay area', 'sf bay area'}) or re.search(r',\s*IL$', value):
         return None

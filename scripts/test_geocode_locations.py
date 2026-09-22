@@ -100,3 +100,10 @@ def test_review_exclusion_survives_unique_cached_match(tmp_path):
     assert plan['unresolved'][0]['reason'] == 'reviewed_ambiguous'
     with pytest.raises(ValueError):
         prepare(postings, cache, excluded_queries='Yokneam, Israel')
+
+
+@pytest.mark.parametrize('location', ['anywhere in the world', 'work from anywhere in the world'])
+def test_global_prose_from_refreshed_snapshot_never_queries_provider(tmp_path, location):
+    g = Geocoder(tmp_path / 'cache.json', fetch=lambda _: pytest.fail('Global prose is not a named place'), sleep=lambda _: None)
+    plan = prepare([{'id': 'one', 'location': location, 'company': 'Example', 'remote': True}], g)
+    assert plan['counts'] == {'total': 1, 'mapped': 0, 'unresolved': 1}
