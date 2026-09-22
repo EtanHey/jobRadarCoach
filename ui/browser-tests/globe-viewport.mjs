@@ -7,6 +7,7 @@ assert.equal(new URL(base).hostname,'127.0.0.1');assert.ok(output);await mkdir(o
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const titles=['Here','Far side','Berlin','New York','Unresolved','Unavailable','Duplicate','Duplicate'];
 const jobs=titles.map((title,n)=>({id:id(n),title,company:title,source:'fixture',last_seen_at:'2026-09-22',experience:null,description_available:false,seniority_origin:'unknown',extraction_state:'not-extracted',location:title,remote:n%2===0,seniority:null,stack:[],salary:null,url:'https://example.test',apply_url:null,posted_at:null,first_seen_at:n===7?'2026-09-21':'2026-09-22',status:'new',status_reason:null,score:90-n,fit_line:null,recommendation:null,alive:n!==5}));
+jobs[5].company = 'LongCompanyName'.repeat(40); // Long real-cohort labels must not set implicit grid width.
 const coords=[[31.8928,34.8113],[-31.8928,-145.1887],[52.52,13.405],[40.7128,-74.006],null,[31.8928,34.8113],[-31.8928,-145.1887],[31.8928,34.8113]];
 const points=coords.flatMap((coord,n)=>coord?[{posting_id:id(n),lat:coord[0],lng:coord[1],precision:'city',source:'Synthetic viewport regression',resolved_at:'2026-09-22T00:00:00Z'}]:[]);
 const payload={jobs,points,total_count:8,resolved_count:7,unresolved_count:1,attribution:'© OpenStreetMap contributors'};
@@ -23,7 +24,7 @@ try{for(const mobile of [false,true]){
  try{
   await page.goto(base);await page.getByRole('button',{name:'Globe',exact:true}).click();await page.getByText('Drag to explore',{exact:false}).waitFor({timeout:30000});
   await page.getByRole('heading',{name:'Outside of screen',exact:true}).waitFor();await page.waitForTimeout(600);
-  const initial=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(initial.on.includes(id(0))&&initial.on.includes(id(6)));assert.ok(initial.off.includes(id(1)),'back-facing point must not count as visible');
+  const initial=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'long labels cannot widen viewport sections');assert.ok(initial.on.includes(id(0))&&initial.on.includes(id(6)));assert.ok(initial.off.includes(id(1)),'back-facing point must not count as visible');
   await page.locator('.job-globe').scrollIntoViewIfNeeded();await page.screenshot({path:`${output}/${name}-initial.png`,fullPage:true});
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom in',exact:true}).click();await page.waitForTimeout(350);}
   await page.waitForTimeout(350);const zoomed=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(zoomed.off.includes(id(2)),'front-face point outside actual canvas bounds goes below');
