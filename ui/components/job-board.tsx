@@ -44,6 +44,7 @@ export function JobBoard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [markSeenOnOpen, setMarkSeenOnOpen] = useState(true);
   const [detail, setDetail] = useState<JobDetail | null>(null);
   const [detailError, setDetailError] = useState("");
   const [detailRevision, setDetailRevision] = useState(0);
@@ -87,12 +88,20 @@ export function JobBoard() {
   const invalidateListCache = useCallback(() => { listRequestFenceRef.current.invalidate(); listRefreshCoordinatorRef.current.cancelRequest(); listCacheRef.current.clear(); }, []);
   const requestRefresh = useCallback(() => { invalidateListCache(); setError(""); setRevision((value) => value + 1); }, [invalidateListCache]);
   const retry = useCallback(() => { visitCohortRef.current = null; listCacheRef.current.clear(); hasLoadedRef.current = false; setJobs([]); setLoadedUpdatedAt(null); setRefreshWarning(""); setLoading(true); requestRefresh(); }, [requestRefresh]);
-  function selectJob(id: string | null) {
+  function selectJob(id: string | null, markSeen = true) {
+    setMarkSeenOnOpen(markSeen);
     detailRequestRef.current?.abort();
     detailCoordinator.select(id);
     setSelected(id);
     // Keep the previous body intact during the sheet closing transition.
     if (id !== null) { setDetail(null); setDetailError(""); }
+  }
+  function openGlobeJob(id: string) {
+    focusGlobeRow(id);
+    const rowId = points.find(point => point.posting_id === id)?.rowId;
+    openerRef.current = document.activeElement instanceof HTMLButtonElement ? document.activeElement
+      : document.querySelector<HTMLButtonElement>(`[data-posting-id="${rowId}"] > button`);
+    selectJob(id, false);
   }
   function retryDetail() {
     if (!selected || saving) return;
@@ -230,6 +239,7 @@ export function JobBoard() {
         const job = await loadJobDetail(selected!, controller.signal);
         if (controller.signal.aborted) return;
         if (detailCoordinator.acceptRead(read)) setDetail(job);
+        if (!markSeenOnOpen) return;
         patchStarted = true;
         const status = StatusResponseSchema.parse(await request(`/api/jobs/${selected}/status`, {
           method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal: controller.signal,
@@ -249,7 +259,7 @@ export function JobBoard() {
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus]);
+  }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
@@ -297,14 +307,15 @@ export function JobBoard() {
         {globeActive && !globe.data && <span role="status" className="text-xs">Loading all posting locations…</span>}
         {(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-950">{globeWarning || globe.failure} Use Globe to retry.</span>}
       </div>
-      <JobsPanel {...{filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onSelect={focusGlobeRow} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
+      <JobsPanel {...{filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer
       retryDetail={retryDetail}
       retryDisabled={saving || selected === null}
       selectedJob={displayJobs.find((job) => job.id === selected)}
-      {...{selected, relatedJobs, openerRef, selectJob, detail, detailError}}
+      {...{selected, relatedJobs, openerRef, detail, detailError}}
+      selectJob={id => selectJob(id, markSeenOnOpen)}
       actions={detail ? <>
         <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
         <div className="flex flex-wrap items-end gap-3">
