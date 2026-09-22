@@ -35,6 +35,8 @@ await page.route("**/api/**", route => {
   if (url.pathname === "/api/jobs/globe") { globeRequests.push(url.search); return route.fulfill({status:failApi?503:200,json:failApi?{error:"fixture outage"}:payload}); }
   if (url.pathname === "/api/jobs") return route.fulfill({json:{jobs}});
   if (url.pathname === "/api/events") return route.fulfill({contentType:"text/event-stream",body:"event: ready\ndata: {}\n\n"});
+  const job = jobs.find(job => url.pathname === `/api/jobs/${job.id}`);
+  if (job) return route.fulfill({json:{job:{...job,raw_jd:null,reasons:[],score_payload:null,brain:null,scored_at:null}}});
   return route.fulfill({status:404,json:{error:"fixture only"}});
 });
 try {
@@ -81,8 +83,12 @@ try {
   await page.getByRole("button",{name:"Frontend Engineer · Atlas",exact:true}).focus();
   await page.keyboard.press("Enter");
   assert.equal(await page.locator('[data-globe-posting]').getAttribute('data-globe-posting'),id(0));
+  await page.getByRole("dialog").getByRole("button",{name:"Close",exact:true}).click();
+  await page.getByRole("dialog").waitFor({state:"hidden"});
   await page.getByRole("button",{name:"Software Engineer · Signal",exact:true}).click();
   assert.equal(await page.locator('[data-globe-posting]').getAttribute('data-globe-posting'),id(4));
+  await page.getByRole("dialog").getByRole("button",{name:"Close",exact:true}).click();
+  await page.getByRole("dialog").waitFor({state:"hidden"});
   await page.screenshot({path:`${output}/overlapping.png`,fullPage:true});
   await page.getByRole("button",{name:"Close posting choices",exact:true}).click();
   assert.equal(await page.locator('[data-globe-selected="true"] button[aria-pressed="true"]').count(),1);
@@ -91,6 +97,10 @@ try {
   const canvas = await page.locator(".maplibregl-canvas").boundingBox();
   await page.mouse.click(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
   assert.equal(await page.locator('[data-globe-posting]').getAttribute('data-globe-posting'),id(2));
+  await page.getByRole('dialog').getByRole('heading',{name:'Product Engineer',exact:true}).waitFor();
+  await page.getByRole('dialog').getByRole('button',{name:'Close',exact:true}).click();
+  await page.getByRole('dialog').waitFor({state:'hidden'});
+  await page.mouse.move(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2);
   assert.equal(await page.locator('[data-globe-hover]').getAttribute('data-globe-hover'),id(2), 'the direct dot click must establish real pointer hover');
   const mapTop = (await page.locator(".job-globe").boundingBox()).y;
   await page.getByRole("button",{name:"Open Design Engineer at Meridian",exact:true}).click();
