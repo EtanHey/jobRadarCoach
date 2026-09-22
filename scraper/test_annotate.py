@@ -540,6 +540,25 @@ def test_retained_withheld_preference_claims_fail_closed() -> None:
     ) is None
 
 
+def test_provider_payload_projection_is_the_exact_prompt_json_source() -> None:
+    luna = load_annotate_module()
+    profile = safe_projection()
+    profile["candidate"]["location"] = "WITHHELD_LOCATION_SENTINEL"
+    profile["candidate"]["open_to"] = {"private": "WITHHELD_OPEN_TO_SENTINEL"}
+    public_posting = posting("direct")
+
+    payload = luna.provider_payload_projection(public_posting, profile)
+    prompt = luna._build_prompt(public_posting, profile)
+    profile_json, posting_json = prompt.split("Professional fit profile:\n", 1)[
+        1
+    ].split("\nPublic posting:\n", 1)
+
+    assert json.loads(profile_json) == payload["professional_profile"]
+    assert json.loads(posting_json) == payload["public_posting"]
+    assert set(payload) == {"professional_profile", "public_posting"}
+    assert "WITHHELD_" not in json.dumps(payload, sort_keys=True)
+
+
 def test_withheld_evidence_requires_exact_canonical_abstention() -> None:
     luna = load_annotate_module()
     valid = structured_annotation("4377864561")
