@@ -1,25 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl } from "maplibre-gl";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
+import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type MapOptions } from "maplibre-gl";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, scoreBands, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
-import { viewportPostingIds } from "@/lib/globe-viewport";
+import { usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).href);
 
-function landingZoom(map: Map, latitude: number) {
-  const edge = Math.min(map.getContainer().clientWidth, map.getContainer().clientHeight);
-  // A hidden panel has no usable fit measurement; its first visible resize will cap this landing.
+function landingZoomForSize(width: number, height: number, latitude: number) {
+  const edge = Math.min(width, height);
+  // The first visible container supplies the landing size; later resizes retain the camera.
   if (edge <= 0) return 1.3;
   return Math.min(1.3, Math.log2(edge * Math.max(0.15, Math.cos(latitude * Math.PI / 180)) / 180));
 }
+function landingZoom(map: Map, latitude: number) {
+  return landingZoomForSize(map.getContainer().clientWidth, map.getContainer().clientHeight, latitude);
+}
 
-type Props = { onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; onSelect: (id: string) => void; onFailure: () => void };
-export default function JobGlobe({ points, selected, onSelect, onFailure, onViewportChange }: Props) {
+type Props = { active: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; onSelect: (id: string) => void; onFailure: () => void };
+export default function JobGlobe({ active, points, selected, onSelect, onFailure, onViewportChange }: Props) {
   const container = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(active);
+  const cameraRef = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number } | null>(null);
   const mapRef = useRef<Map | null>(null);
   const overlayRef = useRef<MapLibreOverlay | null>(null);
   const callbacks = useRef({ onSelect, onFailure, onViewportChange });
@@ -30,6 +35,27 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const hovered = hover?.selection === selected ? hover.point : null;
   const [location, setLocation] = useState("Centered near Rehovot · location stays on this device");
+  const canInteract = useCallback(() => {
+    const element = container.current;
+    const canvas = mapRef.current?.getCanvas();
+    return activeRef.current && !!element && !!canvas && usableMapSize(element.clientWidth, element.clientHeight) && usableMapSize(canvas.clientWidth, canvas.clientHeight);
+  }, []);
+  useLayoutEffect(() => {
+    activeRef.current = active;
+    const map = mapRef.current;
+    if (!map) return;
+    if (!active) {
+      map.stop();
+      const center = map.getCenter();
+      cameraRef.current = { center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() };
+      return;
+    }
+    if (!container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
+    const restore = () => { map.resize(); if (cameraRef.current) map.jumpTo(cameraRef.current); };
+    restore();
+    const frame = requestAnimationFrame(() => { restore(); cameraRef.current = null; });
+    return () => cancelAnimationFrame(frame);
+  }, [active]);
   useEffect(() => { callbacks.current = { onSelect, onFailure, onViewportChange }; }, [onSelect, onFailure, onViewportChange]);
   const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const locate = useCallback(() => {
@@ -44,43 +70,56 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
   useEffect(() => {
     if (!container.current) return;
     let map: Map | undefined;
-    let active = true;
+    let mounted = true;
     let loaded = false;
-    const fail = () => { if (active) callbacks.current.onFailure(); };
+    let style: MapOptions["style"];
+    const request = new AbortController();
+    const fail = () => { if (mounted) callbacks.current.onFailure(); };
     const timeout = window.setTimeout(() => { if (!loaded) fail(); }, 20000);
-    try {
-      map = new Map({ container: container.current, style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json", center: FALLBACK_CENTER, zoom: 0.6, maxZoom: 12, canvasContextAttributes: { antialias: true }, attributionControl: { compact: true } });
+    const startMap = () => {
+      if (!mounted || map || !style || !activeRef.current || !container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
+      try {
+      map = new Map({ container: container.current, style, center: FALLBACK_CENTER, zoom: landingZoomForSize(container.current.clientWidth, container.current.clientHeight, FALLBACK_CENTER[1]), maxZoom: 12, canvasContextAttributes: { antialias: true }, attributionControl: { compact: true } });
       mapRef.current = map;
       map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
       map.addControl(new FullscreenControl({ container: container.current }), "top-right");
-      map.on("moveend", () => { if (container.current && map) { container.current.dataset.projection = String(map.getProjection()?.type); container.current.dataset.zoom = String(map.getZoom()); } });
+      const publishCamera = () => { if (container.current && map) {
+        container.current.dataset.projection = String(map.getProjection()?.type);
+        container.current.dataset.zoom = String(map.getZoom());
+        container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
+        container.current.dataset.bearing = String(map.getBearing());
+        container.current.dataset.pitch = String(map.getPitch());
+      } };
+      map.on("moveend", publishCamera);
       map.on("webglcontextlost", fail);
-      map.on("error", () => { if (!loaded) fail(); });
+      map.on("error", event => { if (!loaded) { console.error("Globe initialization error", event.error); fail(); } });
       map.once("load", () => {
-        if (!active || !map) return;
-        map.setProjection({ type: "globe" });
+        if (!mounted || !map) return;
+        publishCamera();
         const overlay = new MapLibreOverlay({ interleaved: false, layers: [], onError: fail });
         map.addControl(overlay);
         overlayRef.current = overlay;
         loaded = true;
         clearTimeout(timeout);
         setReady(true);
-        map.flyTo({ center: FALLBACK_CENTER, zoom: landingZoom(map, FALLBACK_CENTER[1]), duration: reducedMotion() ? 0 : 1800 });
         // A prompt requires the explicit button; an already granted permission may be reused.
         navigator.permissions?.query({ name: "geolocation" }).then(permission => {
-          if (active && permission.state === "granted") locate();
+          if (mounted && permission.state === "granted") locate();
         }).catch(() => {});
       });
-    } catch { fail(); }
+      } catch (error) { console.error("Globe construction error", error); fail(); }
+    };
     const resize = new ResizeObserver(() => {
-      // Do not turn a transient hidden/collapsed panel into a permanent zoom-out.
-      if (!map || !container.current?.clientWidth || !container.current.clientHeight) return;
-      map.resize();
-      const cap = landingZoom(map, map.getCenter().lat);
-      if (map.getZoom() > cap) map.setZoom(cap);
+      if (!container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
+      if (map) { map.resize(); if (activeRef.current && cameraRef.current) map.jumpTo(cameraRef.current); }
+      else startMap();
     });
     resize.observe(container.current);
-    return () => { active = false; clearTimeout(timeout); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
+    fetch("https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json", { signal: request.signal })
+      .then(response => { if (!response.ok) throw new Error(`Map style: ${response.status}`); return response.json(); })
+      .then(body => { style = { ...(body as object), projection: { type: "globe" } } as MapOptions["style"]; startMap(); })
+      .catch(error => { if (mounted && !request.signal.aborted) { console.error("Globe style error", error); fail(); } });
+    return () => { mounted = false; request.abort(); clearTimeout(timeout); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
   }, [locate]);
   useEffect(() => {
     const map = mapRef.current;
@@ -109,18 +148,28 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    const update = () => setClusters(clusterPoints(thinPoints(points, selected), point => {
-      const screen = map.project([point.lng, point.lat]);
-      const back = map.unproject(screen);
-      const longitudeDelta = Math.abs(((back.lng - point.lng + 540) % 360) - 180);
-      if (longitudeDelta > 0.01 || Math.abs(back.lat - point.lat) > 0.01) return null;
-      return screen;
-    }));
+    const update = () => {
+      if (!canInteract()) return;
+      setClusters(clusterPoints(thinPoints(points, selected), point => {
+        try {
+          const screen = map.project([point.lng, point.lat]);
+          if (!Number.isFinite(screen.x) || !Number.isFinite(screen.y)) return null;
+          const back = map.unproject(screen);
+          if (!Number.isFinite(back.lng) || !Number.isFinite(back.lat)) return null;
+          const longitudeDelta = Math.abs(((back.lng - point.lng + 540) % 360) - 180);
+          if (longitudeDelta > 0.01 || Math.abs(back.lat - point.lat) > 0.01) return null;
+          return screen;
+        } catch (error) {
+          if (!(error instanceof Error) || !error.message.includes("Invalid LngLat")) throw error;
+          return null;
+        }
+      }));
+    };
     const frame = requestAnimationFrame(update);
     map.on("moveend", update);
     map.on("resize", update);
     return () => { cancelAnimationFrame(frame); map.off("moveend", update); map.off("resize", update); };
-  }, [points, selected, ready]);
+  }, [points, selected, ready, canInteract]);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !overlayRef.current) return;
@@ -131,8 +180,8 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
         getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getFillColor: cluster => scoreColor(clusterScore(cluster)),
         stroked: true, getLineColor: [255, 255, 255, 220], lineWidthUnits: "pixels", getLineWidth: cluster => cluster.members.some(point => point.posting_id === selected) ? 2 : 0.5,
         transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hovered?.posting_id], getLineWidth: [selected] },
-        onHover: info => setHover(info.object?.members.length === 1 ? { point: info.object.anchor, selection: selected } : null),
-        onClick: info => { if (info.object?.members.length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); },
+        onHover: info => { if (canInteract()) setHover(info.object?.members.length === 1 ? { point: info.object.anchor, selection: selected } : null); },
+        onClick: info => { if (canInteract() && info.object?.members.length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); },
       })],
     });
     const markers = clusters.filter(cluster => cluster.members.length > 1).map(cluster => {
@@ -144,6 +193,7 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
       button.textContent = String(cluster.members.length);
       button.style.setProperty("--cluster-color", scoreCss(clusterScore(cluster)));
       button.onclick = () => {
+        if (!canInteract()) return;
         setHover(null);
         setChoiceIds(cluster.members.map(point => point.posting_id));
         map.flyTo({ center: [cluster.anchor.lng, cluster.anchor.lat], zoom: Math.min(map.getZoom() + 2, map.getMaxZoom()), duration: reducedMotion() ? 0 : 800 });
@@ -151,7 +201,7 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
       return new Marker({ element: button }).setLngLat([cluster.anchor.lng, cluster.anchor.lat]).addTo(map);
     });
     return () => { markers.forEach(marker => marker.remove()); };
-  }, [clusters, selected, hovered, ready]);
+  }, [clusters, selected, hovered, ready, canInteract]);
   const selectedPoint = points.find(point => point.posting_id === selected);
   const selectedLat = selectedPoint?.lat, selectedLng = selectedPoint?.lng;
   useEffect(() => {

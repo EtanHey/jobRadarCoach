@@ -46,18 +46,38 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("[data-posting-id]").length === 6);
   await page.screenshot({path:`${output}/list.png`,fullPage:true});
   await page.emulateMedia({reducedMotion:"no-preference"});
-  const widths = await page.evaluate(async () => {
-    const rail = document.querySelector(".globe-rail");
-    const widths = [Math.round(rail.getBoundingClientRect().width)];
+  const sampleToggle = async () => page.evaluate(async () => {
     [...document.querySelectorAll("button")].find(button => button.textContent === "Globe").click();
-    for (let i = 0; i < 14; i++) { await new Promise(resolve => setTimeout(resolve,50)); widths.push(Math.round(rail.getBoundingClientRect().width)); }
-    return widths;
+    const frames = [];
+    for (let i = 0; i < 32; i++) {
+      await new Promise(requestAnimationFrame);
+      const layout = document.querySelector(".globe-layout"), rail = document.querySelector(".globe-rail");
+      const card = rail.querySelector("article"), badge = card?.querySelector("[aria-label^='Fit score']");
+      const shell = document.querySelector(".job-globe");
+      const canvas = document.querySelector(".maplibregl-canvas");
+      const chip = [...document.querySelectorAll("button")].find(button => button.textContent === "Globe");
+      if (shell) {
+        const rect = shell.getBoundingClientRect();
+        shell.dispatchEvent(new PointerEvent("pointermove", {bubbles:true,clientX:rect.x+rect.width/2,clientY:rect.y+rect.height/2}));
+        shell.dispatchEvent(new MouseEvent("mousemove", {bubbles:true,clientX:rect.x+rect.width/2,clientY:rect.y+rect.height/2}));
+      }
+      frames.push({open:layout.classList.contains("globe-layout-open"),rail:rail.getBoundingClientRect().width,layout:layout.getBoundingClientRect().width,
+        slot:document.querySelector(".globe-slot").getBoundingClientRect().width,
+        badgeInside:!card||!badge||badge.getBoundingClientRect().right<=card.getBoundingClientRect().right+1,
+        chipLegible:!!chip&&chip.getBoundingClientRect().width>48&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
+        canvasUsable:!canvas||!layout.classList.contains("globe-layout-open")||(canvas.clientWidth>0&&canvas.clientHeight>0),
+        projection:canvas?document.querySelector("[data-projection]")?.getAttribute("data-projection"):null});
+    }
+    return frames;
   });
-  assert.ok(new Set(widths).size > 3, "rail width should animate through intermediate values");
+  const onFrames = await sampleToggle();
+  assert.ok(onFrames.every(frame => frame.open && frame.rail/frame.layout < .43 && frame.rail/frame.layout > .2 && frame.slot > 0 && frame.badgeInside && frame.chipLegible && frame.canvasUsable && (!frame.projection||frame.projection==="globe")), "ON keeps a stable two-column layout, globe projection, chip and badges in every frame");
   await page.emulateMedia({reducedMotion:"reduce"});
   await page.getByText("Drag to explore",{exact:false}).waitFor({timeout:30000});
   await page.waitForTimeout(2200);
   await page.screenshot({path:`${output}/globe.png`,fullPage:true});
+  const firstCanvas = await page.locator(".maplibregl-canvas").elementHandle();
+  assert.equal(await page.locator(".maplibregl-canvas").count(),1);
   assert.equal(await page.getByText("1 posting not on globe",{exact:true}).count(),1);
   assert.ok(globeRequests.every(query => !query.includes("limit=")));
   assert.equal(await page.evaluate(() => window.locationRequests),0);
@@ -113,6 +133,16 @@ try {
   assert.match(await page.locator('[data-globe-posting]').innerText(), /Meridian · 85 fit/);
   assert.equal(await map.getAttribute("data-projection"),"globe");
   assert.ok(Number(await map.getAttribute("data-zoom")) <= 1.5);
+  const cameraBeforeToggle = await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch}));
+  const offFrames = await sampleToggle();
+  assert.ok(offFrames.every(frame => !frame.open && frame.rail/frame.layout > .95 && frame.badgeInside && frame.chipLegible), "OFF keeps the full-width grid, chip and badges in every frame");
+  await page.screenshot({path:`${output}/toggle-off.png`,fullPage:true});
+  const onAgainFrames = await sampleToggle();
+  assert.ok(onAgainFrames.every(frame => frame.open && frame.rail/frame.layout < .43 && frame.rail/frame.layout > .2 && frame.badgeInside));
+  assert.equal(await page.locator(".maplibregl-canvas").count(),1);
+  assert.ok(await firstCanvas.evaluate((canvas,other) => canvas === other, await page.locator(".maplibregl-canvas").elementHandle()), "canvas identity survives OFF/ON");
+  assert.deepEqual(await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch})),cameraBeforeToggle);
+  await page.screenshot({path:`${output}/toggle-on-again.png`,fullPage:true});
   await page.evaluate(() => window.scrollTo(0,0));
   await page.screenshot({path:`${output}/selected.png`,fullPage:true});
   await page.getByRole("combobox",{name:"Location",exact:true}).click();
@@ -136,21 +166,31 @@ try {
   await search.fill("");
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(300);
-  assert.ok(Number(await map.getAttribute("data-zoom")) < 1, "mobile landing keeps the globe limb in frame");
+  assert.ok(Number(await map.getAttribute("data-zoom")) > 0, "resizing to mobile preserves a usable camera");
   await page.screenshot({path:`${output}/mobile.png`,fullPage:true});
+  const mobileCamera = await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch}));
+  const mobileOffFrames = await sampleToggle();
+  assert.ok(mobileOffFrames.every(frame => !frame.open && frame.rail/frame.layout > .95 && frame.badgeInside));
+  await page.screenshot({path:`${output}/mobile-toggle-off.png`,fullPage:true});
+  const mobileOnFrames = await sampleToggle();
+  assert.ok(mobileOnFrames.every(frame => frame.open && frame.rail/frame.layout > .95 && frame.slot > 0 && frame.badgeInside));
+  assert.deepEqual(await map.evaluate(element => ({center:element.dataset.center,zoom:element.dataset.zoom,bearing:element.dataset.bearing,pitch:element.dataset.pitch})),mobileCamera);
+  assert.ok(await firstCanvas.evaluate((canvas,other) => canvas === other, await page.locator(".maplibregl-canvas").elementHandle()));
+  await page.screenshot({path:`${output}/mobile-toggle-on.png`,fullPage:true});
   for (const button of await page.locator(".job-globe button, .globe-footer button").all()) {
     const bounds = await button.boundingBox();
     if (bounds) assert.ok(bounds.width >= 44 && bounds.height >= 44, "map controls meet 44px target");
   }
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.getByRole("button",{name:"Globe",exact:true}).click();
-  assert.equal(await page.locator(".job-globe").count(),0);
+  assert.equal(await page.locator(".job-globe").count(),1);
+  assert.equal(await page.locator(".job-globe").isVisible(),false);
   failApi = true;
   await page.getByRole("button",{name:"Globe",exact:true}).click();
   await page.getByText("The globe is unavailable. Your list is still here.",{exact:false}).waitFor();
   await page.screenshot({path:`${output}/api-error.png`,fullPage:true});
   assert.equal(await page.locator("[data-posting-id]").count(),6);
-  assert.equal(await page.locator(".job-globe").count(),0);
+  assert.equal(await page.locator(".job-globe").isVisible(),false);
   assert.deepEqual(errors,[]);
   failApi = false;
   await page.addInitScript(() => {
@@ -163,6 +203,6 @@ try {
   await page.screenshot({path:`${output}/webgl-error.png`,fullPage:true});
   assert.equal(await page.locator("[data-posting-id]").count(),6);
   const screenshots = {};
-  for (const name of ["list", "globe", "selected", "mobile", "overlapping", "denied-location", "api-error", "webgl-error"]) screenshots[`${name}.png`] = createHash("sha256").update(await readFile(`${output}/${name}.png`)).digest("hex");
-  await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",widths,globeRequests,errors,checks:["animated width transition","globe render","no limit","cluster keyboard activation zooms in and retains exact posting choices", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "44px map controls", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
+  for (const name of ["list", "globe", "toggle-off", "toggle-on-again", "selected", "mobile", "mobile-toggle-off", "mobile-toggle-on", "overlapping", "denied-location", "api-error", "webgl-error"]) screenshots[`${name}.png`] = createHash("sha256").update(await readFile(`${output}/${name}.png`)).digest("hex");
+  await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",onFrames,offFrames,onAgainFrames,mobileOffFrames,mobileOnFrames,globeRequests,errors,checks:["stable width on every toggle frame","one canvas and preserved camera across OFF/ON on desktop and mobile","contained badges","pointer movement during toggles","globe render","no limit","cluster keyboard activation zooms in and retains exact posting choices", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "44px map controls", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
 } catch (error) { await page.screenshot({path:`${output}/failure.png`,fullPage:true}); console.error(errors); throw error; } finally { await browser.close(); }

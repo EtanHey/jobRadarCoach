@@ -22,9 +22,9 @@ export function JobCard({ job, selected, actions, alternateCount = 0, openerRef,
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   return <article data-posting-id={job.id} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:border-ring/50 focus-within:ring-2 focus-within:ring-ring">
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
-    <div className="pointer-events-none flex items-start gap-3">
+    <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} className="size-14 sm:size-16" />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 max-w-[28rem] flex-[1_1_9rem]">
         <p className="truncate text-sm text-muted-foreground">{job.company}</p>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
       </div>
