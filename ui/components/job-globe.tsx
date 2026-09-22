@@ -11,6 +11,8 @@ setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).hr
 
 function landingZoom(map: Map, latitude: number) {
   const edge = Math.min(map.getContainer().clientWidth, map.getContainer().clientHeight);
+  // A hidden panel has no usable fit measurement; its first visible resize will cap this landing.
+  if (edge <= 0) return 1.3;
   return Math.min(1.3, Math.log2(edge * Math.max(0.15, Math.cos(latitude * Math.PI / 180)) / 180));
 }
 
@@ -69,7 +71,13 @@ export default function JobGlobe({ points, selected, onSelect, onFailure }: Prop
         }).catch(() => {});
       });
     } catch { fail(); }
-    const resize = new ResizeObserver(() => { if (map) { map.resize(); const cap = landingZoom(map, map.getCenter().lat); if (map.getZoom() > cap) map.setZoom(cap); } });
+    const resize = new ResizeObserver(() => {
+      // Do not turn a transient hidden/collapsed panel into a permanent zoom-out.
+      if (!map || !container.current?.clientWidth || !container.current.clientHeight) return;
+      map.resize();
+      const cap = landingZoom(map, map.getCenter().lat);
+      if (map.getZoom() > cap) map.setZoom(cap);
+    });
     resize.observe(container.current);
     return () => { active = false; clearTimeout(timeout); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
   }, [locate]);
