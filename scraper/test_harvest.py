@@ -1346,6 +1346,90 @@ def test_model_title_gate_includes_linkedin_configured_role() -> None:
     ) is True
 
 
+@pytest.mark.parametrize(
+    ("excluded_title", "allowed_title", "search_keywords"),
+    [
+        ("Staff Software Engineer", "Senior Software Engineer", "Software Engineer"),
+        ("Principal Software Engineer", "Software Engineer", "Software Engineer"),
+        ("Head of Engineering", "Engineering Director", "Engineering"),
+        ("Head of AI", "AI Engineer", "AI"),
+        ("Head-of-Engineering", "Engineering Director", "Engineering"),
+        ("Engineering Lead", "Senior Engineering Manager", "Engineering"),
+    ],
+)
+def test_model_title_gate_hard_excludes_seniority_rules(
+    excluded_title: str, allowed_title: str, search_keywords: str
+) -> None:
+    harvest = load_harvest_module()
+    searches = [
+        {"keywords": search_keywords, "location": "Remote", "recency": "r10800"}
+    ]
+
+    assert harvest._title_matches_model_scope(
+        {"id": "excluded-seniority", "title": excluded_title}, searches
+    ) is False
+    assert harvest._title_matches_model_scope(
+        {"id": "allowed-seniority", "title": allowed_title}, searches
+    ) is True
+
+
+@pytest.mark.parametrize(
+    ("blocked_requirement", "allowed_requirement"),
+    [
+        ("6+ years of backend experience required", "5+ years of backend experience required"),
+        ("6-8 years of product experience", "3-5 years of product experience"),
+        ("At least 8 years in software engineering", "At least 4 years in software engineering"),
+    ],
+)
+def test_year_requirement_hard_block_uses_highest_lower_bound(
+    blocked_requirement: str, allowed_requirement: str
+) -> None:
+    harvest = load_harvest_module()
+
+    assert harvest._has_blocking_years_requirement(blocked_requirement) is True
+    assert harvest._has_blocking_years_requirement(allowed_requirement) is False
+
+
+def test_us_only_onsite_posting_survives_source_scope() -> None:
+    harvest = load_harvest_module()
+    searches = [{"keywords": "Software Engineer", "location": "United States", "recency": "r10800"}]
+    aliases = {"United States": ["US", "USA"]}
+
+    assert harvest._source_posting_matches(
+        {
+            "id": "us-onsite",
+            "title": "Software Engineer",
+            "location": "Austin, TX, USA",
+            "remote": False,
+        },
+        searches,
+        aliases,
+    ) is True
+    assert harvest._source_posting_matches(
+        {
+            "id": "uk-onsite",
+            "title": "Software Engineer",
+            "location": "London, UK",
+            "remote": False,
+        },
+        searches,
+        aliases,
+    ) is False
+
+
+def test_hr_tech_posting_survives_unless_an_independent_hard_rule_matches() -> None:
+    harvest = load_harvest_module()
+    searches = [{"keywords": "Software Engineer", "location": "Remote", "recency": "r10800"}]
+
+    assert harvest._title_matches_model_scope(
+        {"id": "hr-tech", "title": "Software Engineer, HR Technology"}, searches
+    ) is True
+    assert harvest._title_matches_model_scope(
+        {"id": "hr-tech-principal", "title": "Principal Software Engineer, HR Technology"},
+        searches,
+    ) is False
+
+
 def test_linkedin_pipeline_requires_paired_title_and_geography(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -1472,6 +1556,80 @@ def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
     assert first["inserted_posting_ids"] == [persisted_id]
     assert repeated["inserted_posting_ids"] == []
     assert annotations == ["linkedin-repeat"]
+
+
+def test_db_pipeline_hard_blocks_six_year_requirement_before_persistence(
+    tmp_path: Path, monkeypatch
+) -> None:
+    harvest = load_harvest_module()
+    postings = [
+        {
+            "id": "allowed",
+            "title": "Software Engineer",
+            "company": "Allowed",
+            "location": "Israel",
+            "url": "https://example.test/allowed",
+            "jd_text": "Build React products. 3-5 years of experience required.",
+            "jd_fetched": True,
+        },
+        {
+            "id": "blocked",
+            "title": "Software Engineer",
+            "company": "Blocked",
+            "location": "Israel",
+            "url": "https://example.test/blocked",
+            "jd_text": "Build React products. 6+ years of experience required.",
+            "jd_fetched": True,
+        },
+    ]
+    profile = {
+        "search.terms": ["Software Engineer"],
+        "candidate.open_to.geographies": ["Israel"],
+        "search.recency": "r10800",
+        "candidate.fit_terms": [],
+        "search.location_terms": {},
+    }
+    persisted: list[dict[str, object]] = []
+
+    class Database:
+        @staticmethod
+        def searches_from_profile(_profile):
+            return [
+                {
+                    "keywords": "Software Engineer",
+                    "location": "Israel",
+                    "recency": "r10800",
+                }
+            ]
+
+    def writer(rows, _observed_at):
+        persisted.extend(rows)
+        return {
+            "observed_posting_ids": ["00000000-0000-0000-0000-000000000001"],
+            "inserted_posting_ids": ["00000000-0000-0000-0000-000000000001"],
+        }
+
+    monkeypatch.setattr(harvest, "load_database_module", lambda: Database)
+    monkeypatch.setattr(
+        harvest, "harvest_search", lambda *_args, **_kwargs: (postings, 0)
+    )
+
+    result = harvest.run_pipeline(
+        config_path=tmp_path / "unused",
+        profile_path=tmp_path / "unused",
+        output_dir=tmp_path,
+        date_string="2026-09-22",
+        harvested_at="2026-09-22T12:00:00Z",
+        max_pages=1,
+        fetcher=lambda _url: "",
+        before_request=lambda: None,
+        jd_fetch_cap=0,
+        profile_snapshot=profile,
+        posting_writer=writer,
+    )
+
+    assert [row["id"] for row in persisted] == ["allowed"]
+    assert result["new_count"] == 1
 
 
 def test_load_prior_ids_excludes_current_and_future_dated_files(tmp_path: Path) -> None:

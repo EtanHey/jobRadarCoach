@@ -50,7 +50,8 @@ CORE_STACK_PATTERN = re.compile(
     re.I,
 )
 HARD_TITLE_EXCLUSION_PATTERN = re.compile(
-    r"\bembedded\b|\bmechanical\b|\bdata[\s-]+scien(?:ces?|tists?)\b",
+    r"\bembedded\b|\bmechanical\b|\bdata[\s-]+scien(?:ces?|tists?)\b|"
+    r"\bstaff\b|\bprincipal\b|\bhead[\s-]+of\b|\bleads?\b",
     re.I,
 )
 ROLE_TYPE_NEGATIVE_LABELS = {
@@ -597,6 +598,15 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
         if highest_minimum >= threshold:
             return label, weight
     return None
+
+
+def _has_blocking_years_requirement(text: str) -> bool:
+    """Block when any single stated experience minimum is six years or higher."""
+
+    return any(
+        int(match.group("minimum")) >= 6
+        for match in YEARS_REQUIREMENT_PATTERN.finditer(text)
+    )
 
 
 def _is_non_required_stack_context(
@@ -2142,6 +2152,11 @@ def run_pipeline(  # skipcq: PY-R1000
         sleep=jd_sleep,
         max_fetches=jd_fetch_cap,
     )
+    fresh_with_jds = [
+        posting
+        for posting in fresh_with_jds
+        if not _has_blocking_years_requirement(str(posting.get("jd_text", "")))
+    ]
     jd_fetch_failed = jd_warning_count
     jd_fetch_degraded = jd_fetch_is_degraded(
         attempted=jd_fetch_attempted,
