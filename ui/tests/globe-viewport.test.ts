@@ -29,8 +29,9 @@ test("partition preserves sorted group identities, counts, alternates and unavai
 });
 test("globe counts use deduplicated roles across mapped, unmapped and visible sections", () => {
   const groups=[{job:job(1),alternates:[job(2)]},{job:job(3),alternates:[]},{job:job(4),alternates:[]}];
-  const counts=countGlobeRoles(groups,[point(2),point(3)],[job(2).id]);
-  assert.deepEqual(counts,{total:3,mapped:2,unmapped:1,visible:1,outside:2});
+  groups[1].job.alive=false;
+  const counts=countGlobeRoles(groups,[point(2),point(3)]);
+  assert.deepEqual(counts,{total:3,mapped:2,unmapped:1});
   assert.equal(counts.mapped+counts.unmapped,counts.total);
-  assert.equal(counts.visible+counts.outside,counts.total);
+  assert.deepEqual(partitionGlobeGroups(groups,[job(2).id]).visible,[groups[0]]);
 });

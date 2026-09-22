@@ -87,10 +87,14 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
     if (!ready || !map) return;
     let frame: number | null = null;
     const update = () => {
-      if (frame !== null || map.getProjection()?.type !== "globe") return;
+      if (frame !== null) return;
       frame = requestAnimationFrame(() => {
         frame = null;
-        if (map.isMoving()) { update(); return; }
+        if (map.isMoving() || map.getProjection()?.type !== "globe") {
+          map.off("idle", update);
+          map.once("idle", update);
+          return;
+        }
         const canvas = map.getContainer();
         if (!canvas.clientWidth || !canvas.clientHeight) return;
         callbacks.current.onViewportChange(viewportPostingIds(points, canvas.clientWidth, canvas.clientHeight,
@@ -100,7 +104,7 @@ export default function JobGlobe({ points, selected, onSelect, onFailure, onView
     update();
     map.on("moveend", update);
     map.on("resize", update);
-    return () => { if (frame !== null) cancelAnimationFrame(frame); map.off("moveend", update); map.off("resize", update); };
+    return () => { if (frame !== null) cancelAnimationFrame(frame); map.off("moveend", update); map.off("resize", update); map.off("idle", update); };
   }, [points, ready]);
   useEffect(() => {
     const map = mapRef.current;
