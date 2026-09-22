@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { GlobeBoundary } from "./globe-boundary";
 import { useGlobeData } from "./use-globe-data";
-import { globePoints } from "@/lib/globe-model";
+import { globePoints, type GlobePoint } from "@/lib/globe-model";
+import { countGlobeRoles } from "@/lib/globe-viewport";
 import { Button } from "./ui/button";
 import { ArrowUpRight } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
@@ -51,8 +52,7 @@ export function JobBoard() {
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [globeOpen, setGlobeOpen] = useState(false);
-  const [visiblePostingIds, setVisiblePostingIds] = useState<string[]>([]);
-  const updateViewport = useCallback((ids: string[]) => setVisiblePostingIds(current => current.length === ids.length && current.every((id, index) => id === ids[index]) ? current : ids), []);
+  const [viewport, setViewport] = useState<{ points: GlobePoint[]; ids: string[] } | null>(null);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
   const [globeWarning, setGlobeWarning] = useState("");
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
@@ -61,6 +61,9 @@ export function JobBoard() {
   const displayJobs = globeActive && globe.data ? globe.data.jobs : jobs;
   const groups = useMemo(() => filterJobGroups(displayJobs, view), [displayJobs, view]);
   const points = useMemo(() => globePoints(groups, globe.data?.points ?? []), [groups, globe.data]);
+  const visiblePostingIds = globeActive && viewport?.points === points ? viewport.ids : undefined;
+  const updateViewport = useCallback((ids: string[]) => setViewport(current => current?.points === points && current.ids.length === ids.length && current.ids.every((id, index) => id === ids[index]) ? current : { points, ids }), [points]);
+  const globeCounts = globe.data ? countGlobeRoles(groups, points, visiblePostingIds ?? []) : null;
   const selectedGlobeGroup = groups.find(group => [group.job, ...group.alternates].some(job => job.id === globeSelected));
   const activeGlobeSelection = selectedGlobeGroup ? globeSelected : null;
   function failGlobe() { setGlobeOpen(false); setGlobeWarning("The globe could not load. Your list is still here."); }
@@ -305,11 +308,11 @@ export function JobBoard() {
       <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1><span className="rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Button variant={globeActive ? "default" : "outline"} aria-pressed={globeActive} onClick={() => { setGlobeOpen(!globeActive); setGlobeWarning(""); if (globe.failure) setRevision(value => value + 1); }}>Globe</Button>
-        {globeActive && globe.data && <><span className="rounded-full bg-muted px-3 py-1 text-xs">{groups.reduce((sum, group) => sum + 1 + group.alternates.length, 0) - points.length} {groups.reduce((sum, group) => sum + 1 + group.alternates.length, 0) - points.length === 1 ? "posting" : "postings"} not on globe</span><span className="text-xs text-muted-foreground">{points.length} mapped{points.length > 5000 ? " · showing a sample of up to 5,000" : ""}</span></>}
+        {globeActive && globeCounts && <><span className="rounded-full bg-muted px-3 py-1 text-xs">{globeCounts.unmapped} {globeCounts.unmapped === 1 ? "role" : "roles"} not on globe</span><span className="text-xs text-muted-foreground">{globeCounts.mapped} {globeCounts.mapped === 1 ? "role" : "roles"} mapped{points.length > 5000 ? " · showing a sample of up to 5,000 postings" : ""}</span></>}
         {globeActive && !globe.data && <span role="status" className="text-xs">Loading all posting locations…</span>}
         {(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-950">{globeWarning || globe.failure} Use Globe to retry.</span>}
       </div>
-      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
+      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeActive && <GlobeBoundary onFailure={failGlobe}><JobGlobe points={points} selected={activeGlobeSelection} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer

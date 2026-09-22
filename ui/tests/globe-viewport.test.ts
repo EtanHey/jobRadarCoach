@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JobSummarySchema } from "../lib/contracts";
-import { partitionGlobeGroups, viewportPostingIds } from "../lib/globe-viewport";
+import { countGlobeRoles, partitionGlobeGroups, viewportPostingIds } from "../lib/globe-viewport";
 import type { GlobePoint } from "../lib/globe-model";
 const job = (n: number) => JobSummarySchema.parse({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, title: "Engineer", company: "Example", source: "test", last_seen_at: "2026-09-22", experience: null, description_available: false, seniority_origin: "unknown", extraction_state: "not-extracted", location: null, remote: null, seniority: null, stack: [], salary: null, url: "https://example.test", apply_url: null, posted_at: null, first_seen_at: "2026-09-22", status: "new", status_reason: null, score: null, fit_line: null, recommendation: null });
 const point = (n: number): GlobePoint => ({ posting_id: job(n).id, job: job(n), rowId: job(n).id, lng: 35, lat: 32, precision: "city", source: "test", resolved_at: "2026-09-22" });
@@ -26,4 +26,11 @@ test("partition preserves sorted group identities, counts, alternates and unavai
   assert.deepEqual(partitionGlobeGroups(groups,[job(9).id]).visible,[groups[3]],"visible alternate lifts its single existing group");
   assert.deepEqual(partitionGlobeGroups(groups,[]).outside,groups);
   assert.deepEqual(partitionGlobeGroups(groups.slice(0,2),[job(9).id]).visible,[],"stale viewport IDs cannot restore filtered roles");
+});
+test("globe counts use deduplicated roles across mapped, unmapped and visible sections", () => {
+  const groups=[{job:job(1),alternates:[job(2)]},{job:job(3),alternates:[]},{job:job(4),alternates:[]}];
+  const counts=countGlobeRoles(groups,[point(2),point(3)],[job(2).id]);
+  assert.deepEqual(counts,{total:3,mapped:2,unmapped:1,visible:1,outside:2});
+  assert.equal(counts.mapped+counts.unmapped,counts.total);
+  assert.equal(counts.visible+counts.outside,counts.total);
 });

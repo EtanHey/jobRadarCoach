@@ -9,13 +9,14 @@ import { Button } from "./ui/button";
 type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; visiblePostingIds?: readonly string[]; selectedId?: string | null;
   openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void };
 export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, openerRef, selectJob, openDetail }: Props) {
-  const sections = useMemo(() => globeOpen ? partitionGlobeGroups(groups, visiblePostingIds ?? []) : null, [groups, globeOpen, visiblePostingIds]);
+  const sections = useMemo(() => globeOpen && visiblePostingIds !== undefined ? partitionGlobeGroups(groups, visiblePostingIds) : null, [groups, globeOpen, visiblePostingIds]);
   const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
       selected={globeOpen ? selectedId === job.id : undefined} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
       <TechnologyChips names={job.stack} presentation="card" />
     </JobCard>
   </div>);
+  if (globeOpen && !sections) return <div role="status" className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Loading globe positions and view…</div>;
   if (!sections) return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{cards(groups)}</div>;
   return <div className="space-y-5">
     <section data-globe-section="visible" aria-labelledby="globe-visible-heading">
