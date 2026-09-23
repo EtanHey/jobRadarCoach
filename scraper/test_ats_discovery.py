@@ -199,7 +199,7 @@ def test_matching_but_empty_board_never_enters_registry(source, body, hint):
 def test_main_persists_error_and_skips_only_fresh_miss(tmp_path, monkeypatch):
     today = datetime.now(timezone.utc).date()
     names, cache, output = (tmp_path / name for name in ("names", "cache", "output"))
-    names.write_text("Acme\nBeta\n")
+    names.write_text("Acme\nAcme Ltd\nBeta\n")
     cache.write_text(
         json.dumps(
             {
@@ -222,6 +222,15 @@ def test_main_persists_error_and_skips_only_fresh_miss(tmp_path, monkeypatch):
         calls.append((name, source))
         if name == "Acme" and source == "workable":
             fetch.blocked_hosts.add(discovery.HOSTS["workable"])
+        if name in ("Acme", "Acme Ltd") and source == "lever":
+            tenant = discovery._candidate(
+                source,
+                {"account": "acme"},
+                name,
+                "https://api.lever.co/v0/postings/acme?mode=json",
+                today,
+            )
+            return discovery.ProbeResult(tenant=tenant, result="hit")
         if name == "Beta" and source == "greenhouse":
             tenant = discovery._candidate(
                 source,
@@ -234,6 +243,8 @@ def test_main_persists_error_and_skips_only_fresh_miss(tmp_path, monkeypatch):
         return discovery.ProbeResult(result="error" if source == "workable" else "miss")
 
     monkeypatch.setattr(discovery, "probe", stub)
+    name_reads = MagicMock(wraps=discovery._names)
+    monkeypatch.setattr(discovery, "_names", name_reads)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -248,16 +259,41 @@ def test_main_persists_error_and_skips_only_fresh_miss(tmp_path, monkeypatch):
         ],
     )
     discovery.main()
+    assert name_reads.call_count == 1
     assert ("Acme", "greenhouse") not in calls
     assert ("Acme", "lever") in calls and ("Acme", "workable") in calls
     assert ("Beta", "workable") not in calls
     assert [row["company"] for row in json.loads(output.read_text())["tenants"]] == [
-        "Beta"
+        "Acme",
+        "Beta",
     ]
     assert json.loads(cache.read_text())["acme|workable"]["result"] == "error"
     calls.clear()
     discovery.main()
+    assert name_reads.call_count == 2
     assert ("Acme", "workable") in calls
+
+
+def test_cache_write_interruption_preserves_previous_json(tmp_path, monkeypatch):
+    cache = tmp_path / "cache.json"
+    cache.write_text('{"previous": true}')
+
+    def interrupted(*_):
+        raise OSError("interrupted before replace")
+
+    monkeypatch.setattr(discovery.os, "replace", interrupted)
+    with pytest.raises(OSError):
+        discovery._save_cache(cache, {"next": True})
+    assert json.loads(cache.read_text()) == {"previous": True}
+
+
+def test_lever_truncated_utf8_character_decodes_safely():
+    fetcher = discovery.Fetcher()
+    response = MagicMock(status=200)
+    response.__enter__.return_value = response
+    response.read.return_value = b"a" * 65_535 + "א".encode()[:1]
+    fetcher.opener.open = MagicMock(return_value=response)
+    assert fetcher("https://jobs.lever.co/acme").startswith("a" * 65_535)
 
 
 def test_fetcher_paces_retries_once_and_rejects_redirects(monkeypatch):
