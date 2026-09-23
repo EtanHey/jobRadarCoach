@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
-import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type IControl, type MapOptions } from "maplibre-gl";
+import { Map, Marker, setWorkerUrl, type MapOptions } from "maplibre-gl";
+import { Plus, Minus, LocateFixed, Maximize2, Minimize2 } from "lucide-react";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
 import { cameraNeedsReset, focusPointCamera, locationCameraBounds, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
-import { loadGlobeStyle } from "@/lib/globe-style";
+import { activeGlobeTheme, applyGlobePaint, loadGlobeStyle } from "@/lib/globe-style";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).href);
@@ -36,45 +37,9 @@ function moveToLocation(map: Map, location: string, points: GlobePoint[], reset:
     map.easeTo({ center, zoom: landingZoom(map, FALLBACK_CENTER[1]), duration, easing });
   }
 }
-function makeLocationControl(locate: () => void): IControl {
-  let root: HTMLDivElement | null = null;
-  return {
-    onAdd() {
-      root = document.createElement("div");
-      root.className = "maplibregl-ctrl maplibregl-ctrl-location-wrap";
-      const group = document.createElement("div");
-      group.className = "maplibregl-ctrl-group";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "maplibregl-ctrl-location";
-      button.setAttribute("aria-label", "Use my location");
-      button.title = "Job Radar does not store your location. CARTO receives map tiles for the displayed area.";
-      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      icon.setAttribute("viewBox", "0 0 24 24");
-      icon.setAttribute("width", "22");
-      icon.setAttribute("height", "22");
-      icon.setAttribute("fill", "none");
-      icon.setAttribute("stroke", "currentColor");
-      icon.setAttribute("stroke-width", "2.25");
-      icon.setAttribute("stroke-linecap", "round");
-      icon.setAttribute("aria-hidden", "true");
-      icon.innerHTML = '<circle cx="12" cy="12" r="6.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/>';
-      button.append(icon);
-      button.onclick = locate;
-      const status = document.createElement("span");
-      status.className = "maplibregl-ctrl-location-status";
-      status.setAttribute("role", "status");
-      status.setAttribute("aria-live", "polite");
-      group.append(button);
-      root.append(group, status);
-      return root;
-    },
-    onRemove() { root?.remove(); root = null; },
-  };
-}
-
 type Props = { active: boolean; dataReady: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; selectionSource: "point" | "rail"; location: string; cameraAction: { kind: "location" | "reset"; id: number }; arrivalRequest: number; onCameraAwayChange: (away: boolean) => void; onSelect: (id: string) => void; onFailure: () => void };
 export default function JobGlobe({ active, dataReady, points, selected, selectionRequest, selectionSource, location, cameraAction, arrivalRequest, onCameraAwayChange, onSelect, onFailure, onViewportChange }: Props) {
+  const globeRoot = useRef<HTMLDivElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const activeRef = useRef(active);
   const cameraRef = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number } | null>(null);
@@ -93,6 +58,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const [choiceIds, setChoiceIds] = useState<string[]>([]);
   const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
   const [ready, setReady] = useState(false);
+  const [zoom, setZoom] = useState(0);
+  const [darkMap, setDarkMap] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [locationLabel, setLocationLabel] = useState("Use my location");
   const [showDragHint, setShowDragHint] = useState(() => {
     try { return localStorage.getItem("job-globe-dragged") !== "1"; }
     catch { return true; }
@@ -172,8 +141,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   }, [active, ready]);
   const locate = useCallback(() => {
     const map = mapRef.current;
-    const status = map?.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-location-status");
-    const button = map?.getContainer().querySelector<HTMLButtonElement>(".maplibregl-ctrl-location");
+    const status = globeRoot.current?.querySelector<HTMLElement>(".maplibregl-ctrl-location-status");
     const announce = (message: string, clearAfterMs?: number) => {
       if (!status) return;
       if (locationStatusTimer.current !== null) window.clearTimeout(locationStatusTimer.current);
@@ -185,7 +153,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     };
     if (!navigator.geolocation) {
       announce("Location unavailable · you can still explore", 12000);
-      if (button) button.setAttribute("aria-label", "Retry location");
+      setLocationLabel("Retry location");
       return;
     }
     announce("Waiting for location permission…");
@@ -195,10 +163,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       setHover(null);
       setHiddenFocusedSelection({ selected: selectedRef.current, request: selectionRequestRef.current });
       announce("Centered near you · not saved by Job Radar", 4500);
-      if (button) button.setAttribute("aria-label", "Use my location");
+      setLocationLabel("Use my location");
     }, () => {
       if (map) announce("Location unavailable · you can still explore", 12000);
-      if (button) button.setAttribute("aria-label", "Retry location");
+      setLocationLabel("Retry location");
     }, { timeout: 8000, maximumAge: 300000 });
   }, []);
   useEffect(() => {
@@ -208,6 +176,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     let loaded = false;
     let initialZoom = 0;
     let cameraStarts = 0;
+    let theme = activeGlobeTheme();
+    let themeRequest = 0;
     const registry = markerRegistry.current;
     let style: MapOptions["style"];
     const fail = () => {
@@ -224,9 +194,20 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         mapRef.current = map;
         map.getCanvas().tabIndex = 0;
         map.on("dragstart", () => { setShowDragHint(false); try { localStorage.setItem("job-globe-dragged", "1"); } catch { /* Storage can be unavailable. */ } });
-        map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
-        map.addControl(new FullscreenControl({ container: container.current }), "top-right");
-        map.addControl(makeLocationControl(locate), "top-right");
+        map.on("style.load", () => {
+          if (!map) return;
+          applyGlobePaint(map);
+          if (process.env.NODE_ENV !== "production" && container.current) {
+            container.current.dataset.styleTheme = theme;
+            container.current.dataset.waterColor = String(map.getPaintProperty("water", "fill-color"));
+            container.current.dataset.landColor = String(map.getPaintProperty("background", "background-color"));
+            container.current.dataset.borderColor = String(map.getPaintProperty("boundary_country_outline", "line-color"));
+            container.current.dataset.labelColor = String(map.getPaintProperty("place_city_r6", "text-color"));
+            container.current.dataset.skyColor = String(map.getSky()["sky-color"]);
+          }
+        });
+        map.on("zoom", () => { if (map) setZoom(map.getZoom()); });
+        setZoom(map.getZoom());
         const publishCamera = () => { if (container.current && map) {
           container.current.dataset.projection = String(map.getProjection()?.type);
           container.current.dataset.zoom = String(map.getZoom());
@@ -279,11 +260,30 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     });
     resize.observe(container.current);
     startMapRef.current = startMap;
-    loadGlobeStyle()
-      .then(result => { if (mounted) { style = result; startMap(); } })
-      .catch(error => { if (mounted) { console.error("Globe style error", error); fail(); } });
-    return () => { mounted = false; startMapRef.current = () => {}; pendingFailureRef.current = false; resize.disconnect(); overlayRef.current = null; mapRef.current = null; registry.clear(); map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
-  }, [locate]);
+    const updateTheme = () => {
+      const next = activeGlobeTheme();
+      if (next === theme && (style || themeRequest)) return;
+      theme = next;
+      setDarkMap(next === "dark");
+      if (map?.isStyleLoaded()) applyGlobePaint(map);
+      const request = ++themeRequest;
+      void loadGlobeStyle(next).then(result => {
+        if (!mounted || request !== themeRequest) return;
+        style = result;
+        if (map && result) map.setStyle(result, { diff: true });
+        else startMap();
+      }).catch(error => { if (mounted && request === themeRequest) { console.error("Globe style error", error); fail(); } });
+    };
+    updateTheme();
+    const themeObserver = new MutationObserver(updateTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => { mounted = false; themeObserver.disconnect(); startMapRef.current = () => {}; pendingFailureRef.current = false; resize.disconnect(); overlayRef.current = null; mapRef.current = null; registry.clear(); map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
+  }, []);
+  useEffect(() => {
+    const changed = () => setFullscreen(document.fullscreenElement === globeRoot.current);
+    document.addEventListener("fullscreenchange", changed);
+    return () => document.removeEventListener("fullscreenchange", changed);
+  }, []);
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
@@ -336,13 +336,36 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !overlayRef.current) return;
+    const radius = (cluster: PointCluster) => {
+      if (cluster.members.length > 1) return 15;
+      if (cluster.anchor.posting_id === selected || cluster.anchor.posting_id === hovered?.posting_id) return 11;
+      const score = clusterScore(cluster);
+      return score === null || score >= 60 && score < 80 ? 6 : score >= 80 ? 7 : 5;
+    };
+    const tokenColor = (name: string): [number, number, number, number] => {
+      const hex = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return [Number.parseInt(hex.slice(1, 3), 16), Number.parseInt(hex.slice(3, 5), 16), Number.parseInt(hex.slice(5, 7), 16), 255];
+    };
+    const paper = tokenColor("--globe-paper");
+    const selectedRing = tokenColor("--globe-select");
     overlayRef.current.setProps({
-      layers: [new ScatterplotLayer<PointCluster>({
+      layers: [...(!darkMap ? [new ScatterplotLayer<PointCluster>({
+        id: "posting-hairlines", data: clusters, pickable: false, filled: false, stroked: true,
+        radiusUnits: "pixels", getRadius: cluster => radius(cluster) + 3,
+        getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getLineColor: [8, 17, 28, 115],
+        lineWidthUnits: "pixels", getLineWidth: 1, updateTriggers: { getRadius: [selected, hovered?.posting_id] },
+      })] : []), new ScatterplotLayer<PointCluster>({
+        id: "posting-sticker-rings", data: clusters, pickable: false,
+        radiusUnits: "pixels", getRadius: cluster => radius(cluster) + 2,
+        getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], filled: false, stroked: true,
+        getLineColor: paper, lineWidthUnits: "pixels", getLineWidth: 2,
+        updateTriggers: { getRadius: [selected, hovered?.posting_id] },
+      }), new ScatterplotLayer<PointCluster>({
         id: "posting-points", data: clusters, pickable: true,
-        radiusUnits: "pixels", getRadius: cluster => cluster.members.length > 1 ? 15 : cluster.anchor.posting_id === selected || cluster.anchor.posting_id === hovered?.posting_id ? 11 : 6,
-        getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getFillColor: cluster => scoreColor(clusterScore(cluster)),
-        stroked: true, getLineColor: [255, 255, 255, 220], lineWidthUnits: "pixels", getLineWidth: cluster => cluster.members.some(point => point.posting_id === selected) ? 2 : 0.5,
-        transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hovered?.posting_id], getLineWidth: [selected] },
+        radiusUnits: "pixels", getRadius: radius,
+        getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getFillColor: cluster => clusterScore(cluster) === null ? [0, 0, 0, 0] : scoreColor(clusterScore(cluster)),
+        stroked: true, getLineColor: cluster => cluster.members.some(point => point.posting_id === selected) ? selectedRing : clusterScore(cluster) === null ? [148, 163, 184, 255] : [0, 0, 0, 0], lineWidthUnits: "pixels", getLineWidth: cluster => clusterScore(cluster) === null || cluster.members.some(point => point.posting_id === selected) ? 2 : 0,
+        transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hovered?.posting_id], getLineWidth: [selected], getLineColor: [selected, darkMap] },
         onHover: info => { if (canInteract()) { if (info.object?.members.length === 1) setHiddenFocusedSelection(null); setHover(info.object?.members.length === 1 ? { point: info.object.anchor, selection: selected } : null); } },
         onClick: info => { if (canInteract() && info.object?.members.length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); },
       })],
@@ -371,7 +394,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       } else if (!selected) button.classList.remove("globe-cluster-selected");
       button.setAttribute("aria-label", `${cluster.members.length} postings near ${cluster.anchor.job.location ?? "this location"}`);
       button.textContent = String(cluster.members.length);
-      button.style.setProperty("--cluster-color", scoreCss(clusterScore(cluster)));
+      const bestScore = clusterScore(cluster);
+      button.dataset.unscored = String(bestScore === null);
+      button.style.setProperty("--cluster-color", scoreCss(bestScore));
+      button.style.setProperty("--cluster-size", `${cluster.members.length < 10 ? 32 : cluster.members.length < 100 ? 38 : 44}px`);
       if (entry.lng !== cluster.anchor.lng || entry.lat !== cluster.anchor.lat) {
         entry.marker.setLngLat([cluster.anchor.lng, cluster.anchor.lat]);
         entry.lng = cluster.anchor.lng; entry.lat = cluster.anchor.lat;
@@ -384,7 +410,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       };
     }
     for (const [key, entry] of markerRegistry.current) if (!next.has(key)) { entry.marker.remove(); markerRegistry.current.delete(key); }
-  }, [clusters, selected, hovered, ready, canInteract]);
+  }, [clusters, selected, hovered, ready, canInteract, darkMap]);
   const selectedPoint = points.find(point => point.posting_id === selected);
   const selectedLat = selectedPoint?.lat, selectedLng = selectedPoint?.lng;
   useEffect(() => {
@@ -418,8 +444,15 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   }, [active, ready, dataReady, location, points, cameraAction]);
   const focused = hovered && points.some(point => point.posting_id === hovered.posting_id) ? hovered : selectedPoint;
   return <section className="job-globe-shell" aria-label="Posting locations globe">
-    <div onPointerLeave={() => setHover(null)} className="job-globe">
+    <div ref={globeRoot} onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+      {ready && <div className="globe-controls" role="group" aria-label="Globe controls">
+        <button type="button" aria-label="Zoom in" disabled={zoom >= 12} onClick={() => mapRef.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 })}><Plus aria-hidden="true" /></button>
+        <button type="button" aria-label="Zoom out" disabled={zoom <= 0} onClick={() => mapRef.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 })}><Minus aria-hidden="true" /></button>
+        <span className="globe-controls-divider" aria-hidden="true" />
+        <div className="globe-controls-location"><button type="button" className="maplibregl-ctrl-location" aria-label={locationLabel} title="Job Radar does not store your location. CARTO receives map tiles for the displayed area." onClick={locate}><LocateFixed aria-hidden="true" /></button><span className="maplibregl-ctrl-location-status" role="status" aria-live="polite" /></div>
+        <button type="button" aria-label={fullscreen ? "Exit full screen" : "Full screen"} onClick={() => { if (fullscreen) void document.exitFullscreen(); else if (globeRoot.current) void globeRoot.current.requestFullscreen(); }}>{fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}</button>
+      </div>}
       {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Preparing the globe…</p>}
       {ready && showDragHint && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Drag to spin · scroll to zoom</p>}
       {choices.length > 0 && <div className="absolute left-3 top-32 z-10 max-h-[calc(100%-11rem)] w-64 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
