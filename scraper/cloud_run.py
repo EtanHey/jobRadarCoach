@@ -11,14 +11,15 @@ import sys
 import traceback
 from typing import Callable, TextIO
 from urllib import request as urllib_request
-from scraper import harvest
+from scraper import harvest, source_registry
 
 
 ATS_SOURCES = tuple(harvest.SOURCE_ORDER[1:])
 ALL_SOURCES = ("linkedin", *ATS_SOURCES)
+REGISTRY_PATH = source_registry.REGISTRY_PATH
 REQUEST_LIMITS = {
     "linkedin": 10, "comeet": 11, "greenhouse": 13, "lever": 5,
-    "workable": 9, "jd": 8, "liveness": 4,
+    "workable": 9, "workable_detail": 9, "jd": 8, "liveness": 4,
 }
 URL_BUCKETS = tuple(
     (host, source) for source, host in {
@@ -33,6 +34,14 @@ class _NoRedirect(urllib_request.HTTPRedirectHandler):
 
 
 NO_REDIRECT_OPEN = urllib_request.build_opener(_NoRedirect).open
+
+
+def _registry_request_limits() -> dict[str, int]:
+    queries = source_registry.load_registry(REGISTRY_PATH).source_queries()
+    return {
+        source: max(REQUEST_LIMITS[source], len(queries.get(source, [])))
+        for source in ATS_SOURCES
+    }
 
 
 def _load_without_redirects(loader):
@@ -158,6 +167,8 @@ def main(
 
     def bounded_fetch(url: str) -> str | None:
         bucket = next((source for host, source in URL_BUCKETS if host in url), "unknown")
+        if bucket == "workable" and "/jobs/view/" in url:
+            bucket = "workable_detail"
         if not budget.take(bucket):
             return None
         pacer()
@@ -182,6 +193,7 @@ def main(
     try:
         try:
             with redirect_stdout(output):
+                budget.remaining.update(_registry_request_limits())
                 exit_code = harvest_main(harvest_args)
         finally:
             harvest.fetch_html = original_fetch
