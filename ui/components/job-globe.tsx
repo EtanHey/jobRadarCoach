@@ -25,15 +25,25 @@ function makeLocationControl(locate: () => void): IControl {
   return {
     onAdd() {
       root = document.createElement("div");
-      root.className = "maplibregl-ctrl-location-wrap";
+      root.className = "maplibregl-ctrl maplibregl-ctrl-location-wrap";
       const group = document.createElement("div");
-      group.className = "maplibregl-ctrl maplibregl-ctrl-group";
+      group.className = "maplibregl-ctrl-group";
       const button = document.createElement("button");
       button.type = "button";
       button.className = "maplibregl-ctrl-location";
       button.setAttribute("aria-label", "Use my location");
-      button.title = "Use my location. Your location stays on this device.";
-      button.textContent = "◎";
+      button.title = "Job Radar does not store your location. CARTO receives map tiles for the displayed area.";
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("width", "22");
+      icon.setAttribute("height", "22");
+      icon.setAttribute("fill", "none");
+      icon.setAttribute("stroke", "currentColor");
+      icon.setAttribute("stroke-width", "2.25");
+      icon.setAttribute("stroke-linecap", "round");
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = '<circle cx="12" cy="12" r="6.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/>';
+      button.append(icon);
       button.onclick = locate;
       const status = document.createElement("span");
       status.className = "maplibregl-ctrl-location-status";
@@ -60,6 +70,9 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
   const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
+  const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null } | null>(null);
+  const locationStatusTimer = useRef<number | null>(null);
+  const selectedRef = useRef(selected);
   const hovered = hover?.selection === selected ? hover.point : null;
   const canInteract = useCallback(() => {
     const element = container.current;
@@ -84,6 +97,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     return () => cancelAnimationFrame(frame);
   }, [active]);
   useEffect(() => { callbacks.current = { onSelect, onFailure, onViewportChange }; }, [onSelect, onFailure, onViewportChange]);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
   useEffect(() => {
     if (!active || ready) return;
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
@@ -93,19 +107,30 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     const map = mapRef.current;
     const status = map?.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-location-status");
     const button = map?.getContainer().querySelector<HTMLButtonElement>(".maplibregl-ctrl-location");
+    const announce = (message: string, clearAfterMs?: number) => {
+      if (!status) return;
+      if (locationStatusTimer.current !== null) window.clearTimeout(locationStatusTimer.current);
+      status.textContent = message;
+      locationStatusTimer.current = clearAfterMs === undefined ? null : window.setTimeout(() => {
+        if (status.isConnected && status.textContent === message) status.textContent = "";
+        locationStatusTimer.current = null;
+      }, clearAfterMs);
+    };
     if (!navigator.geolocation) {
-      if (status) status.textContent = "Location unavailable · you can still explore";
+      announce("Location unavailable · you can still explore", 12000);
       if (button) button.setAttribute("aria-label", "Retry location");
       return;
     }
-    if (status) status.textContent = "Waiting for location permission…";
+    announce("Waiting for location permission…");
     navigator.geolocation.getCurrentPosition(({ coords }) => {
       if (!map) return;
       map.flyTo({ center: [coords.longitude, coords.latitude], zoom: Math.min(map.getMaxZoom(), Math.max(map.getZoom(), 10)), duration: reducedMotion() ? 0 : 1600 });
-      if (status) status.textContent = "Centered near you · location stays on this device";
+      setHover(null);
+      setHiddenFocusedSelection({ selected: selectedRef.current });
+      announce("Centered near you · Job Radar does not store your location; CARTO loads tiles for this area", 4500);
       if (button) button.setAttribute("aria-label", "Use my location");
     }, () => {
-      if (map && status) status.textContent = "Location unavailable · you can still explore";
+      if (map) announce("Location unavailable · you can still explore", 12000);
       if (button) button.setAttribute("aria-label", "Retry location");
     }, { timeout: 8000, maximumAge: 300000 });
   }, []);
@@ -148,10 +173,6 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
           overlayRef.current = overlay;
           loaded = true;
           setReady(true);
-          // A prompt requires the explicit button; an already granted permission may be reused.
-          navigator.permissions?.query({ name: "geolocation" }).then(permission => {
-            if (mounted && permission.state === "granted") locate();
-          }).catch(() => {});
         });
       } catch (error) { console.error("Globe construction error", error); fail(); }
     };
@@ -168,7 +189,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
       .then(response => { if (!response.ok) throw new Error(`Map style: ${response.status}`); return response.json(); })
       .then(body => { style = { ...(body as object), projection: { type: "globe" } } as MapOptions["style"]; startMap(); })
       .catch(error => { if (mounted && !request.signal.aborted) { console.error("Globe style error", error); fail(); } });
-    return () => { mounted = false; request.abort(); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); };
+    return () => { mounted = false; request.abort(); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
   }, [locate]);
   useEffect(() => {
     const map = mapRef.current;
@@ -229,7 +250,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
         getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getFillColor: cluster => scoreColor(clusterScore(cluster)),
         stroked: true, getLineColor: [255, 255, 255, 220], lineWidthUnits: "pixels", getLineWidth: cluster => cluster.members.some(point => point.posting_id === selected) ? 2 : 0.5,
         transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hovered?.posting_id], getLineWidth: [selected] },
-        onHover: info => { if (canInteract()) setHover(info.object?.members.length === 1 ? { point: info.object.anchor, selection: selected } : null); },
+        onHover: info => { if (canInteract()) { if (info.object?.members.length === 1) setHiddenFocusedSelection(null); setHover(info.object?.members.length === 1 ? { point: info.object.anchor, selection: selected } : null); } },
         onClick: info => { if (canInteract() && info.object?.members.length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); },
       })],
     });
@@ -264,7 +285,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{ready ? "Drag to explore · select a posting" : "Preparing the globe…"}</p>
       {choices.length > 0 && <div className="absolute left-3 top-28 z-10 max-h-[calc(100%-8rem)] w-64 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
-      {focused && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
+      {focused && hiddenFocusedSelection?.selected !== selected && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
     </div>
   </section>;
 }
