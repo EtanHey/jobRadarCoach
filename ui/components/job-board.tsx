@@ -155,7 +155,7 @@ export function JobBoard() {
   }
   function setSearch(search: string) { setPreferences((current) => ({ ...current, view: { ...current.view, search } })); }
   function resetView() {
-    if (globeActive) setCameraAction(current => ({ kind: "reset", id: current.id + 1 }));
+    setCameraAction(current => ({ kind: "reset", id: current.id + 1 }));
     const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
     if (storage) clearBoardPreferences(storage);
     const next = defaultBoardPreferences();

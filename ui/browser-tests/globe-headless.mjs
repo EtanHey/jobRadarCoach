@@ -71,7 +71,7 @@ try {
   assert.equal(await page.getByText("The globe could not load. Your list is still here.",{exact:false}).count(),0,"a hidden globe must not report a late load failure");
   assert.equal(await page.locator(".job-globe").count(),1,"the hidden globe stays mounted");
   await page.clock.resume();
-  // Playwright's resumed clock can strand Base UI's closing transition; this suite checks behavior, not animation frames.
+  // After clock.resume, Base UI stayed data-ending-style: pointer Close/choice clicks waited 30 s for stability. globe-point-open covers pointer Close without that clock.
   await page.addStyleTag({content:"*,*::before,*::after { transition-duration: 0s !important; animation-duration: 0s !important; }"});
   await page.waitForTimeout(2200);
   await page.unroute(styleUrl);

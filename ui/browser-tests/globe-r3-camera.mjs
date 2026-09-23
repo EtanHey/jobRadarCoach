@@ -18,7 +18,7 @@ const receipt = [];
 try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
   const name = `${theme}-${mobile?"mobile":"desktop"}`;
   if (process.env.GLOBE_QA_ONLY && name !== process.env.GLOBE_QA_ONLY) continue;
-  const context = await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:900},reducedMotion:"reduce",recordVideo:{dir:`${output}/videos`,size:mobile?{width:390,height:844}:{width:1440,height:900}}});
+  const context = await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:900},reducedMotion:"reduce"});
   await context.addInitScript(({theme}) => {
     localStorage.setItem("job-radar-theme",theme);
     if (!localStorage.getItem("job-radar.board-preferences")) localStorage.setItem("job-radar.board-preferences",JSON.stringify({version:3,filter:"all",view:{search:"",source:"",location:"",seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"}}));
@@ -120,17 +120,39 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
     await page.waitForTimeout(350);
     assert.ok(await reset.isEnabled());await reset.click();await page.waitForTimeout(100);
     const home=await camera();assert.ok(Math.abs(home.center[0]-34.8113)<.01&&Math.abs(home.center[1]-31.8928)<.01);step.home=home;await shot("reset");
+    if (!mobile && theme==="light") {
+      const toggle=page.getByRole("button",{name:"Globe",exact:true});
+      await toggle.click();
+      await page.getByRole("combobox",{name:"Location",exact:true}).click();
+      await page.getByRole("option",{name:"Israel",exact:true}).click();
+      await toggle.click();await page.waitForTimeout(550);
+      const offIsrael=await camera();
+      assert.ok(offIsrael.zoom>=5 && Math.abs(offIsrael.center[0]-35.05)<.5,`off→Israel→on restored the old camera: ${JSON.stringify(offIsrael)}`);
+      step.offIsrael=offIsrael;
+      await page.emulateMedia({reducedMotion:"no-preference"});
+      await page.getByRole("combobox",{name:"Location",exact:true}).click();
+      await page.getByRole("option",{name:"United States",exact:true}).click();
+      await page.waitForTimeout(1100);
+      const beforeOffReset=await camera();assert.ok(beforeOffReset.center[0]<-90,JSON.stringify(beforeOffReset));
+      await toggle.click();
+      await page.getByRole("button",{name:"Reset view",exact:true}).click();
+      await toggle.click();await page.waitForTimeout(1100);
+      const offReset=await camera();
+      assert.ok(Math.abs(offReset.center[0]-34.8113)<.01 && Math.abs(offReset.center[1]-31.8928)<.01 && offReset.zoom<=1.91,`off→Reset→on restored the old camera: ${JSON.stringify(offReset)}`);
+      step.offReset={before:beforeOffReset,after:offReset};
+    }
     if (!mobile && theme==="light") for (const [location,expectedLng] of [["israel",35.05],["other",13.405]]) {
       await page.waitForTimeout(300);
       await page.evaluate(location=>{const key="job-radar.board-preferences",saved={version:3,filter:"all",view:{search:"",source:"",location,seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"}};localStorage.setItem(key,JSON.stringify(saved));},location);
       await page.reload();await page.getByRole("combobox",{name:"Location",exact:true}).filter({visible:true}).waitFor();
       const selectedLocation=await page.getByRole("combobox",{name:"Location",exact:true}).filter({visible:true}).innerText();assert.match(selectedLocation,new RegExp(location==="israel"?"Israel":"Other"));
       await page.getByRole("button",{name:"Globe",exact:true}).filter({visible:true}).click();await page.locator('[data-projection="globe"]').waitFor({timeout:30000});
+      await page.getByText("Drag to explore",{exact:false}).waitFor({timeout:30000});
       const first=await camera();assert.ok(Math.abs(first.center[0]-expectedLng)<.01&&first.zoom>=5,`first ${location} camera was ${JSON.stringify(first)}`);
       step[`first-${location}`]=first;
     }
   } catch(error) {step.failure=String(error);step.failureCamera=await camera().catch(()=>null);step.focusDecision=await page.locator('[data-projection="globe"]').getAttribute('data-focus-decision').catch(()=>null);await page.screenshot({path:`${output}/${name}-failure.png`}).catch(()=>{});throw error;}
-  finally {const video=page.video();await context.close();step.video=await video?.path();receipt.push(step);}
+  finally {await context.close();receipt.push(step);}
 }}
 finally {await browser.close();await writeFile(`${output}/receipt.json`,JSON.stringify(receipt,null,2));}
-console.log(JSON.stringify(receipt.map(({name,failure,idle,dot,home,video})=>({name,failure,idle,dot,home,video}))));
+console.log(JSON.stringify(receipt.map(({name,failure,idle,dot,home,offIsrael,offReset})=>({name,failure,idle,dot,home,offIsrael,offReset}))));

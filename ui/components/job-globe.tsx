@@ -83,6 +83,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const markerRegistry = useRef(new globalThis.Map<string, { marker: Marker; button: HTMLButtonElement; lng: number; lat: number }>());
   const initialFocusPending = useRef(true);
   const handledCameraAction = useRef(cameraAction.id);
+  const cameraActionRef = useRef(cameraAction);
   const handledSelectionRequest = useRef(0);
   const dataReadyRef = useRef(dataReady);
   const startMapRef = useRef<() => void>(() => {});
@@ -97,7 +98,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const selectedRef = useRef(selected);
   const locationRef = useRef(location);
   const pointsRef = useRef(points);
-  useLayoutEffect(() => { dataReadyRef.current = dataReady; locationRef.current = location; pointsRef.current = points; }, [dataReady, location, points]);
+  useLayoutEffect(() => {
+    dataReadyRef.current = dataReady; locationRef.current = location; pointsRef.current = points; cameraActionRef.current = cameraAction;
+    if (cameraAction.id !== handledCameraAction.current) cameraRef.current = null;
+  }, [dataReady, location, points, cameraAction]);
   const selectionRequestRef = useRef(selectionRequest);
   const hovered = hover?.selection === selected ? hover.point : null;
   const canInteract = useCallback(() => {
@@ -118,7 +122,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     }
     if (!container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
     const savedCamera = cameraRef.current;
-    const restore = () => { map.resize(); if (savedCamera) map.jumpTo(savedCamera); };
+    const actionAtShow = cameraActionRef.current.id;
+    const restoreSavedCamera = actionAtShow === handledCameraAction.current;
+    if (!restoreSavedCamera) cameraRef.current = null;
+    const restore = () => { map.resize(); if (savedCamera && restoreSavedCamera && cameraActionRef.current.id === actionAtShow) map.jumpTo(savedCamera); };
     restore();
     const frame = requestAnimationFrame(() => { restore(); if (cameraRef.current === savedCamera) cameraRef.current = null; });
     return () => cancelAnimationFrame(frame);
@@ -194,15 +201,17 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
           container.current.dataset.bearing = String(map.getBearing());
           container.current.dataset.pitch = String(map.getPitch());
-          const bounds = locationCameraBounds(locationRef.current, pointsRef.current);
-          if (bounds) container.current.dataset.locationCorners = JSON.stringify([
-            [bounds[0][0], bounds[0][1]], [bounds[0][0], bounds[1][1]],
-            [bounds[1][0], bounds[0][1]], [bounds[1][0], bounds[1][1]],
-          ].map(([lng, lat]) => { const screen = map!.project([lng, lat]); return [screen.x, screen.y]; }));
-          else delete container.current.dataset.locationCorners;
+          if (process.env.NODE_ENV !== "production") {
+            const bounds = locationCameraBounds(locationRef.current, pointsRef.current);
+            if (bounds) container.current.dataset.locationCorners = JSON.stringify([
+              [bounds[0][0], bounds[0][1]], [bounds[0][0], bounds[1][1]],
+              [bounds[1][0], bounds[0][1]], [bounds[1][0], bounds[1][1]],
+            ].map(([lng, lat]) => { const screen = map!.project([lng, lat]); return [screen.x, screen.y]; }));
+            else delete container.current.dataset.locationCorners;
+          }
         } };
         map.on("moveend", publishCamera);
-        map.on("movestart", () => { if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
+        if (process.env.NODE_ENV !== "production") map.on("movestart", () => { if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
         map.on("moveend", () => {
           if (!map) return;
           const center = map.getCenter();
@@ -215,6 +224,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           if (locationRef.current && (locationRef.current !== "other" || dataReadyRef.current)) {
             moveToLocation(map, locationRef.current, pointsRef.current, false, 0);
             initialFocusPending.current = false;
+            handledCameraAction.current = cameraActionRef.current.id;
           }
           publishCamera();
           const overlay = new MapLibreOverlay({ interleaved: false, layers: [], onError: fail });
@@ -349,7 +359,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     const coveredRight = overlap >= mapRect.width - 1 ? 0 : overlap;
     const screen = map.project([selectedLng, selectedLat]);
     const target = focusPointCamera({ zoom: map.getZoom(), width: mapRect.width, height: mapRect.height, coveredRight, x: screen.x, y: screen.y });
-    map.getContainer().dataset.focusDecision = JSON.stringify({ selectionSource, coveredRight, x: screen.x, y: screen.y, target });
+    if (process.env.NODE_ENV !== "production") map.getContainer().dataset.focusDecision = JSON.stringify({ selectionSource, coveredRight, x: screen.x, y: screen.y, target });
     if (target) map.easeTo({ center: [selectedLng, selectedLat], zoom: target.zoom, offset: [target.offsetX, 0], duration: reducedMotion() ? 0 : 600, easing: t => 1 - (1 - t) ** 3 });
   }, [selectionRequest, selectionSource, ready, active, selectedLat, selectedLng]);
   useEffect(() => {
