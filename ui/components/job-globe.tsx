@@ -150,7 +150,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       const map = mapRef.current;
       if (!map || !arrivalPending.current || !activeRef.current) return;
       arrivalPending.current = false;
-      if (locationRef.current !== "other" || cameraActionRef.current.id !== 0) return;
+      if (locationRef.current !== "" || cameraActionRef.current.id !== 0) return;
       const zoom = map.getZoom();
       arrivalInProgress.current = true;
       map.jumpTo({ zoom: zoom - .6 });
