@@ -86,13 +86,19 @@ def skip_miss(record: object, today: date) -> bool:
 def merge(registry: dict, candidates: list[dict]) -> dict:
     """Append unique candidates; keep every existing entry byte-for-byte equivalent."""
     result = {**registry, "tenants": list(registry["tenants"])}
-    seen = {source_registry._tenant_key(row) for row in result["tenants"]}
+    seen = {_identity(row) for row in result["tenants"]}
     for row in candidates:
-        identity = source_registry._tenant_key(row)
+        identity = _identity(row)
         if identity not in seen:
             result["tenants"].append(row)
             seen.add(identity)
     return result
+
+
+def _identity(row: dict) -> tuple:
+    if row["source"] == "greenhouse":
+        return ("greenhouse", str(row["identifiers"]["board"]).casefold())
+    return source_registry._tenant_key(row)
 
 
 @dataclass
@@ -103,25 +109,36 @@ class ProbeResult:
     rejected_by_name: int = 0
 
 
+class RateLimited(RuntimeError):
+    """This ATS host rejected the run; leave other hosts available."""
+
+
 class Fetcher:
     """Bounded public GET transport, at most two requests per host per second."""
 
     def __init__(self):
         self.last: dict[str, float] = {}
+        self.blocked_hosts: set[str] = set()
         self.opener = build_opener(_NoRedirect)
 
     def __call__(self, url: str) -> str | None:
         host = urlparse(url).hostname
         if host not in set(HOSTS.values()) | {"jobs.lever.co"}:
             raise ValueError("unexpected probe host")
-        delay = self.last.get(host, 0) + 0.5 - time.monotonic()
+        if host in self.blocked_hosts:
+            raise RateLimited(f"{host} rate limited this run")
+        gap = 2.0 if host == "apply.workable.com" else 0.5
+        delay = self.last.get(host, 0) + gap - time.monotonic()
         if delay > 0:
             time.sleep(delay)
         self.last[host] = time.monotonic()
         for attempt in range(2):
             try:
                 request = Request(
-                    url, headers={"User-Agent": "jobRadarCoach ATS discovery/1.0"}
+                    url,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (compatible; jobRadarCoach/1.0; +https://etanheyman.com)"
+                    },
                 )
                 with self.opener.open(request, timeout=12) as response:
                     if response.status != 200:
@@ -129,6 +146,14 @@ class Fetcher:
                     limit = 65_536 if host == "jobs.lever.co" else 8_000_000
                     return response.read(limit).decode("utf-8")
             except HTTPError as error:
+                if error.code == 429:
+                    retry_after = error.headers.get("Retry-After", "0")
+                    seconds = int(retry_after) if retry_after.isdigit() else 60
+                    if attempt == 0 and seconds <= 30:
+                        time.sleep(max(1, seconds))
+                        continue
+                    self.blocked_hosts.add(host)
+                    raise RateLimited(f"{host} rate limited this run") from error
                 if error.code in (404, 410):
                     return None
                 if error.code not in (429, 500, 502, 503, 504) or attempt:
@@ -200,7 +225,7 @@ def probe(
         elif source == "lever":
             url = f"https://api.lever.co/v0/postings/{slug}?mode=json"
         elif source == "workable":
-            url = f"https://apply.workable.com/api/v1/widget/accounts/{slug}"
+            url = f"https://apply.workable.com/{slug}/jobs.md"
         elif source == "comeet":
             url = comeet_url
         else:
@@ -243,31 +268,27 @@ def probe(
                     page = fetch(f"https://jobs.lever.co/{slug}")
                     observed = _lever_name(page or "")
             elif source == "workable":
-                payload = json.loads(body)
-                observed = str(payload.get("name") or "")
-                if payload.get("jobs"):
-                    accepted = False
+                heading = re.search(
+                    r"^#\s+(.+?)\s+[—–-]\s+All Open Positions\s*$", body, re.M
+                )
+                observed = heading.group(1) if heading else ""
+                accepted = False
 
-                    def first_only(_):
-                        nonlocal accepted
-                        if accepted:
-                            return False
-                        accepted = True
-                        return True
+                def first_only(_):
+                    nonlocal accepted
+                    if accepted:
+                        return False
+                    accepted = True
+                    return True
 
-                    def board_fetch(board_url):
-                        if board_url.endswith("/jobs.md"):
-                            return fetch(board_url)
-                        return ""
-
-                    parsed = workable.fetch(
-                        {**identifiers, "company": name},
-                        fetcher=board_fetch,
-                        before_request=lambda: None,
-                        posting_filter=first_only,
-                    )
-                else:
-                    parsed = []
+                parsed = workable.fetch(
+                    {**identifiers, "company": name},
+                    fetcher=lambda board_url: (
+                        body if board_url.endswith("/jobs.md") else ""
+                    ),
+                    before_request=lambda: None,
+                    posting_filter=first_only,
+                )
             else:
                 parsed = comeet.fetch(
                     {**identifiers, "company": name},
@@ -293,6 +314,9 @@ def probe(
             result.tenant = _candidate(source, identifiers, name, url, today)
             result.result = "hit"
             return result
+        except RateLimited:
+            result.result = "error"
+            break
         except (
             ValueError,
             TypeError,
@@ -354,6 +378,8 @@ def main() -> None:
         for source in HOSTS:
             if source == "comeet" and not COMEET_URL.fullmatch(hint):
                 continue
+            if HOSTS[source] in fetch.blocked_hosts:
+                continue
             cache_key = f"{key(name)}|{source}"
             if skip_miss(cache.get(cache_key), today):
                 continue
@@ -387,6 +413,7 @@ def main() -> None:
                 "stats": stats,
                 "registry_before": len(registry["tenants"]),
                 "registry_after": len(merge(registry, candidates)["tenants"]),
+                "rate_limited_hosts": sorted(fetch.blocked_hosts),
             },
             sort_keys=True,
         )
