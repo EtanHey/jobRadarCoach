@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from classifier import core, projection
 from scraper import forward_scoring_runtime as runtime
 from scraper.annotate import provider_payload_projection
 from scraper.brain import BrainResult
@@ -100,7 +101,7 @@ def test_validate_frozen_rejects_unparseable_verdict_without_a_label(label):
         runtime.validate_frozen(manifest)
 
 
-def test_reference_scoring_uses_hosted_projection_and_local_validation_profile(
+def test_reference_scoring_uses_full_local_profile_and_frozen_posting(
     monkeypatch,
 ):
     row = _manifest()["rows"][0]
@@ -114,7 +115,7 @@ def test_reference_scoring_uses_hosted_projection_and_local_validation_profile(
     result = runtime.score_reference(row, lambda *_args: None)
 
     frozen = row["frozen_input"]
-    assert seen["profile"] == frozen["hosted_payload"]["professional_profile"]
+    assert seen["profile"] is frozen["reference_validation_profile"]
     assert seen["posting"] == frozen["hosted_payload"]["public_posting"]
     assert seen["history"] == []
     assert seen["options"]["profile_snapshot"] == frozen["reference_validation_profile"]
@@ -172,7 +173,7 @@ def _fictional_reference_case():
     }, answer
 
 
-def test_reference_uses_local_constraints_without_changing_hosted_request():
+def test_reference_uses_local_constraints_and_full_profile_request():
     row, answer = _fictional_reference_case()
     frozen = row["frozen_input"]
     hosted = frozen["hosted_payload"]
@@ -203,7 +204,9 @@ def test_reference_uses_local_constraints_without_changing_hosted_request():
     assert all(
         snapshot is frozen["reference_validation_profile"] for _, snapshot in calls
     )
-    assert calls[0][0].prompt.encode() == calls[-1][0].prompt.encode()
+    assert calls[0][0].prompt.encode() != calls[-1][0].prompt.encode()
+    assert "Verified scope for example-project." not in calls[0][0].prompt
+    assert "Verified scope for example-project." in calls[-1][0].prompt
     assert calls[0][0].output_schema == calls[-1][0].output_schema
 
 
@@ -219,6 +222,97 @@ def test_reference_rejects_invalid_answer_with_local_constraints():
     with pytest.raises(RuntimeError, match=r"reference scorer failed \(semantic\)"):
         runtime.score_reference(row, runner)
     assert len(calls) == runtime.core.MAX_ATTEMPTS
+
+
+def _fictional_production_case():
+    _, answer = _fictional_reference_case()
+    signals = [
+        signal
+        for signal in safe_projection()["fit_signals"]
+        if signal["evidence_id"] in {"example-project", "example-workflow"}
+    ]
+    snapshot = {
+        "contract_version": 1,
+        "candidate.positioning": "Fictional backend engineer",
+        "candidate.tenure_years": 5.0,
+        "candidate.location": "Example City",
+        "candidate.fit_terms": ["backend", "python"],
+        "candidate.open_to.geographies": ["Example City"],
+        "candidate.open_to.work_modes": ["remote"],
+        "candidate.open_to.relocation": False,
+        "candidate.preferences.product_company": "neutral",
+        "candidate.preferences.experience_gap": {},
+        "candidate.professional_depth": {},
+        "fit_signals": signals,
+        "constraints.global_never_claims": ["imaginary-skill"],
+        "constraints.evidence_scoped_prohibitions": {},
+    }
+    posting = {
+        "id": "fictional-posting",
+        "title": "Example Backend Engineer",
+        "company": "Acme",
+        "location": "Example City",
+        "raw_jd": "Build fictional backend services for an example product. " * 5,
+    }
+    public_posting = projection.public_posting(posting)
+    profile = projection.profile_contract(snapshot)
+    hosted = provider_payload_projection(public_posting, profile)
+    row = {
+        "frozen_input": {
+            "hosted_payload": hosted,
+            "reference_validation_profile": profile,
+        }
+    }
+    return snapshot, posting, row, answer
+
+
+def test_reference_prompt_matches_production_and_keeps_verified_scope():
+    snapshot, posting, row, answer = _fictional_production_case()
+    production_requests = []
+    reference_requests = []
+
+    def production_runner(request, _snapshot):
+        production_requests.append(request)
+        return BrainResult(
+            copy.deepcopy(answer), "codex", "fictional-model", request=request
+        )
+
+    def reference_runner(request, _snapshot):
+        reference_requests.append(request)
+        return BrainResult(
+            copy.deepcopy(answer), "codex", "fictional-model", request=request
+        )
+
+    production = core.score_posting(
+        snapshot, posting, [], brain_runner=production_runner
+    )
+    reference = runtime.score_reference(row, reference_runner)
+
+    assert production is not None and production.annotation["fit_score"] == 72
+    assert reference["fit_score"] == 72
+    assert len(production_requests) == len(reference_requests) == 1
+    assert "Verified scope for example-project." in reference_requests[0].prompt
+    assert (
+        reference_requests[0].prompt.encode() == production_requests[0].prompt.encode()
+    )
+    assert reference_requests[0].output_schema == production_requests[0].output_schema
+    assert runtime.jev_state(row) == row["frozen_input"]["hosted_payload"]
+
+
+def test_reference_rejects_mismatched_hosted_profile_before_runner():
+    _, _, row, _ = _fictional_production_case()
+    row["frozen_input"]["hosted_payload"]["professional_profile"]["fit_signals"][0][
+        "verified_scope"
+    ] = "Changed fictional scope."
+    calls = []
+
+    def runner(*args):
+        calls.append(args)
+        pytest.fail("runner must not be called for a mismatched hosted profile")
+
+    with pytest.raises(ValueError, match="hosted profile differs"):
+        runtime.score_reference(row, runner)
+    assert calls == []
 
 
 def test_jev_scoring_sends_only_the_frozen_hosted_payload(tmp_path, monkeypatch):
