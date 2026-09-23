@@ -43,6 +43,10 @@ try {
     });
     try {
       await page.goto(base);
+      if (name === "short-desktop" && phase === "after") {
+        assert.ok(await page.getByRole("combobox", { name: "Work mode" }).isVisible(), "list view keeps inline filters at 1024px");
+        assert.equal(await page.getByRole("button", { name: /Filters/ }).isVisible(), false, "list view does not force the filter sheet at 1024px");
+      }
       await page.getByRole("button", { name: "Globe", exact: true }).click();
       await page.getByText("Drag to explore", { exact: false }).waitFor({ timeout: 30000 });
       await page.getByRole("heading", { name: "On screen", exact: true }).waitFor();
@@ -88,7 +92,7 @@ try {
         assert.ok(choices.y >= metrics.globe.y && choices.y + choices.height <= metrics.globe.y + metrics.globe.height, "choices stay inside the map");
         assert.ok(choices.y >= location.y + location.height, "choices do not cover the location control");
         assert.ok(attribution && choices.y + choices.height <= attribution.y, "choices leave CARTO attribution visible");
-        assert.ok(await page.getByText("Default view is a starting point. Job Radar does not store your location; CARTO receives map tiles for the displayed area.").isVisible(), "location and tile-request explanation is visible without a tooltip");
+        assert.ok(await page.getByText("Starts near Rehovot · your location is not saved. CARTO receives tiles for the map area.").isVisible(), "touch helper names the starting point and explains location and tile requests");
         assert.equal(await page.locator("[data-globe-posting]:visible").count(), 0, "focused card does not cover open choices");
         await page.screenshot({ path: `${output}/mobile-cluster-open.png` });
         await page.locator(".maplibregl-ctrl-location-status").evaluate(node => { node.textContent = "Centered near you · not saved by Job Radar"; });
@@ -115,6 +119,9 @@ try {
           const selectFont = await page.getByRole("combobox", { name: "Work mode" }).evaluate(node => getComputedStyle(node).fontSize);
           const pipelineFont = await page.locator('summary[aria-label^="Pipeline status"]').evaluate(node => getComputedStyle(node).fontSize);
           assert.equal(pipelineFont, selectFont, "pipeline filter matches compact select typography");
+          const selectPadding = await page.getByRole("combobox", { name: "Work mode" }).evaluate(node => getComputedStyle(node).paddingLeft);
+          const pipelinePadding = await page.locator('summary[aria-label^="Pipeline status"]').evaluate(node => getComputedStyle(node).paddingLeft);
+          assert.equal(pipelinePadding, selectPadding, "pipeline filter matches compact select padding");
           assert.ok(metrics.documentHeight <= viewport.height + 1, "document does not scroll in globe mode");
           assert.ok(metrics.railScrollHeight > metrics.railClientHeight + 100, "rail owns vertical scroll");
           assert.ok(Math.abs(metrics.globe.y - metrics.rail.y) < 5, "map and rail align");

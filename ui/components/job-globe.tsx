@@ -57,8 +57,8 @@ function makeLocationControl(locate: () => void): IControl {
   };
 }
 
-type Props = { active: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; onSelect: (id: string) => void; onFailure: () => void };
-export default function JobGlobe({ active, points, selected, onSelect, onFailure, onViewportChange }: Props) {
+type Props = { active: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; onSelect: (id: string) => void; onFailure: () => void };
+export default function JobGlobe({ active, points, selected, selectionRequest, onSelect, onFailure, onViewportChange }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const activeRef = useRef(active);
   const cameraRef = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number } | null>(null);
@@ -71,9 +71,10 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
   const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
-  const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null } | null>(null);
+  const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null; request: number } | null>(null);
   const locationStatusTimer = useRef<number | null>(null);
   const selectedRef = useRef(selected);
+  const selectionRequestRef = useRef(selectionRequest);
   const hovered = hover?.selection === selected ? hover.point : null;
   const canInteract = useCallback(() => {
     const element = container.current;
@@ -99,6 +100,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     return () => cancelAnimationFrame(frame);
   }, [active]);
   useEffect(() => { callbacks.current = { onSelect: (id: string) => { setHiddenFocusedSelection(null); onSelect(id); }, onFailure, onViewportChange }; }, [onSelect, onFailure, onViewportChange]);
+  useEffect(() => { selectionRequestRef.current = selectionRequest; }, [selectionRequest]);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   useEffect(() => {
     if (!active || ready) return;
@@ -128,7 +130,7 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
       if (!map) return;
       map.flyTo({ center: [coords.longitude, coords.latitude], zoom: Math.min(map.getMaxZoom(), Math.max(map.getZoom(), 10)), duration: reducedMotion() ? 0 : 1600 });
       setHover(null);
-      setHiddenFocusedSelection({ selected: selectedRef.current });
+      setHiddenFocusedSelection({ selected: selectedRef.current, request: selectionRequestRef.current });
       announce("Centered near you · not saved by Job Radar", 4500);
       if (button) button.setAttribute("aria-label", "Use my location");
     }, () => {
@@ -297,9 +299,9 @@ export default function JobGlobe({ active, points, selected, onSelect, onFailure
     <div onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{ready ? "Drag to explore · select a posting" : "Preparing the globe…"}</p>
-      <p className="globe-location-help pointer-events-none absolute left-4 top-12 max-w-[calc(100%-5rem)] rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Default view is a starting point. Job Radar does not store your location; CARTO receives map tiles for the displayed area.</p>
-      {choices.length > 0 && <div className="absolute bottom-12 left-3 top-32 z-10 w-64 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
-      {focused && hiddenFocusedSelection?.selected !== selected && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
+      <p className="globe-location-help pointer-events-none absolute left-4 top-12 max-w-[calc(100%-5rem)] rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Starts near Rehovot · your location is not saved. CARTO receives tiles for the map area.</p>
+      {choices.length > 0 && <div className="absolute left-3 top-32 z-10 max-h-[calc(100%-11rem)] w-64 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
+      {focused && choices.length === 0 && !(hiddenFocusedSelection?.selected === selected && hiddenFocusedSelection.request === selectionRequest) && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
     </div>
   </section>;
 }

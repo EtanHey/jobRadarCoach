@@ -26,7 +26,7 @@ export function PipelineStatusFilter({ value, onChange }: {
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}
       onKeyDown={(event) => { if (event.key === "Escape" && event.currentTarget.open) { event.preventDefault(); event.stopPropagation(); closeAndRestoreFocus(); } }}
     >
-      <summary aria-label={`Pipeline status: ${selection}${value.length > 0 ? `. ${value.length} selected` : ""}`} className="flex h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg border bg-background px-3 text-left text-xs text-foreground outline-none transition hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+      <summary aria-label={`Pipeline status: ${selection}${value.length > 0 ? `. ${value.length} selected` : ""}`} className="flex h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg border bg-background px-2 text-left text-xs text-foreground outline-none transition hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1 truncate">{selection}</span>
         {value.length > 0 && <span className="shrink-0 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{value.length}<span className="sr-only"> selected</span></span>}
         <ChevronDown className="size-4 shrink-0 opacity-50" aria-hidden="true" />
