@@ -9,7 +9,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -533,7 +533,9 @@ def test_source_registry_is_checked_in_and_separate_from_linkedin_searches() -> 
         "enabled",
     }
     assert all(required <= set(entry) for entry in registry["tenants"])
-    report = registry_module.load_registry(REGISTRY_PATH, as_of=date(2026, 8, 26))
+    report = registry_module.load_registry(
+        REGISTRY_PATH, as_of=datetime.now(timezone.utc).date(), max_age_days=10_000
+    )
     assert report.invalid == []
     assert report.stale == []
     assert len(report.valid) == sum(entry["enabled"] for entry in registry["tenants"])
@@ -586,6 +588,7 @@ def test_registry_loader_isolates_malformed_and_stale_siblings(
                     entry("good-one", "Good One"),
                     malformed,
                     stale,
+                    entry("future", "Future", last_verified_at="2026-08-27"),
                     entry("good-two", "Good Two"),
                 ],
             }
@@ -602,7 +605,8 @@ def test_registry_loader_isolates_malformed_and_stale_siblings(
         "Good Two",
     ]
     assert [(issue["company"], issue["status"]) for issue in report.invalid] == [
-        ("Malformed", "invalid")
+        ("Malformed", "invalid"),
+        ("Future", "invalid"),
     ]
     assert [(issue["company"], issue["status"]) for issue in report.stale] == [
         ("Stale", "stale")
