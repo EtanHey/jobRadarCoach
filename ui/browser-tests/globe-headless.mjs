@@ -89,12 +89,12 @@ try {
         const layout = document.querySelector(".globe-layout"), rail = document.querySelector(".globe-rail");
         const card = rail.querySelector("article"), badge = card?.querySelector("[aria-label^='Fit score']");
         const canvas = document.querySelector(".maplibregl-canvas");
-        const chip = [...document.querySelectorAll("button")].find(button => button.textContent === "Globe");
+        const chip = [...document.querySelectorAll("button")].find(button => button.getAttribute("aria-label") === "Globe");
         return {open:layout.classList.contains("globe-layout-open"),rail:rail.getBoundingClientRect().width,layout:layout.getBoundingClientRect().width,
           partitionReady:!!document.querySelector("#globe-visible-heading"),
           slot:document.querySelector(".globe-slot").getBoundingClientRect().width,
           badgeInside:!card||!badge||badge.getBoundingClientRect().right<=card.getBoundingClientRect().right+1,
-          chipLegible:!!chip&&chip.getBoundingClientRect().width>48&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
+          chipLegible:!!chip&&chip.getBoundingClientRect().width>=40&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
           canvasUsable:!canvas||!layout.classList.contains("globe-layout-open")||(canvas.clientWidth>0&&canvas.clientHeight>0),
           projection:canvas?document.querySelector("[data-projection]")?.getAttribute("data-projection"):null};
       }));
@@ -104,12 +104,12 @@ try {
   const onFrames = await sampleToggle();
   assert.ok(onFrames.every(frame => frame.open && frame.rail/frame.layout < .43 && frame.rail/frame.layout > .2 && frame.slot > 0 && frame.badgeInside && frame.chipLegible && frame.canvasUsable && (!frame.projection||frame.projection==="globe")), "ON keeps a stable two-column layout, globe projection, chip and badges in every frame");
   await page.emulateMedia({reducedMotion:"reduce"});
-  await page.getByText("Drag to explore",{exact:false}).waitFor({timeout:30000});
+  await page.getByText("Drag to spin",{exact:false}).waitFor({timeout:30000});
   await page.waitForTimeout(2200);
   await page.screenshot({path:`${output}/globe.png`,fullPage:true});
   const firstCanvas = await page.locator(".maplibregl-canvas").elementHandle();
   assert.equal(await page.locator(".maplibregl-canvas").count(),1);
-  assert.equal(await page.getByText("1 role not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 1 role without a location",{exact:true}).filter({visible:true}).count(),1);
   assert.ok(globeRequests.every(query => !query.includes("limit=")));
   const map = page.locator("[data-projection]");
   const grantedPermission = await page.evaluate(async () => (await navigator.permissions.query({name:"geolocation"})).state);
@@ -216,7 +216,7 @@ try {
   await page.getByRole("option",{name:"Israel",exact:true}).click();
   await page.waitForFunction(()=>document.querySelectorAll('[data-posting-id]').length===2);
   assert.equal(await page.locator("[data-posting-id]").count(),2);
-  assert.equal(await page.getByText("0 roles not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 0 roles without a location",{exact:true}).filter({visible:true}).count(),1);
   await page.getByRole("combobox",{name:"Work mode",exact:true}).click();
   await page.getByRole("option",{name:"On-site / hybrid",exact:true}).click();
   await page.waitForFunction(()=>document.querySelectorAll('[data-posting-id]').length===0);
@@ -229,10 +229,10 @@ try {
   await search.fill("Remote Studio");
   await page.waitForFunction(()=>document.querySelectorAll('[data-posting-id]').length===1);
   assert.equal(await page.locator("[data-posting-id]").count(),1);
-  assert.equal(await page.getByText("1 role not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 1 role without a location",{exact:true}).filter({visible:true}).count(),1);
   assert.equal(await page.locator('[data-globe-selected="true"]').count(),0);
   await search.fill("no results anywhere");
-  assert.equal(await page.getByText("0 roles not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 0 roles without a location",{exact:true}).filter({visible:true}).count(),1);
   await search.fill("");
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(300);
@@ -266,7 +266,8 @@ try {
   assert.equal(await page.locator("[data-globe-posting]").count(),0,"location centering hides the unrelated focused-posting card");
   const mobileStatusAvoidsHint = await page.evaluate(() => {
     const status = document.querySelector(".maplibregl-ctrl-location-status").getBoundingClientRect();
-    const hint = document.querySelector(".job-globe > p").getBoundingClientRect();
+    const hint = document.querySelector(".job-globe > p")?.getBoundingClientRect();
+    if (!hint) return true;
     return status.right <= hint.left || status.left >= hint.right || status.bottom <= hint.top || status.top >= hint.bottom;
   });
   assert.equal(mobileStatusAvoidsHint,true,"mobile location status does not cover the map hint");
@@ -292,7 +293,8 @@ try {
   assert.ok(pointPixel,"Berlin point is hoverable after location move");
   await page.mouse.click(pointPixel.x,pointPixel.y);
   await page.locator(`[data-globe-posting="${id(1)}"]`).waitFor();
-  if (await page.getByRole("dialog").count()) {await page.keyboard.press("Escape");await page.getByRole("dialog").waitFor({state:"hidden"});}
+  const pointDrawer = page.getByRole("dialog");
+  if (await pointDrawer.isVisible()) { await pointDrawer.getByRole("button", { name: "Close", exact: true }).click(); await pointDrawer.waitFor({ state: "hidden" }); }
   await page.getByRole("button",{name:"Use my location",exact:true}).click();
   await page.waitForFunction(() => document.querySelectorAll("[data-globe-posting]").length === 0);
   await page.getByRole("button",{name:"Open Design Engineer at Meridian",exact:true}).click();

@@ -28,14 +28,14 @@ try{for(const mobile of [false,true]){
   await page.getByText('Loading all posting locations…').filter({visible:true}).waitFor();
   assert.equal(await page.getByText('No roles in this part of the globe. Pan or zoom to explore.').count(),0);
   assert.equal(await page.getByRole('heading',{name:'Outside of screen',exact:true}).count(),0,'do not render an outside-only partition before geography arrives');
-  await page.getByText('Drag to explore',{exact:false}).waitFor({timeout:30000});
+  await page.getByText('Drag to spin',{exact:false}).waitFor({timeout:30000});
   await page.waitForTimeout(4500);
   assert.equal(await page.getByText('No roles in this part of the globe. Pan or zoom to explore.').count(),0,'a settled map still waits for globe data');
   assert.equal(await page.getByRole('heading',{name:'Outside of screen',exact:true}).count(),0,'a settled map cannot publish an empty pre-data partition');
   releaseInitialGlobe();
   await page.getByRole('heading',{name:'Outside of screen',exact:true}).waitFor();await page.waitForTimeout(600);
   const initial=await parity(Array.from({length:7},(_,n)=>id(n)));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'long labels cannot widen viewport sections');assert.ok(initial.on.includes(id(0))&&initial.on.includes(id(6)));assert.ok(initial.off.includes(id(1)),'back-facing point must not count as visible');
-  assert.equal(await page.getByText('1 role not on globe',{exact:true}).filter({visible:true}).count(),1);assert.equal(await page.getByText('6 roles mapped',{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText('· 1 role without a location',{exact:true}).filter({visible:true}).count(),1);assert.equal(await page.getByText('6 roles on the globe',{exact:true}).filter({visible:true}).count(),1);
   assert.equal(Number((await page.locator('#globe-visible-heading + span').textContent()).match(/\d+/)[0])+Number((await page.locator('#globe-outside-heading + span').textContent()).match(/\d+/)[0]),7);
   await page.locator('.job-globe').scrollIntoViewIfNeeded();await page.screenshot({path:`${output}/${name}-initial.png`,fullPage:true});
   await page.locator(`[data-posting-id="${id(0)}"] > button`).click();await page.waitForTimeout(350);
@@ -75,7 +75,7 @@ try{for(const mobile of [false,true]){
   await page.waitForFunction(expected=>{const ids=[...document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]')].map(row=>row.dataset.postingId);return JSON.stringify(ids)!==JSON.stringify(expected);},beforePan,{timeout:10000});
   const panned=await parity(Array.from({length:7},(_,n)=>id(n)));assert.notDeepEqual(panned.on,beforePan,'pan updates the viewport partition');
   await page.screenshot({path:`${output}/${name}-panned.png`,fullPage:true});
-  await page.getByPlaceholder('Search title, company, or stack').fill('Duplicate');await page.getByText('1 role mapped',{exact:true}).filter({visible:true}).waitFor();await page.getByText('0 roles not on globe',{exact:true}).filter({visible:true}).waitFor();await page.waitForFunction(expected=>[...document.querySelectorAll('[data-globe-section] [data-posting-id]')].map(row=>row.dataset.postingId).join()===expected,id(6));assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'search keeps sectioned rail mounted');const filtered=await parity([id(6)]);
+  await page.getByPlaceholder('Search title, company, or stack').fill('Duplicate');await page.getByText('1 role on the globe',{exact:true}).filter({visible:true}).waitFor();await page.getByText('· 0 roles without a location',{exact:true}).filter({visible:true}).waitFor();await page.waitForFunction(expected=>[...document.querySelectorAll('[data-globe-section] [data-posting-id]')].map(row=>row.dataset.postingId).join()===expected,id(6));assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'search keeps sectioned rail mounted');const filtered=await parity([id(6)]);
   await page.locator(`[data-posting-id="${id(6)}"] > button`).click();const statusPatched=page.waitForResponse(response=>new URL(response.url()).pathname===`/api/jobs/${id(6)}/status`&&response.request().method()==='PATCH');await page.getByRole('button',{name:'View job details'}).click();await statusPatched;await page.waitForTimeout(250);
   assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'status patch keeps sectioned rail mounted');
   assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.method==='GET'||r.method==='PATCH'&&r.path===`/api/jobs/${id(6)}/status`));assert.ok(requests.filter(r=>r.path.endsWith('/globe')).every(r=>!r.query.includes('limit')));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

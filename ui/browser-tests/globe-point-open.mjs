@@ -30,7 +30,7 @@ try{for(const mobile of [false,true]){
  const name=mobile?'mobile':'desktop';
  try{
   await page.goto(base);await page.getByRole('button',{name:'Globe',exact:true}).click();
-  await page.getByText('Drag to explore',{exact:false}).waitFor({timeout:30000});await page.waitForTimeout(700);
+  await page.getByText('Drag to spin',{exact:false}).waitFor({timeout:30000});await page.waitForTimeout(700);
   await page.locator('.job-globe').scrollIntoViewIfNeeded();await page.screenshot({path:`${output}/${name}-before.png`,fullPage:!mobile});
   const canvas=await page.locator('.maplibregl-canvas').boundingBox();await page.mouse.click(canvas.x+canvas.width/2,canvas.y+canvas.height/2);
   const drawer=page.getByRole('dialog');await drawer.waitFor();

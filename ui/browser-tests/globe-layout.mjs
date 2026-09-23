@@ -70,13 +70,13 @@ try {
         assert.equal(await page.getByRole("button", { name: /Filters/ }).isVisible(), false, "list view does not force the filter sheet at 1024px");
       }
       await page.getByRole("button", { name: "Globe", exact: true }).click();
-      await page.getByText("Drag to explore", { exact: false }).waitFor({ timeout: 30000 });
+      await page.getByText("Drag to spin", { exact: false }).waitFor({ timeout: 30000 });
       await page.getByRole("heading", { name: "On screen", exact: true }).waitFor();
       const metrics = await page.evaluate(() => {
         const box = selector => document.querySelector(selector)?.getBoundingClientRect();
         const globe = box(".job-globe"), rail = box(".globe-rail"), layout = box(".globe-layout");
         const legend = box("[data-globe-legend]"), toolbar = box("[data-job-toolbar]");
-        const toggle = [...document.querySelectorAll("button")].find(node => node.textContent?.trim() === "Globe" && node.offsetWidth)?.getBoundingClientRect();
+        const toggle = [...document.querySelectorAll("button")].find(node => node.getAttribute("aria-label") === "Globe" && node.offsetWidth)?.getBoundingClientRect();
         const reset = [...document.querySelectorAll("button")].find(node => node.textContent?.trim() === "Reset view" && node.offsetWidth)?.getBoundingClientRect();
         const railElement = document.querySelector(".globe-rail");
         return { viewport: { width: innerWidth, height: innerHeight }, documentHeight: document.documentElement.scrollHeight,
@@ -114,14 +114,14 @@ try {
         assert.ok(choices.y >= metrics.globe.y && choices.y + choices.height <= metrics.globe.y + metrics.globe.height, "choices stay inside the map");
         assert.ok(choices.y >= location.y + location.height, "choices do not cover the location control");
         assert.ok(attribution && choices.y + choices.height <= attribution.y, "choices leave CARTO attribution visible");
-        assert.ok(await page.getByText("Starts near Rehovot · your location is not saved. CARTO receives tiles for the map area.").isVisible(), "touch helper names the starting point and explains location and tile requests");
+        assert.ok(await page.getByText("Drag to spin · scroll to zoom").isVisible(), "one-time drag hint is visible before interaction");
         assert.equal(await page.locator("[data-globe-posting]:visible").count(), 0, "focused card does not cover open choices");
         await page.screenshot({ path: `${output}/mobile-cluster-open.png` });
         await page.locator(".maplibregl-ctrl-location-status").evaluate(node => { node.textContent = "Centered near you · not saved by Job Radar"; });
         const status = await page.locator(".maplibregl-ctrl-location-status").boundingBox();
         const shifted = await panel.boundingBox();
         assert.ok(status && shifted && (status.y + status.height <= shifted.y || status.x + status.width <= shifted.x || shifted.x + shifted.width <= status.x), "location status never overlaps open choices");
-        assert.equal(await page.locator(".globe-location-help").isVisible(), false, "location status temporarily replaces the helper");
+        assert.equal(await page.locator(".globe-location-help").count(), 0, "removed privacy helper does not cover the map");
         await page.screenshot({ path: `${output}/mobile-status-choices.png` });
       }
       receipts.push({ name, metrics, errors });

@@ -147,8 +147,27 @@
 .globe-layout { display: block; }
 .globe-slot { display: none; min-width: 0; overflow: hidden; }
 .globe-rail { min-width: 0; }
+.globe-slot { view-transition-name: globe-slot; }
+.globe-rail { view-transition-name: job-rail; }
 .globe-layout-open { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr); gap: 1.25rem; min-height: 0; }
 .globe-layout-open .globe-slot { display: block; min-height: 0; }
+html:active-view-transition .job-globe { pointer-events: none; }
+html:active-view-transition::view-transition-group(*) { animation-duration: 420ms; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+html:active-view-transition::view-transition-old(root), html:active-view-transition::view-transition-new(root) { animation: none; }
+html[data-globe-transition="on"]::view-transition-new(globe-slot) { animation: globe-wipe-in 420ms cubic-bezier(.2, 0, 0, 1) both; }
+html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: globe-wipe-out 420ms cubic-bezier(.2, 0, 0, 1) both; }
+@keyframes globe-wipe-in { from { clip-path: inset(0 100% 0 0 round 16px); opacity: .6; } to { clip-path: inset(0 0 0 0 round 16px); opacity: 1; } }
+@keyframes globe-wipe-out { from { clip-path: inset(0 0 0 0 round 16px); opacity: 1; } to { clip-path: inset(0 100% 0 0 round 16px); opacity: .6; } }
+@media (max-width: 900px) {
+  html[data-globe-transition="on"]::view-transition-new(globe-slot) { animation-name: globe-wipe-down; }
+  html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation-name: globe-wipe-up; }
+  @keyframes globe-wipe-down { from { clip-path: inset(0 0 100% 0 round 16px); opacity: .6; } to { clip-path: inset(0 0 0 0 round 16px); opacity: 1; } }
+  @keyframes globe-wipe-up { from { clip-path: inset(0 0 0 0 round 16px); opacity: 1; } to { clip-path: inset(0 0 100% 0 round 16px); opacity: .6; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .globe-layout-open .globe-slot { animation: globe-fallback-fade 120ms ease-out; }
+  @keyframes globe-fallback-fade { from { opacity: .5; } to { opacity: 1; } }
+}
 .job-globe-shell { height: 100%; }
 .job-globe { position: relative; height: 100%; min-height: 0; background: #080f1c; border-radius: 1rem; overflow: hidden; }
 [data-globe-selected=true] > article { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
@@ -171,8 +190,7 @@
 }
 @media (max-width: 900px) {
   .board-globe-open { min-height: 100dvh; }
-  .board-globe-open .board-heading-regular-meta, .job-search-globe .job-results-summary { display: none; }
-  .board-mobile-globe-counts { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 .5rem; text-align: right; }
+  .board-globe-open .board-heading-regular-meta, .board-mobile-globe-counts { display: none; }
   .globe-layout-open { grid-template-columns: minmax(0, 1fr); }
   .job-globe { height: min(440px, 95vw); }
   .globe-layout-open .globe-rail { overflow: visible; }
@@ -183,10 +201,6 @@
 .job-globe .maplibregl-ctrl-location-status:empty { display: none; }
 .job-globe:has(.maplibregl-ctrl-location-status:not(:empty)) #globe-posting-choices { top: 10rem; }
 .job-globe:has(.maplibregl-ctrl-location-status:not(:empty)) #globe-posting-choices { max-height: calc(100% - 13rem); }
-.job-globe:has(.maplibregl-ctrl-location-status:not(:empty)) .globe-location-help { display: none; }
-@media (hover: hover) and (min-width: 901px) {
-  .job-globe .globe-location-help { display: none; }
-}
 
 .globe-cluster { z-index: 3; width: 44px; height: 44px; border: 6px solid transparent; border-radius: 50%; background: var(--cluster-color); background-clip: padding-box; color: #08111c; font: 700 14px/32px sans-serif; text-align: center; cursor: pointer; }
 .globe-cluster:focus-visible { outline: 2px solid white; }

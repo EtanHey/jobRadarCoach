@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import dynamic from "next/dynamic";
 import { GlobeBoundary } from "./globe-boundary";
 import { useGlobeData } from "./use-globe-data";
 import { globePoints } from "@/lib/globe-model";
 import { countGlobeRoles } from "@/lib/globe-viewport";
 import { Button } from "./ui/button";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
@@ -52,8 +53,10 @@ export function JobBoard() {
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [globeOpen, setGlobeOpen] = useState(false);
+  const globeTransitioning = useRef(false);
+  const firstGlobeOpen = useRef(true);
   const [viewport, setViewport] = useState<{ key: string; positions: string; evaluated: Set<string>; ids: string[] } | null>(null);
-  const [globeMounted, setGlobeMounted] = useState(false);
+  const [globeMounted, setGlobeMounted] = useState(true);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
   const [globeSelectionRequest, setGlobeSelectionRequest] = useState(0);
   const [globeSelectionSource, setGlobeSelectionSource] = useState<"point" | "rail">("rail");
@@ -171,6 +174,55 @@ export function JobBoard() {
     }
     setPreferences(next);
   }
+  function toggleGlobe() {
+    if (globeTransitioning.current) return;
+    const next = !globeActive;
+    const swap = () => {
+      flushSync(() => {
+        if (next) setGlobeMounted(true);
+        setGlobeOpen(next);
+        setGlobeWarning("");
+        if (globe.failure) { setViewport(null); setRevision(value => value + 1); }
+      });
+      window.dispatchEvent(new Event("job-globe-layout"));
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !document.startViewTransition) {
+      swap();
+      if (next) firstGlobeOpen.current = false;
+      return;
+    }
+    const visible = [...document.querySelectorAll<HTMLElement>("[data-globe-card]")]
+      .filter(card => { const box = card.getBoundingClientRect(); return box.width > 0 && box.bottom > 0 && box.top < innerHeight; })
+      .slice(0, 12).map(card => card.dataset.globeCard);
+    const nameCards = () => document.querySelectorAll<HTMLElement>("[data-globe-card]").forEach(card => {
+      if (visible.includes(card.dataset.globeCard)) card.style.viewTransitionName = `card-${card.dataset.globeCard}`;
+    });
+    nameCards();
+    globeTransitioning.current = true;
+    document.documentElement.dataset.globeTransition = next ? "on" : "off";
+    const transition = document.startViewTransition(() => { swap(); nameCards(); });
+    const finish = () => {
+      document.querySelectorAll<HTMLElement>("[data-globe-card]").forEach(card => { card.style.viewTransitionName = ""; });
+      delete document.documentElement.dataset.globeTransition;
+      globeTransitioning.current = false;
+      if (next && firstGlobeOpen.current) window.dispatchEvent(new Event("job-globe-arrive"));
+      if (next) firstGlobeOpen.current = false;
+    };
+    void transition.finished.then(finish, finish);
+  }
+
+  useEffect(() => {
+    function keydown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [role='combobox'], [role='dialog']"))) return;
+      if (selected) return;
+      if (event.key.toLowerCase() === "g" && !event.repeat) { event.preventDefault(); toggleGlobe(); }
+      if (event.key === "Escape" && globeSelected) { event.preventDefault(); setGlobeSelected(null); }
+    }
+    window.addEventListener("keydown", keydown);
+    return () => window.removeEventListener("keydown", keydown);
+  });
 
   useEffect(() => {
     let active = true;
@@ -317,8 +369,8 @@ export function JobBoard() {
   const relatedJobs = relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
-  const globeToggle = <Button variant={globeActive ? "default" : "outline"} aria-pressed={globeActive} onClick={() => { if (!globeActive) setGlobeMounted(true); setGlobeOpen(!globeActive); setGlobeWarning(""); if (globe.failure) { setViewport(null); setRevision(value => value + 1); } }}>Globe</Button>;
-  const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.unmapped} {globeCounts.unmapped === 1 ? "role" : "roles"} not on globe</span><span>{globeCounts.mapped} {globeCounts.mapped === 1 ? "role" : "roles"} mapped{points.length > 5000 ? " · showing a sample of up to 5,000 postings" : ""}</span></>}{globeActive && !globe.data && <span role="status">Loading all posting locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
+  const globeToggle = <Button variant={globeActive ? "default" : "outline"} className={`size-10 p-0 ${globeActive ? "shadow-[inset_0_0_0_2px_color-mix(in_oklch,var(--primary-foreground)_35%,transparent)]" : ""}`} aria-label="Globe" title="Globe" aria-pressed={globeActive} onClick={toggleGlobe}><Globe aria-hidden="true" /></Button>;
+  const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.mapped} {globeCounts.mapped === 1 ? "role" : "roles"} on the globe{points.length > 5000 ? " · showing a sample of up to 5,000 postings" : ""}</span><span>· {globeCounts.unmapped} {globeCounts.unmapped === 1 ? "role" : "roles"} without a location</span></>}{globeActive && !globe.data && <span role="status">Loading all posting locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
   return <div className={`bg-background text-foreground ${globeActive ? "board-globe-open" : "min-h-screen"}`}>
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">

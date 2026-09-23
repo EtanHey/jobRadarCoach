@@ -92,6 +92,12 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const [choiceIds, setChoiceIds] = useState<string[]>([]);
   const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
   const [ready, setReady] = useState(false);
+  const [showDragHint, setShowDragHint] = useState(() => {
+    try { return localStorage.getItem("job-globe-dragged") !== "1"; }
+    catch { return true; }
+  });
+  const arrivalPending = useRef(false);
+  const arrivalInProgress = useRef(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null; request: number } | null>(null);
   const locationStatusTimer = useRef<number | null>(null);
@@ -134,6 +140,28 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   useEffect(() => { selectionRequestRef.current = selectionRequest; }, [selectionRequest]);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   useEffect(() => { if (dataReady) startMapRef.current(); }, [dataReady]);
+  useEffect(() => {
+    function layout() { mapRef.current?.resize(); mapRef.current?.triggerRepaint(); }
+    function arrive() { arrivalPending.current = true; if (mapRef.current && ready) runArrival(); }
+    function runArrival() {
+      const map = mapRef.current;
+      if (!map || !arrivalPending.current || !activeRef.current) return;
+      arrivalPending.current = false;
+      const zoom = map.getZoom();
+      arrivalInProgress.current = true;
+      map.jumpTo({ zoom: zoom - .6 });
+      map.easeTo({ zoom, duration: 600 });
+      map.once("moveend", () => {
+        const cap = landingZoom(map, FALLBACK_CENTER[1]);
+        if (map.getZoom() > cap) map.jumpTo({ zoom: cap });
+        arrivalInProgress.current = false;
+      });
+    }
+    window.addEventListener("job-globe-layout", layout);
+    window.addEventListener("job-globe-arrive", arrive);
+    if (ready) runArrival();
+    return () => { window.removeEventListener("job-globe-layout", layout); window.removeEventListener("job-globe-arrive", arrive); };
+  }, [ready]);
   useEffect(() => {
     if (!active || ready) return;
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
@@ -192,6 +220,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         initialZoom = landingZoomForSize(container.current.clientWidth, container.current.clientHeight, FALLBACK_CENTER[1]);
         map = new Map({ container: container.current, style, center: FALLBACK_CENTER, zoom: initialZoom, maxZoom: 12, trackResize: false, canvasContextAttributes: { antialias: true }, attributionControl: { compact: true } });
         mapRef.current = map;
+        map.getCanvas().tabIndex = 0;
+        map.on("dragstart", () => { setShowDragHint(false); try { localStorage.setItem("job-globe-dragged", "1"); } catch { /* Storage can be unavailable. */ } });
         map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
         map.addControl(new FullscreenControl({ container: container.current }), "top-right");
         map.addControl(makeLocationControl(locate), "top-right");
@@ -214,6 +244,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         if (process.env.NODE_ENV !== "production") map.on("movestart", () => { if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
         map.on("moveend", () => {
           if (!map) return;
+          if (arrivalInProgress.current) return;
           const center = map.getCenter();
           callbacks.current.onCameraAwayChange(cameraNeedsReset([center.lng, center.lat], map.getZoom(), FALLBACK_CENTER, landingZoom(map, FALLBACK_CENTER[1])));
         });
@@ -230,6 +261,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           const overlay = new MapLibreOverlay({ interleaved: false, layers: [], onError: fail });
           map.addControl(overlay);
           overlayRef.current = overlay;
+          overlay.setProps({ getCursor: ({ isDragging, isHovering }) => isDragging ? "grabbing" : isHovering ? "pointer" : "grab" });
           loaded = true;
           setReady(true);
         });
@@ -380,8 +412,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   return <section className="job-globe-shell" aria-label="Posting locations globe">
     <div onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
-      <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{ready ? "Drag to explore · select a posting" : "Preparing the globe…"}</p>
-      <p className="globe-location-help pointer-events-none absolute left-4 top-12 max-w-[calc(100%-5rem)] rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Starts near Rehovot · your location is not saved. CARTO receives tiles for the map area.</p>
+      {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Preparing the globe…</p>}
+      {ready && showDragHint && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Drag to spin · scroll to zoom</p>}
       {choices.length > 0 && <div className="absolute left-3 top-32 z-10 max-h-[calc(100%-11rem)] w-64 max-w-[calc(100%-1.5rem)] overflow-y-auto rounded-xl border bg-card p-2 shadow-lg" id="globe-posting-choices" role="region" aria-live="polite" aria-label="Postings at this point"><p className="p-2 text-sm">Choose from {choices.length} postings</p><div className="max-h-40 overflow-y-auto">{choices.map(point => <button key={point.posting_id} type="button" aria-pressed={selected === point.posting_id} onClick={() => { setHover(null); callbacks.current.onSelect(point.posting_id); }} className="block min-h-11 w-full rounded-md px-2 py-3 text-left text-sm hover:bg-muted focus-visible:outline-2">{point.job.title} · {point.job.company}</button>)}</div><button type="button" onClick={() => setChoiceIds([])} className="min-h-11 px-2 text-sm underline">Close posting choices</button></div>}
       {focused && choices.length === 0 && !(hiddenFocusedSelection?.selected === selected && hiddenFocusedSelection.request === selectionRequest) && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
     </div>
