@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type IControl, type MapOptions } from "maplibre-gl";
+import { Map, LngLat, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type IControl, type MapOptions } from "maplibre-gl";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, clusterRoleIds, clusterIsStack, clusterPlace, type PointCluster, type GlobePoint } from "@/lib/globe-model";
-import { cameraNeedsReset, focusPointCamera, locationCameraBounds, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
+import { cameraNeedsReset, focusPointCamera, locationCameraBounds, locationFlight, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
 import { loadGlobeStyle } from "@/lib/globe-style";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -23,18 +23,21 @@ function landingZoom(map: Map, latitude: number) {
 function reducedMotion() { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
 function moveToLocation(map: Map, location: string, points: GlobePoint[], reset: boolean, duration: number) {
   const bounds = reset ? null : locationCameraBounds(location, points);
-  const easing = (t: number) => 1 - (1 - t) ** 3;
+  let center: [number, number] = FALLBACK_CENTER;
+  let zoom = landingZoom(map, FALLBACK_CENTER[1]);
   if (bounds) {
     const padded = bounds[0][0] === bounds[1][0] && bounds[0][1] === bounds[1][1]
       ? [[bounds[0][0] - .25, bounds[0][1] - .25], [bounds[1][0] + .25, bounds[1][1] + .25]] as typeof bounds : bounds;
     const camera = map.cameraForBounds(padded, { padding: 48, maxZoom: 10 });
-    if (camera) map.easeTo({ ...camera, duration, easing });
+    if (camera?.center && camera.zoom !== undefined) { const target = LngLat.convert(camera.center); center = [target.lng, target.lat]; zoom = camera.zoom; }
   } else {
-    const center: [number, number] = location === "other" && !reset && points.length
+    center = location === "other" && !reset && points.length
       ? [points.reduce((sum, point) => sum + point.lng, 0) / points.length, points.reduce((sum, point) => sum + point.lat, 0) / points.length]
       : FALLBACK_CENTER;
-    map.easeTo({ center, zoom: landingZoom(map, FALLBACK_CENTER[1]), duration, easing });
   }
+  if (!duration) { map.jumpTo({ center, zoom }); return; }
+  const from = map.getCenter();
+  map.flyTo({ center, zoom, ...locationFlight([from.lng, from.lat], map.getZoom(), center, zoom) });
 }
 function makeLocationControl(locate: () => void): IControl {
   let root: HTMLDivElement | null = null;
@@ -166,10 +169,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     return () => { window.removeEventListener("job-globe-layout", layout); };
   }, [ready, arrivalRequest]);
   useEffect(() => {
-    if (!active || ready) return;
+    if (!active || !dataReady || ready) return;
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
     return () => clearTimeout(timeout);
-  }, [active, ready]);
+  }, [active, dataReady, ready]);
   const locate = useCallback(() => {
     const map = mapRef.current;
     const status = map?.getContainer().querySelector<HTMLElement>(".maplibregl-ctrl-location-status");
@@ -447,7 +450,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   return <section className="job-globe-shell" aria-label="Role locations globe">
     <div onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
-      {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Preparing the globe…</p>}
+      {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{dataReady ? "Preparing the globe…" : "Loading map…"}</p>}
       {ready && showDragHint && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Drag to spin · scroll to zoom</p>}
       {hoveredBubble && <div className="pointer-events-none absolute bottom-16 left-3 z-10 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" role="tooltip">{hoveredBubble.count} roles near {hoveredBubble.place.replace(/^Near /, "")}<p className="mt-1 text-muted-foreground">Click to list them</p></div>}
       {focused && !hoveredBubble && !(hiddenFocusedSelection?.selected === selected && hiddenFocusedSelection.request === selectionRequest) && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}

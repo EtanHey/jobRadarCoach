@@ -7,9 +7,9 @@ import { TechnologyChips } from "./technology-chips";
 import { Button } from "./ui/button";
 
 type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; visiblePostingIds?: readonly string[]; selectedId?: string | null;
-  bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void;
+  bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void;
   openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void };
-export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, openerRef, selectJob, openDetail, bubble, clearBubble }: Props) {
+export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, openerRef, selectJob, openDetail, bubble, clearBubble, onWholeWorld }: Props) {
   const sections = useMemo(() => {
     if (!globeOpen || visiblePostingIds === undefined) return null;
     if (bubble) return { visible: groups.filter(group => bubble.ids.includes(group.job.id)), outside: [] };
@@ -25,8 +25,8 @@ export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, ope
   if (!sections) return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{cards(groups)}</div>;
   return <div className="space-y-5">
     <section data-globe-section="visible" aria-labelledby="globe-visible-heading">
-      <div className="mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">{bubble ? <button type="button" onClick={clearBubble} aria-label={`Clear bubble filter: ${bubble.place} · ${sections.visible.length} ${sections.visible.length === 1 ? "role" : "roles"}`} className="rounded-full border border-primary px-3 py-1 text-primary">{bubble.place} · {sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"} ×</button> : "On screen"}</h2>{!bubble && <span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span>}</div>
-      {sections.visible.length ? <div className="grid grid-cols-1 gap-3">{cards(sections.visible)}</div> : <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No roles in this part of the globe. Pan or zoom to explore.</p>}
+      <div className="globe-rail-header mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">{bubble ? <button type="button" onClick={clearBubble} aria-label={`Clear bubble filter: ${bubble.place} · ${sections.visible.length} ${sections.visible.length === 1 ? "role" : "roles"}`} className="rounded-full border border-primary px-3 py-1 text-primary">{bubble.place} · {sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"} ×</button> : "On screen"}</h2>{!bubble && <span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span>}</div>
+      {sections.visible.length ? <div className="grid grid-cols-1 gap-3">{cards(sections.visible)}</div> : <div className="rounded-xl border border-dashed p-5 text-sm"><p className="font-medium">Nothing on screen here.</p><p className="mt-1 text-muted-foreground">Zoom out or drag to another region.</p><Button variant="outline" className="mt-4" onClick={onWholeWorld}>Show whole world</Button></div>}
     </section>
     {!bubble && <section data-globe-section="outside" aria-labelledby="globe-outside-heading">
       <div className="mb-3 flex items-center justify-between border-t px-1 pt-4"><h2 id="globe-outside-heading" className="text-sm font-semibold">Off screen</h2><span className="text-xs text-muted-foreground">{sections.outside.length} {sections.outside.length === 1 ? "role" : "roles"}</span></div>

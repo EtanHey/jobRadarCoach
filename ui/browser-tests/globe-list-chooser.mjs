@@ -35,19 +35,30 @@ try {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     let spread = false;
-    await page.route("**/*", route => {
+    let globeDelay = 600;
+    await page.route("**/*", async route => {
       const request = route.request(), url = new URL(request.url());
       if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
       if (!url.pathname.startsWith("/api/")) return route.continue();
       if (request.method() !== "GET") return route.fulfill({ status: 405, json: { error: "Read-only fixture" } });
-      if (url.pathname === "/api/jobs/globe") return route.fulfill({ json: spread ? spreadPayload : payload });
+      if (url.pathname === "/api/jobs/globe") { await new Promise(resolve => setTimeout(resolve, globeDelay)); return route.fulfill({ json: spread ? spreadPayload : payload }); }
       if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs: spread ? spreadJobs : jobs } });
       return route.fulfill({ status: 404, json: { error: "Fixture only" } });
     });
     await page.goto(base);
     await page.getByRole("button", { name: "Globe", exact: true }).click();
+    await page.getByText("Counting roles on screen…", { exact: true }).waitFor({ timeout: 5000 });
+    assert.equal(await page.locator(".globe-loading-card").count(), 4);
+    await page.getByText("Loading map…", { exact: true }).waitFor();
     const bubble = page.locator(".globe-cluster");
     await bubble.waitFor({ timeout: 30000 });
+    assert.ok(await page.locator("header").getByText("Live", { exact: true }).count());
+    const layout = await page.evaluate(() => ({ pageScroll: document.documentElement.scrollHeight > innerHeight,
+      railScroll: getComputedStyle(document.querySelector(".globe-rail")).overflowY,
+      railBottom: document.querySelector(".globe-rail").getBoundingClientRect().bottom }));
+    assert.equal(layout.pageScroll, false);
+    assert.equal(layout.railScroll, "auto");
+    assert.ok(layout.railBottom >= 884, JSON.stringify(layout));
     assert.equal(await bubble.count(), 1);
     assert.match(await bubble.getAttribute("aria-label"), /12 roles near Rehovot/);
     assert.equal(await page.locator("#globe-posting-choices").count(), 0);
