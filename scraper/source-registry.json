@@ -1214,10 +1214,14 @@
         {
           "kind": "auto-discovery-probe",
           "reference": "https://boards-api.greenhouse.io/v1/boards/hive/jobs?content=false"
+        },
+        {
+          "kind": "reviewer-disabled",
+          "reference": "ats-data-r1 name collision"
         }
       ],
       "last_verified_at": "2026-09-23",
-      "enabled": true
+      "enabled": false
     },
     {
       "source": "lever",
@@ -1230,10 +1234,14 @@
         {
           "kind": "auto-discovery-probe",
           "reference": "https://api.lever.co/v0/postings/hive?mode=json"
+        },
+        {
+          "kind": "reviewer-disabled",
+          "reference": "ats-data-r1 name collision"
         }
       ],
       "last_verified_at": "2026-09-23",
-      "enabled": true
+      "enabled": false
     },
     {
       "source": "greenhouse",
