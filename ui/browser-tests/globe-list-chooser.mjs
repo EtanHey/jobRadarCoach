@@ -19,6 +19,9 @@ const points = jobs.map((job, n) => ({ posting_id: job.id, lng: n === 13 ? 13.40
   resolved_at: "2026-09-22T00:00:00Z" }));
 const payload = { jobs, points, total_count: jobs.length, resolved_count: points.length,
   unresolved_count: 0, attribution: "© OpenStreetMap contributors" };
+const spreadCoords = [[34.60, 31.70], [35.10, 32.30], [35.30, 31.60]];
+const spreadJobs = jobs.slice(0, 3).map(job => ({ ...job, location: "Tel Aviv-Yafo, Israel" }));
+const spreadPayload = { ...payload, jobs: spreadJobs, points: points.slice(0, 3).map((point, index) => ({ ...point, lng: spreadCoords[index][0], lat: spreadCoords[index][1] })), total_count: 3, resolved_count: 3 };
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
@@ -31,13 +34,14 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    let spread = false;
     await page.route("**/*", route => {
       const request = route.request(), url = new URL(request.url());
       if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
       if (!url.pathname.startsWith("/api/")) return route.continue();
       if (request.method() !== "GET") return route.fulfill({ status: 405, json: { error: "Read-only fixture" } });
-      if (url.pathname === "/api/jobs/globe") return route.fulfill({ json: payload });
-      if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs } });
+      if (url.pathname === "/api/jobs/globe") return route.fulfill({ json: spread ? spreadPayload : payload });
+      if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs: spread ? spreadJobs : jobs } });
       return route.fulfill({ status: 404, json: { error: "Fixture only" } });
     });
     await page.goto(base);
@@ -75,6 +79,28 @@ try {
     await page.waitForFunction(() => document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]').length === 1);
     await page.locator(".globe-cluster").waitFor({ state: "detached", timeout: 10000 });
     assert.equal(await page.locator(".globe-cluster").count(), 0, "two listings for one role make a dot");
+    await page.getByPlaceholder("Search title, company, or stack").fill("");
+    spread = true;
+    await page.reload();
+    await page.getByRole("button", { name: "Globe", exact: true }).click();
+    const spreadBubble = page.locator(".globe-cluster").first();
+    await spreadBubble.waitFor({ timeout: 30000 });
+    await page.waitForTimeout(850);
+    await spreadBubble.click();
+    await page.getByRole("button", { name: "Clear bubble filter" }).waitFor();
+    await page.waitForFunction(() => document.querySelectorAll(".globe-cluster").length === 0);
+    const camera = await page.locator("[data-projection]").evaluate(el => ({ center: el.dataset.center.split(",").map(Number), zoom: Number(el.dataset.zoom), rect: el.getBoundingClientRect().toJSON() }));
+    const scale = 512 * 2 ** camera.zoom / 360;
+    const x = camera.rect.x + camera.rect.width / 2 + (spreadCoords[0][0] - camera.center[0]) * scale;
+    const y = camera.rect.y + camera.rect.height / 2 - (spreadCoords[0][1] - camera.center[1]) * scale / Math.cos(camera.center[1] * Math.PI / 180);
+    for (const [dx, dy] of [[0,0],[3,0],[-3,0],[0,3],[0,-3]]) {
+      await page.mouse.click(x + dx, y + dy);
+      if (await page.getByRole("dialog").count()) break;
+    }
+    await page.getByRole("dialog").waitFor({ timeout: 5000 });
+    assert.equal(await page.locator("#globe-visible-heading button").count(), 1, "dot click keeps its bubble chip behind the detail dialog");
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Clear bubble filter" }).waitFor({ timeout: 5000 });
     assert.deepEqual(errors, []);
     console.log("chooser removed; 12-role stack filters rail; Escape, drag, and chip clear; duplicate listings make one dot");
   } finally { await context.close(); }

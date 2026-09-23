@@ -106,23 +106,23 @@ try {
       await page.screenshot({ path: `${output}/${name}-${phase}-viewport.png` });
       if (name === "mobile" && phase === "after") {
         await page.locator(".globe-cluster").first().click();
-        const panel = page.getByRole("region", { name: "Postings at this point" });
-        const choices = await panel.boundingBox();
+        const chip = page.getByRole("button", { name: /Clear bubble filter/ });
+        const chipBox = await chip.boundingBox();
+        const rail = await page.locator(".globe-rail").boundingBox();
         const location = await page.getByRole("button", { name: "Use my location" }).boundingBox();
-        const attribution = await page.locator(".maplibregl-ctrl-attrib").first().boundingBox();
-        assert.ok(choices && location, "cluster choices and location control are visible");
-        assert.ok(choices.y >= metrics.globe.y && choices.y + choices.height <= metrics.globe.y + metrics.globe.height, "choices stay inside the map");
-        assert.ok(choices.y >= location.y + location.height, "choices do not cover the location control");
-        assert.ok(attribution && choices.y + choices.height <= attribution.y, "choices leave CARTO attribution visible");
+        assert.ok(chipBox && rail && location, "cluster chip, rail and location control are visible");
+        assert.ok(chipBox.x >= rail.x && chipBox.y >= rail.y && chipBox.y < rail.y + rail.height, "bubble chip lives in the rail");
+        assert.ok(chipBox.y >= metrics.globe.y + metrics.globe.height, "rail chip does not cover the map or locate control");
+        assert.ok(await page.locator('[data-globe-section="visible"] [data-posting-id]').count() > 0, "bubble filters the rail to roles");
+        assert.equal(await page.locator('[data-globe-section="outside"]').count(), 0, "bubble hides off-screen roles");
         assert.ok(await page.getByText("Drag to spin · scroll to zoom").isVisible(), "one-time drag hint is visible before interaction");
-        assert.equal(await page.locator("[data-globe-posting]:visible").count(), 0, "focused card does not cover open choices");
-        await page.screenshot({ path: `${output}/mobile-cluster-open.png` });
+        await page.screenshot({ path: `${output}/mobile-cluster-filter.png` });
         await page.locator(".maplibregl-ctrl-location-status").evaluate(node => { node.textContent = "Centered near you · not saved by Job Radar"; });
         const status = await page.locator(".maplibregl-ctrl-location-status").boundingBox();
-        const shifted = await panel.boundingBox();
-        assert.ok(status && shifted && (status.y + status.height <= shifted.y || status.x + status.width <= shifted.x || shifted.x + shifted.width <= status.x), "location status never overlaps open choices");
+        const shifted = await chip.boundingBox();
+        assert.ok(status && shifted && status.y + status.height <= shifted.y, "location status never overlaps the rail chip");
         assert.equal(await page.locator(".globe-location-help").count(), 0, "removed privacy helper does not cover the map");
-        await page.screenshot({ path: `${output}/mobile-status-choices.png` });
+        await page.screenshot({ path: `${output}/mobile-status-chip.png` });
       }
       receipts.push({ name, metrics, errors });
       if (phase === "after") {

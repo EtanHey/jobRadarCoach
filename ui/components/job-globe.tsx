@@ -100,7 +100,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const arrivalSeen = useRef(0);
   const pulsedSelection = useRef<string | null>(null);
   const arrivalInProgress = useRef(false);
-  const bubbleClickAt = useRef(0);
+  const featureClickAt = useRef(0);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null; request: number } | null>(null);
   const locationStatusTimer = useRef<number | null>(null);
@@ -226,13 +226,14 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         map.on("movestart", event => { if (event.originalEvent) callbacks.current.onClearBubble(); });
         map.on("click", event => {
           if ((event.originalEvent.target as Element)?.closest?.(".globe-cluster")) return;
+          if (overlayRef.current?.pickObject({ x: event.point.x, y: event.point.y })?.object) return;
           const { clientX, clientY } = event.originalEvent;
           const bubble = [...registry.values()].find(({ button }) => {
             const rect = button.getBoundingClientRect();
             return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
           });
           if (bubble) bubble.button.click();
-          else window.setTimeout(() => { if (mounted && performance.now() - bubbleClickAt.current > 150) callbacks.current.onClearBubble(); }, 0);
+          else window.setTimeout(() => { if (mounted && performance.now() - featureClickAt.current > 150) callbacks.current.onClearBubble(); }, 0);
         });
         map.on("dragstart", () => { setShowDragHint(false); try { localStorage.setItem("job-globe-dragged", "1"); } catch { /* Storage can be unavailable. */ } });
         map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
@@ -349,7 +350,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     if (!ready || !map || !overlayRef.current) return;
     const activateCluster = (cluster: PointCluster) => {
       if (!canInteract()) return;
-      bubbleClickAt.current = performance.now();
+      featureClickAt.current = performance.now();
       setHover(null);
       const ids = clusterRoleIds(cluster.members);
       callbacks.current.onBubble(ids, clusterPlace(cluster.members));
@@ -366,7 +367,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         stroked: true, getLineColor: [255, 255, 255, 220], lineWidthUnits: "pixels", getLineWidth: cluster => cluster.members.some(point => point.posting_id === selected) ? 2 : 0.5,
         transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hovered?.posting_id], getLineWidth: [selected] },
         onHover: info => { if (canInteract()) { if (info.object && clusterRoleIds(info.object.members).length === 1) setHiddenFocusedSelection(null); setHover(info.object && clusterRoleIds(info.object.members).length === 1 ? { point: info.object.anchor, selection: selected } : null); } },
-        onClick: info => { if (canInteract() && info.object) { if (clusterRoleIds(info.object.members).length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); else activateCluster(info.object); } },
+        onClick: info => { if (canInteract() && info.object) { featureClickAt.current = performance.now(); if (clusterRoleIds(info.object.members).length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); else activateCluster(info.object); } },
       })],
     });
     if (!selected) pulsedSelection.current = null;
