@@ -36,15 +36,15 @@ try {for(const mobile of [false,true])for(const reducedMotion of ['reduce','no-p
   if (!mobile) {
     await page.setViewportSize({width:390,height:844});
     await page.waitForFunction(()=>document.querySelector('[data-projection]')?.clientWidth <= 390);
-    await page.waitForFunction(()=>Number(document.querySelector('[data-projection]')?.getAttribute('data-zoom')) <= 1.5,{},{timeout:3000});
-    assert.ok((await state()).zoom <= 1.5,`${name}: untouched landing must cap zoom on mobile resize`);
+    await page.waitForTimeout(300);
+    assert.ok(Math.abs((await state()).zoom-initial.zoom)<0.05,`${name}: resize must preserve camera zoom`);
     await page.setViewportSize({width:1440,height:1100});
   }
   const ids=await page.locator('[data-posting-id]').evaluateAll(rows=>rows.map(row=>row.dataset.postingId));
   const point=payload.points.find(point=>ids.includes(point.posting_id));assert.ok(point);
   await page.locator(`[data-posting-id="${point.posting_id}"] > button`).click();await page.waitForTimeout(1500);
   assert.equal(await page.locator('[data-globe-posting]').getAttribute('data-globe-posting'),point.posting_id);
-  const selected=await state();assert.equal(selected.projection,'globe');assert.ok(Number.isFinite(selected.zoom)&&selected.zoom>=1.2&&selected.zoom<=1.9);
+  const selected=await state();assert.equal(selected.projection,'globe');assert.ok(Number.isFinite(selected.zoom)&&selected.zoom>=5);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
   receipts.push({name,initial,restored,selected,postings:payload.jobs.length,mapped:payload.points.length,errors});
  }catch(error){await page.screenshot({path:`${output}/${name}-failure.png`,fullPage:false});throw error;}finally{await context.close();}

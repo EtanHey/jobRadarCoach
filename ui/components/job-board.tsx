@@ -56,6 +56,9 @@ export function JobBoard() {
   const [globeMounted, setGlobeMounted] = useState(false);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
   const [globeSelectionRequest, setGlobeSelectionRequest] = useState(0);
+  const [globeSelectionSource, setGlobeSelectionSource] = useState<"point" | "rail">("rail");
+  const [cameraAction, setCameraAction] = useState<{ kind: "location" | "reset"; id: number }>({ kind: "reset", id: 0 });
+  const [cameraAway, setCameraAway] = useState(false);
   const [globeWarning, setGlobeWarning] = useState("");
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
   const patchGlobeStatus = globe.patchStatus;
@@ -75,8 +78,9 @@ export function JobBoard() {
   const selectedGlobeGroup = groups.find(group => [group.job, ...group.alternates].some(job => job.id === globeSelected));
   const activeGlobeSelection = selectedGlobeGroup ? globeSelected : null;
   function failGlobe() { setGlobeOpen(false); setGlobeMounted(false); setViewport(null); setGlobeWarning("The globe could not load. Your list is still here."); }
-  function focusGlobeRow(id: string | null) {
+  function focusGlobeRow(id: string | null, source: "point" | "rail" = "rail") {
     setGlobeSelected(id);
+    setGlobeSelectionSource(source);
     setGlobeSelectionRequest(value => value + 1);
     const rowId = groups.find(group => [group.job, ...group.alternates].some(job => job.id === id))?.job.id;
     if (rowId) requestAnimationFrame(() => {
@@ -111,7 +115,7 @@ export function JobBoard() {
     if (id !== null) { setDetail(null); setDetailError(""); }
   }
   function openGlobeJob(id: string) {
-    focusGlobeRow(id);
+    focusGlobeRow(id, "point");
     const rowId = points.find(point => point.posting_id === id)?.rowId;
     openerRef.current = document.activeElement instanceof HTMLButtonElement ? document.activeElement
       : document.querySelector<HTMLButtonElement>(`[data-posting-id="${rowId}"] > button`);
@@ -144,12 +148,14 @@ export function JobBoard() {
   }
   function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value, view.availability); setPreferences((current) => preferencesForBoardFilter(current, value)); }
   function changeView(next: ViewOptions) {
+    if (next.location !== view.location) setCameraAction(current => ({ kind: "location", id: current.id + 1 }));
     const nextFilter = next.statuses.length > 0 ? "all" : filter;
     if (nextFilter !== filter || next.availability !== view.availability) prepareListSource(nextFilter, next.availability);
     setPreferences((current) => preferencesForPipelineStatuses({ ...current, view: next }, next.statuses));
   }
   function setSearch(search: string) { setPreferences((current) => ({ ...current, view: { ...current.view, search } })); }
   function resetView() {
+    setCameraAction(current => ({ kind: "reset", id: current.id + 1 }));
     const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
     if (storage) clearBoardPreferences(storage);
     const next = defaultBoardPreferences();
@@ -317,7 +323,7 @@ export function JobBoard() {
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} actions={globeToggle} />} />
+      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer
