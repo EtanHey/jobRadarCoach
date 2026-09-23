@@ -1,9 +1,13 @@
+import copy
+import json
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from scraper import forward_scoring_runtime as runtime
+from scraper.brain import BrainResult
 from scraper.codex_process import verify_codex_version
 from scraper.forward_scoring_inputs import assemble_manifest
 from scraper.forward_scoring_inputs import _freeze_identity, _sha
@@ -115,8 +119,72 @@ def test_reference_scoring_uses_hosted_projection_and_local_validation_profile(
     assert seen["posting"] == frozen["hosted_payload"]["public_posting"]
     assert seen["history"] == []
     assert seen["options"]["profile_snapshot"] == frozen["reference_validation_profile"]
+    assert (
+        seen["options"]["validation_profile"] == frozen["reference_validation_profile"]
+    )
     assert result["fit_score"] == 73
     assert result["cost_per_row_usd"] is None
+
+
+def _captured_reference_row():
+    fixture = json.loads(
+        (
+            Path(__file__).parent / "fixtures/reference_validation_profile.json"
+        ).read_text()
+    )
+    return {"frozen_input": fixture}, fixture["raw_data"]
+
+
+def test_captured_reference_answer_validates_without_changing_hosted_request():
+    row, raw = _captured_reference_row()
+    frozen = row["frozen_input"]
+    hosted = frozen["hosted_payload"]
+    captured = []
+
+    def runner(request, snapshot):
+        captured.append((request, snapshot))
+        return BrainResult(
+            copy.deepcopy(raw), "codex", "configured:gpt-5.6-terra", request=request
+        )
+
+    legacy_diagnostics = []
+    legacy = runtime.core.score_projected(
+        hosted["professional_profile"],
+        hosted["public_posting"],
+        [],
+        profile_snapshot=frozen["reference_validation_profile"],
+        brain_runner=runner,
+        diagnostic=legacy_diagnostics.append,
+    )
+    assert legacy is None
+    assert legacy_diagnostics == ["semantic"]
+
+    result = runtime.score_reference(row, runner)
+
+    assert result["fit_score"] == 82
+    assert len(captured) == 3
+    assert all(
+        snapshot is frozen["reference_validation_profile"] for _, snapshot in captured
+    )
+    assert captured[0][0].prompt.encode() == captured[-1][0].prompt.encode()
+    assert captured[0][0].output_schema == captured[-1][0].output_schema
+
+
+def test_captured_reference_answer_still_rejects_invalid_evidence():
+    row, raw = _captured_reference_row()
+    invalid = copy.deepcopy(raw)
+    invalid["fit_line"] += " Kubernetes"
+    calls = []
+
+    def runner(request, snapshot):
+        calls.append(request)
+        return BrainResult(
+            invalid, "codex", "configured:gpt-5.6-terra", request=request
+        )
+
+    with pytest.raises(RuntimeError, match=r"reference scorer failed \(semantic\)"):
+        runtime.score_reference(row, runner)
+    assert len(calls) == runtime.core.MAX_ATTEMPTS
 
 
 def test_jev_scoring_sends_only_the_frozen_hosted_payload(tmp_path, monkeypatch):

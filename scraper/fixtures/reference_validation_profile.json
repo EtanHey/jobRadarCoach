@@ -1,0 +1,340 @@
+{
+  "hosted_payload": {
+    "professional_profile": {
+      "candidate": {
+        "fit_terms": [
+          "ai-engineer",
+          "llm-engineer",
+          "agents",
+          "frontend",
+          "fullstack-ui",
+          "integrations",
+          "backend-adjacent",
+          "fullstack",
+          "saas",
+          "general"
+        ],
+        "positioning": "Full-stack + AI-infra engineer, ~3 yrs. No CS degree (400-hr bootcamp, Graduated with Distinction). Techstars '25 alum.",
+        "professional_depth": {
+          "Go": [
+            "hands-on",
+            "directed-AI"
+          ],
+          "Hono": [
+            "directed-AI"
+          ],
+          "Kubernetes": [
+            "studied-with-AI"
+          ],
+          "LiveKit": [
+            "directed-AI",
+            "studied-with-AI"
+          ],
+          "MCP": [
+            "directed-AI",
+            "studied-with-AI"
+          ],
+          "Next.js": [
+            "hands-on",
+            "directed-AI"
+          ],
+          "Node.js": [
+            "hands-on",
+            "directed-AI"
+          ],
+          "PostgreSQL/Supabase": [
+            "hands-on"
+          ],
+          "Python": [
+            "directed-AI"
+          ],
+          "React": [
+            "hands-on",
+            "directed-AI"
+          ],
+          "React Native / Expo": [
+            "hands-on",
+            "directed-AI"
+          ],
+          "SvelteKit": [
+            "hands-on",
+            "directed-AI"
+          ],
+          "TypeScript": [
+            "hands-on",
+            "directed-AI"
+          ]
+        },
+        "professional_preferences": {
+          "free_text": null,
+          "levels": [
+            "Mid-level",
+            "Senior",
+            "Junior"
+          ],
+          "red_flag_words": [],
+          "roles": [
+            "Software Engineer",
+            "Full Stack Engineer",
+            "Frontend Engineer",
+            "Backend Engineer",
+            "Product Engineer",
+            "Platform Engineer",
+            "AI Engineer",
+            "Machine Learning Engineer",
+            "Site Reliability Engineer"
+          ],
+          "salary_floor": null,
+          "stacks": [
+            "Go",
+            "MCP",
+            "Hono",
+            "React",
+            "Python",
+            "LiveKit",
+            "Next.js",
+            "Node.js",
+            "SvelteKit",
+            "Kubernetes",
+            "TypeScript",
+            "PostgreSQL/Supabase",
+            "React Native / Expo"
+          ]
+        },
+        "tenure_years": 3.7
+      },
+      "fit_signals": [
+        {
+          "claim": "Uses Claude Code as a primary development workflow across shipped full-stack and AI-infrastructure work.",
+          "evidence_id": "claude-code-workflow",
+          "status": "verified",
+          "tags": [
+            "claude-code",
+            "agents",
+            "product-shipping"
+          ],
+          "verified_scope": "Direct tool use is verified across shipped work."
+        },
+        {
+          "claim": "Shipped production voice-agent tool calling with a three-state contract, bounded retries, and an anti-hallucination ordering rule.",
+          "evidence_id": "voice-agent-tool-calling",
+          "status": "verified",
+          "tags": [
+            "agents",
+            "voice",
+            "tool-calling"
+          ],
+          "verified_scope": "Built the custom-function contract, webhook, registration, retry bound, and ordering rule."
+        },
+        {
+          "claim": "Persistent-memory MCP for AI agents with hybrid retrieval and a native macOS companion.",
+          "evidence_id": "brainlayer",
+          "status": "verified",
+          "tags": [
+            "agents",
+            "mcp",
+            "ai-infrastructure"
+          ],
+          "verified_scope": "Built the persistent-memory MCP and retrieval stack."
+        },
+        {
+          "claim": "Local speech for AI agents with native macOS dictation, TTS, and an MCP speech server.",
+          "evidence_id": "voicelayer",
+          "status": "verified",
+          "tags": [
+            "agents",
+            "voice",
+            "mcp",
+            "ai-infrastructure"
+          ],
+          "verified_scope": "Built the local speech stack and MCP server."
+        },
+        {
+          "claim": "MCP server for multi-agent terminal orchestration across workspaces.",
+          "evidence_id": "cmuxlayer",
+          "status": "verified",
+          "tags": [
+            "agents",
+            "mcp",
+            "ai-infrastructure"
+          ],
+          "verified_scope": "Built the orchestration server."
+        },
+        {
+          "claim": "Shipped four client products end to end and led two.",
+          "evidence_id": "weby-products",
+          "status": "verified",
+          "tags": [
+            "product-shipping",
+            "fullstack"
+          ],
+          "verified_scope": "Personally built the photographer CMS and Cloudinary media-ingestion path; on Mayart, built the frontend."
+        }
+      ]
+    },
+    "public_posting": {
+      "company": "Alicorn jobs",
+      "id": "b12ab396-d835-47d2-9678-2242e21d5efd",
+      "jd_text": "אנחנו מגייסים AI Agent Engineer לתפקיד hands-on של בנייה והעלאה לפרודקשן של AI Agents שמשתלבים במוצרים דיגיטליים פעילים ומשמשים משתמשים אמיתיים.\n\nהתפקיד כולל בניית agentic workflows עבור מערכות ומוצרים של לקוחות גדולים, חיבור Agents ל-APIs, מערכות ומקורות מידע, ועבודה עם tool calling ו-orchestration.\n\nלצד ה-AI יש רכיב Backend משמעותי, עם גמישות בשפת הפיתוח.\n\nמה צריך להביא?\n\nלפחות שנה ניסיון hands-on בבנייה והעלאה לפרודקשן של LLM Agents או Agentic Systems\n\nניסיון עם LangGraph, LangChain, AutoGen, CrewAI, Semantic Kernel או framework דומה\n\nניסיון ב-tool/function calling וב-agentic workflows מרובי שלבים\n\nלפחות 3 שנות ניסיון בפיתוח Backend של מערכות Production, כולל REST APIs ואינטגרציות; (שפת הפיתוח גמישה).\n\nניסיון עם LLM APIs כמו OpenAI, Anthropic, Azure OpenAI או AWS Bedrock\n\nיתרון\n\nניסיון ב-RAG, memory/state או multi-agent systems\n\nניסיון עם MCP\n\nניסיון ב-LLM observability/evaluation\n\nמודל עבודה: היברידי, 3 ימים מהבית.\n\n* משרה מס׳ #1047515 מיועדת לגברים ונשים כאחד\n\nNot more than 30k",
+      "location": "Ramat Gan, Tel Aviv District, Israel",
+      "title": "AI Agent Engineer"
+    }
+  },
+  "raw_data": {
+    "employer_type": "agency",
+    "fit_line": "Production voice-agent tool calling aligns directly with this role's agentic-workflow focus.",
+    "fit_line_evidence_ids": [
+      "voice-agent-tool-calling"
+    ],
+    "fit_score": 82,
+    "reasons": {
+      "employer_type": {
+        "assessment": "mixed",
+        "basis": "posting",
+        "detail": "Alicorn jobs is presenting work for client systems, indicating an agency or recruiter listing.",
+        "factor": "employer_type"
+      },
+      "preferences": {
+        "assessment": "unknown",
+        "basis": "comparison",
+        "detail": "Preferences and open-to information are withheld; no candidate fact or fit effect is assessed.",
+        "evidence_ids": [
+          "profile:preferences"
+        ],
+        "factor": "preferences"
+      },
+      "product_role_match": {
+        "assessment": "positive",
+        "basis": "comparison",
+        "detail": "Shipped production voice-agent tool calling with bounded retries and an anti-hallucination ordering rule.",
+        "evidence_ids": [
+          "voice-agent-tool-calling"
+        ],
+        "factor": "product_role_match"
+      },
+      "seniority_gap": {
+        "assessment": "positive",
+        "basis": "comparison",
+        "detail": "The stated 3.7 years of tenure exceeds this role's three-year backend experience requirement.",
+        "evidence_ids": [
+          "profile:tenure"
+        ],
+        "factor": "seniority_gap"
+      },
+      "stack_domain_evidence": {
+        "assessment": "positive",
+        "basis": "comparison",
+        "detail": "Built a persistent-memory MCP for AI agents with hybrid retrieval.",
+        "evidence_ids": [
+          "brainlayer"
+        ],
+        "factor": "stack_domain_evidence"
+      }
+    },
+    "seniority_real": false
+  },
+  "reference_validation_profile": {
+    "constraints": {
+      "evidence_scoped_prohibitions": {
+        "candidate-embedding-matching": [
+          "not just keywords",
+          "OpenAI SDK structured outputs",
+          "built the pgvector matching",
+          "matched candidates to jobs from their interview vector"
+        ],
+        "clio": [
+          "reads the full job description during the interview",
+          "company vitals fed to the interview",
+          "integrated Clio WITH Vapi (as if Clio were third-party)"
+        ],
+        "design-system": [
+          "sole author of the design system",
+          "introduced Storybook to the team",
+          "any story/component COUNT other than 21 of 27 at HEAD"
+        ],
+        "failure-rate": [
+          "any use of the ~35% or <2% figures on the resume",
+          "Eliminated interview failures",
+          "any measured/telemetry framing (no telemetry ever existed behind the number)",
+          "failed interview sessions"
+        ],
+        "golems": [
+          "is open-source",
+          "public repo"
+        ],
+        "int-college": [
+          "Graduated with Excellence",
+          "listing it like an employment title (use \"Full-Stack Development Program\")"
+        ],
+        "interview-quality-instrumentation": [
+          "any specific before/after rate (no computed value is committed anywhere; see failure-rate)",
+          "claiming the observability/Axiom stack (that is a colleague's)"
+        ],
+        "persistence": [
+          "eliminated data loss"
+        ],
+        "premature-ending-measured-fix": [
+          "reduced to under 2%",
+          "eliminated",
+          "16.6% to 9%"
+        ],
+        "ralph": [
+          "invented the Ralph loop",
+          "created Ralph"
+        ],
+        "retell-interview-volume": [
+          "any phrasing where the candidate rather than the SYSTEM is the subject of the interviews",
+          "3,400+ interviews",
+          "the exact 3,433 without a '+' (it is cumulative and still growing)",
+          "tying the count to the 1,000+ applications figure — the calls-per-application ratio is UNVERIFIED"
+        ],
+        "structured-output-generation": [
+          "model routing",
+          "chose gpt-4o-mini for cost",
+          "any generation VOLUME or adoption rate",
+          "evals / measured output quality",
+          "zodResponseFormat / the SDK structured-output helper"
+        ],
+        "unified-integration-layer": [
+          "any import VOLUME — the candidate's own code comment says the only known connection is stale Workstream data",
+          "the write-back / status-update sub-counts (a subagent said 46/28, a hand parse said 49/25 — contested)",
+          "103 deployed integrations or 103 customers (it is capability coverage)"
+        ],
+        "voice-agent-tool-calling": [
+          "verified Retell webhook signatures",
+          "measured / evaluated the hallucination rate",
+          "MCP",
+          "any share of the 3,400+ interviews",
+          "built Retell's function-calling"
+        ],
+        "weby-products": [
+          "built the Mayart CMS/backend"
+        ],
+        "wendys-pilot": [
+          "52-location",
+          "50-location pilot",
+          "rolled out to 50 locations",
+          "Wendy's enterprise contract",
+          "company-wide Wendy's rollout",
+          "built the Wendy's ATS/Workstream integration"
+        ]
+      },
+      "global_never_claims": [
+        "Kubernetes",
+        "Kafka",
+        "Redis",
+        "Elasticsearch",
+        "Snowflake",
+        "microservices at scale",
+        "Angular",
+        "Vue",
+        "C#",
+        "Azure",
+        "GCP-as-platform",
+        "SRE",
+        "Electron",
+        "cybersecurity domain"
+      ]
+    }
+  }
+}

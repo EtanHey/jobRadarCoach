@@ -160,6 +160,7 @@ def score_reference(
         hosted["public_posting"],
         [],
         profile_snapshot=frozen["reference_validation_profile"],
+        validation_profile=frozen["reference_validation_profile"],
         brain_runner=runner,
         diagnostic=diagnostics.append,
     )
