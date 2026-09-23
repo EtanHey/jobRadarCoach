@@ -42,6 +42,7 @@ try {
     await map.waitFor({ timeout: 30000 });
     await page.locator(".globe-controls").waitFor();
     await page.waitForFunction(() => document.querySelector('[data-projection="globe"]')?.dataset.waterColor);
+    await page.waitForFunction(() => document.querySelector('[data-projection="globe"]')?.dataset.dotRingColor);
     assert.ok(styleUrls.every(url => url.includes("voyager")), `inactive dark style fetched: ${styleUrls}`);
     const canvas = page.locator(".maplibregl-canvas");
     await canvas.evaluate(node => { window.__initialCanvas = node; });
@@ -64,7 +65,10 @@ try {
       ocean: node.dataset.waterColor, land: node.dataset.landColor, border: node.dataset.borderColor,
       label: node.dataset.labelColor, sky: node.dataset.skyColor, theme: node.dataset.styleTheme }));
     assert.deepEqual(await paint(), { ...expected.light, theme: "light" });
+    assert.equal(await map.getAttribute("data-dot-ring-color"), "255,255,255,255", "light Deck sticker ring is white");
     assert.equal(await page.locator('[data-globe-legend] i').nth(3).evaluate(node => getComputedStyle(node).backgroundColor), "rgba(0, 0, 0, 0)");
+    assert.equal(await page.locator('[data-globe-legend] i').nth(3).evaluate(node => getComputedStyle(node).borderTopColor), "rgb(100, 116, 139)");
+    assert.equal(await page.locator('[aria-label="Not scored"]').first().evaluate(node => getComputedStyle(node).borderTopColor), "rgb(100, 116, 139)");
     assert.equal(await page.locator('[data-globe-legend] i').nth(1).evaluate(node => getComputedStyle(node).backgroundColor), "rgb(245, 158, 11)");
     assert.equal(await page.locator('[aria-label="Fit score 85 out of 100"]').first().evaluate(node => getComputedStyle(node).backgroundColor), "rgb(16, 185, 129)");
     const bubble = await page.locator(".globe-cluster").first().evaluate(node => ({ size: getComputedStyle(node, "::before").width,
@@ -79,6 +83,9 @@ try {
     await page.getByRole("button", { name: "Use dark theme" }).click();
     await page.waitForFunction(() => document.querySelector('[data-projection="globe"]')?.dataset.styleTheme === "dark");
     assert.deepEqual(await paint(), { ...expected.dark, theme: "dark" });
+    assert.equal(await map.getAttribute("data-dot-ring-color"), "5,10,20,255", "dark Deck sticker ring matches dark paper");
+    assert.equal(await page.locator(".job-globe .maplibregl-ctrl-attrib").evaluate(node => getComputedStyle(node).backgroundColor),
+      await page.locator(".globe-controls").evaluate(node => getComputedStyle(node).backgroundColor), "dark attribution uses the card surface");
     const darkControls = await inspectControls();
     assert.ok(darkControls.every(control => control.dx < 1 && control.dy < 1 && control.contrast >= 4.5), JSON.stringify(darkControls));
     assert.ok(styleUrls.some(url => url.includes("dark-matter")), "dark style fetched on demand");
@@ -94,14 +101,25 @@ try {
     assert.equal(await page.locator(".job-globe").evaluate(node => document.fullscreenElement === node), true);
     assert.equal(await page.locator(".globe-rail").evaluate(node => document.fullscreenElement?.contains(node)), false);
     await page.getByRole("button", { name: "Exit full screen" }).click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+    await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error("fixture denied")); });
+    await page.getByRole("button", { name: "Full screen" }).click();
+    await page.waitForTimeout(100);
     assert.equal(errors.length, 0, JSON.stringify(errors));
     console.log(JSON.stringify({ result: "PASS", controls, darkControls, bubble, styleUrls, before, after: await paint() }));
   } finally { await context.close(); }
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "reduce" });
   try {
-    await mobile.addInitScript(() => { localStorage.setItem("job-radar-theme", "dark"); window.EventSource = class { addEventListener() {} close() {} }; });
+    await mobile.addInitScript(() => {
+      delete Element.prototype.requestFullscreen;
+      Object.defineProperty(Document.prototype, "fullscreenEnabled", { get: () => false });
+      localStorage.setItem("job-radar-theme", "dark");
+      window.EventSource = class { addEventListener() {} close() {} };
+    });
     const page = await mobile.newPage();
     const mobileStyleUrls = [];
+    const mobileErrors = [];
+    page.on("pageerror", error => mobileErrors.push(error.message));
     await page.route("**/*", route => {
       const url = new URL(route.request().url());
       if (url.hostname.endsWith("cartocdn.com")) { if (url.pathname.endsWith("style.json")) mobileStyleUrls.push(url.pathname); return route.continue(); }
@@ -113,9 +131,11 @@ try {
     await page.goto(base);
     await page.getByRole("button", { name: "Globe", exact: true }).filter({ visible: true }).click();
     await page.locator(".globe-controls").waitFor({ timeout: 30000 });
+    assert.equal(await page.getByRole("button", { name: "Full screen" }).count(), 0, "unsupported Fullscreen API hides the control");
     const sizes = await page.locator(".globe-controls button").evaluateAll(buttons => buttons.map(button => button.getBoundingClientRect().width));
-    assert.deepEqual(sizes, [44, 44, 44, 44]);
+    assert.deepEqual(sizes, [44, 44, 44]);
     assert.ok(mobileStyleUrls.length && mobileStyleUrls.every(url => url.includes("dark-matter")), JSON.stringify(mobileStyleUrls));
+    assert.deepEqual(mobileErrors, []);
     console.log(JSON.stringify({ mobileControlSizes: sizes, mobileStyleUrls }));
   } finally { await mobile.close(); }
 } finally { await browser.close(); }
