@@ -12,6 +12,16 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
 ) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql://hosted.example/job_radar")
     registry = json.loads((Path(__file__).parent / "source-registry.json").read_text())
+    appended = next(row.copy() for row in registry["tenants"] if row["source"] == "greenhouse")
+    appended.update(
+        identifiers={"board": "lateaddition"},
+        company="Late Addition",
+        careers_url="https://job-boards.greenhouse.io/lateaddition",
+    )
+    registry["tenants"].append(appended)
+    registry_path = tmp_path / "source-registry.json"
+    registry_path.write_text(json.dumps(registry))
+    monkeypatch.setattr(cloud_run, "REGISTRY_PATH", registry_path, raising=False)
     searches = json.loads((Path(__file__).parent / "searches.yaml").read_text())["searches"]
     source_urls = {name: [] for name in cloud_run.ALL_SOURCES}
     source_urls["linkedin"] = [f"https://linkedin.com/search/{i}" for i in range(len(searches))]
@@ -26,8 +36,10 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
 
     def harvest_main(argv: list[str]) -> int:
         captured["argv"] = argv
-        urls = [url for source in cloud_run.ALL_SOURCES for url in source_urls[source]]
+        urls = [url for source in cloud_run.ALL_SOURCES if source != "workable" for url in source_urls[source]]
+        urls += source_urls["workable"][:1]
         urls += [f"https://apply.workable.com/acme/jobs/view/{i}.md" for i in range(5)]
+        urls += source_urls["workable"][1:]
         for url in urls:
             cloud_run.harvest.fetch_html(url)
         jd = cloud_run.harvest.load_full_jd_fetcher()
@@ -62,14 +74,16 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     assert captured["argv"][captured["argv"].index("--max-pages") + 1] == "2"
     attempted_set = {url for url, _backoffs, _opener in attempted}
     assert all(set(urls) <= attempted_set for urls in source_urls.values())
+    assert appended["careers_url"] in attempted_set
     assert all(not backoffs and opener == cloud_run.NO_REDIRECT_OPEN for _url, backoffs, opener in attempted)
     assert loader_openers == [cloud_run.NO_REDIRECT_OPEN] * 2
-    assert len(attempted) == 48 and len(jd_attempted) == 8 and len(liveness_attempted) == 4
+    assert len(attempted) == sum(map(len, source_urls.values())) + 5
+    assert len(jd_attempted) == 8 and len(liveness_attempted) == 4
 
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt == {
         "exit_code": 0,
-        "network_request_skips": 11,
+        "network_request_skips": 8,
         "result": {"fetched_count": 8, "new_count": 3},
         "run_id": "local",
         "schema_version": 1,
