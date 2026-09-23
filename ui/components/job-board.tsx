@@ -52,9 +52,10 @@ export function JobBoard() {
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [globeOpen, setGlobeOpen] = useState(false);
-  const [viewport, setViewport] = useState<{ key: string; ids: string[] } | null>(null);
+  const [viewport, setViewport] = useState<{ key: string; positions: string; evaluated: Set<string>; ids: string[] } | null>(null);
   const [globeMounted, setGlobeMounted] = useState(false);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
+  const [globeSelectionRequest, setGlobeSelectionRequest] = useState(0);
   const [globeWarning, setGlobeWarning] = useState("");
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
   const patchGlobeStatus = globe.patchStatus;
@@ -62,18 +63,21 @@ export function JobBoard() {
   const displayJobs = globeActive && globe.data ? globe.data.jobs : jobs;
   const groups = useMemo(() => filterJobGroups(displayJobs, view), [displayJobs, view]);
   const points = useMemo(() => globePoints(groups, globe.data?.points ?? []), [groups, globe.data]);
+  const positionKey = useMemo(() => globe.data?.points.map(point => `${point.posting_id}:${point.lng}:${point.lat}`).sort().join("|") ?? "", [globe.data]);
   const viewportKey = `${filter}/${view.availability}`;
-  const visiblePostingIds = globeActive && globe.data && viewport?.key === viewportKey ? viewport.ids : undefined;
+  const visiblePostingIds = globeActive && globe.data && viewport?.key === viewportKey && viewport.positions === positionKey && points.every(point => viewport.evaluated.has(point.posting_id)) ? viewport.ids : undefined;
   const updateViewport = useCallback((ids: string[]) => {
     if (!globeActive || !globe.data) return;
-    setViewport(current => current?.key === viewportKey && current.ids.length === ids.length && current.ids.every((id, index) => id === ids[index]) ? current : { key: viewportKey, ids });
-  }, [globeActive, globe.data, viewportKey]);
+    const evaluated = new Set(points.map(point => point.posting_id));
+    setViewport(current => current?.key === viewportKey && current.positions === positionKey && current.evaluated.size === evaluated.size && points.every(point => current.evaluated.has(point.posting_id)) && current.ids.length === ids.length && current.ids.every((id, index) => id === ids[index]) ? current : { key: viewportKey, positions: positionKey, evaluated, ids });
+  }, [globeActive, globe.data, points, positionKey, viewportKey]);
   const globeCounts = globe.data ? countGlobeRoles(groups, points) : null;
   const selectedGlobeGroup = groups.find(group => [group.job, ...group.alternates].some(job => job.id === globeSelected));
   const activeGlobeSelection = selectedGlobeGroup ? globeSelected : null;
   function failGlobe() { setGlobeOpen(false); setGlobeMounted(false); setViewport(null); setGlobeWarning("The globe could not load. Your list is still here."); }
   function focusGlobeRow(id: string | null) {
     setGlobeSelected(id);
+    setGlobeSelectionRequest(value => value + 1);
     const rowId = groups.find(group => [group.job, ...group.alternates].some(job => job.id === id))?.job.id;
     if (rowId) requestAnimationFrame(() => {
       const row = document.querySelector<HTMLElement>(`[data-posting-id="${rowId}"]`);
@@ -307,13 +311,13 @@ export function JobBoard() {
   const relatedJobs = relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
-  const globeToggle = <Button variant={globeActive ? "default" : "outline"} aria-pressed={globeActive} onClick={() => { if (!globeActive) setGlobeMounted(true); setGlobeOpen(!globeActive); setViewport(null); setGlobeWarning(""); if (globe.failure) setRevision(value => value + 1); }}>Globe</Button>;
+  const globeToggle = <Button variant={globeActive ? "default" : "outline"} aria-pressed={globeActive} onClick={() => { if (!globeActive) setGlobeMounted(true); setGlobeOpen(!globeActive); setGlobeWarning(""); if (globe.failure) { setViewport(null); setRevision(value => value + 1); } }}>Globe</Button>;
   const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.unmapped} {globeCounts.unmapped === 1 ? "role" : "roles"} not on globe</span><span>{globeCounts.mapped} {globeCounts.mapped === 1 ? "role" : "roles"} mapped{points.length > 5000 ? " · showing a sample of up to 5,000 postings" : ""}</span></>}{globeActive && !globe.data && <span role="status">Loading all posting locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
   return <div className={`bg-background text-foreground ${globeActive ? "board-globe-open" : "min-h-screen"}`}>
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} points={points} selected={activeGlobeSelection} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} actions={globeToggle} />} />
+      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences)} actions={globeToggle} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer

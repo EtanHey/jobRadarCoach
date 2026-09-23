@@ -43,9 +43,13 @@ try {
     });
     try {
       await page.goto(base);
+      if (name === "short-desktop" && phase === "after") {
+        assert.ok(await page.getByRole("combobox", { name: "Work mode" }).isVisible(), "list view keeps inline filters at 1024px");
+        assert.equal(await page.getByRole("button", { name: /Filters/ }).isVisible(), false, "list view does not force the filter sheet at 1024px");
+      }
       await page.getByRole("button", { name: "Globe", exact: true }).click();
       await page.getByText("Drag to explore", { exact: false }).waitFor({ timeout: 30000 });
-      await page.waitForTimeout(900);
+      await page.getByRole("heading", { name: "On screen", exact: true }).waitFor();
       const metrics = await page.evaluate(() => {
         const box = selector => document.querySelector(selector)?.getBoundingClientRect();
         const globe = box(".job-globe"), rail = box(".globe-rail"), layout = box(".globe-layout");
@@ -80,13 +84,23 @@ try {
       await page.screenshot({ path: `${output}/${name}-${phase}-viewport.png` });
       if (name === "mobile" && phase === "after") {
         await page.locator(".globe-cluster").first().click();
-        const choices = await page.getByRole("region", { name: "Postings at this point" }).boundingBox();
+        const panel = page.getByRole("region", { name: "Postings at this point" });
+        const choices = await panel.boundingBox();
         const location = await page.getByRole("button", { name: "Use my location" }).boundingBox();
+        const attribution = await page.locator(".maplibregl-ctrl-attrib").first().boundingBox();
         assert.ok(choices && location, "cluster choices and location control are visible");
         assert.ok(choices.y >= metrics.globe.y && choices.y + choices.height <= metrics.globe.y + metrics.globe.height, "choices stay inside the map");
         assert.ok(choices.y >= location.y + location.height, "choices do not cover the location control");
+        assert.ok(attribution && choices.y + choices.height <= attribution.y, "choices leave CARTO attribution visible");
+        assert.ok(await page.getByText("Starts near Rehovot · your location is not saved. CARTO receives tiles for the map area.").isVisible(), "touch helper names the starting point and explains location and tile requests");
         assert.equal(await page.locator("[data-globe-posting]:visible").count(), 0, "focused card does not cover open choices");
         await page.screenshot({ path: `${output}/mobile-cluster-open.png` });
+        await page.locator(".maplibregl-ctrl-location-status").evaluate(node => { node.textContent = "Centered near you · not saved by Job Radar"; });
+        const status = await page.locator(".maplibregl-ctrl-location-status").boundingBox();
+        const shifted = await panel.boundingBox();
+        assert.ok(status && shifted && (status.y + status.height <= shifted.y || status.x + status.width <= shifted.x || shifted.x + shifted.width <= status.x), "location status never overlaps open choices");
+        assert.equal(await page.locator(".globe-location-help").isVisible(), false, "location status temporarily replaces the helper");
+        await page.screenshot({ path: `${output}/mobile-status-choices.png` });
       }
       receipts.push({ name, metrics, errors });
       if (phase === "after") {
@@ -102,12 +116,20 @@ try {
           assert.ok(metrics.zoomButtons.every(button => button && button.top >= metrics.globe.y && button.bottom <= metrics.globe.y + metrics.globe.height), "both zoom buttons stay inside the map");
         }
         if (name === "desktop" || name === "laptop") {
+          const selectFont = await page.getByRole("combobox", { name: "Work mode" }).evaluate(node => getComputedStyle(node).fontSize);
+          const pipelineFont = await page.locator('summary[aria-label^="Pipeline status"]').evaluate(node => getComputedStyle(node).fontSize);
+          assert.equal(pipelineFont, selectFont, "pipeline filter matches compact select typography");
+          const selectPadding = await page.getByRole("combobox", { name: "Work mode" }).evaluate(node => getComputedStyle(node).paddingLeft);
+          const pipelinePadding = await page.locator('summary[aria-label^="Pipeline status"]').evaluate(node => getComputedStyle(node).paddingLeft);
+          assert.equal(pipelinePadding, selectPadding, "pipeline filter matches compact select padding");
           assert.ok(metrics.documentHeight <= viewport.height + 1, "document does not scroll in globe mode");
           assert.ok(metrics.railScrollHeight > metrics.railClientHeight + 100, "rail owns vertical scroll");
           assert.ok(Math.abs(metrics.globe.y - metrics.rail.y) < 5, "map and rail align");
           assert.ok(metrics.layout.height >= viewport.height - metrics.layout.y - 45, "map and rail fill remaining viewport above connection status");
           assert.ok(metrics.layout.y < 320, "header and filters are compact");
         } else if (name === "short-desktop") {
+          assert.ok(await page.getByRole("button", { name: /Filters/ }).isVisible(), "filters collapse below xl");
+          assert.ok(metrics.layout.y < 300, "collapsed filters lift the map at 1024px");
           assert.ok(metrics.documentHeight > viewport.height + 100, "short desktop allows page scrolling to recover map height");
           assert.equal(metrics.railScrollHeight, metrics.railClientHeight, "short desktop uses one page scrollbar");
         } else {

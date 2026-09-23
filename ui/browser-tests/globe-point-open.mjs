@@ -44,9 +44,9 @@ try{for(const mobile of [false,true]){
   await drawer.getByText(`Fixture body ${id(0)}`,{exact:true}).waitFor();
   assert.equal(requests.filter(r=>r.method!=='GET').length,0,'Related listing preserves read-only opening');
   await drawer.getByRole('button',{name:'Close',exact:true}).click();await drawer.waitFor({state:'hidden'});
-  await page.getByRole('button',{name:'Globe',exact:true}).click();await page.getByRole('button',{name:'Open Exact alternate engineer at Point fixture',exact:true}).click();
+  await page.getByRole('button',{name:'Globe',exact:true}).click();const seenRequest=page.waitForRequest(req=>new URL(req.url()).pathname===`/api/jobs/${id(0)}/status`&&req.method()==='PATCH');await page.getByRole('button',{name:'Open Exact alternate engineer at Point fixture',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('[role="dialog"]'));
-  await page.waitForTimeout(400);assert.ok(requests.some(r=>r.method==='PATCH'),'ordinary list open retains existing seen behavior');
+  const patchRequest=await seenRequest;assert.equal(patchRequest.method(),'PATCH','ordinary list open retains existing seen behavior');
   assert.deepEqual(errors,[]);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   receipts.push({name,requests,errors});
  }catch(error){await page.screenshot({path:`${output}/${name}-failure.png`,fullPage:!mobile});throw error;}finally{await context.close();}

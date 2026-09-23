@@ -8,9 +8,9 @@ import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filt
 import { AppSelect, type SelectOption } from "@/components/ui/select";
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
-export function JobToolbar({ jobs, options, onChange, onReset, canReset = false, actions }: {
+export function JobToolbar({ jobs, options, onChange, onReset, canReset = false, actions, globeOpen = false }: {
   jobs: JobSummary[]; options: ViewOptions; onChange: (next: ViewOptions) => void;
-  onReset?: () => void; canReset?: boolean; actions?: ReactNode;
+  onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement | null>(null);
@@ -29,8 +29,8 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
     <div key={key} className="min-w-0"><AppSelect compact label={label} value={options[key] === undefined ? "" : String(options[key])} options={choices} onValueChange={(value) => onChange({ ...options, [key]: key === "remote" ? value === "" ? undefined : value === "true" : value })} /></div>,
   ]);
   return <div data-job-toolbar>
-    <div className="hidden items-end gap-3 pb-2 md:flex"><div className="grid min-w-0 flex-1 grid-cols-3 items-end gap-3 xl:grid-cols-8">{controls}</div><div className="flex shrink-0 items-center gap-1"><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div></div>
-    <div className="flex flex-wrap items-center gap-2 pb-2 md:hidden"><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>}</Button><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
+    <div className={`hidden items-end gap-3 pb-2 ${globeOpen ? "xl:flex" : "md:flex"}`}><div className="grid min-w-0 flex-1 grid-cols-8 items-end gap-3">{controls}</div><div className="flex shrink-0 items-center gap-1"><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div></div>
+    <div className={`flex flex-wrap items-center gap-2 pb-2 ${globeOpen ? "xl:hidden" : "md:hidden"}`}><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>}</Button><Button type="button" variant="ghost" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
     <Sheet open={open} onOpenChange={setOpen}><SheetContent finalFocus={opener} className="overflow-y-auto data-[side=right]:w-full">
       <SheetHeader><SheetTitle>Filters</SheetTitle><SheetDescription>Narrow the roles and choose their order.</SheetDescription></SheetHeader>
       <div className="grid gap-5 px-4">{controls}<Button onClick={() => setOpen(false)}>Show roles</Button></div>

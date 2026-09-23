@@ -24,7 +24,7 @@ try {for(const mobile of [false,true])for(const reducedMotion of ['reduce','no-p
   assert.equal(await page.locator('[data-projection]').count(),0,`${name}: a zero-size slot must not construct a map`);
   await hidden.evaluate(el=>el.remove());
   await page.waitForFunction(()=>document.querySelector('[data-projection="globe"]'),{},{timeout:30000});
-  await page.waitForTimeout(500);
+  await page.getByRole('heading',{name:'On screen',exact:true}).waitFor();
   const state=()=>page.locator('[data-projection]').evaluate(el=>({projection:el.dataset.projection,zoom:Number(el.dataset.zoom),width:el.clientWidth,height:el.clientHeight}));
   const initial=await state();assert.equal(initial.projection,'globe');assert.ok(initial.width>300&&initial.height>300);
   assert.ok(initial.zoom>=1.2&&initial.zoom<=1.9,`${name}: hidden-load landing must show a useful, unclipped sphere, got ${initial.zoom}`);
@@ -33,6 +33,13 @@ try {for(const mobile of [false,true])for(const reducedMotion of ['reduce','no-p
   const restored=await state();assert.ok(Math.abs(restored.zoom-initial.zoom)<0.05,`${name}: hidden/visible resize corrupted zoom ${initial.zoom} -> ${restored.zoom}`);
   await page.screenshot({path:`${output}/${name}.png`,fullPage:!mobile});await page.waitForTimeout(250);
   assert.ok(Math.abs((await state()).zoom-initial.zoom)<0.05,`${name}: capture resize corrupted zoom`);
+  if (!mobile) {
+    await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(()=>document.querySelector('[data-projection]')?.clientWidth <= 390);
+    await page.waitForFunction(()=>Number(document.querySelector('[data-projection]')?.getAttribute('data-zoom')) <= 1.5,{},{timeout:3000});
+    assert.ok((await state()).zoom <= 1.5,`${name}: untouched landing must cap zoom on mobile resize`);
+    await page.setViewportSize({width:1440,height:1100});
+  }
   const ids=await page.locator('[data-posting-id]').evaluateAll(rows=>rows.map(row=>row.dataset.postingId));
   const point=payload.points.find(point=>ids.includes(point.posting_id));assert.ok(point);
   await page.locator(`[data-posting-id="${point.posting_id}"] > button`).click();await page.waitForTimeout(1500);
