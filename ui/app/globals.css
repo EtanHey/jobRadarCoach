@@ -204,11 +204,12 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
 .job-globe .maplibregl-ctrl-location-wrap { position: relative; }
 .job-globe .maplibregl-ctrl-location-status { position: absolute; top: 0; right: 48px; width: max-content; max-width: min(280px, calc(100vw - 6rem)); padding: .65rem .75rem; border: 1px solid rgb(148 163 184 / .35); border-radius: .5rem; background: rgb(15 23 42 / .96); color: #e2e8f0; font-size: .75rem; line-height: 1rem; box-shadow: 0 4px 12px rgb(0 0 0 / .2); }
 .job-globe .maplibregl-ctrl-location-status:empty { display: none; }
-.job-globe:has(.maplibregl-ctrl-location-status:not(:empty)) #globe-posting-choices { top: 10rem; }
-.job-globe:has(.maplibregl-ctrl-location-status:not(:empty)) #globe-posting-choices { max-height: calc(100% - 13rem); }
 
 .globe-cluster { z-index: 3; width: 44px; height: 44px; border: 6px solid transparent; border-radius: 50%; background: var(--cluster-color); background-clip: padding-box; color: #08111c; font: 700 14px/32px sans-serif; text-align: center; cursor: pointer; }
 .globe-cluster { transition: scale 120ms ease-out; }
+.globe-cluster-stack { box-shadow: 0 0 0 3px #080f1c, 0 0 0 6px var(--cluster-color); }
+.globe-cluster-active { outline: 3px solid var(--globe-select, #0f766e); outline-offset: 2px; }
+.dark .globe-cluster-active { --globe-select: #5eead4; }
 .globe-cluster:hover { scale: 1.06; }
 .globe-cluster-selected { animation: globe-selection-pulse 360ms ease-out 1; }
 @keyframes globe-selection-pulse { 50% { box-shadow: 0 0 0 8px rgb(255 255 255 / .45); } }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clusterPoints, clusterScore, globeChoices, globePoints, pointLabel, scoreColor, thinPoints, type PostingPoint } from "../lib/globe-model";
+import { clusterPoints, clusterScore, clusterRoleIds, clusterPlace, clusterIsStack, globePoints, pointLabel, scoreColor, thinPoints, type PostingPoint } from "../lib/globe-model";
 import { JobSummarySchema } from "../lib/contracts";
 const job = (n: number) => JobSummarySchema.parse({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, title: "Engineer", company: "Example", source: "test", last_seen_at: "2026-09-22", experience: null, description_available: false, seniority_origin: "unknown", extraction_state: "not-extracted", location: null, remote: null, seniority: null, stack: [], salary: null, url: "https://example.test", apply_url: null, posted_at: null, first_seen_at: "2026-09-22", status: "new", status_reason: null, score: null, fit_line: null, recommendation: null });
 const geo = (n: number): PostingPoint => ({ posting_id: job(n).id, lat: 32, lng: 35, precision: "city", source: "test fixture", resolved_at: "2026-09-22T00:00:00Z" });
@@ -37,22 +37,11 @@ test("colliding real coordinates expose every member including duplicate alterna
   assert.equal(thinPoints(points, job(2).id, 2)[0].posting_id, job(2).id);
 });
 
-test("choice resolution preserves order, repeated IDs and current objects while omitting stale IDs", () => {
-  const first = { ...geo(1), job: job(1), rowId: job(1).id };
-  const updated = { ...geo(2), job: { ...job(2), title: "Updated title" }, rowId: job(2).id };
-  const duplicate = { ...updated, source: "Second current point" };
-  assert.deepEqual(globeChoices([first, updated, duplicate], [job(2).id, job(99).id, job(1).id, job(2).id]), [updated, duplicate, first, updated, duplicate]);
-  assert.deepEqual(globeChoices([updated], [job(1).id, job(2).id]), [updated]);
-});
-test("365 choices scan 527 current points only once", () => {
-  let reads = 0;
-  const points = Array.from({ length: 527 }, (_, index) => {
-    const point = { ...geo(index), job: job(index), rowId: job(index).id };
-    const id = point.posting_id;
-    Object.defineProperty(point, "posting_id", { get() { reads++; return id; } });
-    return point;
-  });
-  const choices = globeChoices(points, Array.from({ length: 365 }, (_, index) => job(364 - index).id));
-  assert.deepEqual(choices, points.slice(0, 365).reverse());
-  assert.ok(reads <= points.length, `point IDs must be indexed once, read ${reads} times`);
+test("a bubble counts distinct roles and recognises truly co-located stacks", () => {
+  const points = globePoints([{job: job(1), alternates: [job(2)]}, {job: job(3), alternates: []}], [geo(1), geo(2), geo(3)]);
+  assert.deepEqual(clusterRoleIds(points), [job(1).id, job(3).id]);
+  assert.equal(clusterIsStack(points), true);
+  assert.equal(clusterIsStack([{...points[0], lng: 35.00004}, {...points[2], lng: 35.00005}]), false);
+  assert.equal(clusterPlace([{...points[0], job: {...points[0].job, location: "Tel Aviv-Yafo, Israel"}}, {...points[2], job: {...points[2].job, location: "Tel Aviv-Yafo, Israel"}}]), "Tel Aviv-Yafo");
+  assert.equal(clusterPlace([{...points[0], job: {...points[0].job, location: "Tel Aviv, Israel"}}, {...points[2], job: {...points[2].job, location: "Madrid, Spain"}}]), "Near Tel Aviv");
 });
