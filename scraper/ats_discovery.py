@@ -9,7 +9,9 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
+import tempfile
 import time
 import unicodedata
 from http.client import HTTPException
@@ -144,7 +146,10 @@ class Fetcher:
                     if response.status != 200:
                         raise RuntimeError(f"unexpected HTTP {response.status}")
                     limit = 65_536 if host == "jobs.lever.co" else 8_000_000
-                    return response.read(limit).decode("utf-8")
+                    return response.read(limit).decode(
+                        "utf-8",
+                        errors="replace" if host == "jobs.lever.co" else "strict",
+                    )
             except HTTPError as error:
                 if error.code == 429:
                     retry_after = error.headers.get("Retry-After", "0")
@@ -331,7 +336,6 @@ def probe(
 
 def _names(path: str) -> list[tuple[str, str]]:
     if path == "db":
-        import os
         import psycopg
 
         with psycopg.connect(os.environ["DATABASE_URL"]) as connection:
@@ -347,6 +351,20 @@ def _names(path: str) -> list[tuple[str, str]]:
             name, _, hint = line.partition("\t")
             rows.append((name.strip(), hint.strip()))
     return rows
+
+
+def _save_cache(path: Path, cache: dict) -> None:
+    temp = tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
+    )
+    try:
+        with temp:
+            temp.write(
+                json.dumps(cache, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            )
+        os.replace(temp.name, path)
+    finally:
+        Path(temp.name).unlink(missing_ok=True)
 
 
 def main() -> None:
@@ -372,8 +390,9 @@ def main() -> None:
         for source in HOSTS
     }
     fetch = Fetcher()
+    names = _names(args.names)
     for name, hint in dict(
-        (key(name), (name, hint)) for name, hint in _names(args.names) if key(name)
+        (key(name), (name, hint)) for name, hint in names if key(name)
     ).values():
         for source in HOSTS:
             if source == "comeet" and not COMEET_URL.fullmatch(hint):
@@ -393,15 +412,13 @@ def main() -> None:
             }
             if outcome.tenant:
                 candidates.append(outcome.tenant)
-            args.cache.write_text(
-                json.dumps(cache, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+            _save_cache(args.cache, cache)
     registry = json.loads(source_registry.REGISTRY_PATH.read_text(encoding="utf-8"))
+    merged = merge(registry, candidates)
     output = (
-        merge(registry, candidates)
+        merged
         if args.merge
-        else {"schema_version": 1, "tenants": candidates}
+        else merge({"schema_version": 1, "tenants": []}, candidates)
     )
     args.out.write_text(
         json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -409,10 +426,10 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "names": len(_names(args.names)),
+                "names": len(names),
                 "stats": stats,
                 "registry_before": len(registry["tenants"]),
-                "registry_after": len(merge(registry, candidates)["tenants"]),
+                "registry_after": len(merged["tenants"]),
                 "rate_limited_hosts": sorted(fetch.blocked_hosts),
             },
             sort_keys=True,
