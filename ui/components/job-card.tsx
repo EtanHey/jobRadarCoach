@@ -4,8 +4,9 @@ import type { ReactNode, RefObject } from "react";
 import { Bookmark } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
 import { scoreCss } from "@/lib/globe-model";
-import { postingDates, workMode } from "@/lib/job-display";
+import { workMode } from "@/lib/job-display";
 import { CompanyLogo } from "./company-logo";
+import { PostingDates } from "./posting-dates";
 
 type Props = {
   job: JobSummary;
@@ -18,7 +19,6 @@ type Props = {
 };
 
 export function JobCard({ job, selected, actions, alternateCount = 0, openerRef, selectJob, children }: Props) {
-  const dates = postingDates(job.posted_at, job.first_seen_at);
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   return <article data-posting-id={job.id} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:border-ring/50 focus-within:ring-2 focus-within:ring-ring">
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
@@ -40,7 +40,7 @@ export function JobCard({ job, selected, actions, alternateCount = 0, openerRef,
     <div className="pointer-events-none mt-auto grid min-w-0 gap-1 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2">
       <span className="min-w-0 flex-1 truncate" title={experience}>{experience}</span>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
-        {dates.map(date => <time key={date.label} className="shrink-0" dateTime={date.dateTime} title={date.dateTime}>{date.label}</time>)}
+        <PostingDates postedAt={job.posted_at} firstSeenAt={job.first_seen_at} className="shrink-0" />
         <span className="shrink-0 capitalize">{job.source}</span>
         {alternateCount > 0 && <span className="shrink-0" title="Open to choose another listing">{alternateCount + 1} listings</span>}
       </div>

@@ -11,6 +11,7 @@ import { AssessmentSheet } from "./assessment-sheet";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./ui/sheet";
 import { JobDescription } from "./job-description";
+import { PostingDates } from "./posting-dates";
 import { TechnologyChips } from "./technology-chips";
 
 type Opener = RefObject<HTMLButtonElement | null>;
@@ -27,10 +28,6 @@ export type JobDrawerProps = {
   selectedJob?: JobSummary;
   selectJob: (id: string | null) => void;
 };
-
-const date = (value: string | null | undefined) => value
-  ? new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-  : "Unknown";
 
 const experienceStatus = (job: JobDetail) => job.experience
   ?? (job.description_available ? "Check description for experience" : "Description unavailable");
@@ -57,6 +54,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
         <div className="flex items-center gap-3">{heading && <DrawerCompanyLogo company={heading.company} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
+        {heading && <p className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} firstSeenAt={heading.first_seen_at} /></p>}
         {detail && <>
           <p className="mt-2 text-sm text-muted-foreground">{detail.location ?? "Location unspecified"} · {workMode(detail.remote)}</p>
           <p className="mt-1 text-sm text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
@@ -79,7 +77,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
         <ul className="mt-2 max-h-28 space-y-2 overflow-y-auto">{relatedJobs.map(job => <li key={job.id}>
           <button aria-label={`Open ${job.title} at ${job.company}, listing ${job.id}`} onClick={() => selectJob(job.id)} className="w-full rounded-lg border px-3 py-2 text-left text-xs hover:bg-muted focus-visible:outline-2">
             <span className="block">{job.location ?? "Location unknown"} · {job.source}</span>
-            <span className="mt-1 block text-muted-foreground">{job.posted_at ? `Posted ${date(job.posted_at)} · ` : ""}{statusLabels[job.status]} · {job.score === null ? "Not scored" : `${job.score}/100`} · Listing {shortListingId(job.id)}</span>
+            <span className="mt-1 block text-muted-foreground"><PostingDates postedAt={job.posted_at} firstSeenAt={job.first_seen_at} /> · {statusLabels[job.status]} · {job.score === null ? "Not scored" : `${job.score}/100`} · Listing {shortListingId(job.id)}</span>
           </button>
         </li>)}</ul>
       </details>}
