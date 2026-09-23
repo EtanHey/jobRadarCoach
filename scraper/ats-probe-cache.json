@@ -1,1 +1,5582 @@
-{}
+{
+  "180 engineering|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "180engineering"
+  },
+  "180 engineering|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "180engineering"
+  },
+  "180 engineering|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "180engineering"
+  },
+  "1password|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "1passwordisrael"
+  },
+  "1password|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "1passwordisrael"
+  },
+  "1password|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "1passwordisrael"
+  },
+  "4m analytics|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "4m_analytics"
+  },
+  "4m analytics|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "4m_analytics"
+  },
+  "4m analytics|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "4m_analytics"
+  },
+  "7square|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "7squareisrael"
+  },
+  "7square|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "7squareisrael"
+  },
+  "7square|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "7squareisrael"
+  },
+  "83 creative|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "83creative"
+  },
+  "83 creative|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "83creative"
+  },
+  "83 creative|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "83creative"
+  },
+  "above security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "abovesecurity"
+  },
+  "above security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "abovesecurity"
+  },
+  "above security|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "abovesecurity"
+  },
+  "acceler8 talent|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "acceler8talent"
+  },
+  "acceler8 talent|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "acceler8talent"
+  },
+  "acceler8 talent|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "acceler8talent"
+  },
+  "actai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "actaiisrael"
+  },
+  "actai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "actaiisrael"
+  },
+  "actai|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "actaiisrael"
+  },
+  "act|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "actisrael"
+  },
+  "act|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "actisrael"
+  },
+  "act|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "actisrael"
+  },
+  "adaptive6|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "adaptive6israel"
+  },
+  "adaptive6|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "adaptive6israel"
+  },
+  "adaptive6|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "adaptive6israel"
+  },
+  "agilegrid solutions|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "agilegridsolutions"
+  },
+  "agilegrid solutions|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "agilegridsolutions"
+  },
+  "agilegrid solutions|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "agilegridsolutions"
+  },
+  "ai startup in stealth mode|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aistartupinstealthmode"
+  },
+  "ai startup in stealth mode|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aistartupinstealthmode"
+  },
+  "ai startup in stealth mode|workable": {
+    "last_checked_at": "2026-09-23",
+    "result": "error",
+    "slug_tried": "ai-startup-in-stealth-mode-israel"
+  },
+  "aidoc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aidocisrael"
+  },
+  "aidoc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aidocisrael"
+  },
+  "aionas|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aionasisrael"
+  },
+  "aionas|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aionasisrael"
+  },
+  "air apps|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "airapps"
+  },
+  "air apps|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "airapps"
+  },
+  "airobotics|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "airoboticsisrael"
+  },
+  "airobotics|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "airoboticsisrael"
+  },
+  "aizome|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aizomeisrael"
+  },
+  "aizome|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aizomeisrael"
+  },
+  "akamai technologies|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "akamaiisrael"
+  },
+  "akamai technologies|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "akamaiisrael"
+  },
+  "alice formerly activefence|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aliceformerlyactivefence"
+  },
+  "alice formerly activefence|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aliceformerlyactivefence"
+  },
+  "alicorn jobs|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "alicornjobs"
+  },
+  "alicorn jobs|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "alicornjobs"
+  },
+  "allcloud|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "allcloudisrael"
+  },
+  "allcloud|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "allcloudisrael"
+  },
+  "alta|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "alta"
+  },
+  "alta|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "altaisrael"
+  },
+  "alteryx|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "alteryxisrael"
+  },
+  "alteryx|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "alteryxisrael"
+  },
+  "amawaterways river cruises|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "amawaterwaysrivercruises"
+  },
+  "amawaterways river cruises|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "amawaterwaysrivercruises"
+  },
+  "amazon web services aws|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "amazonwebservicesaws"
+  },
+  "amazon web services aws|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "amazonwebservicesaws"
+  },
+  "anchor|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "anchorisrael"
+  },
+  "anchor|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "anchorisrael"
+  },
+  "anthropic|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "anthropic"
+  },
+  "anthropic|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "anthropicisrael"
+  },
+  "anyray|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "anyrayisrael"
+  },
+  "anyray|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "anyrayisrael"
+  },
+  "apiiro|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "apiiro"
+  },
+  "apiiro|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "apiiroisrael"
+  },
+  "apollo io|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "apolloio"
+  },
+  "apollo io|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "apolloio"
+  },
+  "applied materials israel|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "appliedmaterialsisrael"
+  },
+  "applied materials israel|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "appliedmaterialsisrael"
+  },
+  "april|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aprilisrael"
+  },
+  "april|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aprilisrael"
+  },
+  "argen|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "argenisrael"
+  },
+  "argen|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "argenisrael"
+  },
+  "armis security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "armissecurity"
+  },
+  "armis security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "armissecurity"
+  },
+  "armis|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "armisisrael"
+  },
+  "armis|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "armisisrael"
+  },
+  "armstrong international intelligent solutions in steam air and hot water|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "armstronginternationalintelligentsolutionsinsteamairandhotwater"
+  },
+  "armstrong international intelligent solutions in steam air and hot water|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "armstronginternationalintelligentsolutionsinsteamairandhotwater"
+  },
+  "arpeely|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "arpeelyisrael"
+  },
+  "arpeely|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "arpeelyisrael"
+  },
+  "arrows|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "arrowsisrael"
+  },
+  "arrows|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "arrowsisrael"
+  },
+  "ascendra networks|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ascendranetworks"
+  },
+  "ascendra networks|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ascendranetworks"
+  },
+  "ashby|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ashbyisrael"
+  },
+  "ashby|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ashbyisrael"
+  },
+  "ashley digital|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ashleydigital"
+  },
+  "ashley digital|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ashleydigital"
+  },
+  "associated bank|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "associatedbank"
+  },
+  "associated bank|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "associatedbank"
+  },
+  "astera labs|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "asteralabs"
+  },
+  "astera labs|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "asteralabs"
+  },
+  "at bay|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "atbay"
+  },
+  "at bay|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "atbay"
+  },
+  "atc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "atcisrael"
+  },
+  "atc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "atcisrael"
+  },
+  "atentic ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "atenticai"
+  },
+  "atentic ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "atenticai"
+  },
+  "atera|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ateraisrael"
+  },
+  "atera|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ateraisrael"
+  },
+  "augury|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "augury"
+  },
+  "augury|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "auguryisrael"
+  },
+  "autofleet|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "autofleetisrael"
+  },
+  "autofleet|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "autofleetisrael"
+  },
+  "axon pulse|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "axonpulse"
+  },
+  "axon pulse|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "axonpulse"
+  },
+  "axonius|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "axonius"
+  },
+  "axonius|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "axoniusisrael"
+  },
+  "bagira|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bagiraisrael"
+  },
+  "bagira|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bagiraisrael"
+  },
+  "balance|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "balanceisrael"
+  },
+  "balance|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "balanceisrael"
+  },
+  "ballistix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ballistixisrael"
+  },
+  "ballistix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ballistixisrael"
+  },
+  "bardin|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bardinisrael"
+  },
+  "bardin|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bardinisrael"
+  },
+  "bazak|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bazakisrael"
+  },
+  "bazak|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bazakisrael"
+  },
+  "beaconfire inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "beaconfireisrael"
+  },
+  "beaconfire inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "beaconfireisrael"
+  },
+  "beamup|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "beamup"
+  },
+  "beamup|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "beamupisrael"
+  },
+  "biocatch|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "biocatchisrael"
+  },
+  "biocatch|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "biocatch"
+  },
+  "bitwarden|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "bitwarden"
+  },
+  "bitwarden|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bitwardenisrael"
+  },
+  "bjak|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bjakisrael"
+  },
+  "bjak|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bjakisrael"
+  },
+  "blaise|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "blaiseisrael"
+  },
+  "blaise|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "blaiseisrael"
+  },
+  "bluebird aero systems ltd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bluebirdaerosystems"
+  },
+  "bluebird aero systems ltd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bluebirdaerosystems"
+  },
+  "bluevine israel|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "bluevineisrael"
+  },
+  "bluevine israel|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bluevineisrael"
+  },
+  "bluevine|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bluevineisrael"
+  },
+  "bluevine|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bluevineisrael"
+  },
+  "boa ideas|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "boaideas"
+  },
+  "boa ideas|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "boaideas"
+  },
+  "boltx|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "boltxisrael"
+  },
+  "boltx|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "boltxisrael"
+  },
+  "bond sports|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bondsports"
+  },
+  "bond sports|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bondsports"
+  },
+  "booking com|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bookingcom"
+  },
+  "booking com|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "bookingcom"
+  },
+  "brandlight|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "brandlightisrael"
+  },
+  "brandlight|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "brandlightisrael"
+  },
+  "brg|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "brgisrael"
+  },
+  "brg|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "brgisrael"
+  },
+  "bright data|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "brightdata"
+  },
+  "bright data|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "brightdata"
+  },
+  "buildots|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "buildotsisrael"
+  },
+  "buildots|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "buildotsisrael"
+  },
+  "camunda|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "camundaisrael"
+  },
+  "camunda|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "camundaisrael"
+  },
+  "cape|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "capeisrael"
+  },
+  "cape|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "capeisrael"
+  },
+  "capgemini|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "capgeminiisrael"
+  },
+  "capgemini|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "capgeminiisrael"
+  },
+  "capital one|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "capitalone"
+  },
+  "capital one|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "capitalone"
+  },
+  "carrum health|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "carrumhealth"
+  },
+  "carrum health|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "carrumhealth"
+  },
+  "catapult|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "catapultisrael"
+  },
+  "catapult|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "catapultisrael"
+  },
+  "cato networks|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "catonetworks"
+  },
+  "cato networks|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "catonetworks"
+  },
+  "cellebrite|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cellebriteisrael"
+  },
+  "cellebrite|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cellebriteisrael"
+  },
+  "centrical|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "centricalisrael"
+  },
+  "centrical|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "centricalisrael"
+  },
+  "cerberus capital management|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cerberuscapitalmanagement"
+  },
+  "cerberus capital management|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cerberuscapitalmanagement"
+  },
+  "cerno ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cernoai"
+  },
+  "cerno ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cernoai"
+  },
+  "chainalysis|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chainalysisisrael"
+  },
+  "chainalysis|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chainalysisisrael"
+  },
+  "chainguard|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "chainguard"
+  },
+  "chainguard|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chainguardisrael"
+  },
+  "check point software|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "checkpointsoftware"
+  },
+  "check point software|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "checkpointsoftware"
+  },
+  "chempilot ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chempilotai"
+  },
+  "chempilot ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chempilotai"
+  },
+  "chen shwartz|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chenshwartz"
+  },
+  "chen shwartz|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "chenshwartz"
+  },
+  "cheq|comeet": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "cheq"
+  },
+  "cheq|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cheqisrael"
+  },
+  "cheq|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cheqisrael"
+  },
+  "cisco|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ciscoisrael"
+  },
+  "cisco|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ciscoisrael"
+  },
+  "ciso 99|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ciso99"
+  },
+  "ciso 99|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ciso99"
+  },
+  "claroai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "claroaiisrael"
+  },
+  "claroai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "claroaiisrael"
+  },
+  "clear street|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "clearstreet"
+  },
+  "clear street|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "clearstreet"
+  },
+  "cleared|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "clearedisrael"
+  },
+  "cleared|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "clearedisrael"
+  },
+  "clearstory|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "clearstoryisrael"
+  },
+  "clearstory|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "clearstoryisrael"
+  },
+  "close|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "closeisrael"
+  },
+  "close|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "closeisrael"
+  },
+  "cloudinary|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cloudinaryisrael"
+  },
+  "cloudinary|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "cloudinary"
+  },
+  "clover security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cloversecurity"
+  },
+  "clover security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cloversecurity"
+  },
+  "coalition inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "coalition"
+  },
+  "coalition inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "coalitionisrael"
+  },
+  "coapp|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "coappisrael"
+  },
+  "coapp|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "coappisrael"
+  },
+  "codevalue|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "codevalueisrael"
+  },
+  "codevalue|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "codevalueisrael"
+  },
+  "cohere|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cohereisrael"
+  },
+  "cohere|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cohereisrael"
+  },
+  "coinbase|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "coinbase"
+  },
+  "coinbase|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "coinbaseisrael"
+  },
+  "comblack|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "comblackisrael"
+  },
+  "comblack|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "comblackisrael"
+  },
+  "commit|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "commitisrael"
+  },
+  "commit|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "commitisrael"
+  },
+  "companytech|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "companytechisrael"
+  },
+  "companytech|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "companytechisrael"
+  },
+  "confidential|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "confidentialisrael"
+  },
+  "confidential|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "confidentialisrael"
+  },
+  "conifers ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "conifersai"
+  },
+  "conifers ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "conifersai"
+  },
+  "connecteam|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "connecteam"
+  },
+  "connecteam|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "connecteamisrael"
+  },
+  "conntour|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "conntourisrael"
+  },
+  "conntour|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "conntourisrael"
+  },
+  "conveyor|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "conveyorisrael"
+  },
+  "conveyor|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "conveyorisrael"
+  },
+  "coralogix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "coralogixisrael"
+  },
+  "coralogix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "coralogixisrael"
+  },
+  "corefix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "corefixisrael"
+  },
+  "corefix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "corefixisrael"
+  },
+  "cross river|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crossriver"
+  },
+  "cross river|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crossriver"
+  },
+  "crossing hurdles|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crossinghurdles"
+  },
+  "crossing hurdles|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crossinghurdles"
+  },
+  "crowdstrike|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crowdstrikeisrael"
+  },
+  "crowdstrike|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crowdstrikeisrael"
+  },
+  "crown equipment corporation|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crownequipment"
+  },
+  "crown equipment corporation|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "crownequipment"
+  },
+  "cyabra|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cyabraisrael"
+  },
+  "cyabra|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cyabraisrael"
+  },
+  "cybercoders|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cybercodersisrael"
+  },
+  "cybercoders|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cybercodersisrael"
+  },
+  "cyera|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cyeraisrael"
+  },
+  "cyera|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cyeraisrael"
+  },
+  "cymulate|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "cymulate"
+  },
+  "cymulate|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cymulateisrael"
+  },
+  "cytoreason|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cytoreasonisrael"
+  },
+  "cytoreason|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "cytoreasonisrael"
+  },
+  "dappas|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dappasisrael"
+  },
+  "dappas|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dappasisrael"
+  },
+  "darrow ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "darrowai"
+  },
+  "darrow ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "darrowai"
+  },
+  "data nexus ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "datanexusai"
+  },
+  "data nexus ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "datanexusai"
+  },
+  "datarails|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "datarails"
+  },
+  "datarails|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "datarailsisrael"
+  },
+  "daylight security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "daylightsecurity"
+  },
+  "daylight security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "daylightsecurity"
+  },
+  "dblox|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dbloxisrael"
+  },
+  "dblox|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dbloxisrael"
+  },
+  "deel|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "deelisrael"
+  },
+  "deel|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "deelisrael"
+  },
+  "deepl|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "deeplisrael"
+  },
+  "deepl|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "deeplisrael"
+  },
+  "deloitte|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "deloitteisrael"
+  },
+  "deloitte|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "deloitteisrael"
+  },
+  "deweb|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dewebisrael"
+  },
+  "deweb|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dewebisrael"
+  },
+  "dialog|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dialogisrael"
+  },
+  "dialog|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dialogisrael"
+  },
+  "discern|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "discernisrael"
+  },
+  "discern|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "discernisrael"
+  },
+  "discount bank בנק דיסקונט|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "discount bank בנק דיסקונט|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "doit|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "doitisrael"
+  },
+  "doit|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "doitisrael"
+  },
+  "doubleverify|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "doubleverifyisrael"
+  },
+  "doubleverify|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "doubleverifyisrael"
+  },
+  "dpr construction|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dprconstruction"
+  },
+  "dpr construction|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dprconstruction"
+  },
+  "dream|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dreamisrael"
+  },
+  "dream|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "dreamisrael"
+  },
+  "drw|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "drwisrael"
+  },
+  "drw|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "drwisrael"
+  },
+  "duckduckgo|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "duckduckgoisrael"
+  },
+  "duckduckgo|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "duckduckgoisrael"
+  },
+  "duve|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "duveisrael"
+  },
+  "duve|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "duveisrael"
+  },
+  "earnix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "earnixisrael"
+  },
+  "earnix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "earnixisrael"
+  },
+  "easysend|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "easysendisrael"
+  },
+  "easysend|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "easysendisrael"
+  },
+  "effectivbiz|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "effectivbizisrael"
+  },
+  "effectivbiz|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "effectivbizisrael"
+  },
+  "elbit systems israel|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "elbitsystemsisrael"
+  },
+  "elbit systems israel|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "elbitsystemsisrael"
+  },
+  "eleos health|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "eleoshealth"
+  },
+  "eleos health|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "eleoshealth"
+  },
+  "elta systems ltd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "eltasystems"
+  },
+  "elta systems ltd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "eltasystems"
+  },
+  "elyon ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "elyonai"
+  },
+  "elyon ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "elyonai"
+  },
+  "empathy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "empathyisrael"
+  },
+  "empathy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "empathyisrael"
+  },
+  "engradar|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "engradarisrael"
+  },
+  "engradar|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "engradarisrael"
+  },
+  "eni one ltd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "enione"
+  },
+  "eni one ltd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "enione"
+  },
+  "enlighten|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "enlightenisrael"
+  },
+  "enlighten|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "enlightenisrael"
+  },
+  "ergo next insurance|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ergonextinsurance"
+  },
+  "ergo next insurance|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ergonextinsurance"
+  },
+  "erp logic israel sap partner|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "erplogicisraelsappartner"
+  },
+  "erp logic israel sap partner|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "erplogicisraelsappartner"
+  },
+  "esentire|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "esentireisrael"
+  },
+  "esentire|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "esentireisrael"
+  },
+  "ethosia|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ethosiaisrael"
+  },
+  "ethosia|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ethosiaisrael"
+  },
+  "evlo ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "evloai"
+  },
+  "evlo ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "evloai"
+  },
+  "evolinq|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "evolinqisrael"
+  },
+  "evolinq|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "evolinqisrael"
+  },
+  "experis|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "experisisrael"
+  },
+  "experis|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "experisisrael"
+  },
+  "extreme|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "extremeisrael"
+  },
+  "extreme|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "extremeisrael"
+  },
+  "eyeviation|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "eyeviationisrael"
+  },
+  "eyeviation|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "eyeviationisrael"
+  },
+  "factify|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "factifyisrael"
+  },
+  "factify|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "factifyisrael"
+  },
+  "faye|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fayeisrael"
+  },
+  "faye|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fayeisrael"
+  },
+  "fayrix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fayrixisrael"
+  },
+  "fayrix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fayrixisrael"
+  },
+  "figma|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "figma"
+  },
+  "figma|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "figmaisrael"
+  },
+  "finch|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "finchisrael"
+  },
+  "finch|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "finch"
+  },
+  "fireblocks|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "fireblocks"
+  },
+  "fireblocks|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fireblocksisrael"
+  },
+  "fiverr|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fiverrisrael"
+  },
+  "fiverr|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fiverrisrael"
+  },
+  "fleetio|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "fleetio"
+  },
+  "fleetio|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fleetioisrael"
+  },
+  "forter|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "forter"
+  },
+  "forter|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "forterisrael"
+  },
+  "frame security|comeet": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "framesecurity"
+  },
+  "frame security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "framesecurity"
+  },
+  "frame security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "framesecurity"
+  },
+  "franklin fitch|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "franklinfitch"
+  },
+  "franklin fitch|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "franklinfitch"
+  },
+  "fullstack|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fullstackisrael"
+  },
+  "fullstack|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "fullstackisrael"
+  },
+  "g stat|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gstat"
+  },
+  "g stat|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gstat"
+  },
+  "gac solutions|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gacsolutions"
+  },
+  "gac solutions|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gacsolutions"
+  },
+  "galitechonline|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "galitechonlineisrael"
+  },
+  "galitechonline|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "galitechonlineisrael"
+  },
+  "gambit security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gambitsecurity"
+  },
+  "gambit security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gambitsecurity"
+  },
+  "garantiemax gmbh|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "garantiemaxgmbh"
+  },
+  "garantiemax gmbh|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "garantiemaxgmbh"
+  },
+  "ge healthcare|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gehealthcare"
+  },
+  "ge healthcare|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gehealthcare"
+  },
+  "general dynamics information technology|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "generaldynamicsinformationtechnology"
+  },
+  "general dynamics information technology|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "generaldynamicsinformationtechnology"
+  },
+  "general motors|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "generalmotors"
+  },
+  "general motors|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "generalmotors"
+  },
+  "genesys|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "genesysisrael"
+  },
+  "genesys|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "genesysisrael"
+  },
+  "ghostlayer|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ghostlayerisrael"
+  },
+  "ghostlayer|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ghostlayerisrael"
+  },
+  "gifthealth|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gifthealthisrael"
+  },
+  "gifthealth|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gifthealthisrael"
+  },
+  "gigfinder ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gigfinderai"
+  },
+  "gigfinder ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gigfinderai"
+  },
+  "gini apps|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "giniapps"
+  },
+  "gini apps|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "giniapps"
+  },
+  "gitkraken|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gitkrakenisrael"
+  },
+  "gitkraken|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gitkrakenisrael"
+  },
+  "glassix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "glassixisrael"
+  },
+  "glassix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "glassixisrael"
+  },
+  "glide identity|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "glideidentity"
+  },
+  "glide identity|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "glideidentity"
+  },
+  "glimpse|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "glimpseisrael"
+  },
+  "glimpse|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "glimpseisrael"
+  },
+  "goarc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "goarcisrael"
+  },
+  "goarc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "goarcisrael"
+  },
+  "gocomply|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gocomplyisrael"
+  },
+  "gocomply|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gocomplyisrael"
+  },
+  "goldjobs מבינים באנשים|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "goldjobs מבינים באנשים|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "gong|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gongisrael"
+  },
+  "gong|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gongisrael"
+  },
+  "google|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "googleisrael"
+  },
+  "google|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "googleisrael"
+  },
+  "gotfriends|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gotfriendsisrael"
+  },
+  "gotfriends|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gotfriendsisrael"
+  },
+  "greenbay|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "greenbayisrael"
+  },
+  "greenbay|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "greenbayisrael"
+  },
+  "groundcover|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "groundcoverisrael"
+  },
+  "groundcover|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "groundcoverisrael"
+  },
+  "grove collaborative|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "grovecollaborative"
+  },
+  "grove collaborative|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "grovecollaborative"
+  },
+  "gsd search llc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gsdsearchllc"
+  },
+  "gsd search llc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "gsdsearchllc"
+  },
+  "guardio|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "guardioisrael"
+  },
+  "guardio|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "guardioisrael"
+  },
+  "guidde|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "guidde"
+  },
+  "guidde|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "guiddeisrael"
+  },
+  "guideline|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "guidelineisrael"
+  },
+  "guideline|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "guidelineisrael"
+  },
+  "harrison clarke|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "harrisonclarke"
+  },
+  "harrison clarke|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "harrisonclarke"
+  },
+  "haystack|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "haystackisrael"
+  },
+  "haystack|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "haystackisrael"
+  },
+  "hello heart|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "helloheart"
+  },
+  "hello heart|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "helloheart"
+  },
+  "hendrickson|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hendricksonisrael"
+  },
+  "hendrickson|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hendricksonisrael"
+  },
+  "hightouch|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "hightouch"
+  },
+  "hightouch|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hightouchisrael"
+  },
+  "hio ai inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hioai"
+  },
+  "hio ai inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hioai"
+  },
+  "hiredbuddy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hiredbuddyisrael"
+  },
+  "hiredbuddy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hiredbuddyisrael"
+  },
+  "hive|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "hive"
+  },
+  "hive|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "hive"
+  },
+  "horai security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "horaisecurity"
+  },
+  "horai security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "horaisecurity"
+  },
+  "howmet aerospace|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "howmetaerospace"
+  },
+  "howmet aerospace|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "howmetaerospace"
+  },
+  "humana|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "humanaisrael"
+  },
+  "humana|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "humanaisrael"
+  },
+  "human|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "humanisrael"
+  },
+  "human|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "humanisrael"
+  },
+  "hunter bond|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hunterbond"
+  },
+  "hunter bond|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hunterbond"
+  },
+  "hypernative|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hypernativeisrael"
+  },
+  "hypernative|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "hypernativeisrael"
+  },
+  "iai israel aerospace industries|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "iaiisraelaerospaceindustries"
+  },
+  "iai israel aerospace industries|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "iaiisraelaerospaceindustries"
+  },
+  "ice|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "iceisrael"
+  },
+  "ice|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "iceisrael"
+  },
+  "ignitetech|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ignitetechisrael"
+  },
+  "ignitetech|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ignitetechisrael"
+  },
+  "infinidat|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "infinidatisrael"
+  },
+  "infinidat|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "infinidatisrael"
+  },
+  "inmanage|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "inmanageisrael"
+  },
+  "inmanage|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "inmanageisrael"
+  },
+  "innovid|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "innovid"
+  },
+  "innovid|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "innovidisrael"
+  },
+  "instawork|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "instawork"
+  },
+  "instawork|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "instaworkisrael"
+  },
+  "integra lifesciences|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "integralifesciences"
+  },
+  "integra lifesciences|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "integralifesciences"
+  },
+  "intel|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "intelisrael"
+  },
+  "intel|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "intelisrael"
+  },
+  "intuit|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "intuitisrael"
+  },
+  "intuit|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "intuitisrael"
+  },
+  "investing|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "investingisrael"
+  },
+  "investing|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "investingisrael"
+  },
+  "ironscales|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ironscalesisrael"
+  },
+  "ironscales|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ironscalesisrael"
+  },
+  "ivix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ivixisrael"
+  },
+  "ivix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ivixisrael"
+  },
+  "jack jill|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jackjill"
+  },
+  "jack jill|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jackjill"
+  },
+  "javelin venture partners|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "javelinventurepartners"
+  },
+  "javelin venture partners|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "javelinventurepartners"
+  },
+  "jeen ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jeen_ai"
+  },
+  "jeen ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jeen_ai"
+  },
+  "jfrog|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "jfrog"
+  },
+  "jfrog|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jfrogisrael"
+  },
+  "jll|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jllisrael"
+  },
+  "jll|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jllisrael"
+  },
+  "job goals|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobgoals"
+  },
+  "job goals|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobgoals"
+  },
+  "jobgether|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobgetherisrael"
+  },
+  "jobgether|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "error",
+    "slug_tried": "jobgetherisrael"
+  },
+  "jobright ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobrightai"
+  },
+  "jobright ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobrightai"
+  },
+  "jobsseek|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobsseekisrael"
+  },
+  "jobsseek|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "jobsseekisrael"
+  },
+  "johnson johnson medtech|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "johnsonjohnsonmedtech"
+  },
+  "johnson johnson medtech|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "johnsonjohnsonmedtech"
+  },
+  "k health|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "khealth"
+  },
+  "k health|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "khealth"
+  },
+  "kansofy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kansofyisrael"
+  },
+  "kansofy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kansofyisrael"
+  },
+  "kayhut|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kayhutisrael"
+  },
+  "kayhut|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kayhutisrael"
+  },
+  "keewano|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "keewanoisrael"
+  },
+  "keewano|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "keewanoisrael"
+  },
+  "keytra|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "keytraisrael"
+  },
+  "keytra|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "keytraisrael"
+  },
+  "kindred tutors|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kindredtutors"
+  },
+  "kindred tutors|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kindredtutors"
+  },
+  "kla|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "klaisrael"
+  },
+  "kla|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "klaisrael"
+  },
+  "kobotoolbox|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kobotoolboxisrael"
+  },
+  "kobotoolbox|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kobotoolboxisrael"
+  },
+  "kompanionai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kompanionaiisrael"
+  },
+  "kompanionai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "kompanionaiisrael"
+  },
+  "ladders|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "laddersisrael"
+  },
+  "ladders|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "ladders"
+  },
+  "lamma|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lammaisrael"
+  },
+  "lamma|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lammaisrael"
+  },
+  "larson design group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "larsondesigngroup"
+  },
+  "larson design group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "larsondesigngroup"
+  },
+  "launchdarkly|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "launchdarkly"
+  },
+  "launchdarkly|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "launchdarklyisrael"
+  },
+  "lean techniques|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "leantechniques"
+  },
+  "lean techniques|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "leantechniques"
+  },
+  "lemonade|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lemonadeisrael"
+  },
+  "lemonade|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lemonadeisrael"
+  },
+  "lendistry|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lendistryisrael"
+  },
+  "lendistry|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lendistryisrael"
+  },
+  "lenovo|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lenovoisrael"
+  },
+  "lenovo|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lenovoisrael"
+  },
+  "linx security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "linxsecurity"
+  },
+  "linx security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "linxsecurity"
+  },
+  "liveramp|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "liverampisrael"
+  },
+  "liveramp|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "liverampisrael"
+  },
+  "locusview|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "locusviewisrael"
+  },
+  "locusview|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "locusviewisrael"
+  },
+  "loyaltie|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "loyaltieisrael"
+  },
+  "loyaltie|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "loyaltieisrael"
+  },
+  "lumi|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lumiisrael"
+  },
+  "lumi|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lumiisrael"
+  },
+  "luxoft|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "luxoftisrael"
+  },
+  "luxoft|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "luxoftisrael"
+  },
+  "lyra health|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "lyrahealth"
+  },
+  "lyra health|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "error",
+    "slug_tried": "lyrahealth"
+  },
+  "mastercard|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mastercardisrael"
+  },
+  "mastercard|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mastercardisrael"
+  },
+  "matchpointit|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "matchpointitisrael"
+  },
+  "matchpointit|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "matchpointitisrael"
+  },
+  "matia|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "matiaisrael"
+  },
+  "matia|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "matiaisrael"
+  },
+  "mayday ai gmbh|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "maydayaigmbh"
+  },
+  "mayday ai gmbh|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "maydayaigmbh"
+  },
+  "mckesson|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mckessonisrael"
+  },
+  "mckesson|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mckessonisrael"
+  },
+  "mckinsey company|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mckinseycompany"
+  },
+  "mckinsey company|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mckinseycompany"
+  },
+  "medtronic|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "medtronicisrael"
+  },
+  "medtronic|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "medtronicisrael"
+  },
+  "medulla|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "medullaisrael"
+  },
+  "medulla|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "medullaisrael"
+  },
+  "meeboss|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "meebossisrael"
+  },
+  "meeboss|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "meebossisrael"
+  },
+  "melio|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "melio"
+  },
+  "melio|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "melioisrael"
+  },
+  "memento|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mementoisrael"
+  },
+  "memento|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mementoisrael"
+  },
+  "mentor talent acquisition|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mentortalentacquisition"
+  },
+  "mentor talent acquisition|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mentortalentacquisition"
+  },
+  "merck healthcare|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "merckhealthcare"
+  },
+  "merck healthcare|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "merckhealthcare"
+  },
+  "mercury|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "mercury"
+  },
+  "mercury|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mercuryisrael"
+  },
+  "meta|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "metaisrael"
+  },
+  "meta|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "metaisrael"
+  },
+  "microai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "microaiisrael"
+  },
+  "microai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "microaiisrael"
+  },
+  "microsoft|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "microsoftisrael"
+  },
+  "microsoft|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "microsoftisrael"
+  },
+  "mikagu|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mikaguisrael"
+  },
+  "mikagu|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mikaguisrael"
+  },
+  "millennium|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "millenniumisrael"
+  },
+  "millennium|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "millenniumisrael"
+  },
+  "mindsize|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mindsizeisrael"
+  },
+  "mindsize|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mindsizeisrael"
+  },
+  "minimus|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "minimusisrael"
+  },
+  "minimus|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "minimusisrael"
+  },
+  "miracle ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "miracleai"
+  },
+  "miracle ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "miracleai"
+  },
+  "mobile group ltd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mobilegroup"
+  },
+  "mobile group ltd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mobilegroup"
+  },
+  "mobileye|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mobileyeisrael"
+  },
+  "mobileye|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mobileyeisrael"
+  },
+  "molex|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "molexisrael"
+  },
+  "molex|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "molexisrael"
+  },
+  "mongodb|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "mongodb"
+  },
+  "mongodb|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mongodbisrael"
+  },
+  "moon active|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moonactive"
+  },
+  "moon active|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moonactive"
+  },
+  "moov|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moovisrael"
+  },
+  "moov|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moovisrael"
+  },
+  "motorola solutions|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "motorolasolutions"
+  },
+  "motorola solutions|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "motorolasolutions"
+  },
+  "moveo group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moveogroup"
+  },
+  "moveo group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moveogroup"
+  },
+  "moveo source|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moveosource"
+  },
+  "moveo source|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "moveosource"
+  },
+  "mprest|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mprestisrael"
+  },
+  "mprest|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "mprestisrael"
+  },
+  "my team|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "myteam"
+  },
+  "my team|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "myteam"
+  },
+  "mylo ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "myloai"
+  },
+  "mylo ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "myloai"
+  },
+  "nagomi security|comeet": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "nagomisecurity"
+  },
+  "nagomi security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nagomisecurity"
+  },
+  "nagomi security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nagomisecurity"
+  },
+  "navan|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "navanisrael"
+  },
+  "navan|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "navanisrael"
+  },
+  "nebius|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "nebius"
+  },
+  "nebius|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nebiusisrael"
+  },
+  "neo|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "neoisrael"
+  },
+  "neo|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "neoisrael"
+  },
+  "nerdwallet|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nerdwalletisrael"
+  },
+  "nerdwallet|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nerdwalletisrael"
+  },
+  "ness technologies נס טכנולוגיות|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "ness technologies נס טכנולוגיות|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "netflix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "netflixisrael"
+  },
+  "netflix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "netflixisrael"
+  },
+  "netrolynx ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "netrolynxai"
+  },
+  "netrolynx ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "netrolynxai"
+  },
+  "netspend|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "netspendisrael"
+  },
+  "netspend|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "netspendisrael"
+  },
+  "newfold digital|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "newfolddigital"
+  },
+  "newfold digital|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "newfolddigital"
+  },
+  "newspace technical|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "newspacetechnical"
+  },
+  "newspace technical|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "newspacetechnical"
+  },
+  "next insurance|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nextinsurance"
+  },
+  "next insurance|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nextinsurance"
+  },
+  "nextsilicon|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nextsiliconisrael"
+  },
+  "nextsilicon|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nextsiliconisrael"
+  },
+  "nexxen|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nexxenisrael"
+  },
+  "nexxen|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nexxenisrael"
+  },
+  "nice|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "nice"
+  },
+  "nice|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "niceisrael"
+  },
+  "nielseniq|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nielseniqisrael"
+  },
+  "nielseniq|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nielseniqisrael"
+  },
+  "nike|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nikeisrael"
+  },
+  "nike|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nikeisrael"
+  },
+  "nimble|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nimbleisrael"
+  },
+  "nimble|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nimbleisrael"
+  },
+  "nisha pro|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nishapro"
+  },
+  "nisha pro|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nishapro"
+  },
+  "node vector|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nodevector"
+  },
+  "node vector|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nodevector"
+  },
+  "noma security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nomasecurity"
+  },
+  "noma security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nomasecurity"
+  },
+  "norwood medical|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "norwoodmedical"
+  },
+  "norwood medical|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "norwoodmedical"
+  },
+  "novia101|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "novia101israel"
+  },
+  "novia101|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "novia101israel"
+  },
+  "nuvei|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nuveiisrael"
+  },
+  "nuvei|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nuveiisrael"
+  },
+  "nvidia ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nvidiaai"
+  },
+  "nvidia ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nvidiaai"
+  },
+  "nvidia|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nvidiaisrael"
+  },
+  "nvidia|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "nvidiaisrael"
+  },
+  "oakwell hampton group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "oakwellhamptongroup"
+  },
+  "oakwell hampton group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "oakwellhamptongroup"
+  },
+  "ocho|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ochoisrael"
+  },
+  "ocho|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ochoisrael"
+  },
+  "offroad|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "offroadisrael"
+  },
+  "offroad|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "offroadisrael"
+  },
+  "okta|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "okta"
+  },
+  "okta|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "oktaisrael"
+  },
+  "oktopost|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "oktopostisrael"
+  },
+  "oktopost|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "oktopost"
+  },
+  "oliver bernard|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "oliverbernard"
+  },
+  "oliver bernard|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "oliverbernard"
+  },
+  "openai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "openaiisrael"
+  },
+  "openai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "openaiisrael"
+  },
+  "optibus|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "optibusisrael"
+  },
+  "optibus|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "optibusisrael"
+  },
+  "optimal dynamics|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "optimaldynamics"
+  },
+  "optimal dynamics|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "optimaldynamics"
+  },
+  "op|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "opisrael"
+  },
+  "op|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "opisrael"
+  },
+  "ourcrowd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ourcrowdisrael"
+  },
+  "ourcrowd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ourcrowdisrael"
+  },
+  "ourritual|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ourritualisrael"
+  },
+  "ourritual|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ourritualisrael"
+  },
+  "outschool|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "outschool"
+  },
+  "outschool|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "outschoolisrael"
+  },
+  "ovative group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ovativegroup"
+  },
+  "ovative group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ovativegroup"
+  },
+  "pachama|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pachamaisrael"
+  },
+  "pachama|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pachamaisrael"
+  },
+  "pagaya israel|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pagayaisrael"
+  },
+  "pagaya israel|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pagayaisrael"
+  },
+  "palantir|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "palantirisrael"
+  },
+  "palantir|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "palantir"
+  },
+  "palo alto networks|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "paloaltonetworks"
+  },
+  "palo alto networks|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "paloaltonetworks"
+  },
+  "papaya global|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "error",
+    "slug_tried": "papayaglobal"
+  },
+  "papaya global|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "papayaglobal"
+  },
+  "paperless parts|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "paperlessparts"
+  },
+  "paperless parts|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "paperlessparts"
+  },
+  "paragon|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "paragonisrael"
+  },
+  "paragon|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "paragonisrael"
+  },
+  "parallel wireless|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "parallelwireless"
+  },
+  "parallel wireless|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "parallelwireless"
+  },
+  "parloa|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "parloa"
+  },
+  "parloa|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "parloaisrael"
+  },
+  "patz corporation|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "patzisrael"
+  },
+  "patz corporation|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "patzisrael"
+  },
+  "payoneer|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "payoneer"
+  },
+  "payoneer|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "payoneerisrael"
+  },
+  "peak innovation|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "peakinnovation"
+  },
+  "peak innovation|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "peakinnovation"
+  },
+  "pearson|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pearsonisrael"
+  },
+  "pearson|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pearsonisrael"
+  },
+  "pendo io|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pendoio"
+  },
+  "pendo io|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pendoio"
+  },
+  "pentera|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "penteraisrael"
+  },
+  "pentera|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "penteraisrael"
+  },
+  "persado|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "persadoisrael"
+  },
+  "persado|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "persadoisrael"
+  },
+  "personetics|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "personeticsisrael"
+  },
+  "personetics|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "personeticsisrael"
+  },
+  "pilot|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pilotisrael"
+  },
+  "pilot|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pilotisrael"
+  },
+  "piper ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "piperai"
+  },
+  "piper ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "piperai"
+  },
+  "placer ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "placerai"
+  },
+  "placer ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "placerai"
+  },
+  "plaee|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "plaeeisrael"
+  },
+  "plaee|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "plaeeisrael"
+  },
+  "play perfect|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "playperfect"
+  },
+  "play perfect|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "playperfect"
+  },
+  "play48 ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "play48ai"
+  },
+  "play48 ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "play48ai"
+  },
+  "plus500TM|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "plus500TM|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "pmos|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pmosisrael"
+  },
+  "pmos|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pmosisrael"
+  },
+  "pointfive|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pointfiveisrael"
+  },
+  "pointfive|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "pointfiveisrael"
+  },
+  "port io|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "portio"
+  },
+  "port io|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "portio"
+  },
+  "port|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "portisrael"
+  },
+  "port|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "portisrael"
+  },
+  "pplied|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ppliedisrael"
+  },
+  "pplied|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ppliedisrael"
+  },
+  "prestiga|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prestigaisrael"
+  },
+  "prestiga|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prestigaisrael"
+  },
+  "priority software|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prioritysoftware"
+  },
+  "priority software|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prioritysoftware"
+  },
+  "programmers io|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "programmersio"
+  },
+  "programmers io|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "programmersio"
+  },
+  "prophecy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prophecyisrael"
+  },
+  "prophecy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prophecyisrael"
+  },
+  "prosperity ai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prosperityai"
+  },
+  "prosperity ai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "prosperityai"
+  },
+  "protolabs|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "protolabsisrael"
+  },
+  "protolabs|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "protolabs"
+  },
+  "q nomy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "qnomy"
+  },
+  "q nomy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "qnomy"
+  },
+  "qualcomm|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "qualcommisrael"
+  },
+  "qualcomm|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "qualcommisrael"
+  },
+  "qualigate|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "qualigateisrael"
+  },
+  "qualigate|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "qualigateisrael"
+  },
+  "quantum integrators|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "quantumintegrators"
+  },
+  "quantum integrators|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "quantumintegrators"
+  },
+  "quantum machines|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "quantummachines"
+  },
+  "quantum machines|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "quantummachines"
+  },
+  "quantumblack ai by mckinsey|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "quantumblackaibymckinsey"
+  },
+  "quantumblack ai by mckinsey|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "quantumblackaibymckinsey"
+  },
+  "radical ideas house|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "radicalideashouse"
+  },
+  "radical ideas house|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "radicalideashouse"
+  },
+  "rad|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "radisrael"
+  },
+  "rad|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "radisrael"
+  },
+  "rafael advanced defense systems|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rafaeladvanceddefensesystems"
+  },
+  "rafael advanced defense systems|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rafaeladvanceddefensesystems"
+  },
+  "ramp|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rampisrael"
+  },
+  "ramp|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rampisrael"
+  },
+  "re partners|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "repartners"
+  },
+  "re partners|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "repartners"
+  },
+  "real dev inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "realdev"
+  },
+  "real dev inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "realdev"
+  },
+  "real estate in jeans rej|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "realestateinjeansrej"
+  },
+  "real estate in jeans rej|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "realestateinjeansrej"
+  },
+  "realplay|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "realplayisrael"
+  },
+  "realplay|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "realplayisrael"
+  },
+  "recruiting from scratch|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "recruitingfromscratch"
+  },
+  "recruiting from scratch|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "recruitingfromscratch"
+  },
+  "recruitricks|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "recruitricksisrael"
+  },
+  "recruitricks|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "recruitricksisrael"
+  },
+  "red hat|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "redhat"
+  },
+  "red hat|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "redhat"
+  },
+  "reddit inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "reddit"
+  },
+  "reddit inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "redditisrael"
+  },
+  "reindeer|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "reindeerisrael"
+  },
+  "reindeer|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "reindeerisrael"
+  },
+  "relocity inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "relocity"
+  },
+  "relocity inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "relocityisrael"
+  },
+  "remotehunter|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "remotehunterisrael"
+  },
+  "remotehunter|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "remotehunterisrael"
+  },
+  "repq|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "repqisrael"
+  },
+  "repq|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "repqisrael"
+  },
+  "resilience|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "resilience"
+  },
+  "resilience|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "resilienceisrael"
+  },
+  "ring security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ringsecurity"
+  },
+  "ring security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ringsecurity"
+  },
+  "rise technical|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "risetechnical"
+  },
+  "rise technical|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "risetechnical"
+  },
+  "riverside fm|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "riversidefm"
+  },
+  "riverside fm|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "riversidefm"
+  },
+  "roark yc w25|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "roarkycw25"
+  },
+  "roark yc w25|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "roarkycw25"
+  },
+  "robots pencils|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "robotspencils"
+  },
+  "robots pencils|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "robotspencils"
+  },
+  "rocket science group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rocketsciencegroup"
+  },
+  "rocket science group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rocketsciencegroup"
+  },
+  "rolls royce|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rollsroyce"
+  },
+  "rolls royce|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rollsroyce"
+  },
+  "rubrik|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rubrikisrael"
+  },
+  "rubrik|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "rubrikisrael"
+  },
+  "runpod|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "runpodisrael"
+  },
+  "runpod|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "runpodisrael"
+  },
+  "rylo|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ryloisrael"
+  },
+  "rylo|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ryloisrael"
+  },
+  "salesforce|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "salesforceisrael"
+  },
+  "salesforce|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "salesforceisrael"
+  },
+  "samsung semiconductor|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "samsungsemiconductor"
+  },
+  "samsung semiconductor|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "samsungsemiconductor"
+  },
+  "sandisk|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sandiskisrael"
+  },
+  "sandisk|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sandiskisrael"
+  },
+  "sap|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sapisrael"
+  },
+  "sap|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sapisrael"
+  },
+  "sardine|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sardineisrael"
+  },
+  "sardine|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sardineisrael"
+  },
+  "sauce|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sauceisrael"
+  },
+  "sauce|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "Sauce"
+  },
+  "scaleops|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "scaleops"
+  },
+  "scaleops|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "scaleopsisrael"
+  },
+  "sciplay|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sciplayisrael"
+  },
+  "sciplay|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sciplayisrael"
+  },
+  "script it|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "scriptit"
+  },
+  "script it|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "scriptit"
+  },
+  "senai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "senaiisrael"
+  },
+  "senai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "senaiisrael"
+  },
+  "sendi io|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sendiio"
+  },
+  "sendi io|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sendiio"
+  },
+  "sensata technologies|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sensataisrael"
+  },
+  "sensata technologies|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sensataisrael"
+  },
+  "sentinelai|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sentinelaiisrael"
+  },
+  "sentinelai|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sentinelaiisrael"
+  },
+  "sentinelone|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sentineloneisrael"
+  },
+  "sentinelone|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sentineloneisrael"
+  },
+  "sentra|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sentraisrael"
+  },
+  "sentra|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sentraisrael"
+  },
+  "sett|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "settisrael"
+  },
+  "sett|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "settisrael"
+  },
+  "sharpies pro|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sharpiespro"
+  },
+  "sharpies pro|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sharpiespro"
+  },
+  "shifters|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "shiftersisrael"
+  },
+  "shifters|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "shiftersisrael"
+  },
+  "ship4wd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ship4wdisrael"
+  },
+  "ship4wd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ship4wdisrael"
+  },
+  "shopic|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "shopicisrael"
+  },
+  "shopic|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "shopicisrael"
+  },
+  "siemens eda siemens digital industries software|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "siemensedasiemensdigitalindustriessoftware"
+  },
+  "siemens eda siemens digital industries software|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "siemensedasiemensdigitalindustriessoftware"
+  },
+  "sig sauer inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sigsauer"
+  },
+  "sig sauer inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sigsauer"
+  },
+  "sightful ltd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sightfulisrael"
+  },
+  "sightful ltd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sightfulisrael"
+  },
+  "sightful|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sightfulisrael"
+  },
+  "sightful|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sightfulisrael"
+  },
+  "signet jewelers|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "signetjewelers"
+  },
+  "signet jewelers|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "signetjewelers"
+  },
+  "silverfort|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "silverfortisrael"
+  },
+  "silverfort|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "silverfortisrael"
+  },
+  "similarweb|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "similarweb"
+  },
+  "similarweb|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "similarwebisrael"
+  },
+  "simplex 3d|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "simplex3d"
+  },
+  "simplex 3d|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "simplex3d"
+  },
+  "singular|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "singularisrael"
+  },
+  "singular|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "singularisrael"
+  },
+  "skyde drones|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "skydedrones"
+  },
+  "skyde drones|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "skydedrones"
+  },
+  "skygini|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "skyginiisrael"
+  },
+  "skygini|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "skyginiisrael"
+  },
+  "skypearl|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "skypearlisrael"
+  },
+  "skypearl|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "skypearlisrael"
+  },
+  "smartleaf|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "smartleafisrael"
+  },
+  "smartleaf|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "smartleafisrael"
+  },
+  "snatch up jobs|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "snatchupjobs"
+  },
+  "snatch up jobs|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "snatchupjobs"
+  },
+  "soho square solutions|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sohosquaresolutions"
+  },
+  "soho square solutions|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sohosquaresolutions"
+  },
+  "solaredge|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solaredgeisrael"
+  },
+  "solaredge|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solaredgeisrael"
+  },
+  "solid ai powered by data|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solidaipoweredbydata"
+  },
+  "solid ai powered by data|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solidaipoweredbydata"
+  },
+  "solomon page|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solomonpage"
+  },
+  "solomon page|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solomonpage"
+  },
+  "solventum|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solventumisrael"
+  },
+  "solventum|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "solventumisrael"
+  },
+  "soni|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "soniisrael"
+  },
+  "soni|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "soniisrael"
+  },
+  "soundcloud|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "soundcloudisrael"
+  },
+  "soundcloud|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "soundcloudisrael"
+  },
+  "sourcix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sourcixisrael"
+  },
+  "sourcix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sourcixisrael"
+  },
+  "spacex|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "spacex"
+  },
+  "spacex|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "spacexisrael"
+  },
+  "speak|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "speakisrael"
+  },
+  "speak|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "speakisrael"
+  },
+  "speria|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "speriaisrael"
+  },
+  "speria|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "speriaisrael"
+  },
+  "spinquest|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "spinquestisrael"
+  },
+  "spinquest|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "spinquestisrael"
+  },
+  "spreetail|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "spreetailisrael"
+  },
+  "spreetail|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "spreetail"
+  },
+  "sqlink group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sqlinkgroup"
+  },
+  "sqlink group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sqlinkgroup"
+  },
+  "ss c technologies|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ssc"
+  },
+  "ss c technologies|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ssc"
+  },
+  "stackadapt|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "stackadapt"
+  },
+  "stackadapt|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stackadaptisrael"
+  },
+  "stampli|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stampliisrael"
+  },
+  "stampli|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stampliisrael"
+  },
+  "startingup|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "startingupisrael"
+  },
+  "startingup|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "startingupisrael"
+  },
+  "status pipeline co|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "statuspipelineco"
+  },
+  "status pipeline co|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "statuspipelineco"
+  },
+  "stealth startup|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stealthstartup"
+  },
+  "stealth startup|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stealthstartup"
+  },
+  "stigg|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stiggisrael"
+  },
+  "stigg|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stiggisrael"
+  },
+  "stripe|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "stripe"
+  },
+  "stripe|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "stripeisrael"
+  },
+  "success recruitments|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "successrecruitments"
+  },
+  "success recruitments|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "successrecruitments"
+  },
+  "sunbit|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sunbitisrael"
+  },
+  "sunbit|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sunbitisrael"
+  },
+  "sundayy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sundayyisrael"
+  },
+  "sundayy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "sundayyisrael"
+  },
+  "ta9|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ta9israel"
+  },
+  "ta9|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ta9israel"
+  },
+  "taboola|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "taboola"
+  },
+  "taboola|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "taboolaisrael"
+  },
+  "tadata|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tadataisrael"
+  },
+  "tadata|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tadataisrael"
+  },
+  "tailor brands|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tailorbrands"
+  },
+  "tailor brands|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tailorbrands"
+  },
+  "tailormed|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tailormedisrael"
+  },
+  "tailormed|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tailormedisrael"
+  },
+  "tailscale|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "tailscale"
+  },
+  "tailscale|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tailscaleisrael"
+  },
+  "talencio|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talencioisrael"
+  },
+  "talencio|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talencioisrael"
+  },
+  "talener|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talenerisrael"
+  },
+  "talener|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talenerisrael"
+  },
+  "talent integration|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talentintegration"
+  },
+  "talent integration|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talentintegration"
+  },
+  "talentally|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talentallyisrael"
+  },
+  "talentally|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talentallyisrael"
+  },
+  "talenthop|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talenthopisrael"
+  },
+  "talenthop|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "talenthopisrael"
+  },
+  "tbd|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tbdisrael"
+  },
+  "tbd|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tbdisrael"
+  },
+  "team8|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "team8israel"
+  },
+  "team8|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "team8israel"
+  },
+  "tebra|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "tebra"
+  },
+  "tebra|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tebraisrael"
+  },
+  "techaviv|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "techavivisrael"
+  },
+  "techaviv|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "techavivisrael"
+  },
+  "techvantage software|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "techvantagesoftware"
+  },
+  "techvantage software|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "techvantagesoftware"
+  },
+  "telos|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "telosisrael"
+  },
+  "telos|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "telosisrael"
+  },
+  "temu|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "temuisrael"
+  },
+  "temu|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "temuisrael"
+  },
+  "tenable inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tenableisrael"
+  },
+  "tenable inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tenableisrael"
+  },
+  "tenable|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tenableisrael"
+  },
+  "tenable|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tenableisrael"
+  },
+  "tenaya|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tenayaisrael"
+  },
+  "tenaya|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tenayaisrael"
+  },
+  "teradyne|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "teradyneisrael"
+  },
+  "teradyne|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "teradyneisrael"
+  },
+  "the depository trust clearing corporation dtcc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "thedepositorytrustclearingdtcc"
+  },
+  "the depository trust clearing corporation dtcc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "thedepositorytrustclearingdtcc"
+  },
+  "the farmer s dog|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "thefarmersdog"
+  },
+  "the farmer s dog|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "thefarmersdog"
+  },
+  "the restaurant store|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "therestaurantstore"
+  },
+  "the restaurant store|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "therestaurantstore"
+  },
+  "themarker|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "themarkerisrael"
+  },
+  "themarker|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "themarkerisrael"
+  },
+  "tikal|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tikalisrael"
+  },
+  "tikal|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tikalisrael"
+  },
+  "tomax think academy|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tomaxthinkacademy"
+  },
+  "tomax think academy|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tomaxthinkacademy"
+  },
+  "tomorrow io|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tomorrowio"
+  },
+  "tomorrow io|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "tomorrowio"
+  },
+  "torentify|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "torentifyisrael"
+  },
+  "torentify|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "torentifyisrael"
+  },
+  "trace3|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "trace3"
+  },
+  "trace3|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "trace3israel"
+  },
+  "transmit security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "transmitsecurity"
+  },
+  "transmit security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "transmitsecurity"
+  },
+  "travel booster|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "travelbooster"
+  },
+  "travel booster|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "travelbooster"
+  },
+  "trm labs|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "trmlabs"
+  },
+  "trm labs|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "trmlabs"
+  },
+  "underdog io apply to top tech jobs in 60 seconds a place where companies apply to you|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "underdogioapplytotoptechjobsin60secondsaplacewherecompaniesapplytoyou"
+  },
+  "underdog io apply to top tech jobs in 60 seconds a place where companies apply to you|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "underdogioapplytotoptechjobsin60secondsaplacewherecompaniesapplytoyou"
+  },
+  "unframe|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "unframe"
+  },
+  "unframe|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "unframeisrael"
+  },
+  "unity|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "unityisrael"
+  },
+  "unity|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "unityisrael"
+  },
+  "upware|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "upwareisrael"
+  },
+  "upware|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "upwareisrael"
+  },
+  "upwind security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "upwindsecurity"
+  },
+  "upwind security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "upwindsecurity"
+  },
+  "ust|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ustisrael"
+  },
+  "ust|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ustisrael"
+  },
+  "uvizion|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "uvizionisrael"
+  },
+  "uvizion|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "uvizionisrael"
+  },
+  "valu|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "valuisrael"
+  },
+  "valu|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "valuisrael"
+  },
+  "vanguard|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vanguardisrael"
+  },
+  "vanguard|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vanguardisrael"
+  },
+  "varonis|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "varonisisrael"
+  },
+  "varonis|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "varonisisrael"
+  },
+  "vast data|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vastdata"
+  },
+  "vast data|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vastdata"
+  },
+  "vaya inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vayaisrael"
+  },
+  "vaya inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vayaisrael"
+  },
+  "venice security|comeet": {
+    "last_checked_at": "2026-09-23",
+    "result": "error",
+    "slug_tried": "venicesecurity"
+  },
+  "venice security|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "venicesecurity"
+  },
+  "venice security|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "venicesecurity"
+  },
+  "venn|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vennisrael"
+  },
+  "venn|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vennisrael"
+  },
+  "venture up|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ventureup"
+  },
+  "venture up|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "ventureup"
+  },
+  "veritex|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "veritexisrael"
+  },
+  "veritex|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "veritexisrael"
+  },
+  "versigent|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "versigentisrael"
+  },
+  "versigent|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "versigentisrael"
+  },
+  "vertafore|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vertaforeisrael"
+  },
+  "vertafore|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vertaforeisrael"
+  },
+  "via|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "via"
+  },
+  "via|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "viaisrael"
+  },
+  "viber|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "viberisrael"
+  },
+  "viber|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "viberisrael"
+  },
+  "vi|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "viisrael"
+  },
+  "vi|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "viisrael"
+  },
+  "voyantis|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "voyantisisrael"
+  },
+  "voyantis|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "voyantisisrael"
+  },
+  "vybs|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vybsisrael"
+  },
+  "vybs|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "vybsisrael"
+  },
+  "warner music group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "warnermusicgroup"
+  },
+  "warner music group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "warnermusicgroup"
+  },
+  "wayve|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "wayve"
+  },
+  "wayve|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wayveisrael"
+  },
+  "wedev|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "wedev"
+  },
+  "wedev|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wedevisrael"
+  },
+  "wedoit co il|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wedoitcoil"
+  },
+  "wedoit co il|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wedoitcoil"
+  },
+  "weka|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wekaisrael"
+  },
+  "weka|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wekaisrael"
+  },
+  "weski|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "weskiisrael"
+  },
+  "weski|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "weskiisrael"
+  },
+  "wilson brown|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wilsonbrown"
+  },
+  "wilson brown|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wilsonbrown"
+  },
+  "wittix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wittixisrael"
+  },
+  "wittix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wittixisrael"
+  },
+  "wix|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wixisrael"
+  },
+  "wix|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wixisrael"
+  },
+  "wiz|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wizisrael"
+  },
+  "wiz|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wizisrael"
+  },
+  "wondr interactive inc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wondrinteractive"
+  },
+  "wondr interactive inc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wondrinteractive"
+  },
+  "worldquant|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "worldquant"
+  },
+  "worldquant|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "worldquantisrael"
+  },
+  "wrkmark|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wrkmarkisrael"
+  },
+  "wrkmark|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "wrkmarkisrael"
+  },
+  "yad2|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yad2israel"
+  },
+  "yad2|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yad2israel"
+  },
+  "yael group|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yaelgroup"
+  },
+  "yael group|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yaelgroup"
+  },
+  "yael korentec technologies|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yaelkorentec"
+  },
+  "yael korentec technologies|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yaelkorentec"
+  },
+  "yahoo|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yahooisrael"
+  },
+  "yahoo|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yahooisrael"
+  },
+  "yellow brick health|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yellowbrickhealth"
+  },
+  "yellow brick health|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yellowbrickhealth"
+  },
+  "yolk|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yolkisrael"
+  },
+  "yolk|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yolkisrael"
+  },
+  "yotpo|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "yotpo"
+  },
+  "yotpo|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "yotpoisrael"
+  },
+  "zadara|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zadaraisrael"
+  },
+  "zadara|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "Zadara"
+  },
+  "zealot|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zealotisrael"
+  },
+  "zealot|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zealotisrael"
+  },
+  "zendesk|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zendeskisrael"
+  },
+  "zendesk|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zendeskisrael"
+  },
+  "zenity|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zenityisrael"
+  },
+  "zenity|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zenityisrael"
+  },
+  "zocdoc|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "hit",
+    "slug_tried": "zocdoc"
+  },
+  "zocdoc|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "zocdocisrael"
+  },
+  "שני נוי ייעוץ תעסוקתי|greenhouse": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "שני נוי ייעוץ תעסוקתי|lever": {
+    "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": ""
+  }
+}
