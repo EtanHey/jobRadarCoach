@@ -5,7 +5,7 @@ import { Map, NavigationControl, FullscreenControl, Marker, setWorkerUrl, type I
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
-import { usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
+import { cameraNeedsReset, focusPointCamera, locationCameraBounds, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).href);
@@ -20,6 +20,21 @@ function landingZoom(map: Map, latitude: number) {
   return landingZoomForSize(map.getContainer().clientWidth, map.getContainer().clientHeight, latitude);
 }
 function reducedMotion() { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+function moveToLocation(map: Map, location: string, points: GlobePoint[], reset: boolean, duration: number) {
+  const bounds = reset ? null : locationCameraBounds(location, points);
+  const easing = (t: number) => 1 - (1 - t) ** 3;
+  if (bounds) {
+    const padded = bounds[0][0] === bounds[1][0] && bounds[0][1] === bounds[1][1]
+      ? [[bounds[0][0] - .25, bounds[0][1] - .25], [bounds[1][0] + .25, bounds[1][1] + .25]] as typeof bounds : bounds;
+    const camera = map.cameraForBounds(padded, { padding: 48, maxZoom: 10 });
+    if (camera) map.easeTo({ ...camera, duration, easing });
+  } else {
+    const center: [number, number] = location === "other" && !reset && points.length
+      ? [points.reduce((sum, point) => sum + point.lng, 0) / points.length, points.reduce((sum, point) => sum + point.lat, 0) / points.length]
+      : FALLBACK_CENTER;
+    map.easeTo({ center, zoom: landingZoom(map, FALLBACK_CENTER[1]), duration, easing });
+  }
+}
 function makeLocationControl(locate: () => void): IControl {
   let root: HTMLDivElement | null = null;
   return {
@@ -57,15 +72,21 @@ function makeLocationControl(locate: () => void): IControl {
   };
 }
 
-type Props = { active: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; onSelect: (id: string) => void; onFailure: () => void };
-export default function JobGlobe({ active, points, selected, selectionRequest, onSelect, onFailure, onViewportChange }: Props) {
+type Props = { active: boolean; dataReady: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; selectionSource: "point" | "rail"; location: string; cameraAction: { kind: "location" | "reset"; id: number }; onCameraAwayChange: (away: boolean) => void; onSelect: (id: string) => void; onFailure: () => void };
+export default function JobGlobe({ active, dataReady, points, selected, selectionRequest, selectionSource, location, cameraAction, onCameraAwayChange, onSelect, onFailure, onViewportChange }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const activeRef = useRef(active);
   const cameraRef = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number } | null>(null);
   const pendingFailureRef = useRef(false);
   const mapRef = useRef<Map | null>(null);
   const overlayRef = useRef<MapLibreOverlay | null>(null);
-  const callbacks = useRef({ onSelect, onFailure, onViewportChange });
+  const markerRegistry = useRef(new globalThis.Map<string, { marker: Marker; button: HTMLButtonElement; lng: number; lat: number }>());
+  const initialFocusPending = useRef(true);
+  const handledCameraAction = useRef(cameraAction.id);
+  const handledSelectionRequest = useRef(0);
+  const dataReadyRef = useRef(dataReady);
+  const startMapRef = useRef<() => void>(() => {});
+  const callbacks = useRef({ onSelect, onFailure, onViewportChange, onCameraAwayChange });
   const [clusters, setClusters] = useState<PointCluster[]>([]);
   const [choiceIds, setChoiceIds] = useState<string[]>([]);
   const choices = useMemo(() => globeChoices(points, choiceIds), [points, choiceIds]);
@@ -74,6 +95,9 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
   const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null; request: number } | null>(null);
   const locationStatusTimer = useRef<number | null>(null);
   const selectedRef = useRef(selected);
+  const locationRef = useRef(location);
+  const pointsRef = useRef(points);
+  useLayoutEffect(() => { dataReadyRef.current = dataReady; locationRef.current = location; pointsRef.current = points; }, [dataReady, location, points]);
   const selectionRequestRef = useRef(selectionRequest);
   const hovered = hover?.selection === selected ? hover.point : null;
   const canInteract = useCallback(() => {
@@ -99,9 +123,10 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
     const frame = requestAnimationFrame(() => { restore(); if (cameraRef.current === savedCamera) cameraRef.current = null; });
     return () => cancelAnimationFrame(frame);
   }, [active]);
-  useEffect(() => { callbacks.current = { onSelect: (id: string) => { setHiddenFocusedSelection(null); onSelect(id); }, onFailure, onViewportChange }; }, [onSelect, onFailure, onViewportChange]);
+  useEffect(() => { callbacks.current = { onSelect: (id: string) => { setHiddenFocusedSelection(null); onSelect(id); }, onFailure, onViewportChange, onCameraAwayChange }; }, [onSelect, onFailure, onViewportChange, onCameraAwayChange]);
   useEffect(() => { selectionRequestRef.current = selectionRequest; }, [selectionRequest]);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
+  useEffect(() => { if (dataReady) startMapRef.current(); }, [dataReady]);
   useEffect(() => {
     if (!active || ready) return;
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
@@ -143,8 +168,9 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
     let map: Map | undefined;
     let mounted = true;
     let loaded = false;
-    let untouchedLanding = true;
     let initialZoom = 0;
+    let cameraStarts = 0;
+    const registry = markerRegistry.current;
     let style: MapOptions["style"];
     const request = new AbortController();
     const fail = () => {
@@ -154,6 +180,7 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
     };
     const startMap = () => {
       if (!mounted || map || !style || !activeRef.current || !container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return;
+      if (locationRef.current === "other" && !dataReadyRef.current) return;
       try {
         initialZoom = landingZoomForSize(container.current.clientWidth, container.current.clientHeight, FALLBACK_CENTER[1]);
         map = new Map({ container: container.current, style, center: FALLBACK_CENTER, zoom: initialZoom, maxZoom: 12, trackResize: false, canvasContextAttributes: { antialias: true }, attributionControl: { compact: true } });
@@ -167,17 +194,28 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
           container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
           container.current.dataset.bearing = String(map.getBearing());
           container.current.dataset.pitch = String(map.getPitch());
+          const bounds = locationCameraBounds(locationRef.current, pointsRef.current);
+          if (bounds) container.current.dataset.locationCorners = JSON.stringify([
+            [bounds[0][0], bounds[0][1]], [bounds[0][0], bounds[1][1]],
+            [bounds[1][0], bounds[0][1]], [bounds[1][0], bounds[1][1]],
+          ].map(([lng, lat]) => { const screen = map!.project([lng, lat]); return [screen.x, screen.y]; }));
+          else delete container.current.dataset.locationCorners;
         } };
         map.on("moveend", publishCamera);
+        map.on("movestart", () => { if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
         map.on("moveend", () => {
           if (!map) return;
           const center = map.getCenter();
-          if (Math.abs(center.lng - FALLBACK_CENTER[0]) > .0001 || Math.abs(center.lat - FALLBACK_CENTER[1]) > .0001 || Math.abs(map.getZoom() - initialZoom) > .001) untouchedLanding = false;
+          callbacks.current.onCameraAwayChange(cameraNeedsReset([center.lng, center.lat], map.getZoom(), FALLBACK_CENTER, landingZoom(map, FALLBACK_CENTER[1])));
         });
         map.on("webglcontextlost", fail);
         map.on("error", event => { if (!loaded) { console.error("Globe initialization error", event.error); fail(); } });
         map.once("load", () => {
           if (!mounted || !map) return;
+          if (locationRef.current && (locationRef.current !== "other" || dataReadyRef.current)) {
+            moveToLocation(map, locationRef.current, pointsRef.current, false, 0);
+            initialFocusPending.current = false;
+          }
           publishCamera();
           const overlay = new MapLibreOverlay({ interleaved: false, layers: [], onError: fail });
           map.addControl(overlay);
@@ -192,19 +230,16 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
       if (map) {
         map.resize();
         if (activeRef.current && cameraRef.current) { map.jumpTo(cameraRef.current); cameraRef.current = null; }
-        else if (activeRef.current && untouchedLanding && container.current) {
-          const cap = landingZoomForSize(container.current.clientWidth, container.current.clientHeight, FALLBACK_CENTER[1]);
-          if (map.getZoom() > cap) { initialZoom = cap; map.jumpTo({ zoom: cap }); }
-        }
       } else if (pendingFailureRef.current && activeRef.current) fail();
       else startMap();
     });
     resize.observe(container.current);
+    startMapRef.current = startMap;
     fetch("https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json", { signal: request.signal })
       .then(response => { if (!response.ok) throw new Error(`Map style: ${response.status}`); return response.json(); })
       .then(body => { style = { ...(body as object), projection: { type: "globe" } } as MapOptions["style"]; startMap(); })
       .catch(error => { if (mounted && !request.signal.aborted) { console.error("Globe style error", error); fail(); } });
-    return () => { mounted = false; pendingFailureRef.current = false; request.abort(); resize.disconnect(); overlayRef.current = null; mapRef.current = null; map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
+    return () => { mounted = false; startMapRef.current = () => {}; pendingFailureRef.current = false; request.abort(); resize.disconnect(); overlayRef.current = null; mapRef.current = null; registry.clear(); map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
   }, [locate]);
   useEffect(() => {
     const map = mapRef.current;
@@ -269,31 +304,68 @@ export default function JobGlobe({ active, points, selected, selectionRequest, o
         onClick: info => { if (canInteract() && info.object?.members.length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); },
       })],
     });
-    const markers = clusters.filter(cluster => cluster.members.length > 1).map(cluster => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "globe-cluster";
+    const next = new Set<string>();
+    for (const cluster of clusters.filter(cluster => cluster.members.length > 1)) {
+      const key = cluster.members.map(point => point.posting_id).sort().join("|");
+      next.add(key);
+      let entry = markerRegistry.current.get(key);
+      if (!entry) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "globe-cluster";
+        button.setAttribute("aria-controls", "globe-posting-choices");
+        const marker = new Marker({ element: button }).setLngLat([cluster.anchor.lng, cluster.anchor.lat]).addTo(map);
+        entry = { marker, button, lng: cluster.anchor.lng, lat: cluster.anchor.lat };
+        markerRegistry.current.set(key, entry);
+      }
+      const { button } = entry;
       button.setAttribute("aria-label", `${cluster.members.length} postings near ${cluster.anchor.job.location ?? "this location"}`);
-      button.setAttribute("aria-controls", "globe-posting-choices");
       button.textContent = String(cluster.members.length);
       button.style.setProperty("--cluster-color", scoreCss(clusterScore(cluster)));
+      if (entry.lng !== cluster.anchor.lng || entry.lat !== cluster.anchor.lat) {
+        entry.marker.setLngLat([cluster.anchor.lng, cluster.anchor.lat]);
+        entry.lng = cluster.anchor.lng; entry.lat = cluster.anchor.lat;
+      }
       button.onclick = () => {
         if (!canInteract()) return;
         setHover(null);
         setChoiceIds(cluster.members.map(point => point.posting_id));
         map.flyTo({ center: [cluster.anchor.lng, cluster.anchor.lat], zoom: Math.min(map.getZoom() + 2, map.getMaxZoom()), duration: reducedMotion() ? 0 : 800 });
       };
-      return new Marker({ element: button }).setLngLat([cluster.anchor.lng, cluster.anchor.lat]).addTo(map);
-    });
-    return () => { markers.forEach(marker => marker.remove()); };
+    }
+    for (const [key, entry] of markerRegistry.current) if (!next.has(key)) { entry.marker.remove(); markerRegistry.current.delete(key); }
   }, [clusters, selected, hovered, ready, canInteract]);
   const selectedPoint = points.find(point => point.posting_id === selected);
   const selectedLat = selectedPoint?.lat, selectedLng = selectedPoint?.lng;
   useEffect(() => {
-    if (ready && selectedLat !== undefined && selectedLng !== undefined && mapRef.current) {
-      mapRef.current.flyTo({ center: [selectedLng, selectedLat], zoom: landingZoom(mapRef.current, selectedLat), duration: reducedMotion() ? 0 : 1200 });
-    }
-  }, [selected, ready, selectedLat, selectedLng]);
+    const map = mapRef.current;
+    if (!ready || !active || !map || selectedLat === undefined || selectedLng === undefined || selectionRequest === 0 || selectionRequest === handledSelectionRequest.current) return;
+    handledSelectionRequest.current = selectionRequest;
+    const mapRect = map.getContainer().getBoundingClientRect();
+    const drawerRect = selectionSource === "point" ? document.querySelector<HTMLElement>('[role="dialog"]')?.getBoundingClientRect() : undefined;
+    // Base UI mounts the drawer portal after this effect on a direct point click.
+    const drawerWidth = selectionSource === "point" ? drawerRect?.width ?? Math.min(innerWidth, 42 * parseFloat(getComputedStyle(document.documentElement).fontSize)) : 0;
+    const overlap = Math.min(mapRect.width, Math.max(0, drawerWidth - (innerWidth - mapRect.right)));
+    const coveredRight = overlap >= mapRect.width - 1 ? 0 : overlap;
+    const screen = map.project([selectedLng, selectedLat]);
+    const target = focusPointCamera({ zoom: map.getZoom(), width: mapRect.width, height: mapRect.height, coveredRight, x: screen.x, y: screen.y });
+    map.getContainer().dataset.focusDecision = JSON.stringify({ selectionSource, coveredRight, x: screen.x, y: screen.y, target });
+    if (target) map.easeTo({ center: [selectedLng, selectedLat], zoom: target.zoom, offset: [target.offsetX, 0], duration: reducedMotion() ? 0 : 600, easing: t => 1 - (1 - t) ** 3 });
+  }, [selectionRequest, selectionSource, ready, active, selectedLat, selectedLng]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !active || !map) return;
+    const initial = initialFocusPending.current;
+    const explicit = cameraAction.id !== handledCameraAction.current;
+    if (!initial && !explicit) return;
+    if (location === "other" && points.length === 0 && !dataReady && !(explicit && cameraAction.kind === "reset")) return;
+    initialFocusPending.current = false;
+    handledCameraAction.current = cameraAction.id;
+    if (initial && location === "" && !explicit) return;
+    const resetting = explicit && cameraAction.kind === "reset";
+    const duration = initial || reducedMotion() ? 0 : 900;
+    moveToLocation(map, location, points, resetting, duration);
+  }, [active, ready, dataReady, location, points, cameraAction]);
   const focused = hovered && points.some(point => point.posting_id === hovered.posting_id) ? hovered : selectedPoint;
   return <section className="job-globe-shell" aria-label="Posting locations globe">
     <div onPointerLeave={() => setHover(null)} className="job-globe">

@@ -3,6 +3,28 @@ import type { GlobePoint } from "./globe-model";
 
 type ScreenPoint = { x: number; y: number };
 type Coordinate = { lng: number; lat: number };
+export type Bounds = [[number, number], [number, number]];
+export const LOCATION_BOUNDS: Record<"israel" | "united-states", Bounds> = {
+  israel: [[34.20, 29.45], [35.90, 33.35]],
+  "united-states": [[-125.0, 24.4], [-66.9, 49.4]],
+};
+export function locationCameraBounds(location: string, points: readonly Coordinate[]): Bounds | null {
+  if (location === "israel" || location === "united-states") return LOCATION_BOUNDS[location];
+  if (location !== "other" || points.length === 0) return null;
+  const lng = points.map(point => point.lng), lat = points.map(point => point.lat);
+  const west = Math.min(...lng), east = Math.max(...lng);
+  return east - west < 150 ? [[west, Math.min(...lat)], [east, Math.max(...lat)]] : null;
+}
+export function focusPointCamera({ zoom, width, height, coveredRight, x, y }: {
+  zoom: number; width: number; height: number; coveredRight: number; x: number; y: number;
+}): { zoom: number; offsetX: number } | null {
+  const visibleWidth = Math.max(1, width - coveredRight);
+  if (zoom >= 5 && x >= visibleWidth * .2 && x <= visibleWidth * .8 && y >= height * .2 && y <= height * .8) return null;
+  return { zoom: Math.max(zoom, 5), offsetX: coveredRight ? -coveredRight / 2 : 0 };
+}
+export function cameraNeedsReset(center: [number, number], zoom: number, home: [number, number], homeZoom: number): boolean {
+  return Math.abs(center[0] - home[0]) > 1 || Math.abs(center[1] - home[1]) > 1 || Math.abs(zoom - homeZoom) > .25;
+}
 export function usableMapSize(width: number, height: number): boolean {
   return Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0;
 }

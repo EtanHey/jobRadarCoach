@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JobSummarySchema } from "../lib/contracts";
-import { countGlobeRoles, partitionGlobeGroups, viewportPostingIds } from "../lib/globe-viewport";
+import { LOCATION_BOUNDS, cameraNeedsReset, focusPointCamera, locationCameraBounds, countGlobeRoles, partitionGlobeGroups, viewportPostingIds } from "../lib/globe-viewport";
 import type { GlobePoint } from "../lib/globe-model";
 const job = (n: number) => JobSummarySchema.parse({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, title: "Engineer", company: "Example", source: "test", last_seen_at: "2026-09-22", experience: null, description_available: false, seniority_origin: "unknown", extraction_state: "not-extracted", location: null, remote: null, seniority: null, stack: [], salary: null, url: "https://example.test", apply_url: null, posted_at: null, first_seen_at: "2026-09-22", status: "new", status_reason: null, score: null, fit_line: null, recommendation: null });
 const point = (n: number): GlobePoint => ({ posting_id: job(n).id, job: job(n), rowId: job(n).id, lng: 35, lat: 32, precision: "city", source: "test", resolved_at: "2026-09-22" });
@@ -40,4 +40,18 @@ test("globe counts use deduplicated roles across mapped, unmapped and visible se
   assert.deepEqual(counts,{total:3,mapped:2,unmapped:1});
   assert.equal(counts.mapped+counts.unmapped,counts.total);
   assert.deepEqual(partitionGlobeGroups(groups,[job(2).id]).visible,[groups[0]]);
+});
+test("point focus preserves zoom and avoids movement when already clear of the drawer", () => {
+  assert.equal(focusPointCamera({ zoom: 8, width: 900, height: 600, coveredRight: 0, x: 450, y: 300 }), null);
+  assert.deepEqual(focusPointCamera({ zoom: 8, width: 900, height: 600, coveredRight: 300, x: 750, y: 300 }), { zoom: 8, offsetX: -150 });
+  assert.deepEqual(focusPointCamera({ zoom: 3, width: 900, height: 600, coveredRight: 0, x: 450, y: 300 }), { zoom: 5, offsetX: 0 });
+});
+test("location bounds and camera reset follow explicit user intent", () => {
+  assert.deepEqual(LOCATION_BOUNDS.israel, [[34.20, 29.45], [35.90, 33.35]]);
+  assert.deepEqual(locationCameraBounds("united-states", []), LOCATION_BOUNDS["united-states"]);
+  assert.deepEqual(locationCameraBounds("other", [{lng:2,lat:48},{lng:10,lat:52}]), [[2,48],[10,52]]);
+  assert.equal(locationCameraBounds("other", [{lng:-100,lat:40},{lng:100,lat:40}]), null);
+  assert.equal(cameraNeedsReset([34.8113,31.8928],1.9,[34.8113,31.8928],1.9),false);
+  assert.equal(cameraNeedsReset([36,31.8928],1.9,[34.8113,31.8928],1.9),true);
+  assert.equal(cameraNeedsReset([34.8113,31.8928],2.2,[34.8113,31.8928],1.9),true);
 });
