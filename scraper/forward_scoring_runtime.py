@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from collections import Counter
@@ -148,19 +149,37 @@ def reference_brain(request: brain.BrainRequest, snapshot: Mapping[str, object])
     )
 
 
+def _canonical_json_bytes(value: object) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+
+
 def score_reference(
     row: Mapping[str, Any], runner: core.BrainRunner = reference_brain
 ) -> dict[str, object]:
     frozen = row["frozen_input"]
     hosted = frozen["hosted_payload"]
+    profile = frozen["reference_validation_profile"]
+    projected_profile = provider_payload_projection(hosted["public_posting"], profile)[
+        "professional_profile"
+    ]
+    if _canonical_json_bytes(projected_profile) != _canonical_json_bytes(
+        hosted["professional_profile"]
+    ):
+        raise ValueError("reference hosted profile differs from local projection")
     diagnostics: list[str] = []
     started = time.monotonic()
     result = core.score_projected(
-        hosted["professional_profile"],
+        profile,
         hosted["public_posting"],
         [],
-        profile_snapshot=frozen["reference_validation_profile"],
-        validation_profile=frozen["reference_validation_profile"],
+        profile_snapshot=profile,
+        validation_profile=profile,
         brain_runner=runner,
         diagnostic=diagnostics.append,
     )
