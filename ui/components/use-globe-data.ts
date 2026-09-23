@@ -49,5 +49,5 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
     const next = { key: current.key, data: { ...current.data, jobs, points, total_count: jobs.length, resolved_count: points.length, unresolved_count: jobs.length - points.length } };
     cohort.current = next; setResult(next);
   }, []);
-  return { patchStatus, data: open && result?.key === key ? result.data : null, failure };
+  return { patchStatus, data: result?.key === key ? result.data : null, failure };
 }

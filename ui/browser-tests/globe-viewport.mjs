@@ -65,16 +65,17 @@ try{for(const mobile of [false,true]){
   await page.getByRole('heading',{name:'On screen',exact:true}).waitFor();
   await page.evaluate(()=>{window.globeRailGaps=0;}); // The intentional OFF and loading frames are outside the refresh/search gap assertion.
   for(let i=0;i<4;i++){await page.getByRole('button',{name:'Zoom out',exact:true}).click({force:true});await page.waitForTimeout(350);}
+  const beforePan=await ids('visible');
   const box=await page.locator('.job-globe').boundingBox();
   for(let attempt=0;attempt<3;attempt++){
     await page.mouse.move(box.x+box.width*.8,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.1,box.y+box.height*.5,{steps:30});await page.mouse.up();
     await page.waitForTimeout(500);
-    const now=await ids('visible');if(JSON.stringify(now)!==JSON.stringify(initial.on))break;
+    const now=await ids('visible');if(JSON.stringify(now)!==JSON.stringify(beforePan))break;
   }
-  await page.waitForFunction(expected=>{const ids=[...document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]')].map(row=>row.dataset.postingId);return JSON.stringify(ids)!==JSON.stringify(expected);},initial.on,{timeout:10000});
-  const panned=await parity(Array.from({length:7},(_,n)=>id(n)));assert.notDeepEqual(panned.on,initial.on,'pan updates the viewport partition');
+  await page.waitForFunction(expected=>{const ids=[...document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]')].map(row=>row.dataset.postingId);return JSON.stringify(ids)!==JSON.stringify(expected);},beforePan,{timeout:10000});
+  const panned=await parity(Array.from({length:7},(_,n)=>id(n)));assert.notDeepEqual(panned.on,beforePan,'pan updates the viewport partition');
   await page.screenshot({path:`${output}/${name}-panned.png`,fullPage:true});
-  await page.getByPlaceholder('Search title, company, or stack').fill('Duplicate');await page.waitForTimeout(250);assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'search keeps sectioned rail mounted');const filtered=await parity([id(6)]);await page.getByText('1 role mapped',{exact:true}).filter({visible:true}).waitFor();await page.getByText('0 roles not on globe',{exact:true}).filter({visible:true}).waitFor();
+  await page.getByPlaceholder('Search title, company, or stack').fill('Duplicate');await page.getByText('1 role mapped',{exact:true}).filter({visible:true}).waitFor();await page.getByText('0 roles not on globe',{exact:true}).filter({visible:true}).waitFor();await page.waitForFunction(expected=>[...document.querySelectorAll('[data-globe-section] [data-posting-id]')].map(row=>row.dataset.postingId).join()===expected,id(6));assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'search keeps sectioned rail mounted');const filtered=await parity([id(6)]);
   await page.locator(`[data-posting-id="${id(6)}"] > button`).click();const statusPatched=page.waitForResponse(response=>new URL(response.url()).pathname===`/api/jobs/${id(6)}/status`&&response.request().method()==='PATCH');await page.getByRole('button',{name:'View job details'}).click();await statusPatched;await page.waitForTimeout(250);
   assert.equal(await page.evaluate(()=>window.globeRailGaps),0,'status patch keeps sectioned rail mounted');
   assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.method==='GET'||r.method==='PATCH'&&r.path===`/api/jobs/${id(6)}/status`));assert.ok(requests.filter(r=>r.path.endsWith('/globe')).every(r=>!r.query.includes('limit')));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
