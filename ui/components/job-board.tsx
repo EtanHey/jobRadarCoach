@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import dynamic from "next/dynamic";
 import { GlobeBoundary } from "./globe-boundary";
 import { useGlobeData } from "./use-globe-data";
 import { globePoints } from "@/lib/globe-model";
 import { countGlobeRoles } from "@/lib/globe-viewport";
+import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
@@ -54,9 +55,12 @@ export function JobBoard() {
   const [revision, setRevision] = useState(0);
   const [globeOpen, setGlobeOpen] = useState(false);
   const globeTransitioning = useRef(false);
+  const pendingGlobeToggle = useRef(false);
+  const toggleGlobeRef = useRef<() => void>(() => {});
   const firstGlobeOpen = useRef(true);
+  const [arrivalRequest, setArrivalRequest] = useState(0);
   const [viewport, setViewport] = useState<{ key: string; positions: string; evaluated: Set<string>; ids: string[] } | null>(null);
-  const [globeMounted, setGlobeMounted] = useState(true);
+  const [globeMounted, setGlobeMounted] = useState(false);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
   const [globeSelectionRequest, setGlobeSelectionRequest] = useState(0);
   const [globeSelectionSource, setGlobeSelectionSource] = useState<"point" | "rail">("rail");
@@ -80,6 +84,15 @@ export function JobBoard() {
   const globeCounts = globe.data ? countGlobeRoles(groups, points) : null;
   const selectedGlobeGroup = groups.find(group => [group.job, ...group.alternates].some(job => job.id === globeSelected));
   const activeGlobeSelection = selectedGlobeGroup ? globeSelected : null;
+  useEffect(() => {
+    const prefetch = () => { void import("./job-globe"); void loadGlobeStyle().catch(() => {}); };
+    if ("requestIdleCallback" in window) {
+      const handle = window.requestIdleCallback(prefetch, { timeout: 2000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const handle = setTimeout(prefetch, 800);
+    return () => clearTimeout(handle);
+  }, []);
   function failGlobe() { setGlobeOpen(false); setGlobeMounted(false); setViewport(null); setGlobeWarning("The globe could not load. Your list is still here."); }
   function focusGlobeRow(id: string | null, source: "point" | "rail" = "rail") {
     setGlobeSelected(id);
@@ -175,7 +188,7 @@ export function JobBoard() {
     setPreferences(next);
   }
   function toggleGlobe() {
-    if (globeTransitioning.current) return;
+    if (globeTransitioning.current) { pendingGlobeToggle.current = !pendingGlobeToggle.current; return; }
     const next = !globeActive;
     const swap = () => {
       flushSync(() => {
@@ -195,21 +208,26 @@ export function JobBoard() {
       .filter(card => { const box = card.getBoundingClientRect(); return box.width > 0 && box.bottom > 0 && box.top < innerHeight; })
       .slice(0, 12).map(card => card.dataset.globeCard);
     const nameCards = () => document.querySelectorAll<HTMLElement>("[data-globe-card]").forEach(card => {
-      if (visible.includes(card.dataset.globeCard)) card.style.viewTransitionName = `card-${card.dataset.globeCard}`;
+      if (visible.includes(card.dataset.globeCard)) {
+        card.style.viewTransitionName = `card-${card.dataset.globeCard}`;
+        card.style.setProperty("view-transition-class", "globe-card");
+      }
     });
     nameCards();
     globeTransitioning.current = true;
     document.documentElement.dataset.globeTransition = next ? "on" : "off";
     const transition = document.startViewTransition(() => { swap(); nameCards(); });
     const finish = () => {
-      document.querySelectorAll<HTMLElement>("[data-globe-card]").forEach(card => { card.style.viewTransitionName = ""; });
+      document.querySelectorAll<HTMLElement>("[data-globe-card]").forEach(card => { card.style.viewTransitionName = ""; card.style.removeProperty("view-transition-class"); });
       delete document.documentElement.dataset.globeTransition;
       globeTransitioning.current = false;
-      if (next && firstGlobeOpen.current) window.dispatchEvent(new Event("job-globe-arrive"));
+      if (pendingGlobeToggle.current) { pendingGlobeToggle.current = false; queueMicrotask(() => toggleGlobeRef.current()); }
+      if (next && firstGlobeOpen.current) setArrivalRequest(value => value + 1);
       if (next) firstGlobeOpen.current = false;
     };
     void transition.finished.then(finish, finish);
   }
+  useLayoutEffect(() => { toggleGlobeRef.current = toggleGlobe; });
 
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
@@ -375,7 +393,7 @@ export function JobBoard() {
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
+      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer

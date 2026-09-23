@@ -3,19 +3,20 @@ import { chromium } from "@playwright/test";
 
 const base = process.env.GLOBE_QA_URL ?? "http://127.0.0.1:4332";
 assert.equal(new URL(base).hostname, "127.0.0.1");
+const roleCount = Number(process.env.GLOBE_ROLE_COUNT ?? 15);
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const jobs = Array.from({ length: 15 }, (_, n) => ({ id: id(n), title: `Fixture engineer ${n}`,
+const jobs = Array.from({ length: roleCount }, (_, n) => ({ id: id(n), title: `Fixture engineer ${n}`,
   company: `Fixture ${n}`, source: "fixture", last_seen_at: "2026-09-22T00:00:00Z",
   first_seen_at: "2026-09-22T00:00:00Z", experience: "3+ years", description_available: false,
   seniority_origin: "title", extraction_state: "not-extracted", location: "Rehovot, Israel",
   remote: true, seniority: "Junior", stack: ["React"], salary: null, url: "https://example.test",
   apply_url: null, posted_at: null, status: "new", status_reason: null, score: 85,
   fit_line: null, recommendation: "apply" }));
-const points = jobs.map((job, n) => ({ posting_id: job.id, lat: 31.8 + n * .08,
-  lng: 34.8 + n * .08, precision: "city", source: "fixture", resolved_at: "2026-09-22T00:00:00Z" }));
+const points = jobs.map((job, n) => ({ posting_id: job.id, lat: 31.8 + (n % 50) * .08,
+  lng: 34.8 + (n % 50) * .08, precision: "city", source: "fixture", resolved_at: "2026-09-22T00:00:00Z" }));
 const payload = { jobs, points, total_count: jobs.length, resolved_count: jobs.length,
   unresolved_count: 0, attribution: "© OpenStreetMap contributors" };
-const browser = await chromium.launch({ headless: process.env.GLOBE_HEADFUL !== "1", args: process.env.GLOBE_SWIFTSHADER === "0" ? [] : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const receipts = [];
 try {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
@@ -32,7 +33,15 @@ try {
           const record = { start: performance.now(), ready: null, done: null };
           window.__transitions.push(record);
           const transition = native(callback);
-          transition.ready.then(() => { record.ready = performance.now(); record.animations = document.getAnimations().map(animation => ({ duration: animation.effect?.getTiming().duration, name: animation.animationName, pseudo: animation.effect?.pseudoElement })); }).catch(() => {});
+          transition.ready.then(() => {
+            record.ready = performance.now();
+            record.animations = document.getAnimations().map(animation => ({ duration: animation.effect?.getTiming().duration, name: animation.animationName, pseudo: animation.effect?.pseudoElement }));
+            record.snapshotStyles = {
+              rootBlend: getComputedStyle(document.documentElement, "::view-transition-old(root)").mixBlendMode,
+              railOldOpacity: getComputedStyle(document.documentElement, "::view-transition-old(job-rail)").opacity,
+              railNewOpacity: getComputedStyle(document.documentElement, "::view-transition-new(job-rail)").opacity,
+            };
+          }).catch(() => {});
           transition.finished.then(() => { record.done = performance.now(); });
           return transition;
         };
@@ -48,7 +57,7 @@ try {
         await page.goto(base);
         const globe = page.getByRole("button", { name: "Globe", exact: true });
         await globe.waitFor();
-        await page.locator(".globe-slot .job-globe").waitFor({ state: "attached" });
+        assert.equal(await page.locator(".globe-slot .job-globe").count(), 0, "list view defers MapLibre mount");
         assert.equal(await globe.locator("svg.lucide-globe").count(), 1);
         assert.equal(await globe.getAttribute("aria-pressed"), "false");
         await page.evaluate(() => {
@@ -71,6 +80,7 @@ try {
         const legend = page.locator("[data-globe-legend]");
         assert.equal(await legend.count(), 1);
         assert.equal(await legend.evaluate(node => node.parentElement?.classList.contains("job-results-summary")), true);
+        assert.equal(await legend.evaluate(node => node === node.parentElement?.firstElementChild), true, "legend leads the meta row");
         if (viewport.width >= 1280) {
           const selectBox = await page.getByRole("combobox", { name: "Location" }).boundingBox();
           const globeBox = await globe.boundingBox();
@@ -86,10 +96,11 @@ try {
           assert.equal(transitions.length, 1);
           await page.waitForFunction(() => window.__transitions[0]?.done !== null);
           const timings = await page.evaluate(() => ({ ready: window.__transitions[0].ready - window.__transitions[0].start,
-            done: window.__transitions[0].done - window.__transitions[0].start, animations: window.__transitions[0].animations }));
+            done: window.__transitions[0].done - window.__transitions[0].start, animations: window.__transitions[0].animations,
+            snapshotStyles: window.__transitions[0].snapshotStyles }));
           const viewAnimations = timings.animations.filter(animation => animation.pseudo?.startsWith("::view-transition"));
           assert.ok(viewAnimations.length > 0 && viewAnimations.every(animation => animation.duration === 420), `view transition durations ${JSON.stringify(viewAnimations)}`);
-          if (process.env.GLOBE_STRICT_TIMING === "1") assert.ok(timings.done <= 600, `transition wall time ${timings.done}ms`);
+          assert.deepEqual(timings.snapshotStyles, { rootBlend: "normal", railOldOpacity: "0", railNewOpacity: "1" });
           receipts.push({ viewport: viewport.width, reducedMotion, readyMs: timings.ready, finishedMs: timings.done, animationCount: viewAnimations.length });
         } else assert.equal(await page.evaluate(() => window.__transitions.length), 0);
         const mapWidths = await page.evaluate(() => { window.__sampling = false; return window.__mapWidths; });
@@ -110,7 +121,8 @@ try {
           await page.mouse.move(canvasBox.x + canvasBox.width / 2 + 45, canvasBox.y + canvasBox.height / 2 + 30, { steps: 5 });
           await page.mouse.up();
           await page.getByText("Drag to spin · scroll to zoom").waitFor({ state: "hidden" });
-          await page.waitForTimeout(500);
+          // Let MapLibre drag inertia settle before capturing the camera to restore.
+          await page.waitForTimeout(1500);
           savedCamera = await page.locator("[data-projection]").evaluate(node => ({ center: node.dataset.center, zoom: node.dataset.zoom }));
           assert.notEqual(savedCamera.center, before.center, "drag moves the camera");
         }

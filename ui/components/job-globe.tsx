@@ -6,6 +6,7 @@ import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, globeChoices, type PointCluster, type GlobePoint } from "@/lib/globe-model";
 import { cameraNeedsReset, focusPointCamera, locationCameraBounds, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
+import { loadGlobeStyle } from "@/lib/globe-style";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 setWorkerUrl(new URL("../lib/generated/maplibre-worker.mjs", import.meta.url).href);
@@ -72,8 +73,8 @@ function makeLocationControl(locate: () => void): IControl {
   };
 }
 
-type Props = { active: boolean; dataReady: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; selectionSource: "point" | "rail"; location: string; cameraAction: { kind: "location" | "reset"; id: number }; onCameraAwayChange: (away: boolean) => void; onSelect: (id: string) => void; onFailure: () => void };
-export default function JobGlobe({ active, dataReady, points, selected, selectionRequest, selectionSource, location, cameraAction, onCameraAwayChange, onSelect, onFailure, onViewportChange }: Props) {
+type Props = { active: boolean; dataReady: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; selectionSource: "point" | "rail"; location: string; cameraAction: { kind: "location" | "reset"; id: number }; arrivalRequest: number; onCameraAwayChange: (away: boolean) => void; onSelect: (id: string) => void; onFailure: () => void };
+export default function JobGlobe({ active, dataReady, points, selected, selectionRequest, selectionSource, location, cameraAction, arrivalRequest, onCameraAwayChange, onSelect, onFailure, onViewportChange }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const activeRef = useRef(active);
   const cameraRef = useRef<{ center: [number, number]; zoom: number; bearing: number; pitch: number } | null>(null);
@@ -97,6 +98,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     catch { return true; }
   });
   const arrivalPending = useRef(false);
+  const arrivalSeen = useRef(0);
+  const pulsedSelection = useRef<string | null>(null);
   const arrivalInProgress = useRef(false);
   const [hover, setHover] = useState<{ point: GlobePoint; selection: string | null } | null>(null);
   const [hiddenFocusedSelection, setHiddenFocusedSelection] = useState<{ selected: string | null; request: number } | null>(null);
@@ -141,16 +144,17 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   useEffect(() => { if (dataReady) startMapRef.current(); }, [dataReady]);
   useEffect(() => {
-    function layout() { mapRef.current?.resize(); mapRef.current?.triggerRepaint(); }
-    function arrive() { arrivalPending.current = true; if (mapRef.current && ready) runArrival(); }
+    function layout() { if (!container.current || !usableMapSize(container.current.clientWidth, container.current.clientHeight)) return; mapRef.current?.resize(); mapRef.current?.triggerRepaint(); }
+    if (arrivalRequest > arrivalSeen.current) { arrivalSeen.current = arrivalRequest; arrivalPending.current = true; }
     function runArrival() {
       const map = mapRef.current;
       if (!map || !arrivalPending.current || !activeRef.current) return;
       arrivalPending.current = false;
+      if (locationRef.current !== "other" || cameraActionRef.current.id !== 0) return;
       const zoom = map.getZoom();
       arrivalInProgress.current = true;
       map.jumpTo({ zoom: zoom - .6 });
-      map.easeTo({ zoom, duration: 600 });
+      map.easeTo({ zoom, duration: 600, easing: t => 1 - (1 - t) ** 3 });
       map.once("moveend", () => {
         const cap = landingZoom(map, FALLBACK_CENTER[1]);
         if (map.getZoom() > cap) map.jumpTo({ zoom: cap });
@@ -158,10 +162,9 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       });
     }
     window.addEventListener("job-globe-layout", layout);
-    window.addEventListener("job-globe-arrive", arrive);
     if (ready) runArrival();
-    return () => { window.removeEventListener("job-globe-layout", layout); window.removeEventListener("job-globe-arrive", arrive); };
-  }, [ready]);
+    return () => { window.removeEventListener("job-globe-layout", layout); };
+  }, [ready, arrivalRequest]);
   useEffect(() => {
     if (!active || ready) return;
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
@@ -207,7 +210,6 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     let cameraStarts = 0;
     const registry = markerRegistry.current;
     let style: MapOptions["style"];
-    const request = new AbortController();
     const fail = () => {
       if (!mounted) return;
       if (!activeRef.current) { pendingFailureRef.current = true; return; }
@@ -277,11 +279,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     });
     resize.observe(container.current);
     startMapRef.current = startMap;
-    fetch("https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json", { signal: request.signal })
-      .then(response => { if (!response.ok) throw new Error(`Map style: ${response.status}`); return response.json(); })
-      .then(body => { style = { ...(body as object), projection: { type: "globe" } } as MapOptions["style"]; startMap(); })
-      .catch(error => { if (mounted && !request.signal.aborted) { console.error("Globe style error", error); fail(); } });
-    return () => { mounted = false; startMapRef.current = () => {}; pendingFailureRef.current = false; request.abort(); resize.disconnect(); overlayRef.current = null; mapRef.current = null; registry.clear(); map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
+    loadGlobeStyle()
+      .then(result => { if (mounted) { style = result; startMap(); } })
+      .catch(error => { if (mounted) { console.error("Globe style error", error); fail(); } });
+    return () => { mounted = false; startMapRef.current = () => {}; pendingFailureRef.current = false; resize.disconnect(); overlayRef.current = null; mapRef.current = null; registry.clear(); map?.remove(); if (locationStatusTimer.current !== null) { window.clearTimeout(locationStatusTimer.current); locationStatusTimer.current = null; } };
   }, [locate]);
   useEffect(() => {
     const map = mapRef.current;
@@ -346,6 +347,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         onClick: info => { if (canInteract() && info.object?.members.length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); },
       })],
     });
+    if (!selected) pulsedSelection.current = null;
+    const pulseSelection = selected !== null && selected !== pulsedSelection.current;
     const next = new Set<string>();
     for (const cluster of clusters.filter(cluster => cluster.members.length > 1)) {
       const key = cluster.members.map(point => point.posting_id).sort().join("|");
@@ -361,6 +364,11 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         markerRegistry.current.set(key, entry);
       }
       const { button } = entry;
+      if (pulseSelection) {
+        const selectedHere = cluster.members.some(point => point.posting_id === selected);
+        button.classList.toggle("globe-cluster-selected", selectedHere);
+        if (selectedHere) pulsedSelection.current = selected;
+      } else if (!selected) button.classList.remove("globe-cluster-selected");
       button.setAttribute("aria-label", `${cluster.members.length} postings near ${cluster.anchor.job.location ?? "this location"}`);
       button.textContent = String(cluster.members.length);
       button.style.setProperty("--cluster-color", scoreCss(clusterScore(cluster)));
