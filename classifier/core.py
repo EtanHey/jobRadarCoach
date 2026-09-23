@@ -96,6 +96,7 @@ def score_projected(
     application_history: Sequence[Mapping[str, object]],
     *,
     profile_snapshot: Mapping[str, object] | None = None,
+    validation_profile: Mapping[str, object] | None = None,
     brain_runner: BrainRunner = run_brain,
     diagnostic: DiagnosticCallback | None = None,
 ) -> ScoringResult | None:
@@ -150,7 +151,7 @@ def score_projected(
         try:
             annotation = _validated_annotation(
                 normalized,
-                profile=profile,
+                profile=profile if validation_profile is None else validation_profile,
                 allowed_evidence_ids=allowed_evidence_ids,
                 posting_evidence_id=posting_evidence_id,
                 expected_recommendation=expected,
