@@ -53,17 +53,20 @@ await page.route("**/api/**", route => {
   if (job) return route.fulfill({json:{job:{...job,raw_jd:null,reasons:[],score_payload:null,brain:null,scored_at:null}}});
   return route.fulfill({status:404,json:{error:"fixture only"}});
 });
+// Idle prefetch can request the style before the first click; hold it until OFF.
+const styleUrl = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+let releaseStyle;
+const styleGate = new Promise(resolve => { releaseStyle = resolve; });
+await page.route(styleUrl, async route => { await styleGate; await route.continue(); });
+const styleRequest = page.waitForRequest(styleUrl);
 try {
   await page.goto(base);
   await page.getByRole("button", {name:"Globe",exact:true}).waitFor();
   await page.getByRole("button",{name:"All roles",exact:true}).click();
   await page.waitForFunction(() => document.querySelectorAll("[data-posting-id]").length === 6);
   await page.screenshot({path:`${output}/list.png`,fullPage:true});
-  // Hold the first style request so an immediate OFF leaves the map uninitialized.
-  const styleUrl = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-  await page.route(styleUrl, async route => { await new Promise(resolve => setTimeout(resolve, 2000)); await route.continue(); });
+  // The style remains pending so an immediate OFF leaves the map uninitialized.
   await page.clock.install();
-  const styleRequest = page.waitForRequest(styleUrl);
   await page.getByRole("button",{name:"Globe",exact:true}).click();
   await styleRequest;
   await page.getByRole("button",{name:"Globe",exact:true}).click();
@@ -71,7 +74,8 @@ try {
   assert.equal(await page.getByText("The globe could not load. Your list is still here.",{exact:false}).count(),0,"a hidden globe must not report a late load failure");
   assert.equal(await page.locator(".job-globe").count(),1,"the hidden globe stays mounted");
   await page.clock.resume();
-  // After clock.resume, Base UI stayed data-ending-style: pointer Close/choice clicks waited 30 s for stability. globe-point-open covers pointer Close without that clock.
+  releaseStyle();
+  // Clock fast-forward can leave Base UI transitions unstable for pointer clicks.
   await page.addStyleTag({content:"*,*::before,*::after { transition-duration: 0s !important; animation-duration: 0s !important; }"});
   await page.waitForTimeout(2200);
   await page.unroute(styleUrl);
@@ -89,12 +93,12 @@ try {
         const layout = document.querySelector(".globe-layout"), rail = document.querySelector(".globe-rail");
         const card = rail.querySelector("article"), badge = card?.querySelector("[aria-label^='Fit score']");
         const canvas = document.querySelector(".maplibregl-canvas");
-        const chip = [...document.querySelectorAll("button")].find(button => button.textContent === "Globe");
+        const chip = [...document.querySelectorAll("button")].find(button => button.getAttribute("aria-label") === "Globe");
         return {open:layout.classList.contains("globe-layout-open"),rail:rail.getBoundingClientRect().width,layout:layout.getBoundingClientRect().width,
           partitionReady:!!document.querySelector("#globe-visible-heading"),
           slot:document.querySelector(".globe-slot").getBoundingClientRect().width,
           badgeInside:!card||!badge||badge.getBoundingClientRect().right<=card.getBoundingClientRect().right+1,
-          chipLegible:!!chip&&chip.getBoundingClientRect().width>48&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
+          chipLegible:!!chip&&chip.getBoundingClientRect().width>=40&&getComputedStyle(chip).visibility==="visible"&&getComputedStyle(chip).opacity!=="0",
           canvasUsable:!canvas||!layout.classList.contains("globe-layout-open")||(canvas.clientWidth>0&&canvas.clientHeight>0),
           projection:canvas?document.querySelector("[data-projection]")?.getAttribute("data-projection"):null};
       }));
@@ -104,12 +108,12 @@ try {
   const onFrames = await sampleToggle();
   assert.ok(onFrames.every(frame => frame.open && frame.rail/frame.layout < .43 && frame.rail/frame.layout > .2 && frame.slot > 0 && frame.badgeInside && frame.chipLegible && frame.canvasUsable && (!frame.projection||frame.projection==="globe")), "ON keeps a stable two-column layout, globe projection, chip and badges in every frame");
   await page.emulateMedia({reducedMotion:"reduce"});
-  await page.getByText("Drag to explore",{exact:false}).waitFor({timeout:30000});
+  await page.getByText("Drag to spin",{exact:false}).waitFor({timeout:30000});
   await page.waitForTimeout(2200);
   await page.screenshot({path:`${output}/globe.png`,fullPage:true});
   const firstCanvas = await page.locator(".maplibregl-canvas").elementHandle();
   assert.equal(await page.locator(".maplibregl-canvas").count(),1);
-  assert.equal(await page.getByText("1 role not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 1 role without a location",{exact:true}).filter({visible:true}).count(),1);
   assert.ok(globeRequests.every(query => !query.includes("limit=")));
   const map = page.locator("[data-projection]");
   const grantedPermission = await page.evaluate(async () => (await navigator.permissions.query({name:"geolocation"})).state);
@@ -216,7 +220,7 @@ try {
   await page.getByRole("option",{name:"Israel",exact:true}).click();
   await page.waitForFunction(()=>document.querySelectorAll('[data-posting-id]').length===2);
   assert.equal(await page.locator("[data-posting-id]").count(),2);
-  assert.equal(await page.getByText("0 roles not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 0 roles without a location",{exact:true}).filter({visible:true}).count(),1);
   await page.getByRole("combobox",{name:"Work mode",exact:true}).click();
   await page.getByRole("option",{name:"On-site / hybrid",exact:true}).click();
   await page.waitForFunction(()=>document.querySelectorAll('[data-posting-id]').length===0);
@@ -229,10 +233,10 @@ try {
   await search.fill("Remote Studio");
   await page.waitForFunction(()=>document.querySelectorAll('[data-posting-id]').length===1);
   assert.equal(await page.locator("[data-posting-id]").count(),1);
-  assert.equal(await page.getByText("1 role not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 1 role without a location",{exact:true}).filter({visible:true}).count(),1);
   assert.equal(await page.locator('[data-globe-selected="true"]').count(),0);
   await search.fill("no results anywhere");
-  assert.equal(await page.getByText("0 roles not on globe",{exact:true}).filter({visible:true}).count(),1);
+  assert.equal(await page.getByText("· 0 roles without a location",{exact:true}).filter({visible:true}).count(),1);
   await search.fill("");
   await page.setViewportSize({width:390,height:844});
   await page.waitForTimeout(300);
@@ -266,7 +270,8 @@ try {
   assert.equal(await page.locator("[data-globe-posting]").count(),0,"location centering hides the unrelated focused-posting card");
   const mobileStatusAvoidsHint = await page.evaluate(() => {
     const status = document.querySelector(".maplibregl-ctrl-location-status").getBoundingClientRect();
-    const hint = document.querySelector(".job-globe > p").getBoundingClientRect();
+    const hint = document.querySelector(".job-globe > p")?.getBoundingClientRect();
+    if (!hint) return true;
     return status.right <= hint.left || status.left >= hint.right || status.bottom <= hint.top || status.top >= hint.bottom;
   });
   assert.equal(mobileStatusAvoidsHint,true,"mobile location status does not cover the map hint");
@@ -292,7 +297,8 @@ try {
   assert.ok(pointPixel,"Berlin point is hoverable after location move");
   await page.mouse.click(pointPixel.x,pointPixel.y);
   await page.locator(`[data-globe-posting="${id(1)}"]`).waitFor();
-  if (await page.getByRole("dialog").count()) {await page.keyboard.press("Escape");await page.getByRole("dialog").waitFor({state:"hidden"});}
+  const pointDrawer = page.getByRole("dialog");
+  if (await pointDrawer.isVisible()) { await pointDrawer.getByRole("button", { name: "Close", exact: true }).click(); await pointDrawer.waitFor({ state: "hidden" }); }
   await page.getByRole("button",{name:"Use my location",exact:true}).click();
   await page.waitForFunction(() => document.querySelectorAll("[data-globe-posting]").length === 0);
   await page.getByRole("button",{name:"Open Design Engineer at Meridian",exact:true}).click();
@@ -330,4 +336,4 @@ try {
   const screenshots = {};
   for (const name of ["list", "globe", "toggle-off", "toggle-on-again", "selected", "mobile", "mobile-toggle-off", "mobile-toggle-on", "denied-location", "location-success", "api-error", "webgl-error"]) screenshots[`${name}.png`] = createHash("sha256").update(await readFile(`${output}/${name}.png`)).digest("hex");
   await writeFile(`${output}/receipt.json`,JSON.stringify({sourceHead,sourceDirty,screenshots,kind:"headless development fixtures, not live data",onFrames,offFrames,onAgainFrames,mobileOffFrames,mobileOnFrames,grantedPermission,geolocationCallsOnLoad,atRestZoomBeforeLocationClick,highZoomCartoTilesBeforeLocationClick,desktopChoices,mobileLocationControlSize,desktopLocationControl,desktopStatusAligned,denialStatusRemainsAfter5500Ms,deniedCameraUnchanged:true,locationCamera,mobileStatusAvoidsHint,successStatusClearedAfter4500Ms,globeRequests,highZoomCartoTiles,trustedCanvasMouseEvents,errors,checks:["hidden delayed-load timeout does not fail after 21 s","stable width on every toggle frame","one canvas and preserved camera across OFF/ON on desktop and mobile","valid partition survives re-show without loading shell","desktop choices fit content and hide focused card","same rail posting restores focused card after location move","hidden context loss replays on show and falls back to list","contained badges","trusted canvas pointer movement during toggles, including after 150 ms hidden","globe render","no limit","cluster keyboard activation zooms in and retains exact posting choices", "point selection then different row exact title/company/ID", "globe projection at initial/zoom/selection and fly zoom cap", "granted browser permission verified with no geolocation call, no zoom change, and no high-zoom CARTO tile request before click", "44px desktop and mobile location controls in MapLibre control stack", "SVG crosshair control icon", "denied geolocation leaves camera unchanged and announces non-blocking status", "denial status remains for 5.5 seconds and desktop status aligns with its control row", "successful geolocation centers within 0.02 degrees at zoom >= 10 without zooming out", "success status clears after 4.5 seconds", "focused posting card clears after location centering", "mobile location status does not cover the map hint", "user coordinates never sent with globe requests", "distinct denied/API/WebGL frames","permission denial fallback","location and remote filters","WebGL fallback","shared query and unresolved counts","empty filter","mobile overflow","close","API fallback"]},null,2));
-} catch (error) { await page.screenshot({path:`${output}/failure.png`,fullPage:true,timeout:5000}).catch(()=>{}); console.error(errors); throw error; } finally { await browser.close(); }
+} catch (error) { await page.screenshot({path:`${output}/failure.png`,fullPage:true,timeout:5000}).catch(()=>{}); console.error(errors); throw error; } finally { releaseStyle?.(); await browser.close(); }

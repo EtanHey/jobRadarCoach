@@ -47,6 +47,8 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
     await page.getByRole("button",{name:"Globe",exact:true}).filter({visible:true}).click();
     await page.locator('[data-projection="globe"]').waitFor({timeout:30000});
     await page.locator('.globe-cluster').first().waitFor();
+    await page.locator('.globe-cluster').first().hover();
+    assert.equal(await page.locator('.globe-cluster').first().evaluate(node => getComputedStyle(node).scale), "1.06", "cluster hover scale composes with MapLibre marker translation");
     await shot("initial");
     if (!mobile && theme==="dark") {
       await page.evaluate(()=>{window.markerChurn=0;const globe=document.querySelector('.job-globe');window.markerObserver=new MutationObserver(records=>{for(const record of records)for(const node of [...record.addedNodes,...record.removedNodes])if(node.nodeType===1&&(node.matches?.('.globe-cluster')||node.querySelector?.('.globe-cluster')))window.markerChurn++;});window.markerObserver.observe(globe,{childList:true,subtree:true});});
@@ -146,10 +148,23 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
       await page.evaluate(location=>{const key="job-radar.board-preferences",saved={version:3,filter:"all",view:{search:"",source:"",location,seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"}};localStorage.setItem(key,JSON.stringify(saved));},location);
       await page.reload();await page.getByRole("combobox",{name:"Location",exact:true}).filter({visible:true}).waitFor();
       const selectedLocation=await page.getByRole("combobox",{name:"Location",exact:true}).filter({visible:true}).innerText();assert.match(selectedLocation,new RegExp(location==="israel"?"Israel":"Other"));
+      if (location==="other") await page.emulateMedia({reducedMotion:"no-preference"});
       await page.getByRole("button",{name:"Globe",exact:true}).filter({visible:true}).click();await page.locator('[data-projection="globe"]').waitFor({timeout:30000});
-      await page.getByText("Drag to explore",{exact:false}).waitFor({timeout:30000});
+      if (location==="other") await page.waitForTimeout(1500);
+      await page.waitForFunction(expected=>Math.abs(Number(document.querySelector('[data-projection="globe"]')?.dataset.center?.split(",")[0])-expected)<.01,expectedLng,{timeout:30000});
       const first=await camera();assert.ok(Math.abs(first.center[0]-expectedLng)<.01&&first.zoom>=5,`first ${location} camera was ${JSON.stringify(first)}`);
       step[`first-${location}`]=first;
+    }
+    if (!mobile && theme==="light") {
+      await page.evaluate(()=>{const key="job-radar.board-preferences",saved={version:3,filter:"all",view:{search:"",source:"",location:"",seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"}};localStorage.setItem(key,JSON.stringify(saved));});
+      await page.reload();
+      await page.emulateMedia({reducedMotion:"no-preference"});
+      await page.getByRole("button",{name:"Globe",exact:true}).filter({visible:true}).click();
+      await page.locator('[data-projection="globe"]').waitFor({timeout:30000});
+      await page.waitForTimeout(1500);
+      const firstWorld=await camera();
+      assert.ok(firstWorld.starts>=2 && firstWorld.zoom<=1.91,`default first-open arrival did not run: ${JSON.stringify(firstWorld)}`);
+      step.firstWorld=firstWorld;
     }
   } catch(error) {step.failure=String(error);step.failureCamera=await camera().catch(()=>null);step.focusDecision=await page.locator('[data-projection="globe"]').getAttribute('data-focus-decision').catch(()=>null);await page.screenshot({path:`${output}/${name}-failure.png`}).catch(()=>{});throw error;}
   finally {await context.close();receipt.push(step);}
