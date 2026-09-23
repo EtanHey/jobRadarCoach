@@ -1,13 +1,16 @@
+import copy
 import sys
 from types import SimpleNamespace
 
 import pytest
 
 from scraper import forward_scoring_runtime as runtime
+from scraper.annotate import provider_payload_projection
+from scraper.brain import BrainResult
 from scraper.codex_process import verify_codex_version
 from scraper.forward_scoring_inputs import assemble_manifest
 from scraper.forward_scoring_inputs import _freeze_identity, _sha
-from scraper.test_annotate import safe_projection
+from scraper.test_annotate import safe_projection, structured_annotation
 from scraper.test_forward_scoring_inputs import _inputs
 
 
@@ -115,8 +118,107 @@ def test_reference_scoring_uses_hosted_projection_and_local_validation_profile(
     assert seen["posting"] == frozen["hosted_payload"]["public_posting"]
     assert seen["history"] == []
     assert seen["options"]["profile_snapshot"] == frozen["reference_validation_profile"]
+    assert (
+        seen["options"]["validation_profile"] == frozen["reference_validation_profile"]
+    )
     assert result["fit_score"] == 73
     assert result["cost_per_row_usd"] is None
+
+
+def _fictional_reference_case():
+    profile = safe_projection()
+    profile["candidate"] = {
+        "positioning": "Fictional backend engineer",
+        "tenure_years": 5.0,
+        "fit_terms": ["backend", "python"],
+    }
+    profile["fit_signals"] = [
+        signal
+        for signal in profile["fit_signals"]
+        if signal["evidence_id"] in {"example-project", "example-workflow"}
+    ]
+    profile["constraints"] = {
+        "global_never_claims": ["imaginary-skill"],
+        "evidence_scoped_prohibitions": {},
+    }
+    posting = {
+        "id": "fictional-posting",
+        "title": "Example Backend Engineer",
+        "company": "Acme",
+        "location": "Example City",
+        "jd_text": "Build fictional backend services for an example product.",
+    }
+    hosted = provider_payload_projection(posting, profile)
+    answer = structured_annotation(posting["id"])
+    answer.pop("fit_tier")
+    answer.pop("recommendation")
+    answer["reasons"] = {
+        reason["factor"]: {
+            **{key: value for key, value in reason.items() if key != "evidence_ids"},
+            **(
+                {"evidence_ids": reason["evidence_ids"][1:]}
+                if reason["factor"] != "employer_type"
+                else {}
+            ),
+        }
+        for reason in answer["reasons"]
+    }
+    answer["fit_line_evidence_ids"] = answer["fit_line_evidence_ids"][1:]
+    return {
+        "frozen_input": {
+            "hosted_payload": hosted,
+            "reference_validation_profile": profile,
+        }
+    }, answer
+
+
+def test_reference_uses_local_constraints_without_changing_hosted_request():
+    row, answer = _fictional_reference_case()
+    frozen = row["frozen_input"]
+    hosted = frozen["hosted_payload"]
+    calls = []
+
+    def runner(request, snapshot):
+        calls.append((request, snapshot))
+        return BrainResult(
+            copy.deepcopy(answer), "codex", "fictional-model", request=request
+        )
+
+    diagnostics = []
+    assert (
+        runtime.core.score_projected(
+            hosted["professional_profile"],
+            hosted["public_posting"],
+            [],
+            profile_snapshot=frozen["reference_validation_profile"],
+            brain_runner=runner,
+            diagnostic=diagnostics.append,
+        )
+        is None
+    )
+    assert diagnostics == ["semantic"]
+
+    assert runtime.score_reference(row, runner)["fit_score"] == 72
+    assert len(calls) == 3
+    assert all(
+        snapshot is frozen["reference_validation_profile"] for _, snapshot in calls
+    )
+    assert calls[0][0].prompt.encode() == calls[-1][0].prompt.encode()
+    assert calls[0][0].output_schema == calls[-1][0].output_schema
+
+
+def test_reference_rejects_invalid_answer_with_local_constraints():
+    row, answer = _fictional_reference_case()
+    answer["fit_line"] += " imaginary-skill"
+    calls = []
+
+    def runner(request, snapshot):
+        calls.append(request)
+        return BrainResult(answer, "codex", "fictional-model", request=request)
+
+    with pytest.raises(RuntimeError, match=r"reference scorer failed \(semantic\)"):
+        runtime.score_reference(row, runner)
+    assert len(calls) == runtime.core.MAX_ATTEMPTS
 
 
 def test_jev_scoring_sends_only_the_frozen_hosted_payload(tmp_path, monkeypatch):
