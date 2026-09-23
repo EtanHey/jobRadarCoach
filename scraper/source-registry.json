@@ -732,6 +732,1193 @@
       ],
       "last_verified_at": "2026-08-26",
       "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "alta"
+      },
+      "company": "Alta",
+      "careers_url": "https://job-boards.greenhouse.io/alta",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/alta/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "anthropic"
+      },
+      "company": "Anthropic",
+      "careers_url": "https://job-boards.greenhouse.io/anthropic",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/anthropic/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "apolloio"
+      },
+      "company": "Apollo.io",
+      "careers_url": "https://job-boards.greenhouse.io/apolloio",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/apolloio/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "asteralabs"
+      },
+      "company": "Astera Labs",
+      "careers_url": "https://job-boards.greenhouse.io/asteralabs",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/asteralabs/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "augury"
+      },
+      "company": "Augury",
+      "careers_url": "https://job-boards.greenhouse.io/augury",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/augury/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "axonius"
+      },
+      "company": "Axonius",
+      "careers_url": "https://job-boards.greenhouse.io/axonius",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/axonius/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "beamup",
+        "region": "eu"
+      },
+      "company": "Beamup",
+      "careers_url": "https://job-boards.eu.greenhouse.io/beamup",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/beamup/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "biocatch"
+      },
+      "company": "BioCatch",
+      "careers_url": "https://jobs.lever.co/biocatch",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/biocatch?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "bitwarden"
+      },
+      "company": "Bitwarden",
+      "careers_url": "https://job-boards.greenhouse.io/bitwarden",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/bitwarden/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "catonetworks"
+      },
+      "company": "Cato Networks",
+      "careers_url": "https://job-boards.greenhouse.io/catonetworks",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/catonetworks/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "chainguard"
+      },
+      "company": "Chainguard",
+      "careers_url": "https://job-boards.greenhouse.io/chainguard",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/chainguard/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "cheq",
+        "company_uid": "65.005"
+      },
+      "company": "CHEQ",
+      "careers_url": "https://www.comeet.com/jobs/cheq/65.005",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://www.comeet.com/jobs/cheq/65.005"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "clearstreet"
+      },
+      "company": "Clear Street",
+      "careers_url": "https://job-boards.greenhouse.io/clearstreet",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/clearstreet/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "cloudinary"
+      },
+      "company": "Cloudinary",
+      "careers_url": "https://jobs.lever.co/cloudinary",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/cloudinary?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "coalition"
+      },
+      "company": "Coalition, Inc.",
+      "careers_url": "https://job-boards.greenhouse.io/coalition",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/coalition/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "coinbase"
+      },
+      "company": "Coinbase",
+      "careers_url": "https://job-boards.greenhouse.io/coinbase",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "connecteam"
+      },
+      "company": "Connecteam",
+      "careers_url": "https://job-boards.greenhouse.io/connecteam",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/connecteam/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "cymulate",
+        "region": "eu"
+      },
+      "company": "Cymulate",
+      "careers_url": "https://job-boards.eu.greenhouse.io/cymulate",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/cymulate/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "datarails"
+      },
+      "company": "Datarails",
+      "careers_url": "https://job-boards.greenhouse.io/datarails",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/datarails/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "daylightsecurity"
+      },
+      "company": "Daylight Security",
+      "careers_url": "https://job-boards.greenhouse.io/daylightsecurity",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/daylightsecurity/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "eleoshealth",
+        "region": "eu"
+      },
+      "company": "Eleos Health",
+      "careers_url": "https://job-boards.eu.greenhouse.io/eleoshealth",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/eleoshealth/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "figma"
+      },
+      "company": "Figma",
+      "careers_url": "https://job-boards.greenhouse.io/figma",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/figma/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "finch"
+      },
+      "company": "Finch",
+      "careers_url": "https://jobs.lever.co/finch",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/finch?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "fireblocks"
+      },
+      "company": "Fireblocks",
+      "careers_url": "https://job-boards.greenhouse.io/fireblocks",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/fireblocks/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "fleetio"
+      },
+      "company": "Fleetio",
+      "careers_url": "https://job-boards.greenhouse.io/fleetio",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/fleetio/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "framesecurity",
+        "company_uid": "FA.002"
+      },
+      "company": "Frame Security",
+      "careers_url": "https://www.comeet.com/jobs/framesecurity/FA.002",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://www.comeet.com/jobs/framesecurity/FA.002"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "grovecollaborative"
+      },
+      "company": "Grove Collaborative",
+      "careers_url": "https://job-boards.greenhouse.io/grovecollaborative",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/grovecollaborative/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "helloheart"
+      },
+      "company": "Hello Heart",
+      "careers_url": "https://job-boards.greenhouse.io/helloheart",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/helloheart/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "hightouch"
+      },
+      "company": "Hightouch",
+      "careers_url": "https://job-boards.greenhouse.io/hightouch",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/hightouch/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "hive",
+        "region": "eu"
+      },
+      "company": "Hive",
+      "careers_url": "https://job-boards.eu.greenhouse.io/hive",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/hive/jobs?content=false"
+        },
+        {
+          "kind": "reviewer-disabled",
+          "reference": "ats-data-r1 name collision"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": false
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "hive"
+      },
+      "company": "Hive",
+      "careers_url": "https://jobs.lever.co/hive",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/hive?mode=json"
+        },
+        {
+          "kind": "reviewer-disabled",
+          "reference": "ats-data-r1 name collision"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": false
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "innovid"
+      },
+      "company": "Innovid",
+      "careers_url": "https://job-boards.greenhouse.io/innovid",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/innovid/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "instawork"
+      },
+      "company": "Instawork",
+      "careers_url": "https://job-boards.greenhouse.io/instawork",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/instawork/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "jfrog"
+      },
+      "company": "JFrog",
+      "careers_url": "https://job-boards.greenhouse.io/jfrog",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/jfrog/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "ladders"
+      },
+      "company": "Ladders",
+      "careers_url": "https://jobs.lever.co/ladders",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/ladders?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "launchdarkly"
+      },
+      "company": "LaunchDarkly",
+      "careers_url": "https://job-boards.greenhouse.io/launchdarkly",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/launchdarkly/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "melio"
+      },
+      "company": "Melio",
+      "careers_url": "https://job-boards.greenhouse.io/melio",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/melio/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "mercury"
+      },
+      "company": "Mercury",
+      "careers_url": "https://job-boards.greenhouse.io/mercury",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/mercury/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "mongodb"
+      },
+      "company": "MongoDB",
+      "careers_url": "https://job-boards.greenhouse.io/mongodb",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "comeet",
+      "identifiers": {
+        "slug": "nagomisecurity",
+        "company_uid": "89.00B"
+      },
+      "company": "Nagomi Security",
+      "careers_url": "https://www.comeet.com/jobs/nagomisecurity/89.00B",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://www.comeet.com/jobs/nagomisecurity/89.00B"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "nebius"
+      },
+      "company": "Nebius",
+      "careers_url": "https://job-boards.greenhouse.io/nebius",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/nebius/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "nice",
+        "region": "eu"
+      },
+      "company": "NiCE",
+      "careers_url": "https://job-boards.eu.greenhouse.io/nice",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/nice/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "okta"
+      },
+      "company": "Okta",
+      "careers_url": "https://job-boards.greenhouse.io/okta",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/okta/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "oktopost"
+      },
+      "company": "Oktopost",
+      "careers_url": "https://jobs.lever.co/oktopost",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/oktopost?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "optimaldynamics"
+      },
+      "company": "Optimal Dynamics",
+      "careers_url": "https://job-boards.greenhouse.io/optimaldynamics",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/optimaldynamics/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "outschool"
+      },
+      "company": "Outschool",
+      "careers_url": "https://job-boards.greenhouse.io/outschool",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/outschool/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "paperlessparts"
+      },
+      "company": "Paperless Parts",
+      "careers_url": "https://job-boards.greenhouse.io/paperlessparts",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/paperlessparts/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "parallelwireless"
+      },
+      "company": "Parallel Wireless",
+      "careers_url": "https://jobs.lever.co/parallelwireless",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/parallelwireless?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "parloa",
+        "region": "eu"
+      },
+      "company": "Parloa",
+      "careers_url": "https://job-boards.eu.greenhouse.io/parloa",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/parloa/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "payoneer"
+      },
+      "company": "Payoneer",
+      "careers_url": "https://job-boards.greenhouse.io/payoneer",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/payoneer/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "protolabs"
+      },
+      "company": "Protolabs",
+      "careers_url": "https://jobs.lever.co/protolabs",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/protolabs?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "reddit"
+      },
+      "company": "Reddit, Inc.",
+      "careers_url": "https://job-boards.greenhouse.io/reddit",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/reddit/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "relocity"
+      },
+      "company": "Relocity, Inc.",
+      "careers_url": "https://job-boards.greenhouse.io/relocity",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/relocity/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "resilience"
+      },
+      "company": "Resilience",
+      "careers_url": "https://job-boards.greenhouse.io/resilience",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/resilience/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "samsungsemiconductor"
+      },
+      "company": "Samsung Semiconductor",
+      "careers_url": "https://job-boards.greenhouse.io/samsungsemiconductor",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/samsungsemiconductor/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "scaleops",
+        "region": "eu"
+      },
+      "company": "ScaleOps",
+      "careers_url": "https://job-boards.eu.greenhouse.io/scaleops",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/scaleops/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "similarweb"
+      },
+      "company": "Similarweb",
+      "careers_url": "https://job-boards.greenhouse.io/similarweb",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/similarweb/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "spacex"
+      },
+      "company": "SpaceX",
+      "careers_url": "https://job-boards.greenhouse.io/spacex",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/spacex/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "spreetail"
+      },
+      "company": "Spreetail",
+      "careers_url": "https://jobs.lever.co/spreetail",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/spreetail?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "stackadapt"
+      },
+      "company": "StackAdapt",
+      "careers_url": "https://job-boards.greenhouse.io/stackadapt",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/stackadapt/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "stripe"
+      },
+      "company": "Stripe",
+      "careers_url": "https://job-boards.greenhouse.io/stripe",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "taboola"
+      },
+      "company": "Taboola",
+      "careers_url": "https://job-boards.greenhouse.io/taboola",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/taboola/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "tailscale"
+      },
+      "company": "Tailscale",
+      "careers_url": "https://job-boards.greenhouse.io/tailscale",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/tailscale/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "tebra"
+      },
+      "company": "Tebra",
+      "careers_url": "https://job-boards.greenhouse.io/tebra",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/tebra/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "thefarmersdog"
+      },
+      "company": "The Farmer's Dog",
+      "careers_url": "https://job-boards.greenhouse.io/thefarmersdog",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/thefarmersdog/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "trace3"
+      },
+      "company": "Trace3",
+      "careers_url": "https://job-boards.greenhouse.io/trace3",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/trace3/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "transmitsecurity"
+      },
+      "company": "Transmit Security",
+      "careers_url": "https://job-boards.greenhouse.io/transmitsecurity",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/transmitsecurity/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "unframe",
+        "region": "eu"
+      },
+      "company": "Unframe",
+      "careers_url": "https://job-boards.eu.greenhouse.io/unframe",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/unframe/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "via"
+      },
+      "company": "Via",
+      "careers_url": "https://job-boards.greenhouse.io/via",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/via/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "wayve"
+      },
+      "company": "Wayve",
+      "careers_url": "https://job-boards.greenhouse.io/wayve",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/wayve/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "worldquant"
+      },
+      "company": "WorldQuant",
+      "careers_url": "https://job-boards.greenhouse.io/worldquant",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/worldquant/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "yotpo"
+      },
+      "company": "Yotpo",
+      "careers_url": "https://job-boards.greenhouse.io/yotpo",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/yotpo/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "zocdoc"
+      },
+      "company": "Zocdoc",
+      "careers_url": "https://job-boards.greenhouse.io/zocdoc",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/zocdoc/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-09-23",
+      "enabled": true
     }
   ]
 }
