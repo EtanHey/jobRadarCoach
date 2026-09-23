@@ -25,6 +25,27 @@ const payload = { jobs, points, total_count: jobs.length, resolved_count: jobs.l
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const receipts = [];
 try {
+  const clippedListFilters = [];
+  if (phase === "after") for (const viewport of [{ width: 768, height: 900 }, { width: 1024, height: 768 }]) {
+    const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
+    try {
+      const page = await context.newPage();
+      await page.addInitScript(() => { window.EventSource = class { addEventListener() {} close() {} }; });
+      await page.route("**/api/**", route => {
+        const path = new URL(route.request().url()).pathname;
+        if (path === "/api/jobs") return route.fulfill({ json: { jobs } });
+        if (path === "/api/events") return route.fulfill({ contentType: "text/event-stream", body: "event: ready\ndata: {}\n\n" });
+        return route.fulfill({ status: 404, json: { error: "fixture only" } });
+      });
+      await page.goto(base);
+      await page.getByRole("combobox", { name: "Work mode" }).waitFor();
+      const values = await page.locator("[data-job-toolbar] > div:first-child .truncate").evaluateAll(nodes => nodes.map(node => ({ value: node.textContent?.trim(), width: node.clientWidth, content: node.scrollWidth })));
+      assert.equal(values.length, 8, "all eight list filters are inline");
+      clippedListFilters.push({ viewport: viewport.width, clipped: values.filter(value => value.content > value.width + 1) });
+      await page.screenshot({ path: `${output}/list-${viewport.width}.png` });
+    } finally { await context.close(); }
+  }
+  assert.deepEqual(clippedListFilters.map(result => result.clipped), [[], []], "768px and 1024px list filters must show their full values");
   for (const [name, viewport] of [["desktop", { width: 1440, height: 900 }], ["laptop", { width: 1280, height: 720 }], ["short-desktop", { width: 1024, height: 600 }], ["mobile", { width: 390, height: 844 }]]) {
     const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
     const page = await context.newPage();
@@ -44,6 +65,7 @@ try {
     try {
       await page.goto(base);
       if (name === "short-desktop" && phase === "after") {
+        await page.getByRole("combobox", { name: "Work mode" }).waitFor();
         assert.ok(await page.getByRole("combobox", { name: "Work mode" }).isVisible(), "list view keeps inline filters at 1024px");
         assert.equal(await page.getByRole("button", { name: /Filters/ }).isVisible(), false, "list view does not force the filter sheet at 1024px");
       }
