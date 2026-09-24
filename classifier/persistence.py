@@ -12,7 +12,7 @@ from typing import Literal, Protocol
 
 from classifier import core, projection
 
-SCORER_VERSION = "1.0"
+SCORER_VERSION = "1.1"
 PersistOutcome = Literal["stored", "unchanged", "stale", "failed"]
 
 
