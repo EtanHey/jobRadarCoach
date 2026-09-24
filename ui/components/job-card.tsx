@@ -29,7 +29,7 @@ export function JobCard({ job, selected, actions, alternateCount = 0, openerRef,
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span style={{ backgroundColor: scoreCss(job.score), color: "#08111c" }} aria-label={job.score === null ? "Not scored" : `Fit score ${job.score} out of 100`} className={job.score === null ? "rounded-lg bg-muted px-2 py-1 text-xs text-muted-foreground" : "rounded-lg bg-primary px-2 py-1 text-primary-foreground"}>
+        <span style={job.score === null ? { border: "2px solid var(--globe-unscored-ring)" } : { backgroundColor: scoreCss(job.score), color: "#08111c" }} aria-label={job.score === null ? "Not scored" : `Fit score ${job.score} out of 100`} className={job.score === null ? "rounded-lg px-2 py-1 text-xs text-muted-foreground" : "rounded-lg px-2 py-1"}>
           {job.score === null ? "Unscored" : <><strong className="text-base tabular-nums">{job.score}</strong><span className="text-[10px]">/100</span></>}
         </span>
         {job.status === "worth_checking" && <Bookmark size={13} aria-label="Worth checking" className="text-muted-foreground" />}
