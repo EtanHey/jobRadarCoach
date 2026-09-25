@@ -62,6 +62,7 @@ export function JobBoard() {
   const [viewport, setViewport] = useState<{ key: string; positions: string; evaluated: Set<string>; ids: string[] } | null>(null);
   const [globeMounted, setGlobeMounted] = useState(false);
   const [globeSelected, setGlobeSelected] = useState<string | null>(null);
+  const [bubble, setBubble] = useState<{ ids: string[]; place: string } | null>(null);
   const [globeSelectionRequest, setGlobeSelectionRequest] = useState(0);
   const [globeSelectionSource, setGlobeSelectionSource] = useState<"point" | "rail">("rail");
   const [cameraAction, setCameraAction] = useState<{ kind: "location" | "reset"; id: number }>({ kind: "reset", id: 0 });
@@ -84,6 +85,12 @@ export function JobBoard() {
   const globeCounts = globe.data ? countGlobeRoles(groups, points) : null;
   const selectedGlobeGroup = groups.find(group => [group.job, ...group.alternates].some(job => job.id === globeSelected));
   const activeGlobeSelection = selectedGlobeGroup ? globeSelected : null;
+  useEffect(() => {
+    if (!bubble || groups.some(group => bubble.ids.includes(group.job.id))) return;
+    let current = true;
+    queueMicrotask(() => { if (current) setBubble(null); });
+    return () => { current = false; };
+  }, [bubble, groups]);
   useEffect(() => {
     const prefetch = () => { void import("./job-globe"); void loadGlobeStyle().catch(() => {}); };
     if ("requestIdleCallback" in window) {
@@ -193,6 +200,7 @@ export function JobBoard() {
     const swap = () => {
       flushSync(() => {
         if (next) setGlobeMounted(true);
+        else setBubble(null);
         setGlobeOpen(next);
         setGlobeWarning("");
         if (globe.failure) { setViewport(null); setRevision(value => value + 1); }
@@ -236,6 +244,7 @@ export function JobBoard() {
       if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, [role='combobox'], [role='dialog']"))) return;
       if (selected) return;
       if (event.key.toLowerCase() === "g" && !event.repeat) { event.preventDefault(); toggleGlobe(); }
+      if (event.key === "Escape" && bubble) { event.preventDefault(); setBubble(null); return; }
       if (event.key === "Escape" && globeSelected) { event.preventDefault(); setGlobeSelected(null); }
     }
     window.addEventListener("keydown", keydown);
@@ -388,12 +397,12 @@ export function JobBoard() {
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   const globeToggle = <Button variant={globeActive ? "default" : "outline"} className={`size-10 p-0 ${globeActive ? "shadow-[inset_0_0_0_2px_color-mix(in_oklch,var(--primary-foreground)_35%,transparent)]" : ""}`} aria-label="Globe" title="Globe" aria-pressed={globeActive} onClick={toggleGlobe}><Globe aria-hidden="true" /></Button>;
-  const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.mapped} {globeCounts.mapped === 1 ? "role" : "roles"} on the globe{points.length > 5000 ? " · showing a sample of up to 5,000 postings" : ""}</span><span>· {globeCounts.unmapped} {globeCounts.unmapped === 1 ? "role" : "roles"} without a location</span></>}{globeActive && !globe.data && <span role="status">Loading all posting locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
+  const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.mapped} on the globe · {globeCounts.unmapped} without a location</span>{points.length > 5000 && <span>Showing a sample of 5,000 roles</span>}</>}{globeActive && !globe.data && <span role="status">Loading all role locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
   return <div className={`bg-background text-foreground ${globeActive ? "board-globe-open" : "min-h-screen"}`}>
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
-      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a posting in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta}} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
+      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
+      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
       <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>
     </main>
     <JobDrawer
