@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Map, Marker, setWorkerUrl, type MapOptions } from "maplibre-gl";
+import { Map, LngLat, Marker, setWorkerUrl, type MapOptions } from "maplibre-gl";
 import { Plus, Minus, LocateFixed, Maximize2, Minimize2 } from "lucide-react";
 import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import { FALLBACK_CENTER, pointLabel, scoreColor, scoreCss, thinPoints, clusterPoints, clusterScore, clusterRoleIds, clusterIsStack, clusterPlace, type PointCluster, type GlobePoint } from "@/lib/globe-model";
-import { cameraNeedsReset, focusPointCamera, locationCameraBounds, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
+import { cameraNeedsReset, focusPointCamera, locationCameraBounds, locationFlight, usableMapSize, viewportPostingIds } from "@/lib/globe-viewport";
 import { activeGlobeTheme, applyGlobePaint, loadGlobeStyle } from "@/lib/globe-style";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -22,20 +22,23 @@ function landingZoom(map: Map, latitude: number) {
   return landingZoomForSize(map.getContainer().clientWidth, map.getContainer().clientHeight, latitude);
 }
 function reducedMotion() { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
-function moveToLocation(map: Map, location: string, points: GlobePoint[], reset: boolean, duration: number) {
+function moveToLocation(map: Map, location: string, points: GlobePoint[], reset: boolean, animate: boolean) {
   const bounds = reset ? null : locationCameraBounds(location, points);
-  const easing = (t: number) => 1 - (1 - t) ** 3;
+  let center: [number, number] = location === "other" && !reset && points.length
+    ? [points.reduce((sum, point) => sum + point.lng, 0) / points.length, points.reduce((sum, point) => sum + point.lat, 0) / points.length]
+    : FALLBACK_CENTER;
+  let zoom = landingZoom(map, FALLBACK_CENTER[1]);
   if (bounds) {
     const padded = bounds[0][0] === bounds[1][0] && bounds[0][1] === bounds[1][1]
       ? [[bounds[0][0] - .25, bounds[0][1] - .25], [bounds[1][0] + .25, bounds[1][1] + .25]] as typeof bounds : bounds;
     const camera = map.cameraForBounds(padded, { padding: 48, maxZoom: 10 });
-    if (camera) map.easeTo({ ...camera, duration, easing });
-  } else {
-    const center: [number, number] = location === "other" && !reset && points.length
-      ? [points.reduce((sum, point) => sum + point.lng, 0) / points.length, points.reduce((sum, point) => sum + point.lat, 0) / points.length]
-      : FALLBACK_CENTER;
-    map.easeTo({ center, zoom: landingZoom(map, FALLBACK_CENTER[1]), duration, easing });
+    if (!camera?.center || camera.zoom === undefined) return;
+    const target = LngLat.convert(camera.center);
+    center = [target.lng, target.lat]; zoom = camera.zoom;
   }
+  if (!animate) { map.jumpTo({ center, zoom }); return; }
+  const from = map.getCenter();
+  map.flyTo({ center, zoom, ...locationFlight([from.lng, from.lat], map.getZoom(), center, zoom) });
 }
 type Props = { active: boolean; dataReady: boolean; onViewportChange: (ids: string[]) => void; points: GlobePoint[]; selected: string | null; selectionRequest: number; selectionSource: "point" | "rail"; location: string; cameraAction: { kind: "location" | "reset"; id: number }; arrivalRequest: number; onCameraAwayChange: (away: boolean) => void; onSelect: (id: string) => void; onBubble: (ids: string[], place: string) => void; bubbleIds: readonly string[]; onClearBubble: () => void; onFailure: () => void };
 export default function JobGlobe({ active, dataReady, points, selected, selectionRequest, selectionSource, location, cameraAction, arrivalRequest, onCameraAwayChange, onSelect, onBubble, bubbleIds, onClearBubble, onFailure, onViewportChange }: Props) {
@@ -46,7 +49,11 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const pendingFailureRef = useRef(false);
   const mapRef = useRef<Map | null>(null);
   const overlayRef = useRef<MapLibreOverlay | null>(null);
-  const markerRegistry = useRef(new globalThis.Map<string, { marker: Marker; button: HTMLButtonElement; lng: number; lat: number }>());
+  const markerRegistry = useRef(new globalThis.Map<string, { marker: Marker; button: HTMLButtonElement; lng: number; lat: number; ids: string[] }>());
+  // D14 hover lives in refs and the DOM: pointer moves never commit React state or rebuild markers.
+  const hoverIdRef = useRef<string | null>(null);
+  const pointerHoverRef = useRef<string | null>(null);
+  const renderLayersRef = useRef(() => {});
   const initialFocusPending = useRef(true);
   const handledCameraAction = useRef(cameraAction.id);
   const cameraActionRef = useRef(cameraAction);
@@ -83,6 +90,30 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   }, [dataReady, location, points, cameraAction]);
   const selectionRequestRef = useRef(selectionRequest);
   const hovered = hover?.selection === selected ? hover.point : null;
+  const setGlobeHover = useCallback((rowId: string | null) => {
+    const previous = hoverIdRef.current;
+    if (previous === rowId) return;
+    hoverIdRef.current = rowId;
+    if (container.current) { if (rowId) container.current.dataset.hoverId = rowId; else delete container.current.dataset.hoverId; }
+    if (previous) document.querySelector(`[data-globe-card="${previous}"]`)?.removeAttribute("data-hovered");
+    if (rowId) document.querySelector(`[data-globe-card="${rowId}"]`)?.setAttribute("data-hovered", "");
+    for (const { button, ids } of markerRegistry.current.values()) button.classList.toggle("globe-cluster-hovered", rowId !== null && ids.includes(rowId));
+    renderLayersRef.current();
+  }, []);
+  const hoverPoint = useCallback((cluster: PointCluster | null) => {
+    const point = cluster && clusterRoleIds(cluster.members).length === 1 ? cluster.anchor : null;
+    if ((point?.posting_id ?? null) === pointerHoverRef.current) return;
+    pointerHoverRef.current = point?.posting_id ?? null;
+    setGlobeHover(point?.rowId ?? null);
+    if (point) setHiddenFocusedSelection(null);
+    setHover(point ? { point, selection: selectedRef.current } : null);
+  }, [setGlobeHover]);
+  useEffect(() => {
+    const cardHover = (event: Event) => setGlobeHover((event as CustomEvent<string | null>).detail);
+    window.addEventListener("job-globe-hover", cardHover);
+    return () => window.removeEventListener("job-globe-hover", cardHover);
+  }, [setGlobeHover]);
+  useEffect(() => { if (container.current) { if (selected) container.current.dataset.selectedId = selected; else delete container.current.dataset.selectedId; } }, [selected]);
   const canInteract = useCallback(() => {
     const element = container.current;
     const canvas = mapRef.current?.getCanvas();
@@ -136,10 +167,10 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     return () => { window.removeEventListener("job-globe-layout", layout); };
   }, [ready, arrivalRequest]);
   useEffect(() => {
-    if (!active || ready) return;
+    if (!active || !dataReady || ready) return;
     const timeout = window.setTimeout(() => callbacks.current.onFailure(), 20000);
     return () => clearTimeout(timeout);
-  }, [active, ready]);
+  }, [active, dataReady, ready]);
   const locate = useCallback(() => {
     const map = mapRef.current;
     const status = globeRoot.current?.querySelector<HTMLElement>(".maplibregl-ctrl-location-status");
@@ -161,6 +192,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     navigator.geolocation.getCurrentPosition(({ coords }) => {
       if (!map) return;
       map.flyTo({ center: [coords.longitude, coords.latitude], zoom: Math.min(map.getMaxZoom(), Math.max(map.getZoom(), 10)), duration: reducedMotion() ? 0 : 1600 });
+      pointerHoverRef.current = null;
       setHover(null);
       setHiddenFocusedSelection({ selected: selectedRef.current, request: selectionRequestRef.current });
       announce("Centered near you · not saved by Job Radar", 4500);
@@ -244,7 +276,12 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           }
         } };
         map.on("moveend", publishCamera);
-        if (process.env.NODE_ENV !== "production") map.on("movestart", () => { if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
+        if (process.env.NODE_ENV !== "production") {
+          let flightMinZoom = 0;
+          map.on("movestart", () => { flightMinZoom = map!.getZoom(); if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
+          map.on("move", () => { flightMinZoom = Math.min(flightMinZoom, map!.getZoom()); });
+          map.on("moveend", () => { if (container.current) container.current.dataset.flightMinZoom = String(flightMinZoom); });
+        }
         map.on("moveend", () => {
           if (!map) return;
           if (arrivalInProgress.current) return;
@@ -256,7 +293,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         map.once("load", () => {
           if (!mounted || !map) return;
           if (locationRef.current && (locationRef.current !== "other" || dataReadyRef.current)) {
-            moveToLocation(map, locationRef.current, pointsRef.current, false, 0);
+            moveToLocation(map, locationRef.current, pointsRef.current, false, false);
             initialFocusPending.current = false;
             handledCameraAction.current = cameraActionRef.current.id;
           }
@@ -355,9 +392,12 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !overlayRef.current) return;
+    const hoverId = () => hoverIdRef.current;
+    const ringed = (cluster: PointCluster) => { const ids = clusterRoleIds(cluster.members); return ids.includes(selected ?? "") || ids.length === 1 && ids[0] === hoverId(); };
     const radius = (cluster: PointCluster) => {
       if (clusterRoleIds(cluster.members).length > 1) return 15;
-      if (clusterRoleIds(cluster.members).includes(selected ?? "") || cluster.anchor.posting_id === hovered?.posting_id) return 11;
+      if (clusterRoleIds(cluster.members).includes(selected ?? "")) return 11;
+      if (ringed(cluster)) return 10;
       const score = clusterScore(cluster);
       return score === null || score >= 60 && score < 80 ? 6 : score >= 80 ? 7 : 5;
     };
@@ -377,6 +417,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     const activateCluster = (cluster: PointCluster) => {
       if (!canInteract()) return;
       featureClickAt.current = performance.now();
+      pointerHoverRef.current = null;
       setHover(null);
       setHoveredBubble(null);
       const ids = clusterRoleIds(cluster.members);
@@ -386,28 +427,30 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       const camera = stack ? null : map.cameraForBounds([[Math.min(...lng), Math.min(...lat)], [Math.max(...lng), Math.max(...lat)]], { padding: 64 });
       map.easeTo({ center: stack ? [cluster.anchor.lng, cluster.anchor.lat] : camera?.center ?? [cluster.anchor.lng, cluster.anchor.lat], zoom: stack ? Math.min(map.getMaxZoom(), Math.max(map.getZoom(), 8)) : Math.min(map.getMaxZoom(), Math.max(map.getZoom() + 1, camera?.zoom ?? 0)), duration: reducedMotion() ? 0 : 700, easing: t => 1 - (1 - t) ** 3 });
     };
-    overlayRef.current.setProps({
+    const renderLayers = () => overlayRef.current?.setProps({
       layers: [...(!darkMap ? [new ScatterplotLayer<PointCluster>({
         id: "posting-hairlines", data: clusters, pickable: false, filled: false, stroked: true,
         radiusUnits: "pixels", getRadius: cluster => radius(cluster) + 2.5,
         getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getLineColor: [8, 17, 28, 153],
-        lineWidthUnits: "pixels", getLineWidth: 1, updateTriggers: { getRadius: [selected, hovered?.posting_id] },
+        lineWidthUnits: "pixels", getLineWidth: 1, updateTriggers: { getRadius: [selected, hoverId()] },
       })] : []), new ScatterplotLayer<PointCluster>({
         id: "posting-sticker-rings", data: clusters, pickable: false,
         radiusUnits: "pixels", getRadius: cluster => radius(cluster) + 1,
         getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], filled: false, stroked: true,
         getLineColor: paper, lineWidthUnits: "pixels", getLineWidth: 2,
-        updateTriggers: { getRadius: [selected, hovered?.posting_id] },
+        updateTriggers: { getRadius: [selected, hoverId()] },
       }), new ScatterplotLayer<PointCluster>({
         id: "posting-points", data: clusters, pickable: true,
         radiusUnits: "pixels", getRadius: radius,
         getPosition: cluster => [cluster.anchor.lng, cluster.anchor.lat], getFillColor: cluster => clusterScore(cluster) === null ? [0, 0, 0, 0] : scoreColor(clusterScore(cluster)),
-        stroked: true, getLineColor: cluster => clusterRoleIds(cluster.members).includes(selected ?? "") ? selectedRing : clusterScore(cluster) === null ? unscoredRing : [0, 0, 0, 0], lineWidthUnits: "pixels", getLineWidth: cluster => clusterScore(cluster) === null || clusterRoleIds(cluster.members).includes(selected ?? "") ? 2 : 0,
-        transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hovered?.posting_id], getLineWidth: [selected], getLineColor: [selected, darkMap] },
-        onHover: info => { if (canInteract()) { if (info.object && clusterRoleIds(info.object.members).length === 1) setHiddenFocusedSelection(null); setHover(info.object && clusterRoleIds(info.object.members).length === 1 ? { point: info.object.anchor, selection: selected } : null); } },
+        stroked: true, getLineColor: cluster => ringed(cluster) ? selectedRing : clusterScore(cluster) === null ? unscoredRing : [0, 0, 0, 0], lineWidthUnits: "pixels", getLineWidth: cluster => clusterScore(cluster) === null || ringed(cluster) ? 2 : 0,
+        transitions: { getRadius: 160 }, updateTriggers: { getRadius: [selected, hoverId()], getLineWidth: [selected, hoverId()], getLineColor: [selected, darkMap, hoverId()] },
+        onHover: info => { if (canInteract()) hoverPoint(info.object ?? null); },
         onClick: info => { if (canInteract() && info.object) { featureClickAt.current = performance.now(); if (clusterRoleIds(info.object.members).length === 1) callbacks.current.onSelect(info.object.anchor.posting_id); else activateCluster(info.object); } },
       })],
     });
+    renderLayers();
+    renderLayersRef.current = renderLayers;
     if (process.env.NODE_ENV !== "production" && container.current) container.current.dataset.dotRingColor = paper.join(",");
     if (!selected) pulsedSelection.current = null;
     const pulseSelection = selected !== null && selected !== pulsedSelection.current;
@@ -422,12 +465,14 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         button.className = "globe-cluster";
         button.setAttribute("aria-controls", "globe-rail");
         const marker = new Marker({ element: button }).setLngLat([cluster.anchor.lng, cluster.anchor.lat]).addTo(map);
-        entry = { marker, button, lng: cluster.anchor.lng, lat: cluster.anchor.lat };
+        entry = { marker, button, lng: cluster.anchor.lng, lat: cluster.anchor.lat, ids: [] };
         markerRegistry.current.set(key, entry);
       }
       const { button } = entry;
       const ids = clusterRoleIds(cluster.members);
+      entry.ids = ids;
       const place = clusterPlace(cluster.members);
+      button.classList.toggle("globe-cluster-hovered", hoverIdRef.current !== null && ids.includes(hoverIdRef.current));
       button.classList.toggle("globe-cluster-stack", clusterIsStack(cluster.members));
       button.classList.toggle("globe-cluster-active", ids.length === bubbleIds.length && ids.every(id => bubbleIds.includes(id)));
       if (pulseSelection) {
@@ -453,7 +498,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       };
     }
     for (const [key, entry] of markerRegistry.current) if (!next.has(key)) { setHoveredBubble(null); entry.marker.remove(); markerRegistry.current.delete(key); }
-  }, [clusters, selected, hovered, ready, canInteract, bubbleIds, darkMap]);
+  }, [clusters, selected, ready, canInteract, bubbleIds, darkMap, hoverPoint]);
   const selectedPoint = points.find(point => point.posting_id === selected);
   const selectedLat = selectedPoint?.lat, selectedLng = selectedPoint?.lng;
   useEffect(() => {
@@ -482,12 +527,11 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     handledCameraAction.current = cameraAction.id;
     if (initial && location === "" && !explicit) return;
     const resetting = explicit && cameraAction.kind === "reset";
-    const duration = initial || reducedMotion() ? 0 : 900;
-    moveToLocation(map, location, points, resetting, duration);
+    moveToLocation(map, location, points, resetting, !initial && !reducedMotion());
   }, [active, ready, dataReady, location, points, cameraAction]);
   const focused = hovered && points.some(point => point.posting_id === hovered.posting_id) ? hovered : selectedPoint;
   return <section className="job-globe-shell" aria-label="Role locations globe">
-    <div ref={globeRoot} onPointerLeave={() => setHover(null)} className="job-globe">
+    <div ref={globeRoot} onPointerLeave={() => hoverPoint(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       {ready && <div className="globe-controls" role="group" aria-label="Globe controls">
         <button type="button" aria-label="Zoom in" disabled={zoomBounds.atMax} onClick={() => mapRef.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 })}><Plus aria-hidden="true" /></button>
@@ -496,7 +540,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         <div className="globe-controls-location"><button type="button" className="maplibregl-ctrl-location" aria-label={locationLabel} title="Job Radar does not store your location. CARTO receives map tiles for the displayed area." onClick={locate}><LocateFixed aria-hidden="true" /></button><span className="maplibregl-ctrl-location-status" role="status" aria-live="polite" /></div>
         {fullscreenAvailable && <button type="button" aria-label={fullscreen ? "Exit full screen" : "Full screen"} onClick={() => { if (fullscreen) { if (document.exitFullscreen) void document.exitFullscreen().catch(() => {}); } else if (globeRoot.current?.requestFullscreen) void globeRoot.current.requestFullscreen().catch(() => {}); }}>{fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}</button>}
       </div>}
-      {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Preparing the globe…</p>}
+      {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{dataReady ? "Preparing the globe…" : "Loading map…"}</p>}
       {ready && showDragHint && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Drag to spin · scroll to zoom</p>}
       {hoveredBubble && <div className="pointer-events-none absolute bottom-16 left-3 z-10 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" role="tooltip">{hoveredBubble.count} roles near {hoveredBubble.place.replace(/^Near /, "")}<p className="mt-1 text-muted-foreground">Click to list them</p></div>}
       {focused && !hoveredBubble && !(hiddenFocusedSelection?.selected === selected && hiddenFocusedSelection.request === selectionRequest) && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}

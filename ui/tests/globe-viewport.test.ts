@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JobSummarySchema } from "../lib/contracts";
-import { LOCATION_BOUNDS, cameraNeedsReset, focusPointCamera, locationCameraBounds, countGlobeRoles, partitionGlobeGroups, viewportPostingIds } from "../lib/globe-viewport";
+import { LOCATION_BOUNDS, cameraNeedsReset, focusPointCamera, locationCameraBounds, locationFlight, countGlobeRoles, partitionGlobeGroups, viewportPostingIds } from "../lib/globe-viewport";
 import type { GlobePoint } from "../lib/globe-model";
 const job = (n: number) => JobSummarySchema.parse({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, title: "Engineer", company: "Example", source: "test", last_seen_at: "2026-09-22", experience: null, description_available: false, seniority_origin: "unknown", extraction_state: "not-extracted", location: null, remote: null, seniority: null, stack: [], salary: null, url: "https://example.test", apply_url: null, posted_at: null, first_seen_at: "2026-09-22", status: "new", status_reason: null, score: null, fit_line: null, recommendation: null });
 const point = (n: number): GlobePoint => ({ posting_id: job(n).id, job: job(n), rowId: job(n).id, lng: 35, lat: 32, precision: "city", source: "test", resolved_at: "2026-09-22" });
@@ -54,4 +54,12 @@ test("location bounds and camera reset follow explicit user intent", () => {
   assert.equal(cameraNeedsReset([34.8113,31.8928],1.9,[34.8113,31.8928],1.9),false);
   assert.equal(cameraNeedsReset([36,31.8928],1.9,[34.8113,31.8928],1.9),true);
   assert.equal(cameraNeedsReset([34.8113,31.8928],2.2,[34.8113,31.8928],1.9),true);
+});
+test("distant location moves arc lower and last longer than nearby moves", () => {
+  const far = locationFlight([34.8, 31.9], 8, [-95.9, 37.9], 3);
+  const near = locationFlight([34.8, 31.9], 8, [35.1, 32], 7);
+  assert.ok(far.duration > near.duration);
+  assert.ok(far.duration >= 1200 && far.duration <= 2200);
+  assert.ok(far.minZoom !== undefined && far.minZoom < 3);
+  assert.equal(near.minZoom, undefined);
 });
