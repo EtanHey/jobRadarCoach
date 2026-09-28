@@ -57,7 +57,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
   const [clusters, setClusters] = useState<PointCluster[]>([]);
   const [hoveredBubble, setHoveredBubble] = useState<{ count: number; place: string } | null>(null);
   const [ready, setReady] = useState(false);
-  const [zoom, setZoom] = useState(0);
+  const [zoomBounds, setZoomBounds] = useState({ atMin: false, atMax: false });
   const [darkMap, setDarkMap] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
@@ -220,8 +220,14 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
             container.current.dataset.skyColor = String(map.getSky()["sky-color"]);
           }
         });
-        map.on("zoom", () => { if (map) setZoom(map.getZoom()); });
-        setZoom(map.getZoom());
+        const updateZoomBounds = () => {
+          if (!map) return;
+          const atMin = map.getZoom() <= map.getMinZoom();
+          const atMax = map.getZoom() >= map.getMaxZoom();
+          setZoomBounds(current => current.atMin === atMin && current.atMax === atMax ? current : { atMin, atMax });
+        };
+        map.on("zoomend", updateZoomBounds);
+        updateZoomBounds();
         const publishCamera = () => { if (container.current && map) {
           container.current.dataset.projection = String(map.getProjection()?.type);
           container.current.dataset.zoom = String(map.getZoom());
@@ -484,8 +490,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     <div ref={globeRoot} onPointerLeave={() => setHover(null)} className="job-globe">
       <div ref={container} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       {ready && <div className="globe-controls" role="group" aria-label="Globe controls">
-        <button type="button" aria-label="Zoom in" disabled={zoom >= 12} onClick={() => mapRef.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 })}><Plus aria-hidden="true" /></button>
-        <button type="button" aria-label="Zoom out" disabled={zoom <= 0} onClick={() => mapRef.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 })}><Minus aria-hidden="true" /></button>
+        <button type="button" aria-label="Zoom in" disabled={zoomBounds.atMax} onClick={() => mapRef.current?.zoomIn({ duration: reducedMotion() ? 0 : 300 })}><Plus aria-hidden="true" /></button>
+        <button type="button" aria-label="Zoom out" disabled={zoomBounds.atMin} onClick={() => mapRef.current?.zoomOut({ duration: reducedMotion() ? 0 : 300 })}><Minus aria-hidden="true" /></button>
         <span className="globe-controls-divider" aria-hidden="true" />
         <div className="globe-controls-location"><button type="button" className="maplibregl-ctrl-location" aria-label={locationLabel} title="Job Radar does not store your location. CARTO receives map tiles for the displayed area." onClick={locate}><LocateFixed aria-hidden="true" /></button><span className="maplibregl-ctrl-location-status" role="status" aria-live="polite" /></div>
         {fullscreenAvailable && <button type="button" aria-label={fullscreen ? "Exit full screen" : "Full screen"} onClick={() => { if (fullscreen) { if (document.exitFullscreen) void document.exitFullscreen().catch(() => {}); } else if (globeRoot.current?.requestFullscreen) void globeRoot.current.requestFullscreen().catch(() => {}); }}>{fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}</button>}

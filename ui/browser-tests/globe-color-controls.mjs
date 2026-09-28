@@ -17,12 +17,16 @@ const expected = { light: { space: "rgb(230, 238, 247)", ocean: "#a9d2ec", land:
   dark: { space: "rgb(5, 10, 20)", ocean: "#0c2238", land: "#1b2433", border: "#41536d", label: "#8c9ab0", sky: "#2f6fb8" } };
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 try {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
   try {
     await context.addInitScript(() => {
       localStorage.setItem("job-radar-theme", "light");
       localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter: "all", view: { search: "", source: "", location: "", seniority: "", fit: "", statuses: [], availability: "active", sort: "fit" } }));
       window.EventSource = class { addEventListener() {} close() {} };
+      window.__commits = 0;
+      window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = { supportsFiber: true, renderers: new Map(), inject() { return 1; },
+        checkDCE() {}, onCommitFiberRoot() { window.__commits++; }, onCommitFiberUnmount() {},
+        onPostCommitFiberRoot() {}, onScheduleFiberRoot() {} };
     });
     const page = await context.newPage(), errors = [], styleUrls = [];
     page.on("pageerror", error => errors.push(error.message));
@@ -77,6 +81,19 @@ try {
     assert.equal(bubble.size, "32px");
     assert.equal(bubble.color, "rgb(16, 185, 129)");
     assert.ok(bubble.target >= 44 && bubble.ring.includes("2px"), JSON.stringify(bubble));
+    const stack = page.locator(".globe-cluster").first();
+    const beforeClick = await page.evaluate(() => window.__commits);
+    await stack.click();
+    await page.waitForTimeout(1200);
+    const clickCommits = await page.evaluate(() => window.__commits) - beforeClick;
+    assert.ok(clickCommits <= 5, "bubble zoom React commits: " + clickCommits);
+    const canvasBox = await canvas.boundingBox();
+    await page.mouse.move(canvasBox.x + canvasBox.width / 2, canvasBox.y + canvasBox.height / 2);
+    const beforeWheel = await page.evaluate(() => window.__commits);
+    for (let i = 0; i < 5; i++) { await page.mouse.wheel(0, 120); await page.waitForTimeout(60); }
+    await page.waitForTimeout(800);
+    const wheelCommits = await page.evaluate(() => window.__commits) - beforeWheel;
+    assert.ok(wheelCommits <= 5, "five-notch wheel React commits: " + wheelCommits);
     await page.getByRole("button", { name: "Zoom in" }).click();
     await page.waitForTimeout(400);
     const before = await map.evaluate(node => ({ center: node.dataset.center, zoom: node.dataset.zoom }));
@@ -105,6 +122,18 @@ try {
     await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error("fixture denied")); });
     await page.getByRole("button", { name: "Full screen" }).click();
     await page.waitForTimeout(100);
+    const zoomIn = page.getByRole("button", { name: "Zoom in" });
+    const zoomOut = page.getByRole("button", { name: "Zoom out" });
+    for (let i = 0; i < 24 && !(await zoomOut.isDisabled()); i++) await zoomOut.click();
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Zoom out"]')?.disabled === true);
+    assert.equal(await zoomOut.isDisabled(), true, "Zoom out disables at minimum zoom");
+    await zoomIn.click();
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Zoom out"]')?.disabled === false);
+    for (let i = 0; i < 24 && !(await zoomIn.isDisabled()); i++) await zoomIn.click();
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Zoom in"]')?.disabled === true);
+    assert.equal(await zoomIn.isDisabled(), true, "Zoom in disables at maximum zoom");
+    await zoomOut.click();
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Zoom in"]')?.disabled === false);
     assert.equal(errors.length, 0, JSON.stringify(errors));
     console.log(JSON.stringify({ result: "PASS", controls, darkControls, bubble, styleUrls, before, after: await paint() }));
   } finally { await context.close(); }
