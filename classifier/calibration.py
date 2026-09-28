@@ -8,7 +8,7 @@ from collections.abc import Mapping
 
 POLICY_FIELDS = {
     "familiar_primary_languages", "conditional_primary_languages",
-    "unfamiliar_technologies", "years_ignore_through", "years_conditional",
+    "unfamiliar_technologies", "years_conditional",
     "years_hard_block_from", "backend_heavy_max_score",
     "backend_years_no_from", "frontend_parity", "neutral_nice_to_have",
 }
@@ -34,6 +34,18 @@ _LANGUAGE_ALIASES = {
     "nodejs": "node.js",
 }
 _NON_LANGUAGE_RUNTIMES = {"node.js"}
+_TECHNOLOGY_ALIASES = {
+    "k8s": "kubernetes",
+    "kubernetes": "kubernetes",
+    "aws": "aws",
+    "amazonwebservices": "aws",
+    "gcp": "gcp",
+    "googlecloudplatform": "gcp",
+    "azure": "azure",
+    "microsoftazure": "azure",
+    "postgres": "postgresql",
+    "postgresql": "postgresql",
+}
 
 
 def _names(value: object) -> list[str]:
@@ -48,6 +60,12 @@ def _language_name(value: str) -> str:
     normalized = " ".join(value.casefold().split()).strip(" .,:;")
     compact = normalized.replace(" ", "")
     return _LANGUAGE_ALIASES.get(compact, normalized)
+
+
+def _technology_name(value: str) -> str:
+    normalized = " ".join(value.casefold().split()).strip(" .,:;")
+    compact = re.sub(r"[^a-z0-9]+", "", normalized)
+    return _TECHNOLOGY_ALIASES.get(compact, normalized)
 
 
 def _language_options(clause: list[str]) -> set[str]:
@@ -96,7 +114,7 @@ def _required_unfamiliar_count(
     policy: Mapping[str, object], facts: Mapping[str, object]
 ) -> int:
     required = {
-        ("name", _language_name(name))
+        ("name", _technology_name(name))
         for name in facts["required_technologies"]
     }
     familiar, conditional = _language_policy(policy)
@@ -128,11 +146,10 @@ def validate_policy(value: object) -> dict[str, object]:
             raise ValueError("invalid conditional language")
         if not _names(alternatives):
             raise ValueError("conditional language needs an alternative")
-    for key in ("years_ignore_through", "years_conditional", "years_hard_block_from", "backend_years_no_from"):
+    for key in ("years_conditional", "years_hard_block_from", "backend_years_no_from"):
         if type(value[key]) is not int or not 0 <= value[key] <= 50:
             raise ValueError(f"invalid calibration {key}")
-    if not (value["years_ignore_through"] < value["years_conditional"]
-            < value["years_hard_block_from"]):
+    if not value["years_conditional"] < value["years_hard_block_from"]:
         raise ValueError("calibration year thresholds must increase")
     if type(value["backend_heavy_max_score"]) is not int or not 40 <= value["backend_heavy_max_score"] <= 59:
         raise ValueError("invalid backend cap")

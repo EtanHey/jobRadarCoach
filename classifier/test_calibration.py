@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from classifier import core, projection, request
+from classifier import calibration, core, projection, request
 from classifier.test_core import SequenceBrain, posting, profile_snapshot, wire_annotation
 
 
@@ -14,7 +14,6 @@ POLICY = {
     "familiar_primary_languages": ["CedarScript"],
     "conditional_primary_languages": {"DuneLang": ["CedarScript"]},
     "unfamiliar_technologies": ["QuartzDB", "NimbusCloud"],
-    "years_ignore_through": 5,
     "years_conditional": 6,
     "years_hard_block_from": 7,
     "backend_heavy_max_score": 59,
@@ -28,6 +27,18 @@ LANGUAGE_ALIAS_POLICY["familiar_primary_languages"].extend(
     ["TypeScript", "Go", "C#"]
 )
 LANGUAGE_ALIAS_POLICY["conditional_primary_languages"]["Python"] = ["TypeScript"]
+
+TECH_ALIAS_GROUPS = [
+    ["Kubernetes", "k8s"],
+    ["AWS", "Amazon Web Services"],
+    ["GCP", "Google Cloud Platform"],
+    ["Azure", "Microsoft Azure"],
+    ["Postgres", "PostgreSQL"],
+]
+TECH_ALIAS_POLICY = copy.deepcopy(POLICY)
+TECH_ALIAS_POLICY["unfamiliar_technologies"] = [
+    name for aliases in TECH_ALIAS_GROUPS for name in aliases
+]
 
 
 def calibrated(facts, *, jd="Build a CedarScript product. " * 12, policy=POLICY):
@@ -75,6 +86,96 @@ def test_primary_language_alternatives(language_clauses, expected_score):
     result, _ = calibrated(facts(required_primary_language_clauses=language_clauses))
     assert result is not None
     assert result.annotation["fit_score"] == expected_score
+
+
+@pytest.mark.parametrize(
+    "language_clause",
+    [
+        ["TS"],
+        ["JS"],
+        ["Py", "TS"],
+        ["Python3", "TypeScript"],
+        ["Golang"],
+        ["csharp"],
+        ["Node.js"],
+        ["nodejs"],
+        ["TS/JS"],
+        ["TS,JavaScript"],
+        ["TS|JS"],
+        ["TS or JS"],
+    ],
+)
+def test_b1_language_normalizations_are_observable_with_one_required_technology(language_clause):
+    result, _ = calibrated(
+        facts(
+            required_technologies=["NimbusCloud"],
+            required_primary_language_clauses=[language_clause],
+        ),
+        policy=LANGUAGE_ALIAS_POLICY,
+    )
+    assert result is not None and result.annotation["fit_score"] == 82
+
+
+@pytest.mark.parametrize(
+    "language_clause",
+    [
+        ["TS"],
+        ["JS"],
+        ["Py", "TS"],
+        ["Python3", "TypeScript"],
+        ["Golang"],
+        ["csharp"],
+        ["Node.js"],
+        ["nodejs"],
+        ["TS/JS"],
+        ["TS,JavaScript"],
+        ["TS|JS"],
+        ["TS or JS"],
+    ],
+)
+def test_b1_language_normalizations_are_observable_at_conditional_years(language_clause):
+    result, _ = calibrated(
+        facts(
+            required_years=6,
+            required_primary_language_clauses=[language_clause],
+        ),
+        policy=LANGUAGE_ALIAS_POLICY,
+    )
+    assert result is not None and result.annotation["fit_score"] == 59
+
+
+def test_conditional_language_clause_and_familiar_or_option_are_counted_once():
+    alone, _ = calibrated(
+        facts(
+            required_technologies=["NimbusCloud"],
+            required_primary_language_clauses=[["DuneLang"]],
+        )
+    )
+    conditional_alternative, _ = calibrated(
+        facts(
+            required_technologies=["NimbusCloud"],
+            required_primary_language_clauses=[["DuneLang", "CedarScript"]],
+        )
+    )
+    familiar_or_option, _ = calibrated(
+        facts(
+            required_technologies=["NimbusCloud"],
+            required_primary_language_clauses=[["CedarScript", "OtherLang"]],
+        )
+    )
+    assert alone is not None and alone.annotation["fit_score"] == 59
+    assert conditional_alternative is not None
+    assert conditional_alternative.annotation["fit_score"] == 82
+    assert familiar_or_option is not None and familiar_or_option.annotation["fit_score"] == 82
+
+
+@pytest.mark.parametrize("aliases", TECH_ALIAS_GROUPS)
+def test_required_technology_aliases_count_as_one_unfamiliar_requirement(aliases):
+    result, _ = calibrated(
+        facts(required_technologies=aliases),
+        policy=TECH_ALIAS_POLICY,
+    )
+    assert result is not None and result.annotation["fit_score"] == 82
 
 
 @pytest.mark.parametrize("language", ["TS", "Typescript", "typescript"])
@@ -214,6 +315,16 @@ def test_calibrated_request_contains_generic_rules_and_fact_schema():
         in prompt
     )
     assert "calibration_facts" in req.output_schema["required"]
+    assert "years_ignore_through" not in prompt
+    assert "ignore required years below years_conditional" in prompt
+
+
+def test_years_ignore_through_is_removed_from_the_policy_schema():
+    assert "years_ignore_through" not in calibration.POLICY_FIELDS
+    assert "years_ignore_through" not in POLICY
+    assert calibration.validate_policy(POLICY) is POLICY
+    with pytest.raises(ValueError):
+        calibration.validate_policy({**POLICY, "years_ignore_through": 5})
 
 
 def test_legacy_request_bytes_unchanged():
