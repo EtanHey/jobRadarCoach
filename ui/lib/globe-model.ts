@@ -21,7 +21,7 @@ export function thinPoints(points: GlobePoint[], selected: string | null, limit 
   return chosen ? [chosen, ...sampled].slice(0, limit) : sampled.slice(0, limit);
 }
 export function scoreColor(score: number | null): [number, number, number, number] {
-  return score === null ? [148, 163, 184, 255] : score >= 80 ? [52, 211, 153, 255] : score >= 60 ? [56, 189, 248, 255] : [251, 191, 36, 255];
+  return score === null ? [148, 163, 184, 255] : score >= 80 ? [16, 185, 129, 255] : score >= 60 ? [245, 158, 11, 255] : [148, 163, 184, 255];
 }
 export function pointLabel(point: GlobePoint): string {
   return point.precision === "hq" ? "Company HQ · not the job location" : `Approximate ${point.precision} location`;
