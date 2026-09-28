@@ -9,6 +9,7 @@ import re
 
 from scraper.annotate import MCP_EVIDENCE_IDS
 from scraper.database import annotation_profile
+from classifier.calibration import validate_policy
 
 
 MIN_JD_CHARS = 200
@@ -150,6 +151,10 @@ def profile_contract(snapshot: Mapping[str, object]) -> dict[str, object]:
     if not isinstance(snapshot, Mapping) or snapshot.get("contract_version") != 1:
         raise ValueError("captured DB profile contract is invalid")
     profile = annotation_profile(dict(snapshot))
+    if "candidate.scorer_calibration" in snapshot:
+        profile["candidate"]["scorer_calibration"] = validate_policy(
+            snapshot["candidate.scorer_calibration"]
+        )
     _validate_candidate(profile["candidate"])
     _validate_signals(profile.get("fit_signals"))
     _validate_constraints(profile.get("constraints"))
