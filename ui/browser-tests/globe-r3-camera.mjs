@@ -48,7 +48,7 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
     await page.locator('[data-projection="globe"]').waitFor({timeout:30000});
     await page.locator('.globe-cluster').first().waitFor();
     await page.locator('.globe-cluster').first().hover();
-    assert.equal(await page.locator('.globe-cluster').first().evaluate(node => getComputedStyle(node).scale), "1.06", "cluster hover scale composes with MapLibre marker translation");
+    assert.deepEqual(await page.locator('.globe-cluster').first().evaluate(node => [getComputedStyle(node).scale, getComputedStyle(node, "::before").scale]), ["none", "1.06"], "cluster hover grows the disc, never the MapLibre marker");
     await shot("initial");
     if (!mobile && theme==="dark") {
       await page.evaluate(()=>{window.markerChurn=0;const globe=document.querySelector('.job-globe');window.markerObserver=new MutationObserver(records=>{for(const record of records)for(const node of [...record.addedNodes,...record.removedNodes])if(node.nodeType===1&&(node.matches?.('.globe-cluster')||node.querySelector?.('.globe-cluster')))window.markerChurn++;});window.markerObserver.observe(globe,{childList:true,subtree:true});});
@@ -134,11 +134,11 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
       await page.emulateMedia({reducedMotion:"no-preference"});
       await page.getByRole("combobox",{name:"Location",exact:true}).click();
       await page.getByRole("option",{name:"United States",exact:true}).click();
-      await page.waitForTimeout(1100);
+      await page.waitForFunction(()=>Number(document.querySelector('[data-projection="globe"]').dataset.center.split(",")[0])<-90,null,{timeout:4000}); // R3-13 far flights run up to 2.2 s.
       const beforeOffReset=await camera();assert.ok(beforeOffReset.center[0]<-90,JSON.stringify(beforeOffReset));
       await toggle.click();
       await page.getByRole("button",{name:"Reset view",exact:true}).click();
-      await toggle.click();await page.waitForTimeout(1100);
+      await toggle.click();await page.waitForFunction(()=>{const [lng,lat]=document.querySelector('[data-projection="globe"]').dataset.center.split(",").map(Number);return Math.abs(lng-34.8113)<.01&&Math.abs(lat-31.8928)<.01;},null,{timeout:4000}).catch(()=>{});
       const offReset=await camera();
       assert.ok(Math.abs(offReset.center[0]-34.8113)<.01 && Math.abs(offReset.center[1]-31.8928)<.01 && offReset.zoom<=1.91,`off→Reset→on restored the old camera: ${JSON.stringify(offReset)}`);
       step.offReset={before:beforeOffReset,after:offReset};

@@ -196,19 +196,22 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
 .job-globe-shell { height: 100%; }
 .job-globe { position: relative; height: 100%; min-height: 0; background: var(--globe-space); border-radius: 1rem; overflow: hidden; }
 .job-globe:fullscreen { height: 100dvh; border-radius: 0; }
+.globe-rail-header { position: sticky; top: 0; z-index: 2; min-height: 2rem; padding-block: .25rem; background: var(--background); }
+[data-hovered] > article { border-color: var(--globe-select); background-image: linear-gradient(color-mix(in oklab, var(--muted) 40%, transparent), color-mix(in oklab, var(--muted) 40%, transparent)); }
 [data-globe-selected=true] > article { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
 .globe-layout-open .globe-rail { min-height: 0; overflow-y: auto; padding: 3px; scrollbar-gutter: stable; }
 .board-mobile-globe-counts { display: none; }
 @media (min-width: 901px) {
   .board-globe-open { min-height: 100dvh; }
   .globe-layout-open { align-items: start; }
-  .globe-layout-open .globe-slot { position: sticky; top: 1rem; height: 440px; }
+  .globe-layout-open { --globe-top: 14rem; }
+  .globe-layout-open .globe-slot { position: sticky; top: 1rem; height: max(440px, calc(100dvh - var(--globe-top))); }
   .globe-layout-open .globe-rail { overflow: visible; }
 }
 @media (min-width: 1280px) and (min-height: 700px) {
   .board-globe-open { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
   .board-globe-open > header { flex: none; }
-  .board-globe-open .board-main { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+  .board-globe-open .board-main { display: flex; flex: 1; min-height: 0; flex-direction: column; padding-bottom: 1rem; }
   .job-search-globe { display: flex; flex: 1; min-height: 0; flex-direction: column; }
   .globe-layout-open { flex: 1; height: 100%; align-items: stretch; }
   .globe-layout-open .globe-slot { position: static; height: auto; }
@@ -237,14 +240,16 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
 .globe-cluster::before { position: absolute; z-index: -1; width: var(--cluster-size); height: var(--cluster-size); border-radius: 50%; background: var(--cluster-color); box-shadow: 0 0 0 2px var(--globe-paper), var(--globe-hairline); content: ""; }
 .globe-cluster[data-unscored="true"]::before { border: 2px solid var(--globe-unscored-ring); background: transparent; }
 .globe-cluster[data-unscored="true"] { color: var(--foreground); }
-.globe-cluster { transition: scale 120ms ease-out; }
+.globe-cluster::before { transition: scale 120ms ease-out; }
 .globe-cluster-stack { box-shadow: 0 0 0 3px #080f1c, 0 0 0 6px var(--cluster-color); }
 .globe-cluster-active { outline: 3px solid var(--globe-select, #0f766e); outline-offset: 2px; }
 .dark .globe-cluster-active { --globe-select: #5eead4; }
-.globe-cluster:hover { scale: 1.06; }
+/* Scale the disc, not the marker: a marker `scale` also multiplies MapLibre's translate and throws the bubble off the pointer. */
+.globe-cluster:hover::before { scale: 1.06; }
+.globe-cluster-hovered { outline: 2px solid var(--globe-select); outline-offset: 2px; }
 .globe-cluster-selected { animation: globe-selection-pulse 360ms ease-out 1; }
 @keyframes globe-selection-pulse { 50% { box-shadow: 0 0 0 8px rgb(255 255 255 / .45); } }
-@media (prefers-reduced-motion: reduce) { .globe-cluster { transition: none; } .globe-cluster-selected { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .globe-cluster::before { transition: none; } .globe-cluster-selected { animation: none; } }
 .globe-cluster:focus-visible { outline: 2px solid white; }
 
 .job-globe .maplibregl-ctrl-top-right, .job-globe .maplibregl-ctrl-bottom-right { z-index: 4; }

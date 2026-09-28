@@ -15,6 +15,19 @@ export function locationCameraBounds(location: string, points: readonly Coordina
   const west = Math.min(...lng), east = Math.max(...lng);
   return east - west < 150 ? [[west, Math.min(...lat)], [east, Math.max(...lat)]] : null;
 }
+// Location and Reset flights: far moves arc out to a distance-scaled peak, travel, then land; near moves stay short.
+export function locationFlight(from: [number, number], fromZoom: number, to: [number, number], toZoom: number) {
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const latitude = radians(to[1] - from[1]), longitude = radians(to[0] - from[0]);
+  const arc = Math.sin(latitude / 2) ** 2 + Math.cos(radians(from[1])) * Math.cos(radians(to[1])) * Math.sin(longitude / 2) ** 2;
+  const distanceKm = 12742 * Math.asin(Math.min(1, Math.sqrt(arc)));
+  // The peak zoom keeps both ends in one view: ~2.5 across an ocean, ~4.3 across a region.
+  const peak = Math.max(1.3, Math.log2(40000 / Math.max(distanceKm, 1)) + .5);
+  return {
+    duration: Math.round(Math.min(2200, Math.max(500, 500 + distanceKm / 15 + Math.abs(toZoom - fromZoom) * 100))),
+    minZoom: distanceKm > 500 && peak < Math.min(fromZoom, toZoom) ? peak : undefined,
+  };
+}
 export function focusPointCamera({ zoom, width, height, coveredRight, x, y }: {
   zoom: number; width: number; height: number; coveredRight: number; x: number; y: number;
 }): { zoom: number; offsetX: number } | null {
