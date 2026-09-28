@@ -23,10 +23,16 @@ POLICY = {
     "neutral_nice_to_have": ["AgentMesh"],
 }
 
+LANGUAGE_ALIAS_POLICY = copy.deepcopy(POLICY)
+LANGUAGE_ALIAS_POLICY["familiar_primary_languages"].extend(
+    ["TypeScript", "Go", "C#"]
+)
+LANGUAGE_ALIAS_POLICY["conditional_primary_languages"]["Python"] = ["TypeScript"]
 
-def calibrated(facts, *, jd="Build a CedarScript product. " * 12):
+
+def calibrated(facts, *, jd="Build a CedarScript product. " * 12, policy=POLICY):
     snapshot = profile_snapshot()
-    snapshot["candidate.scorer_calibration"] = copy.deepcopy(POLICY)
+    snapshot["candidate.scorer_calibration"] = copy.deepcopy(policy)
     role = posting(jd)
     wire = wire_annotation(role["id"], fit_score=82)
     wire["calibration_facts"] = facts
@@ -61,8 +67,8 @@ def test_years_caps(years, tech, expected_score, rule):
 
 @pytest.mark.parametrize(("language_clauses", "expected_score"), [
     ([["DuneLang", "CedarScript"]], 82),
-    ([["DuneLang"]], 59),
-    ([["OtherLang"]], 59),
+    ([["DuneLang"]], 82),
+    ([["OtherLang"]], 82),
     ([["CedarScript"]], 82),
 ])
 def test_primary_language_alternatives(language_clauses, expected_score):
@@ -71,10 +77,114 @@ def test_primary_language_alternatives(language_clauses, expected_score):
     assert result.annotation["fit_score"] == expected_score
 
 
-def test_required_unfamiliar_caps_but_nice_to_have_does_not():
+@pytest.mark.parametrize("language", ["TS", "Typescript", "typescript"])
+def test_typescript_aliases_are_familiar(language):
+    result, _ = calibrated(
+        facts(required_primary_language_clauses=[[language]]),
+        policy=LANGUAGE_ALIAS_POLICY,
+    )
+    assert result is not None and result.annotation["fit_score"] == 82
+
+
+@pytest.mark.parametrize("language", ["JS", "JavaScript", "TS/JavaScript"])
+def test_javascript_counts_as_familiar_with_typescript(language):
+    result, _ = calibrated(
+        facts(required_primary_language_clauses=[[language]]),
+        policy=LANGUAGE_ALIAS_POLICY,
+    )
+    assert result is not None and result.annotation["fit_score"] == 82
+
+
+@pytest.mark.parametrize(
+    ("language_clause", "expected_score"),
+    [
+        (["Py", "TS"], 82),
+        (["Python3", "TypeScript"], 82),
+        (["Golang"], 82),
+        (["Go"], 82),
+        (["C#"], 82),
+        (["csharp"], 82),
+    ],
+)
+def test_common_primary_language_aliases_are_normalized(language_clause, expected_score):
+    result, _ = calibrated(
+        facts(required_primary_language_clauses=[language_clause]),
+        policy=LANGUAGE_ALIAS_POLICY,
+    )
+    assert result is not None and result.annotation["fit_score"] == expected_score
+
+
+@pytest.mark.parametrize(
+    "language_clauses",
+    [
+        [["Node.js"]],
+        [["CedarScript"], ["Node.js"]],
+        [["CedarScript/Node.js"]],
+    ],
+)
+def test_node_runtime_is_not_a_primary_language(language_clauses):
+    result, _ = calibrated(facts(required_primary_language_clauses=language_clauses))
+    assert result is not None and result.annotation["fit_score"] == 82
+
+
+def test_one_required_unfamiliar_technology_does_not_cap_by_itself():
     required, _ = calibrated(facts(required_technologies=["NimbusCloud"]))
-    optional, _ = calibrated(facts(), jd="Nice to have NimbusCloud and AgentMesh. " * 10)
-    assert required is not None and required.annotation["fit_score"] == 59
+    assert required is not None and required.annotation["fit_score"] == 82
+
+
+def test_two_required_unfamiliar_technologies_cap_at_review():
+    result, _ = calibrated(
+        facts(required_technologies=["QuartzDB", "NimbusCloud"])
+    )
+    assert result is not None and result.annotation["fit_score"] == 59
+
+
+def test_two_unfamiliar_language_requirements_cap_at_review():
+    result, _ = calibrated(
+        facts(required_primary_language_clauses=[["OtherLang"], ["AnotherLang"]])
+    )
+    assert result is not None and result.annotation["fit_score"] == 59
+
+
+def test_one_technology_and_one_language_requirement_count_as_two():
+    result, _ = calibrated(
+        facts(
+            required_technologies=["NimbusCloud"],
+            required_primary_language_clauses=[["OtherLang"]],
+        )
+    )
+    assert result is not None and result.annotation["fit_score"] == 59
+
+
+def test_one_unfamiliar_language_requirement_does_not_cap_by_itself():
+    result, _ = calibrated(
+        facts(required_primary_language_clauses=[["OtherLang"]])
+    )
+    assert result is not None and result.annotation["fit_score"] == 82
+
+
+def test_unfamiliar_language_alternatives_count_as_one_requirement():
+    result, _ = calibrated(
+        facts(required_primary_language_clauses=[["OtherLang", "AnotherLang"]])
+    )
+    assert result is not None and result.annotation["fit_score"] == 82
+
+
+def test_one_required_unfamiliar_with_backend_heavy_still_caps_at_review():
+    result, _ = calibrated(
+        facts(
+            role_focus="backend",
+            required_technologies=["NimbusCloud"],
+        )
+    )
+    assert result is not None and result.annotation["fit_score"] == 59
+    assert "backend_heavy" in result.calibration_rules
+
+
+def test_nice_to_have_unfamiliar_does_not_cap():
+    optional, _ = calibrated(
+        facts(), jd="Nice to have NimbusCloud and AgentMesh. " * 10
+    )
     assert optional is not None and optional.annotation["fit_score"] == 82
 
 
@@ -96,6 +206,13 @@ def test_calibrated_request_contains_generic_rules_and_fact_schema():
     req = runner.calls[0][0]
     assert "AgentMesh" in req.prompt and "nice-to-have" in req.prompt
     assert "frontend-heavy" in req.prompt
+    prompt = req.prompt.casefold()
+    assert "runtime" in prompt and "framework" in prompt
+    assert "two or more distinct required unfamiliar technologies" in prompt
+    assert (
+        "one required unfamiliar technology or primary-language requirement does not cap by itself"
+        in prompt
+    )
     assert "calibration_facts" in req.output_schema["required"]
 
 

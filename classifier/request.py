@@ -202,12 +202,12 @@ def build_request(
             "Scorer calibration v1.1: use these profile criteria as ranking rules, never as resume evidence.",
             json.dumps(policy, ensure_ascii=False, sort_keys=True),
             "Extract calibration_facts from the public posting only. A requirement is required only when the JD says so; exclude nice-to-have items from required_technologies and primary language clauses.",
-            "required_primary_language_clauses: each inner list is one OR group of required primary languages; separate clauses are AND requirements. Preserve unknown language names.",
+            "required_primary_language_clauses: each inner list is one OR group of required primary languages; separate clauses are AND requirements. Preserve aliases and unknown language names. Runtimes such as Node.js and frameworks are not primary languages and must not be included.",
             "required_technologies: select only required items from the unfamiliar_technologies list. Agent frameworks in neutral_nice_to_have are neutral when optional.",
-            "A required unfamiliar technology caps the score at review; a conditional-years requirement plus required unfamiliar technology caps at skip. The hard-block year threshold caps at skip.",
+            "One required unfamiliar technology or primary-language requirement does not cap by itself. Two or more distinct required unfamiliar technologies or primary-language requirements cap the score at review. One or more required unfamiliar items with a conditional-years requirement cap at skip. The hard-block year threshold caps at skip.",
             "Ignore years through years_ignore_through when role and stack fit. Backend-heavy roles cap at review and backend-specific years at backend_years_no_from cap at skip.",
             "A frontend-heavy role has parity with full-stack. Do not penalize frontend focus. Warm paths and referrals are unknown and must not affect fit_score.",
-            "The local adapter enforces caps from calibration_facts after model output; keep fit_line and reasons consistent with the extracted facts.",
+            "The local adapter counts unfamiliar required technologies and language requirements and enforces caps from calibration_facts after model output; keep fit_line and reasons consistent with the extracted facts.",
         ])
     return BrainRequest(prompt, schema)
 

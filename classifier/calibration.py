@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 
 
@@ -15,6 +16,24 @@ FACT_FIELDS = {
     "required_years", "required_backend_years", "role_focus",
     "required_technologies", "required_primary_language_clauses",
 }
+_LANGUAGE_OPTION_SEPARATOR = re.compile(r"\s*(?:/|,|\||\bor\b)\s*", re.IGNORECASE)
+_LANGUAGE_ALIASES = {
+    "ts": "typescript",
+    "typescript": "typescript",
+    "js": "javascript",
+    "javascript": "javascript",
+    "py": "python",
+    "python": "python",
+    "python3": "python",
+    "golang": "go",
+    "go": "go",
+    "c#": "c#",
+    "csharp": "c#",
+    "node": "node.js",
+    "node.js": "node.js",
+    "nodejs": "node.js",
+}
+_NON_LANGUAGE_RUNTIMES = {"node.js"}
 
 
 def _names(value: object) -> list[str]:
@@ -23,6 +42,77 @@ def _names(value: object) -> list[str]:
             or len({x.casefold() for x in value}) != len(value)):
         raise ValueError("calibration names must be a bounded unique string list")
     return value
+
+
+def _language_name(value: str) -> str:
+    normalized = " ".join(value.casefold().split()).strip(" .,:;")
+    compact = normalized.replace(" ", "")
+    return _LANGUAGE_ALIASES.get(compact, normalized)
+
+
+def _language_options(clause: list[str]) -> set[str]:
+    options = {
+        _language_name(option)
+        for value in clause
+        for option in _LANGUAGE_OPTION_SEPARATOR.split(value)
+        if option.strip()
+    }
+    return options - _NON_LANGUAGE_RUNTIMES
+
+
+def _language_policy(policy: Mapping[str, object]) -> tuple[set[str], dict[str, set[str]]]:
+    familiar = {
+        _language_name(name)
+        for name in policy["familiar_primary_languages"]
+    }
+    if familiar & {"typescript", "javascript"}:
+        familiar.update({"typescript", "javascript"})
+
+    conditional: dict[str, set[str]] = {}
+    for name, alternatives in policy["conditional_primary_languages"].items():
+        normalized_name = _language_name(name)
+        normalized_alternatives = {_language_name(item) for item in alternatives}
+        if normalized_name in {"typescript", "javascript"}:
+            normalized_names = {"typescript", "javascript"}
+        else:
+            normalized_names = {normalized_name}
+        if normalized_alternatives & {"typescript", "javascript"}:
+            normalized_alternatives.update({"typescript", "javascript"})
+        for normalized in normalized_names:
+            conditional.setdefault(normalized, set()).update(normalized_alternatives)
+    return familiar, conditional
+
+
+def _language_clause_is_familiar(
+    options: set[str], familiar: set[str], conditional: Mapping[str, set[str]]
+) -> bool:
+    return bool(options & familiar) or any(
+        name in options and bool(alternatives & options)
+        for name, alternatives in conditional.items()
+    )
+
+
+def _required_unfamiliar_count(
+    policy: Mapping[str, object], facts: Mapping[str, object]
+) -> int:
+    required = {
+        ("name", _language_name(name))
+        for name in facts["required_technologies"]
+    }
+    familiar, conditional = _language_policy(policy)
+    for clause in facts["required_primary_language_clauses"]:
+        options = _language_options(clause)
+        if not options or _language_clause_is_familiar(options, familiar, conditional):
+            continue
+        # A language clause is one OR requirement, even when it names several
+        # alternatives. Count it once; a runtime-only clause is ignored above.
+        if any(("name", option) in required for option in options):
+            continue
+        if len(options) == 1:
+            required.add(("name", next(iter(options))))
+        else:
+            required.add(("language_clause", tuple(sorted(options))))
+    return len(required)
 
 
 def validate_policy(value: object) -> dict[str, object]:
@@ -92,16 +182,7 @@ def validate_facts(value: object, policy: Mapping[str, object]) -> dict[str, obj
 
 def apply_caps(annotation: dict[str, object], policy: Mapping[str, object],
                facts: Mapping[str, object]) -> tuple[dict[str, object], tuple[str, ...]]:
-    familiar = {x.casefold() for x in policy["familiar_primary_languages"]}
-    conditional = {key.casefold(): {x.casefold() for x in alternatives}
-                   for key, alternatives in policy["conditional_primary_languages"].items()}
-    unfamiliar = bool(facts["required_technologies"])
-    for clause in facts["required_primary_language_clauses"]:
-        options = {x.casefold() for x in clause}
-        if not (options & familiar or any(
-            name in options and alternatives & options for name, alternatives in conditional.items()
-        )):
-            unfamiliar = True
+    unfamiliar_count = _required_unfamiliar_count(policy, facts)
     score = annotation["fit_score"]
     rules: list[str] = []
     years = facts["required_years"]
@@ -109,9 +190,9 @@ def apply_caps(annotation: dict[str, object], policy: Mapping[str, object],
         score = min(score, 39)
         rules.append("years_hard_block")
     elif years is not None and years >= policy["years_conditional"]:
-        score = min(score, 39 if unfamiliar else 59)
-        rules.append("years_conditional_unfamiliar" if unfamiliar else "years_conditional")
-    elif unfamiliar:
+        score = min(score, 39 if unfamiliar_count else 59)
+        rules.append("years_conditional_unfamiliar" if unfamiliar_count else "years_conditional")
+    elif unfamiliar_count >= 2:
         score = min(score, 59)
         rules.append("required_unfamiliar")
     if facts["role_focus"] == "backend":
