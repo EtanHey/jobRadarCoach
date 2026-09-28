@@ -7,26 +7,31 @@ import { TechnologyChips } from "./technology-chips";
 import { Button } from "./ui/button";
 
 type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; visiblePostingIds?: readonly string[]; selectedId?: string | null;
+  bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void;
   openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void };
-export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, openerRef, selectJob, openDetail }: Props) {
-  const sections = useMemo(() => globeOpen && visiblePostingIds !== undefined ? partitionGlobeGroups(groups, visiblePostingIds) : null, [groups, globeOpen, visiblePostingIds]);
+export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, openerRef, selectJob, openDetail, bubble, clearBubble }: Props) {
+  const sections = useMemo(() => {
+    if (!globeOpen || visiblePostingIds === undefined) return null;
+    if (bubble) return { visible: groups.filter(group => bubble.ids.includes(group.job.id)), outside: [] };
+    return partitionGlobeGroups(groups, visiblePostingIds);
+  }, [groups, globeOpen, visiblePostingIds, bubble]);
   const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
       selected={globeOpen ? selectedId === job.id : undefined} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
       <TechnologyChips names={job.stack} presentation="card" />
     </JobCard>
   </div>);
-  if (globeOpen && !sections) return <div role="status" className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Loading globe positions and view…</div>;
+  if (globeOpen && !sections) return <div role="status" className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Counting roles on screen…</div>;
   if (!sections) return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{cards(groups)}</div>;
   return <div className="space-y-5">
     <section data-globe-section="visible" aria-labelledby="globe-visible-heading">
-      <div className="mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">On screen</h2><span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span></div>
+      <div className="mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">{bubble ? <button type="button" onClick={clearBubble} aria-label={`Clear bubble filter: ${bubble.place} · ${sections.visible.length} ${sections.visible.length === 1 ? "role" : "roles"}`} className="rounded-full border border-primary px-3 py-1 text-primary">{bubble.place} · {sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"} ×</button> : "On screen"}</h2>{!bubble && <span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span>}</div>
       {sections.visible.length ? <div className="grid grid-cols-1 gap-3">{cards(sections.visible)}</div> : <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No roles in this part of the globe. Pan or zoom to explore.</p>}
     </section>
-    <section data-globe-section="outside" aria-labelledby="globe-outside-heading">
-      <div className="mb-3 flex items-center justify-between border-t px-1 pt-4"><h2 id="globe-outside-heading" className="text-sm font-semibold">Outside of screen</h2><span className="text-xs text-muted-foreground">{sections.outside.length} {sections.outside.length === 1 ? "role" : "roles"}</span></div>
-      <p className="mb-3 px-1 text-xs text-muted-foreground">Other locations, unavailable listings and roles without mapped locations.</p>
+    {!bubble && <section data-globe-section="outside" aria-labelledby="globe-outside-heading">
+      <div className="mb-3 flex items-center justify-between border-t px-1 pt-4"><h2 id="globe-outside-heading" className="text-sm font-semibold">Off screen</h2><span className="text-xs text-muted-foreground">{sections.outside.length} {sections.outside.length === 1 ? "role" : "roles"}</span></div>
+      <p className="mb-3 px-1 text-xs text-muted-foreground">Other places, closed roles, and roles without a location.</p>
       <div className="grid grid-cols-1 gap-3">{cards(sections.outside)}</div>
-    </section>
+    </section>}
   </div>;
 }
