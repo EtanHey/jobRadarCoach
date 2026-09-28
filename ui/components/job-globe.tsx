@@ -352,6 +352,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       if (!canInteract()) return;
       featureClickAt.current = performance.now();
       setHover(null);
+      setHoveredBubble(null);
       const ids = clusterRoleIds(cluster.members);
       callbacks.current.onBubble(ids, clusterPlace(cluster.members));
       const stack = clusterIsStack(cluster.members);
@@ -410,7 +411,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         activateCluster(cluster);
       };
     }
-    for (const [key, entry] of markerRegistry.current) if (!next.has(key)) { entry.marker.remove(); markerRegistry.current.delete(key); }
+    for (const [key, entry] of markerRegistry.current) if (!next.has(key)) { setHoveredBubble(null); entry.marker.remove(); markerRegistry.current.delete(key); }
   }, [clusters, selected, hovered, ready, canInteract, bubbleIds]);
   const selectedPoint = points.find(point => point.posting_id === selected);
   const selectedLat = selectedPoint?.lat, selectedLng = selectedPoint?.lng;
