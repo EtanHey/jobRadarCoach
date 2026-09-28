@@ -63,3 +63,10 @@ test("distant location moves arc lower and last longer than nearby moves", () =>
   assert.ok(far.minZoom !== undefined && far.minZoom < 3);
   assert.equal(near.minZoom, undefined);
 });
+test("the zoom-out dip scales with distance, even between two close cameras", () => {
+  const intercontinental = locationFlight([34.8, 31.9], 8, [-95.9, 37.9], 8);
+  const regional = locationFlight([34.8, 31.9], 8, [13.4, 52.5], 8);
+  assert.ok(intercontinental.minZoom !== undefined && intercontinental.minZoom <= 3, JSON.stringify(intercontinental));
+  assert.ok(regional.minZoom !== undefined && regional.minZoom > intercontinental.minZoom && regional.minZoom < 7, JSON.stringify(regional));
+  assert.ok(intercontinental.duration >= 1200 && intercontinental.duration <= 2200);
+});

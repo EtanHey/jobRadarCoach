@@ -121,6 +121,18 @@ await phase("layout-empty", {}, async page => {
   await page.waitForFunction(() => { const [lng, lat] = document.querySelector('[data-projection="globe"]').dataset.center.split(",").map(Number); return Math.abs(lng - 34.8113) < .01 && Math.abs(lat - 31.8928) < .01; }, null, { timeout: 5000 });
 });
 
+// Show whole world must reveal the roles the current Location allows, not just the Rehovot home camera.
+await phase("whole-world-filtered", { location: "united-states" }, async page => {
+  await settle(page);
+  await page.locator('[data-globe-section="visible"] [data-posting-id]').first().waitFor({ timeout: 30000 });
+  for (let n = 0; n < 3; n++) { await page.getByRole("button", { name: "Zoom in", exact: true }).click(); await page.waitForTimeout(500); }
+  await page.getByText("Nothing on screen here.", { exact: true }).waitFor({ timeout: 10000 });
+  await page.getByRole("button", { name: "Show whole world", exact: true }).click();
+  await page.locator(`[data-globe-section="visible"] [data-posting-id="${id(14)}"]`).waitFor({ timeout: 5000 })
+    .catch(async error => { throw new Error(`${error.message.split("\n")[0]} camera=${JSON.stringify(await camera(page))}`); });
+  assert.equal(await page.getByText("Nothing on screen here.", { exact: true }).count(), 0);
+});
+
 await phase("hover-sync", {}, async page => {
   await settle(page);
   await page.locator(".globe-cluster").first().waitFor({ timeout: 30000 });
