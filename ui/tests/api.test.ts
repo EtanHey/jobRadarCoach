@@ -322,12 +322,12 @@ test("automatic seen intent is distinct from explicit backward edits", async () 
 
 test("ID lookup validates and bounds IDs and requires an unfiltered availability set", async () => {
   let received: unknown;
-  const handler = makeGetJobs(store({ listJobs: async query => { received = query; return [{ ...summary, status: "applied", alive: false }]; } }));
+  const handler = makeGetJobs(store({ listJobs: query => { received = query; return Promise.resolve([{ ...summary, status: "applied", alive: false }]); } }));
   const response = await handler(new Request(`http://localhost/api/jobs?filter=all&availability=all&limit=100&ids=${ID}`));
   assert.equal(response.status, 200);
   assert.deepEqual(received, { filter: "all", availability: "all", limit: 100, ids: [ID] });
   assert.equal((await response.json()).jobs[0].status, "applied");
-  for (const query of [`ids=bad`, `ids=`, `ids=${Array(101).fill(ID).join(",")}`, `ids=${ID}&filter=new-for-me&availability=all`, `ids=${ID}&filter=all&availability=active`]) {
+  for (const query of ["ids=bad", "ids=", `ids=${Array(101).fill(ID).join(",")}`, `ids=${ID}&filter=new-for-me&availability=all`, `ids=${ID}&filter=all&availability=active`]) {
     assert.equal((await handler(new Request(`http://localhost/api/jobs?${query}`))).status, 400);
   }
 });

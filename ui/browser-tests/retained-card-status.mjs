@@ -18,8 +18,7 @@ const browser = await chromium.launch({ headless: true, args: ["--use-angle=swif
 const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" })));
 const pages = await Promise.all(contexts.map(context => context.newPage()));
 const errors = [];
-let failHydration = false;
-let hydrationCalls = 0;
+const fixture = { failHydration: false, hydrationCalls: 0 };
 for (const page of pages) {
   page.on("pageerror", error => errors.push(error.message));
   await page.addInitScript(() => {
@@ -27,22 +26,22 @@ for (const page of pages) {
       listeners = new Map();
       constructor() { window.fixtureEvents = this; }
       addEventListener(name, listener) { this.listeners.set(name, listener); }
-      close() {}
+      close() { this.listeners.clear(); }
     };
   });
-  await page.route("**/api/**", async route => {
+  await page.route("**/api/**", route => {
     const url = new URL(route.request().url());
     const filtered = url.searchParams.get("filter") === "new-for-me" ? jobs.filter(job => job.status === "new") : jobs;
     if (url.pathname === "/api/jobs") {
       const ids = url.searchParams.get("ids")?.split(",");
-      if (ids) hydrationCalls += 1;
-      if (ids && failHydration) return route.fulfill({ status: 503, json: { error: "fixture offline" } });
+      if (ids) fixture.hydrationCalls += 1;
+      if (ids && fixture.failHydration) return route.fulfill({ status: 503, json: { error: "fixture offline" } });
       return route.fulfill({ json: { jobs: ids ? jobs.filter(job => ids.includes(job.id)) : filtered.filter(job => job.id !== jobs[2].id) } });
     }
     if (url.pathname === "/api/jobs/globe") return route.fulfill({ json: { jobs: filtered,
       points: filtered.map(job => ({ posting_id: job.id, lat: 31.9, lng: 34.8, precision: "city", source: "fixture", resolved_at: "2026-09-22T00:00:00Z" })),
       total_count: filtered.length, resolved_count: filtered.length, unresolved_count: 0, attribution: "fixture" } });
-    const job = jobs.find(job => url.pathname.startsWith(`/api/jobs/${job.id}`));
+    const job = jobs.find(candidate => url.pathname.startsWith(`/api/jobs/${candidate.id}`));
     if (!job) return route.fulfill({ status: 404, json: { error: "fixture only" } });
     if (url.pathname.endsWith("/status")) {
       const patch = route.request().postDataJSON();
@@ -63,11 +62,11 @@ try {
   await b.getByRole("option", { name: "Applied", exact: true }).click();
   // Explicit mutation removes the card only in the initiating tab.
   await expect(card(b, 0)).toHaveCount(0);
-  const before = hydrationCalls;
+  const before = fixture.hydrationCalls;
   await refresh(a);
-  await expect.poll(() => hydrationCalls).toBeGreaterThan(before);
+  await expect.poll(() => fixture.hydrationCalls).toBeGreaterThan(before);
   await expect(card(a, 0)).toBeVisible();
-  assert.deepEqual(await a.locator("article[data-posting-id]").evaluateAll(cards => cards.map(card => card.dataset.postingId)), jobs.slice(0, 2).map(job => job.id));
+  assert.deepEqual(await a.locator("article[data-posting-id]").evaluateAll(cards => cards.map(row => row.dataset.postingId)), jobs.slice(0, 2).map(job => job.id));
   await card(a, 0).getByRole("button").first().click();
   await expect(a.getByRole("dialog").getByRole("combobox", { name: "Application status" })).toHaveText("Applied");
   await a.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
@@ -78,11 +77,11 @@ try {
   await refresh(a);
   await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();
   await a.screenshot({ path: `${output}/list-retained.png` });
-  failHydration = true;
+  fixture.failHydration = true;
   await refresh(a);
   await expect(a.getByText(/Showing previous results/)).toBeVisible();
   await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();
-  failHydration = false;
+  fixture.failHydration = false;
   await a.getByRole("button", { name: "Globe", exact: true }).click();
   await expect(card(a, 2)).toBeVisible({ timeout: 30000 });
   await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();

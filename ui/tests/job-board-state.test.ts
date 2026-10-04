@@ -164,14 +164,14 @@ test("retained card absent from incoming refreshes all fields without moving or 
 test("refresh hydrates only absent retained IDs in bounded batches, including an empty new cohort", async () => {
   const current = Array.from({ length: 205 }, (_, n) => ({ id: String(n), status: "new" }));
   const calls: string[][] = [];
-  const refreshed = await refreshVisitCohort(current, [], async ids => {
+  const refreshed = await refreshVisitCohort(current, [], ids => {
     calls.push(ids);
-    return ids.map(id => ({ id, status: "applied" }));
+    return Promise.resolve(ids.map(id => ({ id, status: "applied" })));
   });
   assert.deepEqual(calls.map(ids => ids.length), [100, 100, 5]);
   assert.deepEqual(refreshed.map(job => job.id), current.map(job => job.id));
   assert.ok(refreshed.every(job => job.status === "applied"));
-  await refreshVisitCohort(null, current, async () => { throw new Error("unnecessary fetch"); });
-  await refreshVisitCohort(current, current, async () => { throw new Error("unnecessary fetch"); });
-  await assert.rejects(refreshVisitCohort(current, [], async () => { throw new Error("offline"); }), /offline/);
+  await refreshVisitCohort(null, current, () => { throw new Error("unnecessary fetch"); });
+  await refreshVisitCohort(current, current, () => { throw new Error("unnecessary fetch"); });
+  await assert.rejects(refreshVisitCohort(current, [], () => { throw new Error("offline"); }), /offline/);
 });
