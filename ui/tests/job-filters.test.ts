@@ -73,9 +73,9 @@ test("a restored source absent from current jobs remains a visible selected opti
 
 test("filtered best-fit groups sort by the displayed newest representative", () => {
   const unique78 = { ...job(20, 78, null, "Israel"), title: "Frontend Developer" };
-  const duplicateHigh = { ...job(21, 76, null, "Israel"), title: "Fullstack Engineer", company: "Academy", apply_url: "https://apply.workable.com/fixture/j/ACADEMY/", posted_at: "2026-09-01T00:00:00Z" };
+  const duplicateHigh = { ...job(21, 76, null, "Israel"), title: "Fullstack Engineer", company: "Academy", posted_at: "2026-09-01T00:00:00Z" };
   const unique74 = { ...job(22, 74, null, "Israel"), title: "Data Product Engineer" };
-  const duplicateNewest = { ...job(23, 68, null, "Israel"), title: "Fullstack Engineer", company: "Academy", apply_url: "https://apply.workable.com/fixture/j/ACADEMY/", posted_at: "2026-09-08T00:00:00Z" };
+  const duplicateNewest = { ...job(23, 68, null, "Israel"), title: "Fullstack Engineer", company: "Academy", posted_at: "2026-09-08T00:00:00Z" };
 
   const displayed = filterJobGroups(
     [unique78, duplicateHigh, unique74, duplicateNewest],
@@ -86,8 +86,8 @@ test("filtered best-fit groups sort by the displayed newest representative", () 
 });
 
 test("every sort mode orders duplicate groups by the displayed representative", () => {
-  const duplicateOld = { ...job(30, 99, "Senior", "Israel"), title: "Grouped role", company: "Grouped Co", apply_url: "https://apply.workable.com/fixture/j/GROUPED/", posted_at: "2026-09-01T00:00:00Z", first_seen_at: "2026-09-01T00:00:00Z" };
-  const duplicateNewest = { ...job(31, 50, "Senior", "Israel"), title: "Grouped role", company: "Grouped Co", apply_url: "https://apply.workable.com/fixture/j/GROUPED/", posted_at: "2026-09-04T00:00:00Z", first_seen_at: "2026-09-04T00:00:00Z" };
+  const duplicateOld = { ...job(30, 99, "Senior", "Israel"), title: "Grouped role", company: "Grouped Co", posted_at: "2026-09-01T00:00:00Z", first_seen_at: "2026-09-01T00:00:00Z" };
+  const duplicateNewest = { ...job(31, 50, "Senior", "Israel"), title: "Grouped role", company: "Grouped Co", posted_at: "2026-09-04T00:00:00Z", first_seen_at: "2026-09-04T00:00:00Z" };
   const junior = { ...job(32, 74, "Junior", "Israel"), title: "Junior unique", posted_at: "2026-09-03T00:00:00Z", first_seen_at: "2026-09-03T00:00:00Z" };
   const mid = { ...job(33, 78, "Mid-level", "Israel"), title: "Mid unique", posted_at: "2026-09-02T00:00:00Z", first_seen_at: "2026-09-02T00:00:00Z" };
   const rows = [duplicateOld, junior, mid, duplicateNewest];

@@ -181,3 +181,38 @@ test("exclusive cities, regions and countries stay separate under containment", 
     ["Israel", "Austin, Texas Metropolitan Area"], ["London, UK", "Paris, France"], ["India", "USA"],
   ]) assert.equal(groupDuplicateJobs([job(92, {location}), job(93, {location: other})]).length, 2, `${location} / ${other}`);
 });
+
+
+test("grouping prepares identity and location evidence once instead of per pair", (context) => {
+  const locations = ["Tel Aviv, Israel", "Tel Aviv District, Israel", "Haifa, Israel", "Haifa District, Israel", "Israel"];
+  const rows = Array.from({ length: 1319 }, (_, index) => job(1000 + index, {
+    company: `Synthetic company ${Math.floor(index / 37)}`,
+    location: locations[index % locations.length],
+  }));
+  const counts = { regex: 0, location: 0, url: 0 };
+  const originalRegex = globalThis.RegExp, originalUrl = globalThis.URL;
+  const originalNormalize = String.prototype.normalize;
+  try {
+    globalThis.RegExp = new Proxy(originalRegex, { construct(target, args, newTarget) {
+      counts.regex += 1;
+      return Reflect.construct(target, args, newTarget);
+    } });
+    globalThis.URL = new Proxy(originalUrl, { construct(target, args, newTarget) {
+      counts.url += 1;
+      return Reflect.construct(target, args, newTarget);
+    } });
+    String.prototype.normalize = function(form) {
+      if (locations.includes(String(this))) counts.location += 1;
+      return originalNormalize.call(this, form);
+    };
+    assert.ok(groupDuplicateJobs(rows).length > 0);
+  } finally {
+    globalThis.RegExp = originalRegex;
+    globalThis.URL = originalUrl;
+    String.prototype.normalize = originalNormalize;
+  }
+  context.diagnostic(JSON.stringify(counts));
+  assert.equal(counts.regex, 0, "country/state regexes must be compiled before grouping");
+  assert.ok(counts.location <= locations.length, "each location must be parsed at most once per grouping call");
+  assert.ok(counts.url <= rows.length * 2, "each listing URL must be parsed at most once per grouping call");
+});

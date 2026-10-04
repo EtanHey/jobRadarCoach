@@ -1,5 +1,5 @@
 import type { JobSummary } from "./contracts";
-import { compatibleRepostLocations } from "./repost-locations";
+import { createRepostLocationMatcher } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
 
 export type DuplicateJobGroup = { job: JobSummary; alternates: JobSummary[] };
@@ -38,13 +38,11 @@ function roleKeys(job: JobSummary): string[] {
   return [...new Set([roleKey(job.apply_url), roleKey(job.url)].filter((key): key is string => key !== null))];
 }
 
-function sameRole(a: JobSummary, b: JobSummary): boolean {
-  const company = normalizedIdentity(a.company);
-  if (!company || company !== normalizedIdentity(b.company)) return false;
-  if (!compatibleRepostLocations(a.location, b.location)) return false;
-  if (roleKeys(a).some(key => roleKeys(b).includes(key))) return true;
-  const title = normalizedIdentity(a.title);
-  return Boolean(title && title === normalizedIdentity(b.title));
+type PreparedJob = { job: JobSummary; company: string; title: string; keys: string[] };
+function sameRole(a: PreparedJob, b: PreparedJob, locationsMatch: ReturnType<typeof createRepostLocationMatcher>): boolean {
+  if (!a.company || a.company !== b.company) return false;
+  if (!locationsMatch(a.job.location, b.job.location)) return false;
+  return a.keys.some(key => b.keys.includes(key)) || Boolean(a.title && a.title === b.title);
 }
 
 function timestamp(value: string | null | undefined): number | null {
@@ -70,21 +68,25 @@ export function linkedPublicationDates(jobs: JobSummary[]): Pick<JobSummary, "po
 }
 
 export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
-  const buckets = new Map<string, JobSummary[]>();
+  const buckets = new Map<string, PreparedJob[]>();
+  const locationsMatch = createRepostLocationMatcher();
   for (const job of uniqueJobsById(jobs)) {
     const key = normalizedIdentity(job.company);
-    buckets.set(key, [...(buckets.get(key) ?? []), job]);
+    const prepared = { job, company: key, title: normalizedIdentity(job.title), keys: roleKeys(job) };
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(prepared); else buckets.set(key, [prepared]);
   }
   return [...buckets.values()].flatMap(bucket => {
-    const groups: JobSummary[][] = [];
+    const groups: PreparedJob[][] = [];
     // Complete linkage prevents missing-location bridges from merging different cities.
-    for (const job of bucket.sort((a, b) => a.id.localeCompare(b.id))) {
-      const group = groups.find(members => members.every(member => sameRole(member, job)));
+    for (const job of bucket.sort((a, b) => a.job.id.localeCompare(b.job.id))) {
+      const group = groups.find(members => members.every(member => sameRole(member, job, locationsMatch)));
       if (group) group.push(job); else groups.push([job]);
     }
     return groups.map(members => {
-      const [job, ...alternates] = members.sort(newestFirst);
-      return { job: alternates.length ? { ...job, ...linkedPublicationDates(members) } : job, alternates };
+      const listings = members.map(member => member.job).sort(newestFirst);
+      const [job, ...alternates] = listings;
+      return { job: alternates.length ? { ...job, ...linkedPublicationDates(listings) } : job, alternates };
     });
   });
 }

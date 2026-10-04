@@ -30,6 +30,11 @@ Its score/status/source remain its own. Cards and drawer headers display the
 minimum known member original publication and maximum member original/latest
 publication; Best Fit ties use the group original. Alternates retain their own
 dates, and inputs are not mutated.
+Posted-date sorting therefore ranks a linked group by its earliest known original
+publication. Location exclusion and aliases are limited to the table above and
+recognized city/country forms. Grouping prepares listing identities once and
+caches location facts only for that call; drawer alternates recompute when the
+loaded listings, selected ID or detail changes.
 
 This policy follows the lead's revised 2026-10-04 brief: title/company/location
 are sufficient, even for two potentially live requisitions. Two genuinely
