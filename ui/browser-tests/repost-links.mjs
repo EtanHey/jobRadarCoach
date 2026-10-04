@@ -26,7 +26,7 @@ const base = { company: "Fixture", source: "fixture", location: "Tel Aviv, Israe
   seniority_origin: "unknown", extraction_state: "not-extracted" };
 const rows = [
   { ...base, id: "00000000-0000-4000-8000-000000000001", title: "Linked role", source: "linkedin", external_id: "old",
-    apply_url: "https://boards.greenhouse.io/fixture/jobs/123", posted_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T12:00:00Z" },
+    apply_url: null, url: "https://www.linkedin.com/jobs/view/111", posted_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T12:00:00Z" },
   { ...base, id: "00000000-0000-4000-8000-000000000002", title: "Linked role", source: "greenhouse", external_id: "123",
     url: "https://job-boards.greenhouse.io/fixture/jobs/123", posted_at: "2026-10-03T12:00:00Z", first_seen_at: "2026-10-04T10:00:00Z" },
   { ...base, id: "00000000-0000-4000-8000-000000000003", title: "Independent opening", location: "Haifa, Israel",

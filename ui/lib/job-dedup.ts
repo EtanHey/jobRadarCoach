@@ -37,26 +37,19 @@ function roleKeys(job: JobSummary): string[] {
   return [...new Set([roleKey(job.apply_url), roleKey(job.url)].filter((key): key is string => key !== null))];
 }
 
+function knownLocation(value: string | null): string {
+  const key = normalizedIdentity(value ?? "").replace(/[\s,/|–-]+/gu, " ").trim();
+  return ["remote", "anywhere", "worldwide", "remote anywhere", "remote worldwide", "fully remote", "anywhere in the world"].includes(key) ? "" : key;
+}
+
 function sameRole(a: JobSummary, b: JobSummary): boolean {
-  if (normalizedIdentity(a.company) !== normalizedIdentity(b.company)
-    || normalizedIdentity(a.title) !== normalizedIdentity(b.title)) return false;
-  const locationA = normalizedIdentity(a.location ?? ""), locationB = normalizedIdentity(b.location ?? "");
-  if ((locationA && locationB && locationA !== locationB)
-    || (a.remote !== null && b.remote !== null && a.remote !== b.remote)) return false;
-  const sameSource = normalizedIdentity(a.source) === normalizedIdentity(b.source);
-  const distinctLiveIds = sameSource && a.external_id && b.external_id
-    && a.external_id !== b.external_id && a.alive !== false && b.alive !== false;
-  if (distinctLiveIds && ["greenhouse", "workable", "lever", "comeet"].includes(normalizedIdentity(a.source))) return false;
-  const keysA = roleKeys(a), keysB = roleKeys(b);
-  // Contradictory ATS requisitions defeat even shared description/listing evidence.
-  const atsA = keysA.filter(key => !key.startsWith("linkedin:"));
-  const atsB = keysB.filter(key => !key.startsWith("linkedin:"));
-  if (atsA.length && atsB.length && !atsA.some(key => atsB.includes(key))) return false;
-  if (keysA.some(key => keysB.includes(key))) return true;
-  // Unknown liveness cannot prove that a different requisition is a closed repost.
-  if (distinctLiveIds) return false;
-  return Boolean(locationA && locationB && a.description_fingerprint
-    && a.description_fingerprint === b.description_fingerprint);
+  const company = normalizedIdentity(a.company);
+  if (!company || company !== normalizedIdentity(b.company)) return false;
+  const locationA = knownLocation(a.location), locationB = knownLocation(b.location);
+  if (locationA && locationB && locationA !== locationB) return false;
+  if (roleKeys(a).some(key => roleKeys(b).includes(key))) return true;
+  const title = normalizedIdentity(a.title);
+  return Boolean(title && title === normalizedIdentity(b.title));
 }
 
 function timestamp(value: string | null | undefined): number | null {
@@ -76,8 +69,8 @@ export function linkedPublicationDates(jobs: JobSummary[]): Pick<JobSummary, "po
   const originals = jobs.map(job => job.posted_at).filter((date): date is string => timestamp(date) !== null);
   const publications = jobs.flatMap(job => [job.posted_at, job.last_published_at])
     .filter((date): date is string => timestamp(date) !== null);
-  originals.sort((a, b) => timestamp(a)! - timestamp(b)!);
-  publications.sort((a, b) => timestamp(b)! - timestamp(a)!);
+  originals.sort((a, b) => Date.parse(a) - Date.parse(b));
+  publications.sort((a, b) => Date.parse(b) - Date.parse(a));
   return { posted_at: originals[0] ?? null, last_published_at: publications[0] ?? null };
 }
 
@@ -89,7 +82,7 @@ export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
   }
   return [...buckets.values()].flatMap(bucket => {
     const groups: JobSummary[][] = [];
-    // Complete linkage prevents a URL/JD bridge from merging conflicting openings.
+    // Complete linkage prevents missing-location bridges from merging different cities.
     for (const job of bucket.sort((a, b) => a.id.localeCompare(b.id))) {
       const group = groups.find(members => members.every(member => sameRole(member, job)));
       if (group) group.push(job); else groups.push([job]);

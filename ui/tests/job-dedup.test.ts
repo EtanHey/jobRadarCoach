@@ -48,8 +48,8 @@ test("groups a genuine pair after ID uniqueness without mixing payload fields", 
     posted_at: "2026-09-07T00:00:00Z",
   });
   const differentCompany = job(3, { company: "Other Labs" });
-  const differentTitle = job(4, { title: "Senior C Engineer" });
-  const differentSource = job(5, { source: "workable", apply_url: "https://apply.workable.com/fixture/j/OTHER/" });
+  const differentTitle = job(4, { title: "Senior C Engineer", apply_url: "https://apply.workable.com/fixture/j/OTHER-TITLE/" });
+  const differentSource = job(5, { title: "Unique ATS role", source: "workable", apply_url: "https://apply.workable.com/fixture/j/OTHER/" });
   const input = [
     repeatedOld, differentCompany, repeatedMiddle, differentTitle,
     repeatedLatest, genuinePair, differentSource,
@@ -117,48 +117,45 @@ test("short listing IDs remain stable and distinguish fixture postings", () => {
 });
 
 
-test("title-only, different locations, and different live requisitions stay separate", () => {
-  const a = job(40, { apply_url: null, alive: true, external_id: "req-a", description_fingerprint: "a".repeat(64) });
-  assert.equal(groupDuplicateJobs([a, job(41, { apply_url: null })]).length, 2);
-  assert.equal(groupDuplicateJobs([{ ...a, apply_url: "https://boards.greenhouse.io/fixture/jobs/123" }, job(42, { location: "Haifa, Israel", apply_url: "https://boards.greenhouse.io/fixture/jobs/123" })]).length, 2);
-  assert.equal(groupDuplicateJobs([a, job(43, { apply_url: null, alive: true, external_id: "req-b", description_fingerprint: a.description_fingerprint })]).length, 2);
-});
-
-test("new listing ID links by canonical apply role and preserves original group date", () => {
-  const older = job(50, { external_id: "old", apply_url: "https://apply.workable.com/fixture/j/REQ123/?utm_source=fixture", posted_at: "2026-09-01" });
-  const repost = job(51, { external_id: "new", apply_url: "https://apply.workable.com/fixture/jobs/view/REQ123.md", posted_at: "2026-10-01" });
-  const groups = groupDuplicateJobs([older, repost]);
-  assert.equal(groups.length, 1);
-  assert.equal(groups[0].job.id, repost.id);
-  assert.equal(groups[0].job.posted_at, older.posted_at);
-  assert.equal(groups[0].job.last_published_at, repost.posted_at);
-  assert.equal(repost.posted_at, "2026-10-01");
-});
-
-test("cross-source canonical ATS role links; generic careers URL does not", () => {
-  const a = job(60, { apply_url: "https://boards.greenhouse.io/fixture/jobs/123" });
-  const b = job(61, { source: "greenhouse", url: "https://job-boards.greenhouse.io/fixture/jobs/123" });
-  const groups = groupDuplicateJobs([a, b]);
-  assert.equal(groups.length, 1);
-  assert.deepEqual(globePoints(groups, [a, b].map(row => ({posting_id: row.id, lat: 32, lng: 34, precision: "city", source: "fixture", resolved_at: row.first_seen_at}))).map(point => point.rowId), [groups[0].job.id, groups[0].job.id]);
-  assert.equal(groupDuplicateJobs([job(62, { apply_url: "https://example.test/careers" }), job(63, { apply_url: "https://example.test/careers" })]).length, 2);
-});
-
-test("exact substantive JD links a closed prior listing, requiring known compatible location", () => {
-  const a = job(70, { apply_url: null, external_id: "old", alive: false, description_fingerprint: "b".repeat(64) });
-  const b = job(71, { apply_url: null, external_id: "new", alive: true, description_fingerprint: a.description_fingerprint });
+test("matching company/title and compatible location links new IDs across sources without JD", () => {
+  const a = { ...job(40, { apply_url: null, url: "https://www.linkedin.com/jobs/view/400" }), external_id: "old" };
+  const b = { ...job(41, { apply_url: null, url: "https://www.linkedin.com/jobs/view/401" }), external_id: "new" };
   assert.equal(groupDuplicateJobs([a, b]).length, 1);
-  assert.deepEqual(relatedDuplicateJobs([b], a.id, a), [b]);
-  assert.equal(groupDuplicateJobs([a, { ...b, location: null }]).length, 2);
-  assert.equal(groupDuplicateJobs([{ ...a, alive: null }, b]).length, 2);
+  const ats = { ...job(42, { source: "greenhouse", apply_url: null, url: "https://boards.greenhouse.io/fixture/jobs/123" }), external_id: "123" };
+  const groups = groupDuplicateJobs([a, ats]);
+  assert.equal(groups.length, 1);
+  assert.deepEqual(globePoints(groups, [a, ats].map(row => ({posting_id: row.id, lat: 32, lng: 34, precision: "city", source: "fixture", resolved_at: row.first_seen_at}))).map(point => point.rowId), [groups[0].job.id, groups[0].job.id]);
 });
 
-test("contradictory ATS IDs and evidence bridges cannot merge openings", () => {
-  const a = job(80, { source: "greenhouse", external_id: "req-a", alive: true, apply_url: "https://boards.greenhouse.io/fixture/jobs/123", description_fingerprint: "c".repeat(64) });
-  const b = job(81, { source: "greenhouse", external_id: "req-b", alive: true, apply_url: a.apply_url });
-  assert.equal(groupDuplicateJobs([a, b]).length, 2);
-  const bridge = job(82, { apply_url: a.apply_url, description_fingerprint: a.description_fingerprint });
-  const other = job(83, { source: "workable", apply_url: "https://apply.workable.com/fixture/j/OTHER/", description_fingerprint: a.description_fingerprint });
+test("different known locations stay separate even with shared role URL", () => {
+  for (const location of ["Haifa, Israel", "United States"]) {
+    assert.equal(groupDuplicateJobs([job(50), job(51, { location })]).length, 2);
+  }
+});
+
+test("unknown or remote-equivalent locations link; remote flags alone do not split", () => {
+  for (const location of [null, "Remote", "Remote / Anywhere", "Remote - Worldwide", "anywhere in the world"]) {
+    assert.equal(groupDuplicateJobs([job(60, { apply_url: null }), job(61, { apply_url: null, location, source: "greenhouse", remote: false })]).length, 1);
+  }
+});
+
+test("strong canonical role links title drift and preserves original group date", () => {
+  const older = job(70, { apply_url: "https://apply.workable.com/fixture/j/REQ123/?utm_source=fixture", posted_at: "2026-09-01" });
+  const repost = job(71, { title: "Updated Engineer title", apply_url: "https://apply.workable.com/fixture/jobs/view/REQ123.md", posted_at: "2026-10-01" });
+  const [group] = groupDuplicateJobs([older, repost]);
+  assert.equal(group.alternates.length, 1);
+  assert.equal(group.job.id, repost.id);
+  assert.equal(group.job.posted_at, older.posted_at);
+  assert.equal(group.job.last_published_at, repost.posted_at);
+  assert.equal(repost.posted_at, "2026-10-01");
+  const generic = "https://example.test/careers";
+  assert.equal(groupDuplicateJobs([job(72, {apply_url: generic}), job(73, {title: "Other title", apply_url: generic})]).length, 2);
+});
+
+test("missing-location bridge cannot collapse different locations; membership is input-stable", () => {
+  const a = job(80, { location: "Tel Aviv, Israel" });
+  const bridge = job(81, { location: null });
+  const other = job(82, { location: "Haifa, Israel" });
   for (const rows of [[a, bridge, other], [other, bridge, a]]) {
     assert.deepEqual(groupDuplicateJobs(rows).map(group => [group.job.id, ...group.alternates.map(row => row.id)]), [[a.id, bridge.id], [other.id]]);
   }

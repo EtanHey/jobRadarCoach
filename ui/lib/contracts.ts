@@ -40,8 +40,6 @@ export const JobSummarySchema = z.object({
   title: text,
   company: text,
   source: text,
-  external_id: nullableText.optional(),
-  description_fingerprint: text.regex(/^[a-f0-9]{64}$/u).nullable().optional(),
   last_seen_at: text,
   experience: nullableText,
   description_available: z.boolean(),

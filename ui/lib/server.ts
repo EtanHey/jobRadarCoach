@@ -9,7 +9,6 @@ import {
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
 import { postingUrl, titleSeniority, experiencePhrase, technologyMentions } from "./job-metadata";
-import { descriptionFingerprint } from "./repost-evidence";
 import { HttpError } from "./http";
 
 export interface ApiStore {
@@ -33,7 +32,6 @@ const scoreSchema = summaryScoreSchema.extend({
   score_payload: z.unknown().nullable(), scored_at: z.string(),
 });
 const rawBaseSchema = z.object({
-  external_id: z.string().nullable().default(null),
   source: z.string(), last_seen_at: z.string(), raw_jd: z.string().nullable(),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
   posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
@@ -47,9 +45,9 @@ const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSche
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "external_id,source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "external_id,source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -83,7 +81,6 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
     stack: posting.stack.length ? posting.stack : technologyMentions(raw_jd),
     seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
     description_available: Boolean(raw_jd?.trim()),
-    description_fingerprint: descriptionFingerprint(raw_jd),
     experience: experiencePhrase(raw_jd), extraction_state: extraction ? "extracted" : "not-extracted",
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
     score: score?.score ?? null,

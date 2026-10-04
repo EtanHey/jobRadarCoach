@@ -1,47 +1,39 @@
 # Repost links
 
-Grouping happens in the UI over the loaded, filtered cohort, after unique IDs are
-resolved. HTTP and globe summaries carry the source external ID and a SHA-256
-fingerprint of the normalized JD; full descriptions stay out of summaries. No
-new database column, migration, embedding model, or hosted write is needed.
+UI grouping uses the loaded, filtered cohort after resolving unique IDs. It
+requires the same normalized company and compatible location, plus either the
+same normalized title or a shared canonical role-specific URL. Matching titles
+link within and across sources, including different external/requisition IDs.
+Description similarity, fingerprints and embeddings are not required. There is
+no new database schema, summary field, migration or hosted write.
 
-A link requires the same NFKC/whitespace/case-normalized company **and title**,
-plus one of:
+Identity text uses NFKC, collapsed whitespace and lowercase. Location separators
+are normalized; two known locations must match. Null/blank and generic Remote,
+Anywhere, Worldwide, Remote Anywhere/Worldwide, Fully Remote, or Anywhere in the world locations are
+compatible with a known location. Country/city aliases are not inferred. Known
+Tel Aviv versus Haifa, or different countries, stay separate. Remote flags alone
+do not split equal locations. Every member must agree with every other member,
+so an unknown-location bridge cannot collapse two different known locations.
+Membership within a company is deterministic under input permutations.
 
-- A shared role-specific URL on Greenhouse (US/EU boards), Workable (`j` and
-  `jobs/view` routes), Lever, Comeet, or LinkedIn. Tracking queries and trailing
-  slashes do not change the role identity; tenant and requisition paths do.
-- An exact normalized JD fingerprint and two known, equal normalized locations.
-  Descriptions shorter than 200 characters or 40 words provide no fingerprint.
-
-Different known locations or contradictory known remote flags always stay
-separate. Different ATS requisition URL identities stay separate, even when
-one is closed. Different external IDs on the same ATS source stay separate
-unless at least one listing is explicitly closed; unknown liveness counts as
-potentially live. For JD evidence, that external-ID guard also applies to
-LinkedIn. A shared ATS apply URL can link two LinkedIn listing IDs: those IDs
-identify advertisements, while the ATS URL identifies the requisition.
-
-Generic careers pages, title alone, discovery time, and refresh time provide
-no link evidence. Names/location aliases and semantic similarity are not
-inferred; this intentionally leaves uncertain reposts separate. Distinct
-cross-source roles with identical descriptions and locations and no known ATS
-identity may still look identical; stronger source metadata would resolve that.
-All members must pairwise agree, preventing transitive URL/JD bridges. IDs
-establish deterministic membership within each company, independent of input
-permutations.
+Shared role URLs link title drift. Recognized routes are Greenhouse US/EU boards,
+Workable `j`/`jobs/view`, Lever, Comeet, and LinkedIn job detail pages. Tracking
+queries and trailing slashes do not change those identities; tenants and job IDs
+do. Generic careers pages do not provide strong identity. A strong URL still
+requires the same company and cannot override contradictory known locations.
 
 The representative is the listing with the newest own original `posted_at`,
-falling back to `first_seen_at` only when publication is unknown, then ID.
-Its score, title, source and status remain its own. The displayed group's
-original publication is the earliest known member `posted_at`; latest
-publication is the maximum of member original/latest dates. Best Fit ties
-therefore use the group's original date. Cards and drawer headers show these
-group dates; alternates retain their own dates. Inputs are never mutated.
+falling back to discovery only when publication is unknown, then ID ascending.
+Its score/status/source remain its own. Cards and drawer headers display the
+minimum known member original publication and maximum member original/latest
+publication; Best Fit ties use the group original. Alternates retain their own
+dates, and inputs are not mutated.
 
-Only loaded members contribute evidence and dates. An availability/source/status
-filter, pagination, or missing historic source publication may hide earlier
-members; this cannot recover the true original date. L5's publication-date
-migration remains a separate release prerequisite. The hosted measurement and
-real example pairs are private artifacts under `docs.local/l6`, with synthetic
-fixtures only in committed tests.
+This policy follows the lead's revised 2026-10-04 brief: title/company/location
+are sufficient, even for two potentially live requisitions. Two genuinely
+independent same-title openings at the same location may therefore collapse;
+the alternate selector preserves access to both. Only loaded members contribute
+dates/evidence, so filters/pagination can hide earlier listings. Historic dates
+lost before L5 cannot be recovered. L5's migration must apply in one transaction
+before its merge. Real hosted measurements/example pairs remain private under
+`docs.local/l6`; committed tests use synthetic listings only.
