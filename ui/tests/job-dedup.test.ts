@@ -160,3 +160,24 @@ test("missing-location bridge cannot collapse different locations; membership is
     assert.deepEqual(groupDuplicateJobs(rows).map(group => [group.job.id, ...group.alternates.map(row => row.id)]), [[a.id, bridge.id], [other.id]]);
   }
 });
+
+test("location aliases and city/region/country containment link", () => {
+  for (const [location, other] of [
+    ["Haifa, Israel", "Haifa District, Israel"], ["Haifa, Israel", "Israel"],
+    ["Tel Aviv", "Tel Aviv-Yafo, Tel Aviv District, Israel"],
+    ["Petah Tikva, Center District, Israel", "Center District, Israel"],
+    ["New York, United States", "United States"], ["Seattle, WA", "USA"],
+    ["U.S. or Canada", "US and Canada"], ["central Israel", "Bnei Brak, Tel Aviv District, Israel"],
+    ["customer locations", "Center District, Israel"], ["Toronto, CA", "Canada"],
+    ["United States", "GA, TX, PA, CA, MD, or MI"],
+  ]) assert.equal(groupDuplicateJobs([job(90, {location}), job(91, {location: other})]).length, 1, `${location} / ${other}`);
+});
+
+test("exclusive cities, regions and countries stay separate under containment", () => {
+  for (const [location, other] of [
+    ["Petah Tikva, Center District, Israel", "Ramat Yishai, North District, Israel"],
+    ["Kfar Monash, Israel (Hybrid)", "Sarid, Israel (Hybrid)"],
+    ["Seattle, WA", "Chicago, IL"], ["Minnesota, United States", "Illinois, United States"],
+    ["Israel", "Austin, Texas Metropolitan Area"], ["London, UK", "Paris, France"], ["India", "USA"],
+  ]) assert.equal(groupDuplicateJobs([job(92, {location}), job(93, {location: other})]).length, 2, `${location} / ${other}`);
+});

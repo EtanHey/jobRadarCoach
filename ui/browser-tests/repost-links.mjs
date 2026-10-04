@@ -25,9 +25,9 @@ const base = { company: "Fixture", source: "fixture", location: "Tel Aviv, Israe
   last_seen_at: "2026-10-04T00:00:00Z", experience: null, description_available: false,
   seniority_origin: "unknown", extraction_state: "not-extracted" };
 const rows = [
-  { ...base, id: "00000000-0000-4000-8000-000000000001", title: "Linked role", source: "linkedin", external_id: "old",
+  { ...base, id: "00000000-0000-4000-8000-000000000001", title: "Linked role", location: "Haifa District, Israel", source: "linkedin", external_id: "old",
     apply_url: null, url: "https://www.linkedin.com/jobs/view/111", posted_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T12:00:00Z" },
-  { ...base, id: "00000000-0000-4000-8000-000000000002", title: "Linked role", source: "greenhouse", external_id: "123",
+  { ...base, id: "00000000-0000-4000-8000-000000000002", title: "Linked role", location: "Haifa, Israel", source: "greenhouse", external_id: "123",
     url: "https://job-boards.greenhouse.io/fixture/jobs/123", posted_at: "2026-10-03T12:00:00Z", first_seen_at: "2026-10-04T10:00:00Z" },
   { ...base, id: "00000000-0000-4000-8000-000000000003", title: "Independent opening", location: "Haifa, Israel",
     posted_at: "2026-10-02T12:00:00Z", first_seen_at: "2026-10-02T12:00:00Z" },
@@ -85,5 +85,5 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
-  console.log("PASS: separate same-title openings, cross-source link, representative, original group date/card and drawer, alternate selection, no overflow; desktop 1280 and mobile 390.");
+  console.log("PASS: separate same-title openings, cross-source link, representative, city/district containment, original group date/card and drawer, alternate selection, no overflow; desktop 1280 and mobile 390.");
 } finally { await browser?.close(); await new Promise(closed => server.close(closed)); }

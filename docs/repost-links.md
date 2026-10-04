@@ -7,14 +7,16 @@ link within and across sources, including different external/requisition IDs.
 Description similarity, fingerprints and embeddings are not required. There is
 no new database schema, summary field, migration or hosted write.
 
-Identity text uses NFKC, collapsed whitespace and lowercase. Location separators
-are normalized; two known locations must match. Null/blank and generic Remote,
-Anywhere, Worldwide, Remote Anywhere/Worldwide, Fully Remote, or Anywhere in the world locations are
-compatible with a known location. Country/city aliases are not inferred. Known
-Tel Aviv versus Haifa, or different countries, stay separate. Remote flags alone
-do not split equal locations. Every member must agree with every other member,
-so an unknown-location bridge cannot collapse two different known locations.
-Membership within a company is deterministic under input permutations.
+Identity text uses NFKC, collapsed whitespace and lowercase. A small tested table
+recognizes Israeli city aliases and their district/country containment, selected
+US cities/states, and country names. Haifa links to Haifa District or Israel;
+Tel Aviv links to Tel Aviv-Yafo or Tel Aviv District. Known mutually exclusive
+cities, districts/states or countries stay separate. Broad, unknown and remote
+locations cannot prove exclusion; ambiguous country/state codes alone are not
+US evidence. No external geocoder or API is used. Two distinct cities at one
+company stay separate even if both are contained by a third country-only row:
+every group member must be compatible with every other member. Membership is
+deterministic within a company under input permutations.
 
 Shared role URLs link title drift. Recognized routes are Greenhouse US/EU boards,
 Workable `j`/`jobs/view`, Lever, Comeet, and LinkedIn job detail pages. Tracking

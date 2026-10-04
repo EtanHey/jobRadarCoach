@@ -1,4 +1,5 @@
 import type { JobSummary } from "./contracts";
+import { compatibleRepostLocations } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
 
 export type DuplicateJobGroup = { job: JobSummary; alternates: JobSummary[] };
@@ -37,16 +38,10 @@ function roleKeys(job: JobSummary): string[] {
   return [...new Set([roleKey(job.apply_url), roleKey(job.url)].filter((key): key is string => key !== null))];
 }
 
-function knownLocation(value: string | null): string {
-  const key = normalizedIdentity(value ?? "").replace(/[\s,/|–-]+/gu, " ").trim();
-  return ["remote", "anywhere", "worldwide", "remote anywhere", "remote worldwide", "fully remote", "anywhere in the world"].includes(key) ? "" : key;
-}
-
 function sameRole(a: JobSummary, b: JobSummary): boolean {
   const company = normalizedIdentity(a.company);
   if (!company || company !== normalizedIdentity(b.company)) return false;
-  const locationA = knownLocation(a.location), locationB = knownLocation(b.location);
-  if (locationA && locationB && locationA !== locationB) return false;
+  if (!compatibleRepostLocations(a.location, b.location)) return false;
   if (roleKeys(a).some(key => roleKeys(b).includes(key))) return true;
   const title = normalizedIdentity(a.title);
   return Boolean(title && title === normalizedIdentity(b.title));
