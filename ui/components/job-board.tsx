@@ -18,12 +18,16 @@ import { relativeAge } from "@/lib/job-display";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
 import { LogoDevAttribution } from "./company-logo";
+import { provideLogoMissFetcher } from "@/lib/company-logo-cache";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
 import { StatusSelect } from "./status-select";
 import { isStatusPatchNoop, statusMutationRemovesCard } from "@/lib/job-status";
 import { buttonVariants } from "./ui/button";
+
+// The board is the host that may touch the network; logo tiles only confirm a Logo.dev 404 through this.
+provideLogoMissFetcher((input, init) => fetch(input, init));
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
   const response = await fetch(path, { cache: "no-store", ...options });

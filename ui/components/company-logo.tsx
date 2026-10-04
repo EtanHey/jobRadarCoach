@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { companyInitials, logoDevKey, resolveCompanyLogo } from "@/lib/company-logos";
-import { browserLogoMissCache } from "@/lib/company-logo-cache";
+import { browserLogoMissCache, confirmLogoMiss } from "@/lib/company-logo-cache";
 
 // Deliberately Next-free (plain <img>): the drawer's import graph must stay host-portable.
 const sizes = { sm: "size-10 text-xs", md: "size-14 text-sm sm:size-16" } as const;
@@ -28,9 +28,11 @@ export function CompanyLogo({ company, applyUrl, url, size = "md", className }: 
   const settle = useCallback((ok: boolean) => {
     if (!src) return;
     setSettled(current => current?.src === src && current.ok === ok ? current : { src, ok });
-    // Offline failures say nothing about Logo.dev, so only an online failure counts as a miss.
     if (ok) misses?.recordHit(src);
-    else if (typeof navigator === "undefined" || navigator.onLine !== false) misses?.recordMiss(src);
+    // A failed load is only remembered once Logo.dev confirms a 404; a dropped connection is never cached.
+    else if (misses && (typeof navigator === "undefined" || navigator.onLine !== false)) {
+      void confirmLogoMiss(src).then(miss => { if (miss) misses.recordMiss(src); });
+    }
   }, [src, misses]);
   // An image can finish before hydration attaches onLoad/onError; read its outcome on mount.
   const probe = useCallback((image: HTMLImageElement | null) => {

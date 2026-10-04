@@ -68,6 +68,31 @@ export function createLogoMissCache(storage: MissStorage | null, now: () => numb
   };
 }
 
+type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
+
+// The drawer's import graph stays fetch-free (display-only, host-controlled), so the host page supplies the network
+// call. Until it does, nothing is ever confirmed, and so nothing is ever cached as a miss: the safe default.
+let hostFetcher: Fetcher | null = null;
+export function provideLogoMissFetcher(fetcher: Fetcher | null): void {
+  hostFetcher = fetcher;
+}
+
+/**
+ * An <img> error cannot tell "Logo.dev has no logo" (404, billed) from a dropped connection, so a failure is
+ * re-checked with a CORS GET (img.logo.dev sends access-control-allow-origin: *). Only a real 404 is a miss;
+ * a network/CORS error, 202 still-indexing, 401/403 key problems, 429 or 5xx record nothing. GET, not HEAD:
+ * a keyless HEAD returns 404 regardless of the lookup, while GET reports the true status.
+ */
+export async function confirmLogoMiss(src: string, fetcher: Fetcher | null = hostFetcher): Promise<boolean> {
+  if (!fetcher || !logoMissKey(src)) return false;
+  try {
+    const response = await fetcher(src, { method: "GET", mode: "cors", credentials: "omit", cache: "no-store" });
+    return response.status === 404;
+  } catch {
+    return false;
+  }
+}
+
 let browserCache: LogoMissCache | null | undefined;
 /** The page-wide cache backed by localStorage; null on the server or when storage is unavailable. */
 export function browserLogoMissCache(): LogoMissCache | null {

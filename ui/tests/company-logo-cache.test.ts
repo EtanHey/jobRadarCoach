@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createLogoMissCache, logoMissKey, LOGO_MISS_LIMIT, LOGO_MISS_STORAGE_KEY } from "../lib/company-logo-cache";
+import { confirmLogoMiss, createLogoMissCache, logoMissKey, LOGO_MISS_LIMIT, LOGO_MISS_STORAGE_KEY } from "../lib/company-logo-cache";
 
 const DAY = 24 * 60 * 60 * 1000;
 const url = (path: string, token = "pk_one") => `https://img.logo.dev/${path}?token=${token}&size=128&format=png&theme=light&fallback=404`;
@@ -103,4 +103,28 @@ test("non-object or unparsable stored JSON reads as an empty cache", () => {
     assert.equal(cache.isMiss(url("acme.com")), false, raw);
     assert.doesNotThrow(() => cache.recordMiss(url("acme.com")), raw);
   }
+});
+
+test("only a confirmed provider 404 counts as a miss; transport and auth failures never do", async () => {
+  const src = url("name/Nowhere%20Widgets");
+  const fetchWith = (outcome: number | Error) => {
+    const calls: Array<{ input: string; init?: RequestInit }> = [];
+    const fetcher = async (input: string, init?: RequestInit) => {
+      calls.push({ input, init });
+      if (outcome instanceof Error) throw outcome;
+      return new Response(null, { status: outcome });
+    };
+    return { calls, fetcher };
+  };
+  const notFound = fetchWith(404);
+  assert.equal(await confirmLogoMiss(src, notFound.fetcher), true);
+  assert.equal(notFound.calls[0].input, src);
+  assert.equal(notFound.calls[0].init?.mode, "cors");
+  assert.equal(notFound.calls[0].init?.method ?? "GET", "GET", "GET, not HEAD: a keyless HEAD 404s regardless, a GET reports the real status");
+  for (const status of [200, 202, 401, 403, 429, 500, 503]) assert.equal(await confirmLogoMiss(src, fetchWith(status).fetcher), false, String(status));
+  assert.equal(await confirmLogoMiss(src, fetchWith(new TypeError("Failed to fetch")).fetcher), false, "network/CORS failure");
+  assert.equal(await confirmLogoMiss(src, null), false, "no host fetcher: nothing is ever confirmed");
+  const local = fetchWith(404);
+  assert.equal(await confirmLogoMiss("/companies/wix.png", local.fetcher), false);
+  assert.equal(local.calls.length, 0, "never confirms non-Logo.dev URLs");
 });

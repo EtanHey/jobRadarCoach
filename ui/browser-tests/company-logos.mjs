@@ -31,6 +31,10 @@ const syntheticLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="128" heigh
 
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const failures = [], passed = [], logoRequests = new Set(), logoRequestCounts = new Map();
+// Lookup paths whose requests fail at the network layer (route.abort), to prove a transport error is never cached as a miss.
+const abortedLogoPaths = new Set();
+// Logo.dev's CDN answers with access-control-allow-origin: * (probed 2026-10-04); the fixture mirrors it so a CORS confirm can read the status.
+const cors = { "access-control-allow-origin": "*" };
 
 async function open(viewport, colorScheme, body) {
   const context = await browser.newContext({ viewport, colorScheme, reducedMotion: "reduce" });
@@ -49,7 +53,8 @@ async function open(viewport, colorScheme, body) {
       if (url.hostname === "img.logo.dev") {
         logoRequests.add(`${url.pathname}?${url.searchParams.get("fallback")}`);
         logoRequestCounts.set(url.pathname, (logoRequestCounts.get(url.pathname) ?? 0) + 1);
-        return url.pathname === "/acmerobotics.com" ? route.fulfill({ contentType: "image/svg+xml", body: syntheticLogo }) : route.fulfill({ status: 404, body: "" });
+        if (abortedLogoPaths.has(url.pathname)) return route.abort("failed");
+        return url.pathname === "/acmerobotics.com" ? route.fulfill({ contentType: "image/svg+xml", headers: cors, body: syntheticLogo }) : route.fulfill({ status: 404, headers: cors, body: "" });
       }
       if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
       if (!url.pathname.startsWith("/api/")) return route.continue();
@@ -142,6 +147,8 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
 try {
   await open({ width: 1440, height: 900 }, "light", async page => {
     await settled(page, "main");
+    // The miss is recorded after its 404 is confirmed, so wait for the entry before counting.
+    await page.waitForFunction(() => (localStorage.getItem("job-radar.logo-misses.v1") ?? "").includes("Nowhere%20Widgets"));
     const before = logoRequestCounts.get("/name/Nowhere%20Widgets") ?? 0;
     assert.ok(before > 0, "the first visit asked Logo.dev once");
     await page.reload();
@@ -158,6 +165,25 @@ try {
   });
   passed.push("miss-cache");
 } catch (error) { failures.push(`miss-cache: ${error.message.split("\n")[0]}`); }
+// B1: an <img> error cannot tell a provider 404 from a network failure. A transport failure must never be cached.
+try {
+  abortedLogoPaths.add("/acmerobotics.com");
+  await open({ width: 1440, height: 900 }, "light", async page => {
+    assert.equal(await page.evaluate(() => navigator.onLine), true, "the browser believes it is online");
+    await settled(page, "main");
+    const acme = page.locator('[data-company-logo][aria-label^="Acme Robotics logo"]');
+    const failedState = await acme.getAttribute("data-logo-state");
+    assert.equal(failedState, "load-failed", `the failed load shows initials (got ${failedState})`);
+    await page.waitForTimeout(800);
+    assert.doesNotMatch(await page.evaluate(() => localStorage.getItem("job-radar.logo-misses.v1") ?? ""), /acmerobotics/, "a network failure is not cached as a miss");
+    abortedLogoPaths.delete("/acmerobotics.com");
+    await page.reload();
+    await page.locator("[data-posting-id]").first().waitFor();
+    await settled(page, "main");
+    assert.equal(await acme.getAttribute("data-logo-state"), "loaded", "the real logo shows once the network recovers");
+  });
+  passed.push("abort-not-cached");
+} catch (error) { abortedLogoPaths.clear(); failures.push(`abort-not-cached: ${error.message.split("\n")[0]}`); }
 try {
   assert.ok(logoRequests.has("/acmerobotics.com?404"), "trusted company domain went to Logo.dev with fallback=404");
   assert.ok(logoRequests.has("/name/Nowhere%20Widgets?404"), "ATS-hosted posting fell back to a name lookup");
