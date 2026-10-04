@@ -12,6 +12,13 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
   const [result, setResult] = useState<{ key: string; data: GlobeResponse } | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   useEffect(() => {
+    // Leaving a view ends its visit, even when the globe is closed.
+    cohort.current = null;
+    let active = true;
+    queueMicrotask(() => { if (active) setResult(null); });
+    return () => { active = false; };
+  }, [key]);
+  useEffect(() => {
     if (!open) return;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
