@@ -64,7 +64,7 @@ export function companyDomain(company: string, urls: readonly (string | null | u
     const label = domain.split(".")[0];
     const flatLabel = label.replace(/-/g, "");
     const named = flatLabel === compact
-      || (flatLabel.length >= 4 && compact.startsWith(flatLabel))
+      || (flatLabel.length >= 4 && !genericCompanyWords.has(flatLabel) && compact.startsWith(flatLabel))
       || words.some((word) => word.length >= 3 && !genericCompanyWords.has(word) && (word === label || word === flatLabel));
     if (named) return domain;
   }
@@ -86,10 +86,11 @@ export function resolveCompanyLogo(input: CompanyLogoInput, options: CompanyLogo
   const override = (options.overrides ?? companyLogoOverrides)[name];
   if (override?.kind === "initials") return null;
   if (override?.kind === "file") return { kind: "override", src: override.src };
+  // A domain pin says the catalog mark is wrong too, so without a key it falls to initials rather than the catalog.
+  if (override?.kind === "domain") return key ? { kind: "logo-dev", src: logoDevUrl(override.domain, key) } : null;
   const curated = catalog[name];
   if (curated) return { kind: "catalog", src: curated };
   if (!key || !name) return null;
-  if (override?.kind === "domain") return { kind: "logo-dev", src: logoDevUrl(override.domain, key) };
   const domain = companyDomain(input.company, [input.applyUrl, input.url]);
   return { kind: "logo-dev", src: logoDevUrl(domain ?? `name/${encodeURIComponent(input.company.trim())}`, key) };
 }

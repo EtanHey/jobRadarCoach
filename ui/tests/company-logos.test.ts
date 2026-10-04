@@ -107,3 +107,15 @@ test("placeholder employer names never hit a name lookup", () => {
     assert.equal(resolveCompanyLogo({ company }, { logoDevKey: KEY }), null, company);
   }
 });
+
+test("a domain override beats the curated catalog, and without a key it pins to initials", () => {
+  const overrides = { wix: { kind: "domain", domain: "wix.example" } } as const;
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Wix" }, { logoDevKey: KEY, overrides })?.src).pathname, "/wix.example");
+  assert.equal(resolveCompanyLogo({ company: "Wix" }, { overrides }), null, "a wrong catalog mark must not come back when the key is missing");
+});
+
+test("a generic word that merely prefixes the company name is not its domain", () => {
+  assert.equal(companyDomain("TechGym", ["https://tech.com/careers"]), null);
+  assert.equal(companyDomain("Labster", ["https://labs.com/careers"]), null);
+  assert.equal(companyDomain("TechGym", ["https://techgym.co.il/careers"]), "techgym.co.il");
+});
