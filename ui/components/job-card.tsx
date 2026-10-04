@@ -28,7 +28,7 @@ export function JobCard({ job, selected, keptStatus = null, actions, alternateCo
   // Dim the content, never the frame: hover border and focus ring stay full strength on settled cards.
   const dim = keptStatus ? "opacity-60" : "";
   const keptId = `kept-status-${job.id}`;
-  return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:border-ring/50 focus-within:ring-2 focus-within:ring-ring">
+  return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={keptStatus ? keptId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} className={cn("size-14 sm:size-16", dim)} />
