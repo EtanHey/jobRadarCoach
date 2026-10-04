@@ -167,7 +167,9 @@
 .globe-layout { display: block; }
 .globe-slot { display: none; min-width: 0; overflow: hidden; }
 .globe-rail { min-width: 0; }
-[data-globe-card] { content-visibility: auto; contain-intrinsic-size: auto 260px; }
+/* content-visibility implies paint containment, which clips at this wrapper's padding box: the padding (cancelled by the
+   margin) leaves room for the card's focus ring and hover lift. Sides stay within the scrolling rail's 3px padding. */
+[data-globe-card] { content-visibility: auto; contain-intrinsic-size: auto 260px; padding: 3px 3px 8px; margin: -3px -3px -8px; }
 .globe-slot { view-transition-name: globe-slot; }
 .globe-rail { view-transition-name: job-rail; }
 .globe-layout-open { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr); gap: 1.25rem; min-height: 0; }
