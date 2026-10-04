@@ -20,7 +20,7 @@ MAX_COMPRESSED_BYTES = 2_000_000
 MAX_BODY_BYTES = 4_000_000
 SELECT = """
 select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable')
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'workday')
 and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
 order by coalesce(liveness->>'description_fetch_attempt_at', ''), first_seen_at, id
 limit %s
@@ -37,8 +37,12 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     if not public_job_url(url):
         raise ValueError("unsupported-public-url")
     opener = opener or pinned_open
-    request = Request(url, headers={"User-Agent": BROWSER_USER_AGENT,
-        "Accept": "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
+    from scraper.sources import workday
+    found = workday.coordinates(url)
+    if found and found[1]:
+        url = workday.base(found[0]) + found[1]
+    request = Request(url, headers={"User-Agent": workday.USER_AGENT if found else BROWSER_USER_AGENT,
+        "Accept": "application/json" if found else "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
     with opener(request, timeout=min(timeout, 20)) as response:
         body = response.read(MAX_COMPRESSED_BYTES + 1)
         if len(body) > MAX_COMPRESSED_BYTES:
@@ -49,7 +53,8 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
         if len(body) > MAX_BODY_BYTES:
             raise ValueError("body-too-large")
         charset = response.headers.get_content_charset() or "utf-8"
-        description = extract_full_jd(body.decode(charset, errors="replace"))
+        text = body.decode(charset, errors="replace")
+        description = workday.description(workday.detail(text, found[0], found[1])) if found else extract_full_jd(text)
     if len(description) < MIN_PLAUSIBLE_JD_CHARS:
         raise ValueError("description-missing-or-short")
     return description

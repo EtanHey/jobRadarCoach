@@ -139,6 +139,18 @@ def check_url(
     if not urlparse(url).scheme.startswith("http"):
         return _result(None, status=None, reason="invalid-url", final_url=url)
 
+    from scraper.sources import workday
+    found = workday.coordinates(url)
+    if found and found[1]:
+        query, path = found
+        def fetcher(endpoint, **kwargs):
+            request = Request(endpoint, headers={"User-Agent": workday.USER_AGENT, "Content-Type": "application/json"}, **kwargs)
+            with opener(request, timeout=timeout) as response:
+                if response.getcode() != 200 or response.geturl() != endpoint:
+                    raise ValueError("uncertain Workday list")
+                return response.read(2_000_001).decode("utf-8", errors="replace")
+        alive = workday.is_active(query, path, fetcher=fetcher)
+        return _result(alive, status=None, reason="workday-active-list" if alive is not None else "workday-list-uncertain", final_url=url)
     headers = {"User-Agent": BROWSER_USER_AGENT, "Accept": "text/html,*/*"}
     try:
         get = Request(url, headers=headers, method="GET")

@@ -69,7 +69,7 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     assert "--jsonl" not in captured["argv"] and "--profile" not in captured["argv"]
     assert "--no-annotate" in captured["argv"]
     assert captured["argv"][captured["argv"].index("--sources") + 1] == (
-        "comeet,greenhouse,lever,workable"
+        "comeet,greenhouse,lever,workable,workday"
     )
     assert captured["argv"][captured["argv"].index("--max-pages") + 1] == "2"
     attempted_set = {url for url, _backoffs, _opener in attempted}
@@ -87,7 +87,7 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
         "result": {"fetched_count": 8, "new_count": 3},
         "run_id": "local",
         "schema_version": 1,
-        "sources": ["linkedin", "comeet", "greenhouse", "lever", "workable"],
+        "sources": ["linkedin", "comeet", "greenhouse", "lever", "workable", "workday"],
         "status": "success",
     }
     assert "postgresql://hosted.example/job_radar" not in capsys.readouterr().out

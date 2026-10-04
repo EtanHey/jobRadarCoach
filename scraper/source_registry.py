@@ -10,6 +10,8 @@ corpora as trusted inputs; candidate import is not for attacker-controlled data.
 
 from __future__ import annotations
 
+from scraper.sources import workday
+
 import argparse
 import csv
 import html
@@ -43,6 +45,7 @@ IDENTIFIER_FIELDS = {
     "greenhouse": (("board",), ("region",)),
     "lever": (("account",), ()),
     "workable": (("account",), ()),
+    "workday": (("account", "cluster", "site"), ()),
 }
 CAREERS_HOSTS = {
     "comeet": {"comeet.com", "www.comeet.com"},
@@ -54,6 +57,7 @@ CAREERS_HOSTS = {
     },
     "lever": {"jobs.lever.co"},
     "workable": {"apply.workable.com"},
+    "workday": set(),
 }
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\((https?://[^)\s]+)\)")
 RAW_URL_RE = re.compile(r"https?://[^\s)>|]+")
@@ -160,6 +164,8 @@ def tenant_label(tenant: dict[str, object]) -> str:
     source = str(tenant["source"])
     identifiers = tenant["identifiers"]
     assert isinstance(identifiers, dict)
+    if source == "workday":
+        return f"{identifiers['account']}:{identifiers['cluster']}:{identifiers['site']}"
     if source == "comeet":
         return f"{identifiers['slug']}/{identifiers['company_uid']}"
     if source == "greenhouse" and identifiers.get("region"):
@@ -215,6 +221,8 @@ def _parse_verified_date(value: object) -> date | None:
 
 
 def _expected_careers_url(source: str, identifiers: dict[str, object]) -> str:
+    if source == "workday":
+        return f"https://{identifiers.get('account', '')}.{identifiers.get('cluster', '')}.myworkdayjobs.com/{identifiers.get('site', '')}"
     if source == "comeet":
         return (
             f"https://www.comeet.com/jobs/{identifiers.get('slug', '')}/"
@@ -310,7 +318,7 @@ def _validate_entry(entry: object, as_of: date) -> tuple[list[str], date | None]
         or parsed.fragment
     ):
         errors.append("careers_url must be a canonical public HTTPS URL")
-    elif source is not None and parsed.hostname.lower() not in CAREERS_HOSTS[source]:
+    elif source is not None and (not workday.coordinates(careers_url) if source == "workday" else parsed.hostname.lower() not in CAREERS_HOSTS[source]):
         errors.append("careers_url host does not match source")
     elif (
         source is not None
@@ -477,7 +485,12 @@ class _PublicHTTPSRedirectHandler(HTTPRedirectHandler):
 
 def _open_public_https(url: str, timeout_seconds: float):
     _validate_public_https_url(url)
-    request = Request(url, headers={"User-Agent": "job-radar-coach-registry/1.0"})
+    headers = {"User-Agent": "job-radar-coach-registry/1.0"}
+    data = None
+    if re.fullmatch(r"https://[a-z0-9-]+\.wd[0-9]+\.myworkdayjobs\.com/wday/cxs/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/jobs", url):
+        data = json.dumps({"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": ""}).encode()
+        headers["Content-Type"] = "application/json"
+    request = Request(url, data=data, headers=headers)
     response = build_opener(_PublicHTTPSRedirectHandler()).open(
         request, timeout=timeout_seconds
     )
@@ -547,6 +560,12 @@ def detect_supported_ats(url: str) -> dict[str, object] | None:  # skipcq: PY-R1
                 "identifiers": {"account": account},
                 "careers_url": f"https://apply.workable.com/{account}/",
             }
+    from scraper.sources.workday import coordinates
+    found = coordinates(url)
+    if found:
+        identifiers, _ = found
+        return {"source": "workday", "identifiers": identifiers,
+                "careers_url": _expected_careers_url("workday", identifiers)}
     return None
 
 
@@ -554,6 +573,9 @@ def public_endpoint(candidate: dict[str, object]) -> str:
     source = str(candidate["source"])
     identifiers = candidate["identifiers"]
     assert isinstance(identifiers, dict)
+    if source == "workday":
+        from scraper.sources.workday import base
+        return base(identifiers) + "/jobs"
     if source == "comeet":
         return str(candidate["careers_url"])
     if source == "greenhouse":
@@ -571,6 +593,13 @@ def public_endpoint(candidate: dict[str, object]) -> str:
 def _endpoint_payload_is_valid(source: str, body: str | None) -> bool:
     if body is None:
         return False
+    if source == "workday":
+        from scraper.sources.workday import _page
+        try:
+            _page(body)
+            return True
+        except ValueError:
+            return False
     if source == "comeet":
         return re.search(r"COMPANY_POSITIONS_DATA\s*=\s*\[", body) is not None
     if source == "greenhouse":

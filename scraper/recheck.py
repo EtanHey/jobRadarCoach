@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from scraper.sources import workday
+
 import argparse
 from datetime import datetime, timezone
 import json
@@ -24,7 +26,7 @@ PUBLIC_HOSTS = {
 }
 SELECT_STALE = """
 select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable')
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'workday')
 order by coalesce(liveness->>'last_attempt_at', ''), first_seen_at, id
 limit %s
 """
@@ -41,7 +43,8 @@ def public_job_url(url: str) -> bool:
         return (
             parsed.scheme == "https" and parsed.port in (None, 443)
             and parsed.username is None and parsed.password is None
-            and any(host == base or host.endswith("." + base) for base in PUBLIC_HOSTS)
+            and (any(host == base or host.endswith("." + base) for base in PUBLIC_HOSTS)
+                 or bool(workday.coordinates(url)))
         )
     except ValueError:
         return False

@@ -19,13 +19,13 @@ ALL_SOURCES = ("linkedin", *ATS_SOURCES)
 REGISTRY_PATH = source_registry.REGISTRY_PATH
 REQUEST_LIMITS = {
     "linkedin": 10, "comeet": 11, "greenhouse": 13, "lever": 5,
-    "workable": 9, "workable_detail": 9, "jd": 8, "liveness": 4,
+    "workable": 9, "workable_detail": 9, "workday": 26, "workday_detail": 8, "jd": 8, "liveness": 4,
 }
 URL_BUCKETS = tuple(
     (host, source) for source, host in {
         "linkedin": "linkedin.com/", "comeet": "comeet.com/",
         "greenhouse": "greenhouse.io/", "lever": "lever.co/",
-        "workable": "workable.com/",
+        "workable": "workable.com/", "workday": "myworkdayjobs.com/",
     }.items()
 )
 class _NoRedirect(urllib_request.HTTPRedirectHandler):
@@ -165,14 +165,16 @@ def main(
 
     pacer = original_pacer()
 
-    def bounded_fetch(url: str) -> str | None:
+    def bounded_fetch(url: str, **kwargs) -> str | None:
         bucket = next((source for host, source in URL_BUCKETS if host in url), "unknown")
         if bucket == "workable" and "/jobs/view/" in url:
             bucket = "workable_detail"
+        if bucket == "workday" and "/wday/cxs/" in url and not url.endswith("/jobs"):
+            bucket = "workday_detail"
         if not budget.take(bucket):
             return None
         pacer()
-        return original_fetch(url, backoffs=(), opener=NO_REDIRECT_OPEN)
+        return original_fetch(url, backoffs=(), opener=NO_REDIRECT_OPEN, **kwargs)
 
     def bounded_jd_loader():
         fetch = _load_without_redirects(original_jd_loader)
