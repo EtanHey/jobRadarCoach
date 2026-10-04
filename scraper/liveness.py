@@ -10,6 +10,8 @@ from urllib.error import HTTPError
 from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from scraper.sources import smartrecruiters
+
 
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -128,6 +130,18 @@ def _error_location(error: HTTPError, requested_url: str) -> str:
     return error_url
 
 
+def _check_smartrecruiters(url, opener, timeout):
+    coordinates = smartrecruiters.coordinates(url)
+    def fetcher(endpoint):
+        request = Request(endpoint, headers={"User-Agent": smartrecruiters.USER_AGENT, "Accept": "application/json"})
+        with opener(request, timeout=timeout) as response:
+            if response.getcode() != 200 or response.geturl() != endpoint:
+                raise ValueError("uncertain SmartRecruiters board")
+            return response.read(2_000_000).decode("utf-8", errors="replace")
+    alive = smartrecruiters.is_active(*coordinates, fetcher=fetcher) if coordinates else None
+    return _result(alive, status=None, reason="smartrecruiters-active-list" if alive is not None else "smartrecruiters-board-uncertain", final_url=url)
+
+
 def check_url(
     url: str,
     *,
@@ -139,6 +153,8 @@ def check_url(
     if not urlparse(url).scheme.startswith("http"):
         return _result(None, status=None, reason="invalid-url", final_url=url)
 
+    if urlparse(url).netloc in {"jobs.smartrecruiters.com", "www.smartrecruiters.com"}:
+        return _check_smartrecruiters(url, opener, timeout)
     headers = {"User-Agent": BROWSER_USER_AGENT, "Accept": "text/html,*/*"}
     try:
         get = Request(url, headers=headers, method="GET")

@@ -1919,6 +1919,26 @@
       ],
       "last_verified_at": "2026-09-23",
       "enabled": true
+    },
+    {
+      "source": "smartrecruiters",
+      "identifiers": {
+        "account": "Wix2"
+      },
+      "company": "Wix",
+      "careers_url": "https://careers.smartrecruiters.com/Wix2",
+      "provenance": [
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.smartrecruiters.com/v1/companies/Wix2/postings?country=il&limit=100&offset=0"
+        },
+        {
+          "kind": "public-careers-link",
+          "reference": "https://jobs.smartrecruiters.com/Wix2/744000153371359-ui-designer-brand-ui-team"
+        }
+      ],
+      "last_verified_at": "2026-10-04",
+      "enabled": true
     }
   ]
 }

@@ -14,13 +14,14 @@ from urllib.request import Request
 from scraper.jd_fetch import BROWSER_USER_AGENT, MIN_PLAUSIBLE_JD_CHARS, extract_full_jd
 from scraper.public_https import pinned_open
 from scraper.recheck import public_job_url
+from scraper.sources import smartrecruiters
 
 MAX_ITEMS = 12
 MAX_COMPRESSED_BYTES = 2_000_000
 MAX_BODY_BYTES = 4_000_000
 SELECT = """
 select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable')
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'smartrecruiters')
 and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
 order by coalesce(liveness->>'description_fetch_attempt_at', ''), first_seen_at, id
 limit %s
@@ -37,7 +38,9 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     if not public_job_url(url):
         raise ValueError("unsupported-public-url")
     opener = opener or pinned_open
-    request = Request(url, headers={"User-Agent": BROWSER_USER_AGENT,
+    coordinates = smartrecruiters.coordinates(url)
+    request_url = smartrecruiters.endpoint(*coordinates) if coordinates else url
+    request = Request(request_url, headers={"User-Agent": smartrecruiters.USER_AGENT if coordinates else BROWSER_USER_AGENT,
         "Accept": "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
     with opener(request, timeout=min(timeout, 20)) as response:
         body = response.read(MAX_COMPRESSED_BYTES + 1)
@@ -49,7 +52,8 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
         if len(body) > MAX_BODY_BYTES:
             raise ValueError("body-too-large")
         charset = response.headers.get_content_charset() or "utf-8"
-        description = extract_full_jd(body.decode(charset, errors="replace"))
+        text = body.decode(charset, errors="replace")
+        description = smartrecruiters.description(text, coordinates[1]) if coordinates else extract_full_jd(text)
     if len(description) < MIN_PLAUSIBLE_JD_CHARS:
         raise ValueError("description-missing-or-short")
     return description
