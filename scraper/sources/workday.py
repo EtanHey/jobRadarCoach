@@ -117,7 +117,7 @@ def description(info):
 
 def _published(value):
     try:
-        return date.fromisoformat(value).isoformat()
+        return date.fromisoformat(value).isoformat() + 'T00:00:00Z'
     except (TypeError, ValueError):
         return ''
 

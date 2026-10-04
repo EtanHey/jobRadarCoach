@@ -1,6 +1,6 @@
 """Synthetic Workday contracts: active-list truth, publication and common gates."""
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from email.message import Message
 
 import pytest
@@ -46,7 +46,9 @@ def test_maps_secondary_israel_active_list_and_actual_absolute_date():
     row = rows[0]
     assert row['source'] == 'workday' and row['url'] == URL and row['id'].startswith('workday:synthetic:External:')
     assert row['alive'] is True and row['liveness_reason'] == 'workday-active-list'
-    assert row['posted_at'] == '2026-09-30' and row['posted_ago'] == 'Posted 30+ Days Ago'
+    from scraper.database import _posting_values
+    assert _posting_values(row, datetime(2026, 10, 4, tzinfo=timezone.utc))[11] == datetime(2026, 9, 30, tzinfo=timezone.utc)
+    assert row['posted_at'] == '2026-09-30T00:00:00Z' and row['posted_ago'] == 'Posted 30+ Days Ago'
     assert 'Israel, Tel Aviv' in row['location'] and '4 years experience.' in row['jd_text'] and row['jd_fetched']
     assert calls[0][0] == API + '/jobs' and json.loads(calls[0][1]['data'])['limit'] == 20
     assert json.loads(calls[1][1]['data'])['appliedFacets'] == {'locationHierarchy1': ['synthetic-country']}
@@ -54,7 +56,9 @@ def test_maps_secondary_israel_active_list_and_actual_absolute_date():
 
 @pytest.mark.parametrize('value', [None, '', 'invalid', 'Posted Today', '2026-09-31'])
 def test_relative_or_missing_dates_are_never_clock_anchored(value):
-    assert fetch(detail_changes={'startDate': value})[0][0]['posted_at'] == ''
+    from scraper.database import _posting_values
+    row = fetch(detail_changes={'startDate': value})[0][0]
+    assert row['posted_at'] == '' and _posting_values(row, datetime(2026, 10, 4, tzinfo=timezone.utc))[11] is None
 
 
 def test_prefilter_excluded_titles_never_fetches_details():
@@ -107,6 +111,7 @@ def test_recheck_and_jd_retry_use_honest_public_api():
     def opener(request, **kwargs):
         calls.append(request)
         assert request.get_header('User-agent') == harvest.USER_AGENT
+        assert request.get_header('Accept') == 'application/json'
         response = Response(200, request.full_url, json.dumps(page([job()]) if request.data else detail()))
         response.headers = Message()
         return response
