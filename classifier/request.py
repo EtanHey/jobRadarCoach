@@ -209,6 +209,8 @@ def build_request(
             "A frontend-heavy role has parity with full-stack. Do not penalize frontend focus. Warm paths and referrals are unknown and must not affect fit_score.",
             "The local adapter counts unfamiliar required technologies and language requirements and enforces caps from calibration_facts after model output; keep fit_line and reasons consistent with the extracted facts.",
         ])
+    if policy is not None and "target_role_families" in policy:
+        prompt += "\nTitle role-family fit outranks technology overlap. The local adapter caps explicit title families outside target_role_families at 59, regardless of JD keywords or role_focus. Generic software titles remain ambiguous; assess their responsibilities without assuming a specialty. Keep reasons and fit_line consistent with title fit."
     return BrainRequest(prompt, schema)
 
 

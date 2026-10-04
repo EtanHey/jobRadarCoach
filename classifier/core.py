@@ -154,7 +154,7 @@ def score_projected(
             )
             rules: tuple[str, ...] = ()
             if facts is not None:
-                normalized, rules = apply_caps(normalized, policy, facts)
+                normalized, rules = apply_caps(normalized, policy, facts, title=luna_posting["title"])
                 if expected is not None:
                     normalized["recommendation"] = expected
         except Exception:

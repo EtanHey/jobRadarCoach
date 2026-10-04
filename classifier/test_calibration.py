@@ -41,10 +41,12 @@ TECH_ALIAS_POLICY["unfamiliar_technologies"] = [
 ]
 
 
-def calibrated(facts, *, jd="Build a CedarScript product. " * 12, policy=POLICY):
+def calibrated(facts, *, jd="Build a CedarScript product. " * 12, policy=POLICY, title=None):
     snapshot = profile_snapshot()
     snapshot["candidate.scorer_calibration"] = copy.deepcopy(policy)
     role = posting(jd)
+    if title is not None:
+        role["title"] = title
     wire = wire_annotation(role["id"], fit_score=82)
     wire["calibration_facts"] = facts
     runner = SequenceBrain(wire)
@@ -348,3 +350,67 @@ def test_bad_policy_or_facts_fail_closed():
         projection.profile_contract(snapshot)
     result, _ = calibrated({**facts(), "required_years": "six"})
     assert result is None
+
+
+TITLE_POLICY = {**POLICY, "target_role_families": ["frontend", "fullstack", "product"]}
+
+
+@pytest.mark.parametrize("title", [
+    "Data Product Engineer", "Senior Data Engineer", "Analytics Engineer",
+    "Machine Learning Engineer", "ML Engineer", "Backend-only Engineer",
+    "Software Engineer (Backend)", "Senior Data Scientist", "DATA  PRODUCT ENGINEER",
+])
+def test_title_family_outweighs_stack_and_model_role_focus(title):
+    result, _ = calibrated(facts(role_focus="fullstack"), title=title, policy=TITLE_POLICY)
+    assert result is not None
+    assert result.annotation["fit_score"] == 59
+    assert result.annotation["fit_tier"] == "stretch"
+    assert result.annotation["recommendation"] == "review"
+    assert "title_role_mismatch" in result.calibration_rules
+
+
+@pytest.mark.parametrize("title", [
+    "Frontend Engineer", "Front-end Developer", "Full Stack Engineer",
+    "Full-stack Developer", "Fullstack Engineer", "Product Engineer",
+    "AI Product Engineer", "Software Engineer, Frontend (Agentic AI)",
+    "Software Engineer", "Software Engineer - Data Visualization UI",
+    "Frontend Engineer - Analytics", "Frontend and Backend Engineer",
+    "Unknown Specialist",
+])
+def test_target_and_ambiguous_titles_are_not_demoted(title):
+    result, _ = calibrated(facts(), title=title, policy=TITLE_POLICY)
+    assert result is not None and result.annotation["fit_score"] == 82
+    assert not result.calibration_rules
+
+
+def test_target_families_come_from_the_profile_and_are_optional():
+    data_policy = {**POLICY, "target_role_families": ["data", "ml", "analytics"]}
+    result, _ = calibrated(facts(), title="Data Product Engineer", policy=data_policy)
+    assert result is not None and result.annotation["fit_score"] == 82
+    frontend, _ = calibrated(facts(), title="Frontend Engineer", policy=data_policy)
+    assert frontend is not None and frontend.annotation["fit_score"] == 59
+    legacy, _ = calibrated(facts(), title="Data Product Engineer")
+    assert legacy is not None and legacy.annotation["fit_score"] == 82
+
+
+@pytest.mark.parametrize("families", [[], ["unknown"], ["data", "data"], "frontend"])
+def test_invalid_target_role_families_fail_closed(families):
+    with pytest.raises(ValueError):
+        calibration.validate_policy({**POLICY, "target_role_families": families})
+
+
+def test_title_guard_request_explains_title_precedence():
+    result, runner = calibrated(facts(), policy=TITLE_POLICY)
+    assert result is not None
+    assert "title" in runner.calls[0][0].prompt
+    assert "outranks technology overlap" in runner.calls[0][0].prompt
+
+
+@pytest.mark.parametrize("score", [35, 48, 59])
+def test_title_cap_never_raises_scores_or_mutates_input(score):
+    annotation = {"fit_score": score, "fit_tier": "weak" if score < 40 else "stretch",
+                  "recommendation": "skip" if score < 40 else "review", "fit_line": "Stored fit."}
+    original = copy.deepcopy(annotation)
+    updated, rules = calibration.apply_caps(annotation, TITLE_POLICY, facts(), title="Data Engineer")
+    assert updated == original and annotation == original
+    assert "title_role_mismatch" in rules

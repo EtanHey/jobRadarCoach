@@ -12,6 +12,8 @@ POLICY_FIELDS = {
     "years_hard_block_from", "backend_heavy_max_score",
     "backend_years_no_from", "frontend_parity", "neutral_nice_to_have",
 }
+OPTIONAL_POLICY_FIELDS = {"target_role_families"}
+ROLE_FAMILIES = {"frontend", "fullstack", "product", "backend", "data", "ml", "analytics"}
 FACT_FIELDS = {
     "required_years", "required_backend_years", "role_focus",
     "required_technologies", "required_primary_language_clauses",
@@ -134,10 +136,15 @@ def _required_unfamiliar_count(
 
 
 def validate_policy(value: object) -> dict[str, object]:
-    if not isinstance(value, dict) or set(value) != POLICY_FIELDS:
+    if (not isinstance(value, dict) or not POLICY_FIELDS <= set(value)
+            or set(value) - POLICY_FIELDS - OPTIONAL_POLICY_FIELDS):
         raise ValueError("scorer calibration has unsupported fields")
     for key in ("familiar_primary_languages", "unfamiliar_technologies", "neutral_nice_to_have"):
         _names(value[key])
+    if "target_role_families" in value:
+        families = _names(value["target_role_families"])
+        if not families or not set(families) <= ROLE_FAMILIES:
+            raise ValueError("invalid target role families")
     conditional = value["conditional_primary_languages"]
     if not isinstance(conditional, dict) or len(conditional) > 30:
         raise ValueError("invalid conditional primary languages")
@@ -197,11 +204,40 @@ def validate_facts(value: object, policy: Mapping[str, object]) -> dict[str, obj
     return value
 
 
+def title_role_family(title: str) -> str | None:
+    """Recognize explicit role phrases; generic software/domain titles abstain."""
+    title = " ".join(re.sub(r"[-–—]", " ", title.casefold()).split())
+    # Specialty phrases win over Product Engineer (e.g. Data Product Engineer).
+    if re.search(r"\bdata (?:product |platform |science )?(?:engineer|scientist|developer)\b", title):
+        return "data"
+    if re.search(r"\b(?:machine learning|ml) (?:software )?(?:engineer|scientist|developer)\b", title):
+        return "ml"
+    if re.search(r"\b(?:analytics|business intelligence) (?:engineer|developer)\b", title):
+        return "analytics"
+    frontend = bool(re.search(r"\bfront\s?end\b", title))
+    backend = bool(re.search(r"\bback\s?end\b", title))
+    if re.search(r"\bfull\s?stack\b", title) or frontend and backend:
+        return "fullstack"
+    if frontend:
+        return "frontend"
+    if backend:
+        return "backend"
+    if re.search(r"\bproduct (?:engineer|developer)\b", title):
+        return "product"
+    return None
+
+
 def apply_caps(annotation: dict[str, object], policy: Mapping[str, object],
-               facts: Mapping[str, object]) -> tuple[dict[str, object], tuple[str, ...]]:
+               facts: Mapping[str, object], *,
+               title: str = "") -> tuple[dict[str, object], tuple[str, ...]]:
     unfamiliar_count = _required_unfamiliar_count(policy, facts)
     score = annotation["fit_score"]
     rules: list[str] = []
+    targets = policy.get("target_role_families")
+    family = title_role_family(title)
+    if targets is not None and family is not None and family not in targets:
+        score = min(score, 59)
+        rules.append("title_role_mismatch")
     years = facts["required_years"]
     if years is not None and years >= policy["years_hard_block_from"]:
         score = min(score, 39)
