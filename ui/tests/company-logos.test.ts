@@ -197,6 +197,18 @@ test("lead ownership ruling drops two unrelated brands from the shipped map", ()
   }
 });
 
+test("Opus-reviewed homonyms and suspect brands resolve to initials", () => {
+  const companies = [
+    "Siemens EDA (Siemens Digital Industries Software)", "Roark (YC W25)", "DRW",
+    "Minute", "DT", "Dialog", "Medulla", "Venn", "Nimble",
+    "ACT", "OP", "Neo", "ELTA Systems Ltd", "Mylo AI",
+  ];
+  assert.deepEqual(
+    companies.map((company) => resolveCompanyLogo({ company }, { logoDevKey: KEY })),
+    companies.map(() => null),
+  );
+});
+
 test("UTF-8 company names match the shipped map instead of falling through to name lookup", () => {
   const map = JSON.parse(readFileSync(new URL("../lib/company-logo-domains.json", import.meta.url), "utf8"));
   for (const company of ["Bank of Jerusalem בנק ירושלים", "Discount Bank בנק דיסקונט", "Goldjobs מבינים באנשים", "Ness Technologies | נס טכנולוגיות", "Plus500™", "SWAKIO™"]) {
