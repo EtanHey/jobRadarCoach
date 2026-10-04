@@ -24,6 +24,7 @@ type Props = {
 
 export function JobCard({ job, selected, keptStatus = null, actions, alternateCount = 0, openerRef, selectJob, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
+  const place = `${job.location ?? "Location unspecified"} · ${workMode(job.remote)}`;
   // Dim the content, never the frame: hover border and focus ring stay full strength on settled cards.
   const dim = keptStatus ? "opacity-60" : "";
   const keptId = `kept-status-${job.id}`;
@@ -39,11 +40,15 @@ export function JobCard({ job, selected, keptStatus = null, actions, alternateCo
         <span style={job.score === null ? { border: "2px solid var(--globe-unscored-ring)" } : { backgroundColor: scoreCss(job.score), color: "#08111c" }} aria-label={job.score === null ? "Not scored" : `Fit score ${job.score} out of 100`} className={cn(job.score === null ? "rounded-lg px-2 py-1 text-xs text-muted-foreground" : "rounded-lg px-2 py-1", dim)}>
           {job.score === null ? "Unscored" : <><strong className="text-base tabular-nums">{job.score}</strong><span className="text-[10px]">/100</span></>}
         </span>
-        {keptStatus ? <span id={keptId} data-kept-status={keptStatus} className="rounded-md border bg-muted px-1.5 py-0.5 text-[11px] font-medium leading-4 text-foreground">{statusLabels[keptStatus]}</span>
-          : job.status === "worth_checking" && <Bookmark size={13} aria-label="Worth checking" className="text-muted-foreground" />}
+        {!keptStatus && job.status === "worth_checking" && <Bookmark size={13} aria-label="Worth checking" className="text-muted-foreground" />}
       </div>
     </div>
-    <p className={cn("pointer-events-none truncate text-sm text-muted-foreground", dim)} title={`${job.location ?? "Location unspecified"} · ${workMode(job.remote)}`}>{job.location ?? "Location unspecified"} · {workMode(job.remote)}</p>
+    {keptStatus ? <div className="pointer-events-none flex h-5 min-w-0 items-center gap-2">
+      <p className={cn("min-w-0 flex-1 truncate text-sm text-muted-foreground", dim)} title={place}>{place}</p>
+      {/* A reserved one-line slot: the chip never touches the header, and a long label ellipsizes instead of growing the card. */}
+      <span id={keptId} data-kept-status={keptStatus} title={statusLabels[keptStatus]} className="inline-flex h-5 max-w-[45%] shrink-0 items-center rounded-md border bg-muted px-1.5 text-[11px] font-medium text-foreground"><span className="truncate">{statusLabels[keptStatus]}</span></span>
+    </div>
+      : <p className="pointer-events-none truncate text-sm text-muted-foreground" title={place}>{place}</p>}
     <div className={cn("pointer-events-none relative min-h-[3.625rem] text-muted-foreground [&_button]:pointer-events-auto", dim)}>{job.stack.length ? children : <span className="text-xs">Stack unspecified</span>}</div>
     <div className={cn("pointer-events-none mt-auto grid min-w-0 gap-1 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2", dim)}>
       <span className="min-w-0 flex-1 truncate" title={experience}>{experience}</span>
