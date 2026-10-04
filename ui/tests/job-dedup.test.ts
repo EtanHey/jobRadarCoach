@@ -201,15 +201,15 @@ test("grouping prepares identity and location evidence once instead of per pair"
       counts.url += 1;
       return Reflect.construct(target, args, newTarget);
     } });
-    String.prototype.normalize = function(form) {
+    context.mock.method(String.prototype, "normalize", function(this: string, form?: Parameters<String["normalize"]>[0]) {
       if (locations.includes(String(this))) counts.location += 1;
       return originalNormalize.call(this, form);
-    };
+    });
     assert.ok(groupDuplicateJobs(rows).length > 0);
   } finally {
     globalThis.RegExp = originalRegex;
     globalThis.URL = originalUrl;
-    String.prototype.normalize = originalNormalize;
+    context.mock.restoreAll();
   }
   context.diagnostic(JSON.stringify(counts));
   assert.equal(counts.regex, 0, "country/state regexes must be compiled before grouping");
