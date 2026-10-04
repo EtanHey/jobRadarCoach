@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
 
 test("private list cache keys the complete server query and evicts the least-recently-used view", () => {
   assert.throws(() => createBoundedJobListCache(0), RangeError);
@@ -149,4 +149,29 @@ test("refresh collapses repeated incoming and preexisting IDs without changing f
 test("unique IDs preserve their input array reference", () => {
   const jobs = [{ id: "job-1" }, { id: "job-2" }];
   assert.equal(uniqueJobsById(jobs), jobs);
+});
+
+
+test("retained card absent from incoming refreshes all fields without moving or admitting unrelated rows", () => {
+  const current = [{ id: "a", status: "new", title: "old" }, { id: "b", status: "new", title: "B" }];
+  const latest = [{ id: "a", status: "applied", title: "updated" }, { id: "unrelated", status: "seen", title: "other" }];
+  const next = retainVisitCohort(current, [{ id: "c", status: "new", title: "C" }, current[1]], latest);
+  assert.deepEqual(next.map(job => job.id), ["a", "b", "c"]);
+  assert.deepEqual(next[0], latest[0]);
+});
+
+
+test("refresh hydrates only absent retained IDs in bounded batches, including an empty new cohort", async () => {
+  const current = Array.from({ length: 205 }, (_, n) => ({ id: String(n), status: "new" }));
+  const calls: string[][] = [];
+  const refreshed = await refreshVisitCohort(current, [], async ids => {
+    calls.push(ids);
+    return ids.map(id => ({ id, status: "applied" }));
+  });
+  assert.deepEqual(calls.map(ids => ids.length), [100, 100, 5]);
+  assert.deepEqual(refreshed.map(job => job.id), current.map(job => job.id));
+  assert.ok(refreshed.every(job => job.status === "applied"));
+  await refreshVisitCohort(null, current, async () => { throw new Error("unnecessary fetch"); });
+  await refreshVisitCohort(current, current, async () => { throw new Error("unnecessary fetch"); });
+  await assert.rejects(refreshVisitCohort(current, [], async () => { throw new Error("offline"); }), /offline/);
 });

@@ -11,7 +11,7 @@ import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
@@ -158,7 +158,7 @@ export function JobBoard() {
   function prepareListSource(value: Filter, availability: ViewOptions["availability"]) {
     filterRef.current = value;
     visitCohortRef.current = null;
-    const cached = listCacheRef.current.get(listKey(value, availability));
+    const cached = value === "new-for-me" ? undefined : listCacheRef.current.get(listKey(value, availability));
     if (cached) {
       listRefreshCoordinatorRef.current.cancelRequest();
       hasLoadedRef.current = true;
@@ -311,7 +311,7 @@ export function JobBoard() {
   useEffect(() => {
     if (!preferencesReady) return undefined;
     const key = listKey(filter, view.availability);
-    const cached = listCacheRef.current.get(key);
+    const cached = filter === "new-for-me" ? undefined : listCacheRef.current.get(key);
     if (cached) {
       listRefreshCoordinatorRef.current.cancelRequest();
       hasLoadedRef.current = true;
@@ -324,7 +324,20 @@ export function JobBoard() {
     const generation = listRequestFenceRef.current.capture();
     listRefreshCoordinatorRef.current.beginRequest();
     request(jobListRequestPath({ filter, availability: view.availability, limit: 1000 }), { signal: controller.signal })
-      .then((body) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs); const displayed = filter === "new-for-me" ? retainVisitCohort(visitCohortRef.current, next) : next; if (filter === "new-for-me") visitCohortRef.current = displayed; const updatedAt = displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null); listCacheRef.current.set(key, { jobs: displayed, loadedUpdatedAt: updatedAt }); hasLoadedRef.current = true; readyRetryUsedRef.current = false; setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(updatedAt); } })
+      .then(async (body) => {
+        if (controller.signal.aborted || !listRequestFenceRef.current.isCurrent(generation)) return;
+        const next = uniqueJobsById(JobListResponseSchema.parse(body).jobs);
+        const displayed = filter === "new-for-me" ? await refreshVisitCohort(visitCohortRef.current, next, async ids => {
+          const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
+          return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal: controller.signal })).jobs;
+        }) : next;
+        if (controller.signal.aborted || !listRequestFenceRef.current.isCurrent(generation)) return;
+        if (filter === "new-for-me") visitCohortRef.current = displayed;
+        const updatedAt = displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null);
+        listCacheRef.current.set(key, { jobs: displayed, loadedUpdatedAt: updatedAt });
+        hasLoadedRef.current = true; readyRetryUsedRef.current = false;
+        setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(updatedAt);
+      })
       .catch((cause: unknown) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); if (realtimeReadyRef.current && !readyRetryUsedRef.current) { readyRetryUsedRef.current = true; queueMicrotask(requestRefresh); } } })
       .finally(() => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const followUp = listRefreshCoordinatorRef.current.finishRequest(); setLoading(false); if (followUp) queueMicrotask(requestRefresh); } });
     return () => controller.abort();
