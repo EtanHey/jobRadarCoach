@@ -44,3 +44,10 @@ py-modules = [
   "scripts.backfill_posting_facts",
   "scripts.local_analysis_supervisor",
 ]
+
+[dependency-groups]
+test = [
+    "build>=1,<2",
+    "pytest>=8,<9",
+    "setuptools>=77",
+]

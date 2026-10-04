@@ -1,0 +1,77 @@
+name: Python and DB tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TZ: UTC
+      PGTZ: UTC
+      DATABASE_URL: postgresql://postgres:ci_only@127.0.0.1:5432/postgres
+      JOBRADAR_REQUIRE_PG17: "1"
+      JOBRADAR_RUN_OLLAMA_LIVE: "0"
+      JOBRADAR_RUN_EXTRACTION_LIVE: "0"
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C
+          TZ: UTC
+          PGTZ: UTC
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.11.23"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install test dependencies
+        run: uv sync --locked --group test
+      - name: Install pgTAP in the disposable PostgreSQL service
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec "$POSTGRES_CONTAINER" sh -ec '
+            apt-get update
+            apt-get install -y --no-install-recommends postgresql-17-pgtap
+          '
+      - name: Bootstrap Supabase roles and verify PostgreSQL
+        run: |
+          uv run --locked --group test python - <<'PY'
+          import os
+          import psycopg
+          with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as db:
+              assert db.info.server_version // 10000 == 17
+              assert db.execute("show timezone").fetchone() == ("UTC",)
+              db.execute("create role anon nologin")
+              db.execute("create role authenticated nologin")
+              db.execute("create role service_role nologin bypassrls")
+              db.execute("create role supabase_realtime_admin nologin")
+              db.execute("create extension pgtap")
+          PY
+      - name: Run all Python and SQL contracts (latest migrations included)
+        run: uv run --locked --group test pytest -ra --junitxml=python-tests.xml
