@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { confidentDomain, refreshDomains } from "../../scripts/refresh-logo-domains";
+import { confidentDomain, refreshDomains, ownsDomain } from "../../scripts/refresh-logo-domains";
 
 test("refresh accepts only exact canonical brand names or domain labels", () => {
   assert.equal(confidentDomain("Acme Robotics", [{ name: " ＡＣＭＥ\t Robotics ", domain: "acme.ai" }]), "acme.ai");
@@ -81,4 +81,33 @@ test("malformed candidates are provider errors, not permanent low-confidence dec
   }
   const empty = () => Promise.resolve(new Response("[]"));
   assert.deepEqual(await refreshDomains(["Acme"], {}, "sk_synthetic", empty as typeof fetch), { acme: null });
+});
+
+for (const [company, domain] of [
+  ["Johnson & Johnson MedTech", "vwavemedical.com"], ["Xpend", "cleanico.co.bw"],
+  ["Amazon Web Services (AWS)", "buildonasean2021.com"], ["Unavailable", "autenticalamichoacana.com"],
+]) {
+  test(`matching candidate name cannot admit unrelated domain ${domain}`, () => {
+    assert.equal(confidentDomain(company, [{ name: company, domain }]), null);
+  });
+}
+
+
+test("ownership resemblance preserves verified abbreviations and distinctive tokens", () => {
+  for (const [company, domain] of [
+    ["General Motors", "gm.com"], ["General Dynamics Information Technology", "gdit.com"],
+    ["Warner Music Group", "wmg.com"], ["Mentee Robotics", "menteebot.com"],
+    ["Javelin Venture Partners", "javelinvp.com"], ["Connecteam", "connecteam.com"],
+    ["Jeen.ai", "jeen.ai"], ["Bluebird Aero Systems", "bluebird-uav.com"],
+    ["Bank of Jerusalem", "bankjerusalem.co.il"],
+  ]) {
+    assert.ok(ownsDomain(company, domain), company);
+    assert.equal(confidentDomain(company, [{ name: company, domain }]), domain, company);
+  }
+  assert.ok(ownsDomain("Acme Technologies", "acmeportal.com"), "core token is contained in the domain label");
+  assert.ok(ownsDomain("Acme Robotics", "acme.com"), "domain label is contained in joined company tokens");
+  assert.ok(ownsDomain("World of Widgets", "ww.com"), "initials may omit of/and/the");
+  assert.equal(ownsDomain("Acme", "a.com"), false, "one-character labels are ambiguous");
+  assert.equal(ownsDomain("", "acme.com"), false);
+  assert.equal(ownsDomain("Acme", "acme.com/path"), false);
 });

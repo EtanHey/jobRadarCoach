@@ -11,10 +11,26 @@ export function validLogoDomain(value: unknown): value is string {
   return labels.length >= 2 && labels.every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label));
 }
 
+// Lead's conservative name/domain resemblance rule; this is not a site-ownership verification.
+const suffixWords = new Set("inc ltd llc corp co company technologies tech solutions group labs lab software systems holdings international israel il global the of and".split(" "));
+
+export function ownsDomain(company: string, domain: string): boolean {
+  if (!validLogoDomain(domain)) return false;
+  const label = domain.split(".")[0].replace(/[^a-z0-9]/g, "");
+  if (label.length < 2) return false;
+  const words = canonicalCompanyName(company).match(/[a-z0-9]+/g) ?? [];
+  const core = words.filter(word => !suffixWords.has(word));
+  const joined = [words.join(""), core.join("")];
+  const initials = [words, words.filter(word => !["of", "and", "the"].includes(word))].map(tokens => tokens.map(word => word[0]).join(""));
+  return joined.some(name => name.length > 0 && (name.includes(label) || label.includes(name)))
+    || core.some(word => word.length >= 4 && label.includes(word))
+    || initials.includes(label);
+}
+
 export function confidentDomain(company: string, candidates: SearchCandidate[]): string | null {
   const name = canonicalCompanyName(company);
   for (const candidate of candidates) {
-    if (!candidate || !validLogoDomain(candidate.domain)) continue;
+    if (!candidate || !validLogoDomain(candidate.domain) || !ownsDomain(company, candidate.domain)) continue;
     if ((typeof candidate.name === "string" && canonicalCompanyName(candidate.name) === name)
       || candidate.domain.split(".")[0] === name) return candidate.domain;
   }

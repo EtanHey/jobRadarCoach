@@ -189,3 +189,19 @@ test("AWS never uses the supplied event-specific domain without verified artwork
 test("Unavailable is an unknown employer, not the supplied ice-cream brand", () => {
   assert.equal(resolveCompanyLogo({ company: "Unavailable" }, { logoDevKey: KEY }), null);
 });
+
+
+test("lead ownership ruling drops two unrelated brands from the shipped map", () => {
+  for (const company of ["Johnson & Johnson MedTech", "Xpend"]) {
+    assert.equal(resolveCompanyLogo({ company }, { logoDevKey: KEY }), null, company);
+  }
+});
+
+test("UTF-8 company names match the shipped map instead of falling through to name lookup", () => {
+  const map = JSON.parse(readFileSync(new URL("../lib/company-logo-domains.json", import.meta.url), "utf8"));
+  for (const company of ["Bank of Jerusalem בנק ירושלים", "Discount Bank בנק דיסקונט", "Goldjobs מבינים באנשים", "Ness Technologies | נס טכנולוגיות", "Plus500™", "SWAKIO™"]) {
+    assert.ok(Object.hasOwn(map, canonicalCompanyName(company)), company);
+    const resolved = resolveCompanyLogo({ company }, { logoDevKey: KEY });
+    if (resolved?.kind === "logo-dev") assert.ok(!logoDev(resolved.src).pathname.startsWith("/name/"), company);
+  }
+});
