@@ -4,7 +4,10 @@
 `last_published_at` is the latest observed source publication; `first_seen_at` is
 when JRC first discovered that identity. The scraper and database trigger preserve
 the minimum publication and maximum last-publication values on repeat observations.
-Missing or malformed source dates never erase a known date. An edit timestamp is
+Missing, malformed, pre-2000, or more than one day beyond the observation time
+source publication dates never erase a known date. The plausibility window is
+applied independently to original/latest source fields by the new scraper; old
+writers during rollout still need valid dates. An edit timestamp is
 not evidence of publication or republication.
 
 | Source | Adapter publication field | Limits |
@@ -22,8 +25,8 @@ selection continue to use `posted_at`, now preserved as the earliest known value
 Cards and drawers show Posted and Found, with Republished only when a later
 publication is known; equivalent timestamps in different timezones are not reposts.
 
-Apply `supabase/migrations/0019_publication_dates.sql` before deploying the new
-scraper/UI. It backfills latest publication from the existing publication value,
+Apply `supabase/migrations/0019_publication_dates.sql` in one transaction before merging the new
+scraper/UI: merge triggers the production deploy. It backfills latest publication from the existing publication value,
 protects old scraper writers during rollout, and appends the new field to the SQL
 card/detail contracts. HTTP lists, details and globe snapshots carry it too.
 The public UI field is optional for older cached responses and synthetic fixtures.
