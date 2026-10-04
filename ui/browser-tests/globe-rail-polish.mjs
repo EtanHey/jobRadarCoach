@@ -102,11 +102,18 @@ await phase("layout-empty", {}, async page => {
   assert.ok(Math.abs(layout.railBottom - layout.target) <= 2 && Math.abs(layout.slotBottom - layout.target) <= 2, JSON.stringify(layout));
   assert.deepEqual(layout.scrollers.length, 1, JSON.stringify(layout.scrollers));
   assert.match(layout.scrollers[0], /globe-rail/);
-  const sticky = await page.evaluate(() => {
-    const rail = document.querySelector(".globe-rail"); rail.scrollTop = 400;
-    return document.getElementById("globe-visible-heading").getBoundingClientRect().top - rail.getBoundingClientRect().top;
+  const headerAtTop = () => page.evaluate(() => {
+    const rail = document.querySelector(".globe-rail"), header = rail.querySelector(".globe-rail-header");
+    const railBox = rail.getBoundingClientRect(), headerBox = header.getBoundingClientRect();
+    const topPixel = document.elementFromPoint(headerBox.left + headerBox.width / 2, railBox.top + 1);
+    return { gap: headerBox.top - railBox.top, coversTop: header.contains(topPixel) };
   });
-  assert.ok(sticky >= 0 && sticky <= 12, `rail header stays pinned: ${sticky}`);
+  const top = await headerAtTop();
+  assert.ok(Math.abs(top.gap) <= .5 && top.coversTop, `rail header covers top edge: ${JSON.stringify(top)}`);
+  await page.locator(".globe-rail").evaluate(rail => { rail.scrollTop = 75; });
+  const sticky = await headerAtTop();
+  assert.ok(Math.abs(sticky.gap) <= .5 && sticky.coversTop, `scrolled cards cannot show above rail header: ${JSON.stringify(sticky)}`);
+  await page.locator(".globe-rail").evaluate(rail => { rail.scrollTop = 400; });
   const canvas = await page.locator(".maplibregl-canvas").boundingBox();
   // One drag turns the globe to the empty Pacific; the fixture has no roles there.
   await page.mouse.move(canvas.x + canvas.width * .85, canvas.y + canvas.height * .5);
