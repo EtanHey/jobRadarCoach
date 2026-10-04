@@ -379,7 +379,7 @@ export function JobBoard() {
   }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
 
   useEffect(() => {
-    if (!selected || detail || detailError) return;
+    if (!selected || detail || detailError) return undefined;
     // SSE refreshes can replace reads, but cannot extend this selection's loading budget.
     const timer = setTimeout(() => {
       if (detailCoordinator.current().id !== selected) return;
