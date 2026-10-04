@@ -8,6 +8,18 @@ from datetime import datetime, timezone
 from typing import Callable
 from urllib.parse import urlparse
 
+USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
+
+
+def _apply_url(value: object) -> str | None:
+    if not isinstance(value, str) or re.search(r"[\s\\]", value):
+        return None
+    try:
+        parsed = urlparse(value)
+        return value if parsed.scheme == "https" and parsed.hostname and parsed.port != 0 and parsed.username is None else None
+    except ValueError:
+        return None
+
 
 def _plain(value: object) -> str:
     return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", value)).split()) if isinstance(value, str) else ""
@@ -60,7 +72,7 @@ def _posting(job: object, query: dict[str, str], checked_at: str) -> dict[str, o
         "title": title.strip(), "company": query.get("company", query["account"]),
         "location": _location(job),
         "remote": job.get("isRemote") if type(job.get("isRemote")) is bool else None,
-        "url": url, "apply_url": job.get("applyUrl", ""),
+        "url": url, "apply_url": _apply_url(job.get("applyUrl")),
         "posted_at": posted_at, "posted_ago": posted_ago,
         "jd_text": jd, "jd_fetched": bool(jd), "raw_text": title.strip(),
         "alive": True, "liveness_reason": "ashby-active-list",

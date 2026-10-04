@@ -61,7 +61,7 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     opener = opener or pinned_open
     coordinates = _ashby_coordinates(url)
     request_url = f"https://api.ashbyhq.com/posting-api/job-board/{coordinates[0]}" if coordinates else url
-    request = Request(request_url, headers={"User-Agent": BROWSER_USER_AGENT,
+    request = Request(request_url, headers={"User-Agent": ashby.USER_AGENT if coordinates else BROWSER_USER_AGENT,
         "Accept": "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
     with opener(request, timeout=min(timeout, 20)) as response:
         body = response.read(MAX_COMPRESSED_BYTES + 1)

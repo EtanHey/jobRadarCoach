@@ -11,6 +11,8 @@ from urllib.error import HTTPError
 from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from scraper.sources import ashby
+
 
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -149,7 +151,7 @@ def _check_ashby_url(url: str, opener: Callable[..., object], timeout: float) ->
     endpoint = f"https://api.ashbyhq.com/posting-api/job-board/{parts[0]}"
     status = None
     try:
-        request = Request(endpoint, headers={"User-Agent": BROWSER_USER_AGENT, "Accept": "application/json"})
+        request = Request(endpoint, headers={"User-Agent": ashby.USER_AGENT, "Accept": "application/json"})
         with opener(request, timeout=timeout) as response:
             status = int(response.getcode())
             final_url = str(response.geturl())

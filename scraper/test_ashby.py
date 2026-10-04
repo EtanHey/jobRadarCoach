@@ -51,6 +51,16 @@ def test_ashby_plain_description_falls_back_to_html():
     assert row["jd_text"] == "Build & ship."
 
 
+@pytest.mark.parametrize("value", ["/application", "mailto:jobs@example.invalid", "javascript:alert(1)", 42, None,
+                                 "https://[", "https://bad host/apply", "https://example.invalid:bad/apply"])
+def test_invalid_apply_url_cannot_poison_the_board_response(value):
+    assert fetch(job(applyUrl=value))[0]["apply_url"] is None
+
+
+def test_valid_https_apply_url_is_preserved():
+    assert fetch(job())[0]["apply_url"] == job()["applyUrl"]
+
+
 @pytest.mark.parametrize("changes", [{"isListed": False}, {"id": ""}, {"jobUrl": ""}, {"title": ""},
     {"jobUrl": "https://example.invalid/job"}, {"jobUrl": "https://jobs.ashbyhq.com/other-account/other-job"}])
 def test_ashby_skips_unlisted_or_unusable_records(changes):
@@ -132,6 +142,7 @@ def test_stored_ashby_recheck_uses_active_list_only(payload, alive):
     calls = []
     def opener(request, **kwargs):
         calls.append(request.full_url)
+        assert request.get_header("User-agent") == harvest.USER_AGENT
         return Response(200, request.full_url, json.dumps(payload))
     url = job()["jobUrl"]
     assert recheck.public_job_url(url)
@@ -158,6 +169,7 @@ def test_ashby_missing_description_retry_reads_the_public_board():
     calls = []
     def opener(request, **kwargs):
         calls.append(request.full_url)
+        assert request.get_header("User-agent") == harvest.USER_AGENT
         response = Response(200, request.full_url, json.dumps({"jobs": [job()]}))
         response.headers = Message()
         return response
