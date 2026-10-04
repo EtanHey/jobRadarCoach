@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import pytest
 from scraper import cloud_run
 
 
+@pytest.mark.parametrize("github_run_id", [None, "ci-py-fixture"])
 def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
-    tmp_path: Path, monkeypatch, capsys
+    tmp_path: Path, monkeypatch, capsys, github_run_id
 ) -> None:
+    if github_run_id is None:
+        monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    else:
+        monkeypatch.setenv("GITHUB_RUN_ID", github_run_id)
     monkeypatch.setenv("DATABASE_URL", "postgresql://hosted.example/job_radar")
     registry = json.loads((Path(__file__).parent / "source-registry.json").read_text())
     appended = next(row.copy() for row in registry["tenants"] if row["source"] == "greenhouse")
@@ -85,7 +91,7 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
         "exit_code": 0,
         "network_request_skips": 8,
         "result": {"fetched_count": 8, "new_count": 3},
-        "run_id": "local",
+        "run_id": github_run_id or "local",
         "schema_version": 1,
         "sources": ["linkedin", "comeet", "greenhouse", "lever", "workable"],
         "status": "success",
