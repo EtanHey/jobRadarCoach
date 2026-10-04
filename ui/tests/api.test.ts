@@ -328,3 +328,16 @@ test("summary projection preserves original, latest publication and discovery se
   assert.equal((row as unknown as Record<string, unknown>).last_published_at, raw.last_published_at);
   assert.equal(row.first_seen_at, raw.first_seen_at);
 });
+
+test("HTTP/globe summary projection emits opaque normalized JD evidence, not raw text", () => {
+  const text = "Build reliable synthetic distributed systems with clear interfaces and comprehensive operational monitoring. ".repeat(5);
+  const raw = { ...summary, external_id: "synthetic-req", raw_jd: text, liveness: null,
+    posting_extractions: null, posting_status: null, posting_scores: null };
+  const row = parseSummaryRows([raw]).jobs[0];
+  assert.equal(row.external_id, raw.external_id);
+  assert.match(row.description_fingerprint!, /^[a-f0-9]{64}$/u);
+  assert.equal("raw_jd" in row, false);
+  assert.equal(parseSummaryRows([{ ...raw, raw_jd: text.toUpperCase().replaceAll(" ", "  ") }]).jobs[0].description_fingerprint, row.description_fingerprint);
+  assert.equal(parseSummaryRows([{ ...raw, raw_jd: "Short generic careers blurb" }]).jobs[0].description_fingerprint, null);
+  assert.notEqual(parseSummaryRows([{ ...raw, raw_jd: text + "Different responsibilities." }]).jobs[0].description_fingerprint, row.description_fingerprint);
+});

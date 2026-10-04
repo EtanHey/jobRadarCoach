@@ -4,7 +4,7 @@ import { useState, type ReactNode, type RefObject } from "react";
 import type { JobDetail, JobSummary } from "@/lib/contracts";
 import { companyInitials, logoPathForCompany } from "@/lib/company-logos";
 import { workMode } from "@/lib/job-display";
-import { shortListingId } from "@/lib/job-dedup";
+import { linkedPublicationDates, shortListingId } from "@/lib/job-dedup";
 import { statusLabels } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
 import { AssessmentSheet } from "./assessment-sheet";
@@ -48,7 +48,9 @@ function DrawerCompanyLogo({ company }: { company: string }) {
 }
 
 export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs = [], retryDetail, retryDisabled = false, selected, selectedJob, selectJob }: JobDrawerProps) {
-  const heading = detail ?? selectedJob;
+  const selectedHeading = detail ?? selectedJob;
+  const heading = selectedHeading && relatedJobs.length
+    ? { ...selectedHeading, ...linkedPublicationDates([selectedHeading, ...relatedJobs]) } : selectedHeading;
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
