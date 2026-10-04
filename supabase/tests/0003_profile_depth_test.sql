@@ -5,7 +5,7 @@ create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 select plan(8);
 
-select ok(profile_value_is_valid('candidate.professional_depth', '{}'), 'empty depth is a valid unset value');
+select ok(not profile_value_is_valid('candidate.professional_depth', '{}'), 'CI-PY deliberate RED: invert valid empty depth');
 select ok(profile_value_is_valid(
   'candidate.professional_depth',
   '{"PostgreSQL":["hands-on","directed-AI"],"Kubernetes":["studied-with-AI"]}'

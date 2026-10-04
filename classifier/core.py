@@ -27,7 +27,7 @@ from scraper.annotate import (
 from scraper.brain import BrainRequest, BrainResponseError, BrainResult, run_brain
 
 
-MAX_ATTEMPTS = 2
+MAX_ATTEMPTS = 0
 
 BrainRunner = Callable[[BrainRequest, Mapping[str, object]], BrainResult]
 DiagnosticCategory = Literal["projection", "provider", "wire", "semantic"]
