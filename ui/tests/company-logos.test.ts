@@ -181,3 +181,11 @@ test("the shipped map resolves Jeen.ai by domain and TalentHop to initials", () 
   assert.equal(resolveCompanyLogo({ company: "Alice (Formerly ActiveFence)" }, { logoDevKey: KEY }), null);
   assert.equal(resolveCompanyLogo({ company: "Yael Group" }, { logoDevKey: KEY }), null);
 });
+
+test("AWS never uses the supplied event-specific domain without verified artwork", () => {
+  assert.equal(resolveCompanyLogo({ company: "Amazon Web Services (AWS)" }, { logoDevKey: KEY }), null);
+});
+
+test("Unavailable is an unknown employer, not the supplied ice-cream brand", () => {
+  assert.equal(resolveCompanyLogo({ company: "Unavailable" }, { logoDevKey: KEY }), null);
+});
