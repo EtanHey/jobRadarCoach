@@ -78,3 +78,29 @@ test("broken or blocked storage never breaks logos", () => {
   assert.equal(corrupt.isMiss(url("acme.com")), false);
   assert.equal(createLogoMissCache(null, () => 1).isMiss(url("acme.com")), false);
 });
+
+test("malformed entries in otherwise valid JSON are ignored, never thrown on", () => {
+  const stored = { "/null.com": null, "/string.com": "x", "/number.com": 5, "/bad-at.com": { at: "soon", strikes: 1 },
+    "/bad-strikes.com": { at: 1, strikes: "two" }, "/ok.com": { at: 1, strikes: 2 } };
+  const storage = memoryStorage({ [LOGO_MISS_STORAGE_KEY]: JSON.stringify(stored) });
+  const cache = createLogoMissCache(storage, () => 2);
+  for (const path of ["null.com", "string.com", "number.com", "bad-at.com", "bad-strikes.com"]) {
+    assert.doesNotThrow(() => cache.isMiss(url(path)), path);
+    assert.equal(cache.isMiss(url(path)), false, path);
+  }
+  assert.equal(cache.isMiss(url("ok.com")), true, "well-formed entries survive");
+  assert.doesNotThrow(() => cache.recordMiss(url("null.com")));
+  assert.equal(cache.isMiss(url("null.com")), true);
+  assert.deepEqual(Object.keys(JSON.parse(storage.data.get(LOGO_MISS_STORAGE_KEY) ?? "{}")).sort(), ["/null.com", "/ok.com"], "rewrites drop the junk");
+  const array = createLogoMissCache(memoryStorage({ [LOGO_MISS_STORAGE_KEY]: "[1,2]" }), () => 2);
+  assert.equal(array.isMiss(url("ok.com")), false);
+});
+
+test("non-object or unparsable stored JSON reads as an empty cache", () => {
+  for (const raw of ["5", "\"str\"", "null", "true", "[1,2]", "{not json", ""]) {
+    const cache = createLogoMissCache(memoryStorage({ [LOGO_MISS_STORAGE_KEY]: raw }), () => 2);
+    assert.doesNotThrow(() => cache.isMiss(url("acme.com")), raw);
+    assert.equal(cache.isMiss(url("acme.com")), false, raw);
+    assert.doesNotThrow(() => cache.recordMiss(url("acme.com")), raw);
+  }
+});

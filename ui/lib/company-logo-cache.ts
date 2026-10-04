@@ -24,13 +24,17 @@ export function logoMissKey(src: string): string | null {
   }
 }
 
+const isEntry = (value: unknown): value is Entry => typeof value === "object" && value !== null
+  && Number.isFinite((value as Entry).at) && Number.isInteger((value as Entry).strikes) && (value as Entry).strikes > 0;
 const ttl = (entry: Entry) => entry.strikes >= 2 ? REPEAT_MISS_TTL : FIRST_MISS_TTL;
 
 export function createLogoMissCache(storage: MissStorage | null, now: () => number = Date.now): LogoMissCache {
   const read = (): Record<string, Entry> => {
     try {
       const parsed: unknown = JSON.parse(storage?.getItem(LOGO_MISS_STORAGE_KEY) ?? "{}");
-      return parsed && typeof parsed === "object" ? parsed as Record<string, Entry> : {};
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+      // Storage is shared and user-editable: keep only well-formed entries so a bad value can never break rendering.
+      return Object.fromEntries(Object.entries(parsed).filter((pair): pair is [string, Entry] => isEntry(pair[1])));
     } catch {
       return {};
     }

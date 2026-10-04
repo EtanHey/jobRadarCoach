@@ -89,3 +89,12 @@ test("a remembered Logo.dev miss renders initials at once and requests nothing",
   const expired = { "job-radar.logo-misses.v1": JSON.stringify({ "/acmerobotics.com": { at: Date.now() - 31 * 24 * 3600 * 1000, strikes: 2 } }) };
   assert.match(render(props, env, "CompanyLogo", expired), /<img[^>]+src="https:\/\/img\.logo\.dev\/acmerobotics\.com/);
 });
+
+test("a malformed miss-cache entry never breaks the logo render", () => {
+  const env = { NEXT_PUBLIC_LOGO_DEV_KEY: "pk_component_test" };
+  const props = { company: "Acme Robotics", applyUrl: "https://careers.acmerobotics.com/1" };
+  for (const raw of [JSON.stringify({ "/acmerobotics.com": null }), JSON.stringify({ "/acmerobotics.com": { at: "x", strikes: [] } }), "[1]", "{broken"]) {
+    const html = render(props, env, "CompanyLogo", { "job-radar.logo-misses.v1": raw });
+    assert.match(html, /<img[^>]+src="https:\/\/img\.logo\.dev\/acmerobotics\.com/, raw);
+  }
+});
