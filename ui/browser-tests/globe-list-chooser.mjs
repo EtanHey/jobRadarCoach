@@ -41,15 +41,15 @@ try {
       let cardPixels = 0;
       for (let x = headerBox.left + 2; x < headerBox.right - 2; x += 6) for (let y = Math.max(0, headerBox.top); y < headerBox.bottom; y += 2) if (document.elementFromPoint(x, y)?.closest("[data-globe-card]")) cardPixels++;
       return { gap: headerBox.top - railBox.top, headerTop: headerBox.top, coversTop: header.contains(document.elementFromPoint(headerBox.left + headerBox.width / 2, railBox.top + 1)),
-        headerScrolls: !!scroller?.contains(header), cardPixels };
+        headerScrolls: Boolean(scroller?.contains(header)), cardPixels };
     });
     const assertPinnedHeader = async () => {
       const metrics = await headerMetrics();
       assert.ok(Math.abs(metrics.gap) <= .5 && metrics.coversTop, `sticky chip covers rail top: ${JSON.stringify(metrics)}`);
       assert.ok(!metrics.headerScrolls && metrics.cardPixels === 0, `chip stays outside the scrolling list: ${JSON.stringify(metrics)}`);
     };
-    const scrollRail = top => page.locator(".globe-rail").evaluate((rail, top) => {
-      [rail, ...rail.querySelectorAll("*")].find(el => /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1).scrollTop = top;
+    const scrollRail = top => page.locator(".globe-rail").evaluate((rail, next) => {
+      [rail, ...rail.querySelectorAll("*")].find(el => /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1).scrollTop = next;
     }, top);
     let spread = false;
     await page.route("**/*", route => {
@@ -141,6 +141,18 @@ try {
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.locator('[data-globe-card]').first().locator("button").first().click();
     assert.equal(await page.locator('[data-globe-card]').first().getAttribute("data-globe-selected"), "true", "mobile card click still selects its row");
+    // The first card's keyboard ring paints above its top edge instead of hiding under the opaque sticky header.
+    // Escape clears the bubble chip first, then the selection.
+    for (let presses = 0; presses < 3 && await page.locator('[data-globe-selected="true"]').count(); presses++) { await page.keyboard.press("Escape"); await page.waitForTimeout(150); }
+    assert.equal(await page.locator('[data-globe-selected="true"]').count(), 0, "Escape clears the mobile selection");
+    await page.evaluate(() => { window.scrollTo(0, 0); document.activeElement?.blur(); });
+    await page.mouse.move(2, 2);
+    const firstArticle = page.locator("[data-globe-card] > article").first();
+    const topRingPixel = async () => { await page.waitForTimeout(300); const box = await firstArticle.boundingBox(); return page.screenshot({ clip: { x: box.x + box.width / 2, y: box.y - 1, width: 1, height: 1 } }); };
+    const restTop = await topRingPixel();
+    await firstArticle.locator("button").first().focus(); await page.keyboard.press("Shift+Tab"); await page.keyboard.press("Tab");
+    assert.equal(await firstArticle.evaluate(article => !!article.querySelector(":focus-visible")), true, "first mobile card has keyboard focus");
+    assert.notDeepEqual(await topRingPixel(), restTop, "mobile first-card keyboard ring paints above its top edge");
     assert.deepEqual(errors, []);
     console.log("chooser removed; 12-role stack filters rail; Escape, drag, and chip clear; duplicate listings make one dot");
   } finally { await context.close(); }

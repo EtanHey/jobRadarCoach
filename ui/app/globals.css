@@ -203,6 +203,8 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
 [data-hovered] > article { border-color: var(--globe-select); background-image: linear-gradient(color-mix(in oklab, var(--muted) 40%, transparent), color-mix(in oklab, var(--muted) 40%, transparent)); }
 [data-globe-selected=true] > article { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
 .globe-layout-open .globe-rail { min-height: 0; padding: 3px; }
+/* Ring room above the first card, so the opaque sticky header (page-scroll layouts) cannot cover its focus ring. */
+.globe-layout-open .globe-rail-list { padding-top: 3px; }
 .board-mobile-globe-counts { display: none; }
 @media (min-width: 901px) {
   .board-globe-open { min-height: 100dvh; }

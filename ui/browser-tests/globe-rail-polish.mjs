@@ -113,7 +113,7 @@ await phase("layout-empty", {}, async page => {
     for (let x = headerBox.left + 2; x < headerBox.right - 2; x += 6) for (let y = headerBox.top; y < headerBox.bottom; y += 2) if (document.elementFromPoint(x, y)?.closest("[data-globe-card]")) cardPixels++;
     return { gap: headerBox.top - railBox.top, coversTop: header.contains(topPixel), headerScrolls: scroller.contains(header), listBelowHeader: listBox.top - headerBox.bottom, cardPixels };
   }, await railScroller());
-  const scrollRail = async top => (await railScroller()).evaluate((scroller, top) => { scroller.scrollTop = top; }, top);
+  const scrollRail = async top => (await railScroller()).evaluate((scroller, next) => { scroller.scrollTop = next; }, top);
   for (const scrollTop of [0, 75, 400]) {
     await scrollRail(scrollTop);
     const top = await headerAtTop();
