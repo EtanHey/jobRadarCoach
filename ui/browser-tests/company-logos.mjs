@@ -30,7 +30,11 @@ const globe = { jobs, points: places.map(([, lng, lat], n) => ({ posting_id: id(
 const syntheticLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="64" cy="64" r="44" fill="#7c3aed"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">AR</text></svg>';
 
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
-const failures = [], passed = [], logoRequests = new Set();
+const failures = [], passed = [], logoRequests = new Set(), logoRequestCounts = new Map();
+// Lookup paths whose requests fail at the network layer (route.abort), to prove a transport error is never cached as a miss.
+const abortedLogoPaths = new Set();
+// Logo.dev's CDN answers with access-control-allow-origin: * (probed 2026-10-04); the fixture mirrors it so a CORS confirm can read the status.
+const cors = { "access-control-allow-origin": "*" };
 
 async function open(viewport, colorScheme, body) {
   const context = await browser.newContext({ viewport, colorScheme, reducedMotion: "reduce" });
@@ -48,7 +52,9 @@ async function open(viewport, colorScheme, body) {
       const request = route.request(), url = new URL(request.url());
       if (url.hostname === "img.logo.dev") {
         logoRequests.add(`${url.pathname}?${url.searchParams.get("fallback")}`);
-        return url.pathname === "/acmerobotics.com" ? route.fulfill({ contentType: "image/svg+xml", body: syntheticLogo }) : route.fulfill({ status: 404, body: "" });
+        logoRequestCounts.set(url.pathname, (logoRequestCounts.get(url.pathname) ?? 0) + 1);
+        if (abortedLogoPaths.has(url.pathname)) return route.abort("failed");
+        return url.pathname === "/acmerobotics.com" ? route.fulfill({ contentType: "image/svg+xml", headers: cors, body: syntheticLogo }) : route.fulfill({ status: 404, headers: cors, body: "" });
       }
       if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
       if (!url.pathname.startsWith("/api/")) return route.continue();
@@ -84,7 +90,9 @@ function checkLogos(logos, where) {
   assert.equal(logos.length, companies.length, `${where}: one logo per card`);
   logos.forEach((logo, n) => {
     const want = companies[n].expect;
-    assert.equal(logo.state, want.state, `${where} ${companies[n].company} state`);
+    // After the first 404 on a page, later renders of the same company use the remembered miss.
+    const states = want.state === "load-failed" ? ["load-failed", "cached-miss"] : [want.state];
+    assert.ok(states.includes(logo.state), `${where} ${companies[n].company} state ${logo.state}`);
     if (want.source) assert.equal(logo.source, want.source, `${where} ${companies[n].company} source`);
     if (want.initials) { assert.equal(logo.text, want.initials, `${where} ${companies[n].company} initials`); assert.equal(logo.image, null, `${where}: no broken image left behind`); }
     if (want.state === "loaded") { assert.ok(logo.image.natural > 0, `${where}: loaded image has pixels`); assert.equal(logo.image.opacity, "1"); }
@@ -135,6 +143,47 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
     } catch (error) { failures.push(`${name}: ${error.message.split("\n")[0]}`); }
   }
 }
+// A Logo.dev miss is billed like a hit and has no cache headers: after one 404 a reload must not ask again.
+try {
+  await open({ width: 1440, height: 900 }, "light", async page => {
+    await settled(page, "main");
+    // The miss is recorded after its 404 is confirmed, so wait for the entry before counting.
+    await page.waitForFunction(() => (localStorage.getItem("job-radar.logo-misses.v1") ?? "").includes("Nowhere%20Widgets"));
+    const before = logoRequestCounts.get("/name/Nowhere%20Widgets") ?? 0;
+    assert.ok(before > 0, "the first visit asked Logo.dev once");
+    await page.reload();
+    await page.locator("[data-posting-id]").first().waitFor();
+    await settled(page, "main");
+    const nowhere = page.locator('[data-company-logo][aria-label="Nowhere Widgets logo unavailable"]');
+    await nowhere.waitFor();
+    assert.equal(await nowhere.getAttribute("data-logo-state"), "cached-miss", "the known miss renders initials at once");
+    assert.equal(logoRequestCounts.get("/name/Nowhere%20Widgets") ?? 0, before, "no second request for a known miss");
+    const stored = await page.evaluate(() => localStorage.getItem("job-radar.logo-misses.v1") ?? "");
+    assert.match(stored, /Nowhere%20Widgets/);
+    assert.doesNotMatch(stored, /pk_|token/, "the key never reaches storage");
+    assert.equal(await page.locator('[data-company-logo][aria-label="Acme Robotics logo"]').getAttribute("data-logo-state"), "loaded", "hits are unaffected");
+  });
+  passed.push("miss-cache");
+} catch (error) { failures.push(`miss-cache: ${error.message.split("\n")[0]}`); }
+// B1: an <img> error cannot tell a provider 404 from a network failure. A transport failure must never be cached.
+try {
+  abortedLogoPaths.add("/acmerobotics.com");
+  await open({ width: 1440, height: 900 }, "light", async page => {
+    assert.equal(await page.evaluate(() => navigator.onLine), true, "the browser believes it is online");
+    await settled(page, "main");
+    const acme = page.locator('[data-company-logo][aria-label^="Acme Robotics logo"]');
+    const failedState = await acme.getAttribute("data-logo-state");
+    assert.equal(failedState, "load-failed", `the failed load shows initials (got ${failedState})`);
+    await page.waitForTimeout(800);
+    assert.doesNotMatch(await page.evaluate(() => localStorage.getItem("job-radar.logo-misses.v1") ?? ""), /acmerobotics/, "a network failure is not cached as a miss");
+    abortedLogoPaths.delete("/acmerobotics.com");
+    await page.reload();
+    await page.locator("[data-posting-id]").first().waitFor();
+    await settled(page, "main");
+    assert.equal(await acme.getAttribute("data-logo-state"), "loaded", "the real logo shows once the network recovers");
+  });
+  passed.push("abort-not-cached");
+} catch (error) { abortedLogoPaths.clear(); failures.push(`abort-not-cached: ${error.message.split("\n")[0]}`); }
 try {
   assert.ok(logoRequests.has("/acmerobotics.com?404"), "trusted company domain went to Logo.dev with fallback=404");
   assert.ok(logoRequests.has("/name/Nowhere%20Widgets?404"), "ATS-hosted posting fell back to a name lookup");

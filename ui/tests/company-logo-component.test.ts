@@ -8,8 +8,10 @@ import { pathToFileURL } from "node:url";
 const uiRoot = resolve(import.meta.dirname, "..");
 const componentUrl = pathToFileURL(resolve(uiRoot, "components/company-logo.tsx")).href;
 
-function render(props: Record<string, unknown>, env: Record<string, string> = {}, exportName = "CompanyLogo"): string {
+function render(props: Record<string, unknown>, env: Record<string, string> = {}, exportName = "CompanyLogo", storage?: Record<string, string>): string {
   const probe = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", `
+    ${storage ? `const data = new Map(Object.entries(${JSON.stringify(storage)}));
+    globalThis.window = { localStorage: { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) } };` : ""}
     import React from "react";
     import { renderToStaticMarkup } from "react-dom/server";
     const module = await import(${JSON.stringify(componentUrl)});
@@ -70,4 +72,29 @@ test("Logo.dev attribution renders only when Logo.dev can serve logos, and keeps
   assert.doesNotMatch(html, /noreferrer/);
   assert.match(html, /<a[^>]+target="_blank"[^>]+rel="noopener"/);
   assert.match(readFileSync(resolve(uiRoot, "components/job-board.tsx"), "utf8"), /<LogoDevAttribution \/>/);
+});
+
+test("a remembered Logo.dev miss renders initials at once and requests nothing", () => {
+  const env = { NEXT_PUBLIC_LOGO_DEV_KEY: "pk_component_test" };
+  const props = { company: "Acme Robotics", applyUrl: "https://careers.acmerobotics.com/1" };
+  const miss = { "job-radar.logo-misses.v1": JSON.stringify({ "/acmerobotics.com": { at: Date.now(), strikes: 2 } }) };
+  const html = render(props, env, "CompanyLogo", miss);
+  assert.match(html, /data-logo-state="cached-miss"/);
+  assert.match(html, /data-logo-source="logo-dev"/);
+  assert.match(html, />AR</);
+  assert.doesNotMatch(html, /<img|img\.logo\.dev/, "no request for a known miss");
+  // Another company's miss does not affect this one, and an expired miss asks again.
+  const other = { "job-radar.logo-misses.v1": JSON.stringify({ "/elsewhere.com": { at: Date.now(), strikes: 2 } }) };
+  assert.match(render(props, env, "CompanyLogo", other), /<img[^>]+src="https:\/\/img\.logo\.dev\/acmerobotics\.com/);
+  const expired = { "job-radar.logo-misses.v1": JSON.stringify({ "/acmerobotics.com": { at: Date.now() - 31 * 24 * 3600 * 1000, strikes: 2 } }) };
+  assert.match(render(props, env, "CompanyLogo", expired), /<img[^>]+src="https:\/\/img\.logo\.dev\/acmerobotics\.com/);
+});
+
+test("a malformed miss-cache entry never breaks the logo render", () => {
+  const env = { NEXT_PUBLIC_LOGO_DEV_KEY: "pk_component_test" };
+  const props = { company: "Acme Robotics", applyUrl: "https://careers.acmerobotics.com/1" };
+  for (const raw of [JSON.stringify({ "/acmerobotics.com": null }), JSON.stringify({ "/acmerobotics.com": { at: "x", strikes: [] } }), "[1]", "{broken"]) {
+    const html = render(props, env, "CompanyLogo", { "job-radar.logo-misses.v1": raw });
+    assert.match(html, /<img[^>]+src="https:\/\/img\.logo\.dev\/acmerobotics\.com/, raw);
+  }
 });

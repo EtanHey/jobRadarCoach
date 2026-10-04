@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { canonicalCompanyName, companyDomain, companyInitials, logoPathForCompany, resolveCompanyLogo } from "../lib/company-logos";
+import { companyLogoOverrides } from "../lib/company-logo-overrides";
 
 test("company names canonicalize without guessing corporate aliases", () => {
   assert.equal(canonicalCompanyName("  ACME\t Labs  "), "acme labs");
@@ -118,4 +119,14 @@ test("a generic word that merely prefixes the company name is not its domain", (
   assert.equal(companyDomain("TechGym", ["https://tech.com/careers"]), null);
   assert.equal(companyDomain("Labster", ["https://labs.com/careers"]), null);
   assert.equal(companyDomain("TechGym", ["https://techgym.co.il/careers"]), "techgym.co.il");
+});
+
+test("every initials pin in the shipped override map beats Logo.dev and the catalog", () => {
+  const pins = Object.entries(companyLogoOverrides).filter(([, pin]) => pin.kind === "initials");
+  // 7 placeholder employers plus the 9 wrong name matches from the 2026-10-04 eyeball review.
+  assert.ok(pins.length >= 16, `expected at least 16 initials pins, found ${pins.length}`);
+  for (const [name] of pins) {
+    assert.equal(name, canonicalCompanyName(name), `${name} is stored in canonical form`);
+    assert.equal(resolveCompanyLogo({ company: name.toUpperCase() }, { logoDevKey: KEY }), null, name);
+  }
 });
