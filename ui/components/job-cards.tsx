@@ -22,7 +22,7 @@ export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, se
   }, [groups, globeOpen, visiblePostingIds, bubble]);
   const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
-      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
+      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} logoSize={sections ? "sm" : "md"} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
       <TechnologyChips names={job.stack} presentation="card" />
     </JobCard>
   </div>);
