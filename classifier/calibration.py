@@ -135,16 +135,21 @@ def _required_unfamiliar_count(
     return len(required)
 
 
-def validate_policy(value: object) -> dict[str, object]:
+def _validate_policy_fields(value: object) -> dict[str, object]:
     if (not isinstance(value, dict) or not POLICY_FIELDS <= set(value)
             or set(value) - POLICY_FIELDS - OPTIONAL_POLICY_FIELDS):
         raise ValueError("scorer calibration has unsupported fields")
-    for key in ("familiar_primary_languages", "unfamiliar_technologies", "neutral_nice_to_have"):
-        _names(value[key])
     if "target_role_families" in value:
         families = _names(value["target_role_families"])
         if not families or not set(families) <= ROLE_FAMILIES:
             raise ValueError("invalid target role families")
+    return value
+
+
+def validate_policy(value: object) -> dict[str, object]:
+    value = _validate_policy_fields(value)
+    for key in ("familiar_primary_languages", "unfamiliar_technologies", "neutral_nice_to_have"):
+        _names(value[key])
     conditional = value["conditional_primary_languages"]
     if not isinstance(conditional, dict) or len(conditional) > 30:
         raise ValueError("invalid conditional primary languages")
@@ -227,15 +232,21 @@ def title_role_family(title: str) -> str | None:
     return None
 
 
+def _title_role_mismatch(policy: Mapping[str, object], title: str) -> bool:
+    targets = policy.get("target_role_families")
+    if targets is None:
+        return False
+    family = title_role_family(title)
+    return family is not None and family not in targets
+
+
 def apply_caps(annotation: dict[str, object], policy: Mapping[str, object],
                facts: Mapping[str, object], *,
                title: str = "") -> tuple[dict[str, object], tuple[str, ...]]:
     unfamiliar_count = _required_unfamiliar_count(policy, facts)
     score = annotation["fit_score"]
     rules: list[str] = []
-    targets = policy.get("target_role_families")
-    family = title_role_family(title)
-    if targets is not None and family is not None and family not in targets:
+    if _title_role_mismatch(policy, title):
         score = min(score, 59)
         rules.append("title_role_mismatch")
     years = facts["required_years"]
