@@ -13,7 +13,7 @@ import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
-import { loadJobDetail } from "@/lib/job-detail-request";
+import { DETAIL_LOAD_TIMEOUT_MESSAGE, DETAIL_LOAD_TIMEOUT_MS, loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
@@ -377,6 +377,17 @@ export function JobBoard() {
     open();
     return () => controller.abort();
   }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
+
+  useEffect(() => {
+    if (!selected || detail || detailError) return;
+    // SSE refreshes can replace reads, but cannot extend this selection's loading budget.
+    const timer = setTimeout(() => {
+      if (detailCoordinator.current().id !== selected) return;
+      detailRequestRef.current?.abort();
+      setDetailError(DETAIL_LOAD_TIMEOUT_MESSAGE);
+    }, DETAIL_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [detailCoordinator, selected, detail, detailError, detailRevision]);
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;

@@ -1,0 +1,55 @@
+// Synthetic lifecycle probe; never use an owner session or hosted traffic.
+import {chromium} from '@playwright/test';
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+const base=process.env.GLOBE_QA_URL??'http://127.0.0.1:4388',output=process.env.GLOBE_QA_OUTPUT;
+assert.equal(new URL(base).hostname,'127.0.0.1');assert.ok(output);await mkdir(output,{recursive:true});
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const template={company:'Synthetic Ten Roles',source:'fixture',last_seen_at:'2026-09-22',experience:null,description_available:true,seniority_origin:'unknown',extraction_state:'not-extracted',location:'Rehovot, Israel',remote:true,seniority:null,stack:[],salary:null,url:'https://example.test',apply_url:null,posted_at:null,first_seen_at:'2026-09-22',status:'new',status_reason:null,score:80,fit_line:null,recommendation:null,alive:true};
+const jobs=Array.from({length:10},(_,n)=>({...template,id:id(n),title:`Engineer ${n}`}));jobs.push({...jobs[0],id:id(10),first_seen_at:'2026-09-21'});
+const payload={jobs,points:jobs.map(j=>({posting_id:j.id,lat:31.8928,lng:34.8113,precision:'city',source:'Synthetic regression',resolved_at:'2026-09-22T00:00:00Z'})),total_count:jobs.length,resolved_count:jobs.length,unresolved_count:0,attribution:'© OpenStreetMap contributors'};
+const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});const receipts=[];
+try{const context=await browser.newContext({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
+try{const page=await context.newPage(),requests=[],errors=[];page.setDefaultTimeout(15000);
+let holdList=false,holdDetail=false;const pendingLists=[],pendingDetails=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.addInitScript(()=>{localStorage.setItem('job-radar.board-preferences',JSON.stringify({version:3,filter:'all',view:{search:'',source:'',location:'',seniority:'',fit:'',statuses:[],availability:'all',sort:'fit'}}));window.EventSource=class extends EventTarget{constructor(){super();window.__events=this;}close(){}emit(type){this.dispatchEvent(new MessageEvent(type,{data:'{}'}));}};});
+await page.route('**/*',route=>{const req=route.request(),url=new URL(req.url());if(url.hostname!=='127.0.0.1')return url.hostname.endsWith('.cartocdn.com')?route.continue():route.abort();if(!url.pathname.startsWith('/api/'))return route.continue();requests.push({method:req.method(),path:url.pathname});
+if(url.pathname==='/api/jobs/globe')return route.fulfill({json:payload});
+if(url.pathname==='/api/jobs'){if(holdList){pendingLists.push(route);return;}return route.fulfill({json:{jobs:[jobs[0]]}});}
+if(url.pathname.endsWith('/status'))return route.fulfill({json:{status:'seen',reason:null}});
+const selected=jobs.find(j=>url.pathname===`/api/jobs/${j.id}`);if(selected){if(holdDetail){pendingDetails.push(route);return;}return route.fulfill({json:{job:{...selected,raw_jd:`Fixture body ${selected.id}`,reasons:[],score_payload:null,brain:null,scored_at:null}}});}
+return route.fulfill({status:404,json:{error:'Fixture boundary'}});});
+const emit=type=>page.evaluate(type=>window.__events.emit(type),type);
+const open=async n=>{await page.getByRole('button',{name:`Open Engineer ${n} at Synthetic Ten Roles`,exact:true}).click();await page.getByRole('button',{name:'View job details',exact:true}).click();};
+const close=async()=>{await page.getByRole('dialog').getByRole('button',{name:'Close',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});};
+const body=n=>page.getByRole('dialog').getByText(`Fixture body ${id(n)}`,{exact:true});
+await page.goto(base);await page.waitForFunction(()=>!!window.__events);await emit('ready');await page.getByRole('button',{name:'Globe',exact:true}).click();await page.getByText('Drag to spin',{exact:false}).waitFor({timeout:30000});await page.waitForTimeout(700);
+const canvas=await page.locator('.maplibregl-canvas').boundingBox();await page.mouse.click(canvas.x+canvas.width/2,canvas.y+canvas.height/2);await page.getByRole('button',{name:/Clear bubble filter/}).waitFor();
+await open(0);await body(0).waitFor();receipts.push({case:'ten-role bubble representative',requests:[...requests]});
+await page.getByRole('dialog').getByText('Other listings for this role (1)',{exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:`Open Engineer 0 at Synthetic Ten Roles, listing ${id(10)}`,exact:true}).click();await body(10).waitFor();receipts.push({case:'alternate exact ID',requests:[...requests]});await close();
+holdList=true;await emit('refresh');await page.waitForTimeout(400);assert.ok(pendingLists.length);await open(1);await body(1).waitFor();receipts.push({case:'globe-only role during held list refresh',requests:[...requests]});await close();
+holdList=false;for(const route of pendingLists.splice(0))await route.fulfill({json:{jobs:[jobs[0]]}}).catch(()=>{});
+await emit('error');await emit('ready');await open(2);await body(2).waitFor();receipts.push({case:'after SSE reconnect',requests:[...requests]});await close();
+holdDetail=true;await open(3);await page.getByRole('dialog').getByRole('status').filter({hasText:'Loading job'}).waitFor();await emit('refresh');await page.waitForTimeout(400);assert.ok(pendingDetails.length>=2);
+holdDetail=false;for(const route of pendingDetails.splice(0)){const selected=jobs.find(j=>route.request().url().endsWith(j.id));await route.fulfill({json:{job:{...selected,raw_jd:`Fixture body ${selected.id}`,reasons:[],score_payload:null,brain:null,scored_at:null}}}).catch(()=>{});}
+await body(3).waitFor();receipts.push({case:'SSE detail refresh supersedes held opening read',requests:[...requests]});await close();holdDetail=true;await open(4);
+await page.getByRole('dialog').getByText('Loading job…',{exact:true}).waitFor();
+await page.screenshot({path:`${output}/stalled-loading.png`});
+await page.evaluate(()=>window.__refreshTimer=setInterval(()=>window.__events.emit('refresh'),500));
+await page.getByRole('dialog').getByRole('button',{name:'Retry loading role',exact:true}).waitFor({timeout:22000});
+await page.getByRole('dialog').getByRole('alert').getByText('Loading this role took too long. Retry, or open the original posting.',{exact:true}).waitFor();
+assert.equal(await page.getByRole('dialog').getByText('Loading job…',{exact:true}).count(),0);
+await page.screenshot({path:`${output}/timeout-retry.png`});
+receipts.push({case:'continuous SSE refresh cannot extend selection deadline',requests:[...requests]});
+await page.evaluate(()=>clearInterval(window.__refreshTimer));
+// Drain the queued150ms refresh while reads are still held, before exercising explicit Retry.
+await page.waitForTimeout(300);
+await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${output}/mobile-timeout-retry.png`});
+assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+await page.setViewportSize({width:1440,height:1100});
+holdDetail=false;await page.getByRole('dialog').getByRole('button',{name:'Retry loading role',exact:true}).click();await body(4).waitFor();
+assert.equal(await page.getByRole('dialog').getByRole('alert').count(),0);
+receipts.push({case:'explicit retry recovers exact role',requests:[...requests]});
+assert.deepEqual(errors,[]);await page.screenshot({path:`${output}/detail-loaded.png`});
+}finally{await context.close();}}finally{await browser.close();await writeFile(`${output}/detail-hang-receipt.json`,JSON.stringify(receipts,null,2));}console.log(JSON.stringify(receipts.map(({case:name,requests})=>({case:name,requests:requests.length}))));

@@ -62,3 +62,41 @@ test("job detail failure log correlates response without including private error
   assert.equal(unavailable.status, 503);
   assert.equal(JSON.parse(log.mock.calls[1].arguments[0]).category, "database");
 });
+
+test("a queued detail fetch reaches a bounded error and aborts its transport", async () => {
+  let transportSignal: AbortSignal | undefined;
+  const read = loadJobDetail(fixture.id, new AbortController().signal, async (_url, options) => {
+    transportSignal = options!.signal!;
+    return new Promise<Response>(() => {});
+  }, async () => {}, 20);
+  await assert.rejects(Promise.race([read, new Promise((_, reject) => setTimeout(() => reject(new Error("TEST: detail still pending past deadline")), 100))]), /took too long.*Retry/);
+  assert.equal(transportSignal?.aborted, true);
+});
+
+test("a stalled response body is covered by the same detail deadline", async () => {
+  const response = new Response();
+  response.json = () => new Promise(() => {});
+  const read = loadJobDetail(fixture.id, new AbortController().signal, async () => response, async () => {}, 20);
+  await assert.rejects(Promise.race([read, new Promise((_, reject) => setTimeout(() => reject(new Error("TEST: detail body still pending past deadline")), 100))]), /took too long.*Retry/);
+});
+
+test("closing a queued read preserves caller cancellation without retrying", async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  const read = loadJobDetail(fixture.id, controller.signal, async () => {
+    calls++; return new Promise<Response>(() => {});
+  }, async () => assert.fail("unexpected retry"), 50);
+  const reason = new DOMException("Selection closed", "AbortError");
+  controller.abort(reason);
+  await assert.rejects(Promise.race([read, new Promise((_, reject) => setTimeout(() => reject(new Error("TEST: cancelled read still pending")), 100))]), error => error === reason);
+  assert.equal(calls, 1);
+});
+
+test("the detail deadline includes time spent waiting between retries", async () => {
+  let calls = 0;
+  const read = loadJobDetail(fixture.id, new AbortController().signal, async () => {
+    calls++; return new Response(null, {status: 503});
+  }, async () => new Promise(() => {}), 20);
+  await assert.rejects(Promise.race([read, new Promise((_, reject) => setTimeout(() => reject(new Error("TEST: retry wait still pending past deadline")), 100))]), /took too long.*Retry/);
+  assert.equal(calls, 1);
+});
