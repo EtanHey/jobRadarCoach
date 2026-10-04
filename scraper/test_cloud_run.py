@@ -43,7 +43,7 @@ def _assert_harvest_contract(
     attempted_set = {url for url, _backoffs, _opener in attempted}
     assert all(set(urls) <= attempted_set for urls in source_urls.values())
     assert appended_url in attempted_set
-    assert all(not backoffs and opener == cloud_run.NO_REDIRECT_OPEN for _url, backoffs, opener in attempted)
+    assert all(not backoffs and opener is cloud_run.NO_REDIRECT_OPEN for _url, backoffs, opener in attempted)
     assert loader_openers == [cloud_run.NO_REDIRECT_OPEN] * 2
     assert len(attempted) == sum(map(len, source_urls.values())) + 5
     assert len(jd_attempted) == 8 and len(liveness_attempted) == 4
