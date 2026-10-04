@@ -10,10 +10,10 @@ permissions:
 
 concurrency:
   group: python-tests-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  python-db:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -74,4 +74,6 @@ jobs:
               db.execute("create extension pgtap")
           PY
       - name: Run all Python and SQL contracts (latest migrations included)
+        # Migrations run as the disposable container's postgres superuser.
+        # Hosted postgres has fewer privileges; this does not prove hosted-apply permissions.
         run: uv run --locked --group test pytest -ra --junitxml=python-tests.xml
