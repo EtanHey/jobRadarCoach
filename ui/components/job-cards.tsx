@@ -2,14 +2,15 @@
 import { useMemo, useRef, type RefObject } from "react";
 import type { DuplicateJobGroup } from "@/lib/job-dedup";
 import { partitionGlobeGroups } from "@/lib/globe-viewport";
+import { keptCardStatus } from "@/lib/job-status";
 import { JobCard } from "./job-card";
 import { TechnologyChips } from "./technology-chips";
 import { Button } from "./ui/button";
 
-type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; visiblePostingIds?: readonly string[]; selectedId?: string | null;
+type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; filter?: string; visiblePostingIds?: readonly string[]; selectedId?: string | null;
   bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void;
   openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void };
-export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, openerRef, selectJob, openDetail, bubble, clearBubble, onWholeWorld }: Props) {
+export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, selectedId, openerRef, selectJob, openDetail, bubble, clearBubble, onWholeWorld }: Props) {
   const hoveredCard = useRef<string | null>(null);
   // Card hover tells the globe once per card boundary, never per mousemove.
   const hoverCard = (id: string | null) => { if (id !== hoveredCard.current) { hoveredCard.current = id; window.dispatchEvent(new CustomEvent("job-globe-hover", { detail: id })); } };
@@ -20,7 +21,7 @@ export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, ope
   }, [groups, globeOpen, visiblePostingIds, bubble]);
   const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
-      selected={globeOpen ? selectedId === job.id : undefined} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
+      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
       <TechnologyChips names={job.stack} presentation="card" />
     </JobCard>
   </div>);

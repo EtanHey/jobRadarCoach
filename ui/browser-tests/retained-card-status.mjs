@@ -53,6 +53,8 @@ for (const page of pages) {
 }
 const card = (page, n) => page.locator(`article[data-posting-id="${jobs[n].id}"]`);
 const refresh = page => page.evaluate(() => window.fixtureEvents.listeners.get("refresh")());
+// In New for me a kept card that moved on from "new" is settled: dimmed content plus a text status chip.
+const keptChip = (page, n) => card(page, n).locator("[data-kept-status]");
 try {
   const [a, b] = pages;
   await Promise.all(pages.map(page => page.goto(base)));
@@ -66,6 +68,14 @@ try {
   await refresh(a);
   await expect.poll(() => fixture.hydrationCalls).toBeGreaterThan(before);
   await expect(card(a, 0)).toBeVisible();
+  await expect(card(a, 0)).toHaveAttribute("data-settled", "");
+  await expect(keptChip(a, 0)).toHaveText("Applied");
+  await expect(card(a, 1)).not.toHaveAttribute("data-settled", "");
+  await expect(keptChip(a, 1)).toHaveCount(0);
+  assert.equal(await card(a, 0).evaluate(article => getComputedStyle(article).opacity), "1", "the frame (hover border, focus ring) is not dimmed");
+  await card(a, 0).getByRole("button").first().focus();
+  assert.notEqual(await card(a, 0).evaluate(article => getComputedStyle(article).boxShadow), "none", "focus ring still visible on a settled card");
+  await a.screenshot({ path: `${output}/list-kept-applied.png` });
   assert.deepEqual(await a.locator("article[data-posting-id]").evaluateAll(cards => cards.map(row => row.dataset.postingId)), jobs.slice(0, 2).map(job => job.id));
   await card(a, 0).getByRole("button").first().click();
   await expect(a.getByRole("dialog").getByRole("combobox", { name: "Application status" })).toHaveText("Applied");
@@ -75,28 +85,28 @@ try {
   // the drawer detail GET which independently reads the latest status.
   jobs[0].status = "worth_checking";
   await refresh(a);
-  await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();
+  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
   await a.screenshot({ path: `${output}/list-retained.png` });
   fixture.failHydration = true;
   await refresh(a);
   await expect(a.getByText(/Showing previous results/)).toBeVisible();
-  await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();
+  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
   fixture.failHydration = false;
   await a.getByRole("button", { name: "Globe", exact: true }).click();
   await expect(card(a, 2)).toBeVisible({ timeout: 30000 });
-  await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();
+  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
   // ID 2 exists only in the globe cohort, beyond the list fixture's row limit.
   await b.evaluate(async id => {
     await fetch(`/api/jobs/${id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "worth_checking" }) });
   }, jobs[2].id);
   await refresh(a);
-  await expect(card(a, 2).getByLabel("Worth checking")).toBeVisible();
-  await expect(card(a, 0).getByLabel("Worth checking")).toBeVisible();
+  await expect(card(a, 2).locator("[data-kept-status]")).toHaveText("Worth checking");
+  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
   await a.screenshot({ path: `${output}/globe-retained.png` });
   await a.getByRole("button", { name: "Globe", exact: true }).click();
   await a.getByRole("button", { name: "All roles", exact: true }).click();
   await a.getByRole("button", { name: "New for me", exact: true }).click();
   await expect(card(a, 0)).toHaveCount(0);
   assert.deepEqual(errors, []);
-  console.log("PASS: two contexts; background Applied retained; explicit Applied removed locally; list/globe bookmarks refresh; failed hydration warns; leaving the list view clears list retention.");
+  console.log("PASS: two contexts; background Applied retained with the settled cue; explicit Applied removed locally; list/globe bookmarks refresh; failed hydration warns; leaving the list view clears list retention.");
 } finally { await browser.close(); }
