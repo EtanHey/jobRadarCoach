@@ -19,7 +19,7 @@ export function postingDates(postedAt: string | null, firstSeenAt: string | null
   const dates: PostingDate[] = [];
   if (posted) dates.push({ label: `Posted ${posted}`, dateTime: postedAt ?? undefined });
   const republished = relativeAge(lastPublishedAt, now);
-  if (republished && posted && Date.parse(lastPublishedAt!) > Date.parse(postedAt!)) {
+  if (republished && posted && lastPublishedAt && postedAt && Date.parse(lastPublishedAt) > Date.parse(postedAt)) {
     dates.push({ label: `Republished ${republished}`, dateTime: lastPublishedAt ?? undefined });
   } else if (republished && !posted) {
     dates.push({ label: `Published ${republished}`, dateTime: lastPublishedAt ?? undefined });

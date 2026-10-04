@@ -46,9 +46,9 @@ const server = createServer((req, res) => {
   if (req.url === "/app.js") { res.setHeader("Content-Type", "text/javascript"); return res.end(bundle.outputFiles[0].text); }
   if (req.url === "/style.css") { res.setHeader("Content-Type", "text/css"); return res.end(css); }
   res.setHeader("Content-Type", "text/html");
-  res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/app.js"></script></body></html>');
+  return res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/app.js"></script></body></html>');
 });
-await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
+await new Promise(ready => server.listen(0, "127.0.0.1", ready));
 const browser = await chromium.launch({ headless: true });
 try {
   for (const width of [1280, 390]) {
@@ -74,4 +74,4 @@ try {
     await page.close();
   }
   console.log("PASS: original-date tie order, 3 date timestamps, drawer dates, no horizontal overflow; desktop 1280 and mobile 390.");
-} finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
+} finally { await browser.close(); await new Promise(closed => server.close(closed)); }
