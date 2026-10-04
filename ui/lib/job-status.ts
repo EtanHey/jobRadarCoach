@@ -1,5 +1,11 @@
-import { JobStatusSchema } from "./contracts";
+import { JobStatusSchema, type JobSummary, type StatusPatch } from "./contracts";
 export type JobStatus = typeof JobStatusSchema.options[number];
+export function isStatusPatchNoop(job: Pick<JobSummary, "status" | "status_reason">, patch: StatusPatch): boolean {
+  return patch.status === job.status && (!("reason" in patch) || patch.reason === undefined || patch.reason === job.status_reason);
+}
+export function statusMutationRemovesCard(filter: string, status: JobStatus): boolean {
+  return filter === "new-for-me" && status !== "new";
+}
 export const pipelineStatusValues = [
   "worth_checking", "applied", "screen", "interview_technical", "interview_final",
   "offer", "contract", "rejected", "archived", "not_relevant",

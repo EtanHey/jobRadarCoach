@@ -21,6 +21,7 @@ import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
 import { StatusSelect } from "./status-select";
+import { isStatusPatchNoop, statusMutationRemovesCard } from "@/lib/job-status";
 import { buttonVariants } from "./ui/button";
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
@@ -379,6 +380,7 @@ export function JobBoard() {
 
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
+    if (isStatusPatchNoop(detail, patch)) return true;
     const id = detail.id;
     const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
@@ -392,8 +394,9 @@ export function JobBoard() {
       }
       visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
       setJobs((current) => updateJobStatus(current, id, result.status, result.reason));
-      patchGlobeStatus(id, result, filterRef.current === "new-for-me");
-      if (filterRef.current === "new-for-me") {
+      const remove = statusMutationRemovesCard(filterRef.current, result.status);
+      patchGlobeStatus(id, result, remove);
+      if (remove) {
         visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
         setJobs((current) => current.filter((job) => job.id !== id));
       }
