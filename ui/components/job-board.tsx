@@ -379,13 +379,12 @@ export function JobBoard() {
   }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
 
   useEffect(() => {
-    if (!selected || detail || detailError) return undefined;
     // SSE refreshes can replace reads, but cannot extend this selection's loading budget.
-    const timer = setTimeout(() => {
+    const timer = selected && !detail && !detailError ? setTimeout(() => {
       if (detailCoordinator.current().id !== selected) return;
       detailRequestRef.current?.abort();
       setDetailError(DETAIL_LOAD_TIMEOUT_MESSAGE);
-    }, DETAIL_LOAD_TIMEOUT_MS);
+    }, DETAIL_LOAD_TIMEOUT_MS) : undefined;
     return () => clearTimeout(timer);
   }, [detailCoordinator, selected, detail, detailError, detailRevision]);
 
