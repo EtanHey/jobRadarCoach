@@ -15,7 +15,7 @@ const payload = { jobs, points: places.map(([, lng, lat], n) => ({ posting_id: i
 const CARD = id(1);
 const card = page => page.locator(`article[data-posting-id="${CARD}"]`);
 const look = page => card(page).evaluate(async article => {
-  await Promise.all(article.getAnimations().map(animation => animation.finished.catch(() => {})));
+  await Promise.all(article.getAnimations().map(animation => animation.finished.catch(() => null)));
   const style = getComputedStyle(article), shadows = style.boxShadow.split(/,(?![^(]*\))/).map(part => part.trim());
   return { border: style.borderColor, ring: shadows.some(part => / 0px 0px 0px 2px$/.test(part) && !part.startsWith("rgba(0, 0, 0, 0)")),
     lift: shadows.filter(part => !/ 0px 0px 0px /.test(part)).join(", "), duration: style.transitionDuration, properties: style.transitionProperty,
@@ -37,7 +37,8 @@ try {
         localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter: "all",
           view: { search: "", source: "", location: "", seniority: "", fit: "", statuses: [], availability: "active", sort: "fit" } }));
         localStorage.setItem("job-globe-dragged", "1");
-        window.EventSource = class { addEventListener() {} close() {} };
+        // A silent stream: the board waits on it, the fixture never pushes.
+        window.EventSource = class extends EventTarget { close() { this.closed = true; } };
       });
       const page = await context.newPage(), errors = [], label = `${mode}/${reducedMotion}`;
       page.on("pageerror", error => errors.push(error.message));
