@@ -18,12 +18,12 @@ test("refresh accepts only exact canonical brand names or domain labels", () => 
 
 test("refresh queries unseen names once, keeps null decisions, throttles and discards provider URLs", async () => {
   const requests: { url: URL; init?: RequestInit }[] = [], waits: number[] = [];
-  const fetcher = async (input: string | URL | Request, init?: RequestInit) => {
+  const fetcher = (input: string | URL | Request, init?: RequestInit) => {
     requests.push({ url: new URL(String(input)), init });
-    return new Response(JSON.stringify([{ name: "New Brand", domain: "newbrand.com", logo_url: "https://img.logo.dev/x?token=NEVER_PERSIST" }]));
+    return Promise.resolve(new Response(JSON.stringify([{ name: "New Brand", domain: "newbrand.com", logo_url: "https://img.logo.dev/x?token=NEVER_PERSIST" }])));
   };
   const existing = { known: "known.com", rejected: null };
-  const output = await refreshDomains(["KNOWN", "Rejected", " New Brand ", "new brand", "Unmatched", ""], existing, "sk_synthetic", fetcher as typeof fetch, async ms => { waits.push(ms); });
+  const output = await refreshDomains(["KNOWN", "Rejected", " New Brand ", "new brand", "Unmatched", ""], existing, "sk_synthetic", fetcher as typeof fetch, ms => { waits.push(ms); return Promise.resolve(); });
   assert.deepEqual({ ...output }, { ...existing, "new brand": "newbrand.com", unmatched: null });
   assert.equal(requests.length, 2);
   assert.deepEqual(waits, [1000]);
@@ -39,16 +39,16 @@ test("refresh queries unseen names once, keeps null decisions, throttles and dis
 });
 
 test("refresh errors preserve decisions and never include credentials or provider bodies", async () => {
-  const fetcher = async () => new Response("sk_synthetic provider body", { status: 429 });
+  const fetcher = () => Promise.resolve(new Response("sk_synthetic provider body", { status: 429 }));
   await assert.rejects(refreshDomains(["Acme"], {}, "sk_synthetic", fetcher as typeof fetch), /^Error: Brand Search failed \(HTTP 429\)$/);
-  const malformed = async () => new Response(JSON.stringify({ error: "sk_synthetic" }));
+  const malformed = () => Promise.resolve(new Response(JSON.stringify({ error: "sk_synthetic" })));
   await assert.rejects(refreshDomains(["Acme"], {}, "sk_synthetic", malformed as typeof fetch), /Invalid Brand Search response/);
 });
 
 test("transport errors and invalid JSON are sanitized without credentials", async () => {
-  const network = async () => { throw new Error("request sk_synthetic"); };
+  const network = () => Promise.reject(new Error("request sk_synthetic"));
   await assert.rejects(refreshDomains(["Acme"], {}, "sk_synthetic", network as typeof fetch), /^Error: Brand Search request failed$/);
-  const invalid = async () => new Response("sk_synthetic invalid JSON");
+  const invalid = () => Promise.resolve(new Response("sk_synthetic invalid JSON"));
   await assert.rejects(refreshDomains(["Acme"], {}, "sk_synthetic", invalid as typeof fetch), /^Error: Invalid Brand Search response$/);
 });
 
@@ -76,9 +76,9 @@ test("CLI preserves known/null decisions without a provider request and fails sa
 
 test("malformed candidates are provider errors, not permanent low-confidence decisions", async () => {
   for (const candidate of [null, {}, "not a candidate", { name: 7, domain: "acme.com" }, { name: "Acme", domain: 7 }]) {
-    const fetcher = async () => new Response(JSON.stringify([candidate]));
+    const fetcher = () => Promise.resolve(new Response(JSON.stringify([candidate])));
     await assert.rejects(refreshDomains(["Acme"], {}, "sk_synthetic", fetcher as typeof fetch), /^Error: Invalid Brand Search response$/);
   }
-  const empty = async () => new Response("[]");
+  const empty = () => Promise.resolve(new Response("[]"));
   assert.deepEqual(await refreshDomains(["Acme"], {}, "sk_synthetic", empty as typeof fetch), { acme: null });
 });
