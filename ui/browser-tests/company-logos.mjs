@@ -17,8 +17,10 @@ const companies = [
   { company: "Acme Robotics", apply_url: "https://careers.acmerobotics.com/jobs/1", expect: { source: "logo-dev", state: "loaded" } },
   { company: "Nowhere Widgets", apply_url: "https://job-boards.greenhouse.io/nowhere/jobs/1", expect: { source: "logo-dev", state: "load-failed", initials: "NW" } },
   { company: "Confidential", expect: { state: "unmapped", initials: "C" } },
+  { company: "Jeen.ai", expect: { source: "logo-dev", state: "loaded" } },
+  { company: "TalentHop", expect: { state: "unmapped", initials: "T" } },
 ];
-const places = [["Rehovot, Israel", 34.8113, 31.8928], ["Berlin, Germany", 13.405, 52.52], ["Tel Aviv, Israel", 34.7818, 32.0853], ["London, United Kingdom", -0.1276, 51.5072]];
+const places = [["Rehovot, Israel", 34.8113, 31.8928], ["Berlin, Germany", 13.405, 52.52], ["Tel Aviv, Israel", 34.7818, 32.0853], ["London, United Kingdom", -0.1276, 51.5072], ["Paris, France", 2.3522, 48.8566], ["Rome, Italy", 12.4964, 41.9028]];
 const jobs = companies.map(({ company, apply_url = null }, n) => ({ id: id(n), title: `Fixture engineer ${n}`, company, source: "fixture",
   last_seen_at: "2026-10-04T00:00:00Z", experience: "3+ years", description_available: true, seniority_origin: "title",
   extraction_state: "not-extracted", location: places[n][0], remote: false, seniority: "Junior", stack: ["React", "TypeScript"], salary: null,
@@ -54,7 +56,7 @@ async function open(viewport, colorScheme, body) {
         logoRequests.add(`${url.pathname}?${url.searchParams.get("fallback")}`);
         logoRequestCounts.set(url.pathname, (logoRequestCounts.get(url.pathname) ?? 0) + 1);
         if (abortedLogoPaths.has(url.pathname)) return route.abort("failed");
-        return url.pathname === "/acmerobotics.com" ? route.fulfill({ contentType: "image/svg+xml", headers: cors, body: syntheticLogo }) : route.fulfill({ status: 404, headers: cors, body: "" });
+        return ["/acmerobotics.com", "/jeen.ai"].includes(url.pathname) ? route.fulfill({ contentType: "image/svg+xml", headers: cors, body: syntheticLogo }) : route.fulfill({ status: 404, headers: cors, body: "" });
       }
       if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
       if (!url.pathname.startsWith("/api/")) return route.continue();
@@ -130,7 +132,7 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
 
         await page.getByRole("button", { name: "Globe", exact: true }).click();
         await page.locator('[data-globe-section="visible"]').waitFor({ timeout: 30000 });
-        await page.waitForFunction(() => document.querySelectorAll("#globe-rail [data-company-logo]").length === 4, null, { timeout: 30000 });
+        await page.waitForFunction(count => document.querySelectorAll("#globe-rail [data-company-logo]").length === count, companies.length, { timeout: 30000 });
         const rail = byCompany(await logosIn(page, "#globe-rail"));
         checkLogos(rail, `${name} rail`);
         assert.ok(rail.every(logo => logo.size === "sm" && logo.width === 40), `${name}: rail cards use the compact 40 px tile`);
@@ -186,6 +188,8 @@ try {
 } catch (error) { abortedLogoPaths.clear(); failures.push(`abort-not-cached: ${error.message.split("\n")[0]}`); }
 try {
   assert.ok(logoRequests.has("/acmerobotics.com?404"), "trusted company domain went to Logo.dev with fallback=404");
+  assert.ok(logoRequests.has("/jeen.ai?404"), "mapped company uses domain lookup");
+  assert.ok(![...logoRequests].some(request => /name\/Jeen|TalentHop/i.test(request)), "mapped names and map-null companies never use name lookup");
   assert.ok(logoRequests.has("/name/Nowhere%20Widgets?404"), "ATS-hosted posting fell back to a name lookup");
   assert.ok(![...logoRequests].some(request => /greenhouse|confidential|wix/i.test(request)), "no ATS host, placeholder or catalog name reached Logo.dev");
   passed.push("requests");

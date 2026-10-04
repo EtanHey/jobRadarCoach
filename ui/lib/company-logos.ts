@@ -1,11 +1,14 @@
+import domainsJson from "./company-logo-domains.json";
 import catalogJson from "./company-logo-catalog.json";
 import { companyLogoOverrides, type CompanyLogoOverride } from "./company-logo-overrides";
 
+export type CompanyLogoDomainMap = Readonly<Record<string, string | null>>;
+const domains: CompanyLogoDomainMap = domainsJson;
 const catalog = catalogJson as Record<string, string>;
 
 export type CompanyLogoSource = { kind: "catalog" | "override" | "logo-dev"; src: string };
 export type CompanyLogoInput = { company: string; applyUrl?: string | null; url?: string | null };
-export type CompanyLogoOptions = { logoDevKey?: string; overrides?: Readonly<Record<string, CompanyLogoOverride>> };
+export type CompanyLogoOptions = { logoDevKey?: string; domainMap?: CompanyLogoDomainMap; overrides?: Readonly<Record<string, CompanyLogoOverride>> };
 
 // Rendered at up to 64 CSS px, so one 2x request serves every size and stays a single cache entry.
 const LOGO_DEV_SIZE = 128;
@@ -77,7 +80,7 @@ function logoDevUrl(path: string, key: string): string {
 }
 
 /**
- * One resolution order for every logo in the app: override map, curated catalog, Logo.dev (domain, then name),
+ * One resolution order for every logo in the app: override map, curated catalog, apply domain, confident map, then unseen names,
  * else null so the caller renders initials. Logo.dev only runs with a publishable (pk_) key.
  */
 export function resolveCompanyLogo(input: CompanyLogoInput, options: CompanyLogoOptions = {}): CompanyLogoSource | null {
@@ -92,7 +95,13 @@ export function resolveCompanyLogo(input: CompanyLogoInput, options: CompanyLogo
   if (curated) return { kind: "catalog", src: curated };
   if (!key || !name) return null;
   const domain = companyDomain(input.company, [input.applyUrl, input.url]);
-  return { kind: "logo-dev", src: logoDevUrl(domain ?? `name/${encodeURIComponent(input.company.trim())}`, key) };
+  if (domain) return { kind: "logo-dev", src: logoDevUrl(domain, key) };
+  const domainMap = options.domainMap ?? domains;
+  if (Object.hasOwn(domainMap, name)) {
+    const mapped = domainMap[name];
+    return mapped ? { kind: "logo-dev", src: logoDevUrl(mapped, key) } : null;
+  }
+  return { kind: "logo-dev", src: logoDevUrl(`name/${encodeURIComponent(input.company.trim())}`, key) };
 }
 
 /** Next.js inlines NEXT_PUBLIC_* at build time; the pk_ key is publishable by design (docs.logo.dev). */
