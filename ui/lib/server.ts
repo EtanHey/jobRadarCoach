@@ -101,7 +101,10 @@ export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidR
   return { jobs: rows.map(summary), invalidRowCount: 0 };
 }
 
-async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
+export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
+  if (input.ids) {
+    return parseSummaryRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
+  }
   if (input.filter === "new-for-me") {
     const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
       db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
