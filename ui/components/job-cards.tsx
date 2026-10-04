@@ -28,11 +28,13 @@ export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, se
   </div>);
   if (globeOpen && !sections) return <div role="status" className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Counting roles on screen…</div>;
   if (!sections) return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{cards(groups)}</div>;
-  return <div className="space-y-5" onPointerOver={event => hoverCard(cardId(event.target))} onPointerLeave={() => hoverCard(null)}
+  // The header is a sibling above the list, so in the scrolling rail only the list scrolls and nothing paints behind the chip.
+  return <div className="globe-rail-cards" onPointerOver={event => hoverCard(cardId(event.target))} onPointerLeave={() => hoverCard(null)}
     // Keyboard focus lights the globe dot exactly like hover; mouse and script focus leave that to the pointer.
     onFocus={event => { if ((event.target as Element).matches(":focus-visible")) hoverCard(cardId(event.target)); }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) hoverCard(null); }}>
+    <div className="globe-rail-header flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">{bubble ? <button type="button" onClick={clearBubble} aria-label={`Clear bubble filter: ${bubble.place} · ${sections.visible.length} ${sections.visible.length === 1 ? "role" : "roles"}`} className="rounded-full border border-primary px-3 py-1 text-primary">{bubble.place} · {sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"} ×</button> : "On screen"}</h2>{!bubble && <span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span>}</div>
+    <div className="globe-rail-list space-y-5">
     <section data-globe-section="visible" aria-labelledby="globe-visible-heading">
-      <div className="globe-rail-header mb-3 flex items-center justify-between px-1"><h2 id="globe-visible-heading" className="text-sm font-semibold">{bubble ? <button type="button" onClick={clearBubble} aria-label={`Clear bubble filter: ${bubble.place} · ${sections.visible.length} ${sections.visible.length === 1 ? "role" : "roles"}`} className="rounded-full border border-primary px-3 py-1 text-primary">{bubble.place} · {sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"} ×</button> : "On screen"}</h2>{!bubble && <span className="text-xs text-muted-foreground">{sections.visible.length} {sections.visible.length === 1 ? "role" : "roles"}</span>}</div>
       {sections.visible.length ? <div className="grid grid-cols-1 gap-3">{cards(sections.visible)}</div> : <div className="rounded-xl border border-dashed p-5 text-sm"><p className="font-medium">Nothing on screen here.</p><p className="mt-1 text-muted-foreground">Zoom out or drag to another region.</p><Button variant="outline" className="mt-4" onClick={onWholeWorld}>Show whole world</Button></div>}
     </section>
     {!bubble && <section data-globe-section="outside" aria-labelledby="globe-outside-heading">
@@ -40,5 +42,6 @@ export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, se
       <p className="mb-3 px-1 text-xs text-muted-foreground">Other places, closed roles, and roles without a location.</p>
       <div className="grid grid-cols-1 gap-3">{cards(sections.outside)}</div>
     </section>}
+    </div>
   </div>;
 }

@@ -198,10 +198,13 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
 .job-globe-shell { height: 100%; }
 .job-globe { position: relative; height: 100%; min-height: 0; background: var(--globe-space); border-radius: 1rem; overflow: hidden; }
 .job-globe:fullscreen { height: 100dvh; border-radius: 0; }
-.globe-rail-header { position: sticky; top: 0; z-index: 2; min-height: 2rem; padding-block: .25rem; background: var(--background); }
+/* The gap under the header is header padding, not margin, so a sticky header (page-scroll layouts) hides cards fully. */
+.globe-rail-header { position: sticky; top: 0; z-index: 2; min-height: 2.75rem; padding-block: .25rem 1rem; background: var(--background); }
 [data-hovered] > article { border-color: var(--globe-select); background-image: linear-gradient(color-mix(in oklab, var(--muted) 40%, transparent), color-mix(in oklab, var(--muted) 40%, transparent)); }
 [data-globe-selected=true] > article { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
-.globe-layout-open .globe-rail { min-height: 0; overflow-y: auto; padding: 3px; scrollbar-gutter: stable; }
+.globe-layout-open .globe-rail { min-height: 0; padding: 3px; }
+/* Ring room above the first card, so the opaque sticky header (page-scroll layouts) cannot cover its focus ring. */
+.globe-layout-open .globe-rail-list { padding-top: 3px; }
 .board-mobile-globe-counts { display: none; }
 @media (min-width: 901px) {
   .board-globe-open { min-height: 100dvh; }
@@ -217,8 +220,12 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
   .job-search-globe { display: flex; flex: 1; min-height: 0; flex-direction: column; }
   .globe-layout-open { flex: 1; height: 100%; align-items: stretch; }
   .globe-layout-open .globe-slot { position: static; height: auto; }
-  /* Let the sticky header cover the rail's top edge, including while cards scroll beneath it. */
-  .globe-layout-open .globe-rail { overflow-y: auto; padding-top: 0; }
+  /* The rail column never scrolls: its header is a fixed sibling above the only scroller, the card list, so the
+     scrollbar sits beside the list and the header covers the rail's top edge. Ring room moves onto the list. */
+  .globe-layout-open .globe-rail { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+  .globe-layout-open .globe-rail-cards { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+  .globe-layout-open .globe-rail-header { flex: none; margin-inline: 3px; overflow: hidden; scrollbar-gutter: stable; }
+  .globe-layout-open .globe-rail-list { flex: 1; min-height: 0; overflow-y: auto; padding: 3px; scrollbar-gutter: stable; }
 }
 @media (max-width: 900px) {
   .board-globe-open { min-height: 100dvh; }

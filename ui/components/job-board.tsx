@@ -109,11 +109,11 @@ export function JobBoard() {
     const rowId = groups.find(group => [group.job, ...group.alternates].some(job => job.id === id))?.job.id;
     if (rowId) requestAnimationFrame(() => {
       const row = document.querySelector<HTMLElement>(`[data-posting-id="${rowId}"]`);
-      const rail = row?.closest<HTMLElement>(".globe-rail");
+      const rail = row?.closest<HTMLElement>(".globe-rail-list");
       if (!row || !rail || rail.scrollHeight <= rail.clientHeight) return;
-      // Click-only scroll, block "nearest", clearing the sticky rail header.
+      // Click-only scroll, block "nearest". The rail header sits above the list, so the list's own edges are the bounds.
       const card = row.getBoundingClientRect(), viewport = rail.getBoundingClientRect();
-      const delta = card.top < viewport.top + 36 ? card.top - viewport.top - 36 : card.bottom > viewport.bottom ? card.bottom - viewport.bottom + 3 : 0;
+      const delta = card.top < viewport.top + 3 ? card.top - viewport.top - 3 : card.bottom > viewport.bottom ? card.bottom - viewport.bottom + 3 : 0;
       if (delta) rail.scrollTo({ top: rail.scrollTop + delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
   }
