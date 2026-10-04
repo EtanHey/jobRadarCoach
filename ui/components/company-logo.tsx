@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { companyInitials, logoDevKey, resolveCompanyLogo } from "@/lib/company-logos";
+import { browserLogoMissCache } from "@/lib/company-logo-cache";
 
 // Deliberately Next-free (plain <img>): the drawer's import graph must stay host-portable.
 const sizes = { sm: "size-10 text-xs", md: "size-14 text-sm sm:size-16" } as const;
@@ -17,17 +18,25 @@ type CompanyLogoProps = {
 
 export function CompanyLogo({ company, applyUrl, url, size = "md", className }: CompanyLogoProps) {
   const source = resolveCompanyLogo({ company, applyUrl, url }, { logoDevKey });
-  const src = source?.src ?? null;
+  // Logo.dev bills misses too; one this device already saw renders initials without asking again.
+  // Cards and the drawer only render client-side (after preferences load), so reading storage here cannot mismatch hydration.
+  const misses = source?.kind === "logo-dev" ? browserLogoMissCache() : null;
+  const knownMiss = source !== null && misses?.isMiss(source.src) === true;
+  const src = knownMiss ? null : source?.src ?? null;
   const [settled, setSettled] = useState<{ src: string; ok: boolean } | null>(null);
-  const state = !src ? "unmapped" : settled?.src !== src ? "loading" : settled.ok ? "loaded" : "load-failed";
+  const state = knownMiss ? "cached-miss" : !src ? "unmapped" : settled?.src !== src ? "loading" : settled.ok ? "loaded" : "load-failed";
   const settle = useCallback((ok: boolean) => {
-    if (src) setSettled(current => current?.src === src && current.ok === ok ? current : { src, ok });
-  }, [src]);
+    if (!src) return;
+    setSettled(current => current?.src === src && current.ok === ok ? current : { src, ok });
+    // Offline failures say nothing about Logo.dev, so only an online failure counts as a miss.
+    if (ok) misses?.recordHit(src);
+    else if (typeof navigator === "undefined" || navigator.onLine !== false) misses?.recordMiss(src);
+  }, [src, misses]);
   // An image can finish before hydration attaches onLoad/onError; read its outcome on mount.
   const probe = useCallback((image: HTMLImageElement | null) => {
     if (image?.complete) settle(image.naturalWidth > 0);
   }, [settle]);
-  const initials = state === "unmapped" || state === "load-failed";
+  const initials = state === "unmapped" || state === "load-failed" || state === "cached-miss";
 
   return <span data-company-logo="" data-logo-size={size} data-logo-state={state} data-logo-source={source?.kind} role="img" aria-label={initials ? `${company} logo unavailable` : `${company} logo`}
     className={cn("relative grid shrink-0 place-items-center overflow-hidden rounded-lg border font-bold", state === "loaded" ? "bg-white" : "bg-muted text-muted-foreground", sizes[size], className)}>
