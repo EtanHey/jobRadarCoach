@@ -14,4 +14,15 @@ export const companyLogoOverrides: Readonly<Record<string, CompanyLogoOverride>>
   "stealth mode startup": { kind: "initials" },
   "stealth mode": { kind: "initials" },
   "undisclosed": { kind: "initials" },
+  // Wrong Logo.dev name-lookup images found in the 2026-10-04 eyeball review of the top companies
+  // (docs.local/qa/2026-10-04-logo-eyeball). Pin a curated file or a domain instead once a correct mark is verified.
+  "travelfactory lab": { kind: "initials" },
+  "saic": { kind: "initials" },
+  "ashley digital": { kind: "initials" },
+  "qed science": { kind: "initials" },
+  "deepl": { kind: "initials" },
+  "extreme": { kind: "initials" },
+  "solo clash": { kind: "initials" },
+  "ergo next insurance": { kind: "initials" },
+  "lovapex tech": { kind: "initials" },
 };
