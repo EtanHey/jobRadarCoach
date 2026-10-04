@@ -22,7 +22,7 @@ try {
     const page = await context.newPage();
     const jobs = [0, 1, 2].map(fixtureJob);
     const state = { holdAll: mode === "open", allRequested: false, allLists: 0, newRequests: 0 };
-    let releaseAll;
+    let releaseAll = null;
     const heldAll = new Promise(resolve => { releaseAll = resolve; });
     const errors = [];
     try {
