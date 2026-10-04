@@ -36,6 +36,13 @@ def base(query):
     return url.rsplit('/', 1)[0] + f"/wday/cxs/{query['account']}/{query['site']}"
 
 
+def _valid_record(job):
+    return (isinstance(job, dict) and isinstance(job.get('title'), str) and bool(job['title'].strip())
+            and isinstance(job.get('externalPath'), str) and JOB_PATH.fullmatch(job['externalPath'])
+            and isinstance(job.get('bulletFields'), list) and bool(job['bulletFields'])
+            and isinstance(job['bulletFields'][0], str))
+
+
 def _page(body, offset=0):
     payload = json.loads(body) if body else None
     if not isinstance(payload, dict) or type(payload.get('total')) is not int or payload['total'] < 0:
@@ -43,12 +50,8 @@ def _page(body, offset=0):
     jobs = payload.get('jobPostings')
     if not isinstance(jobs, list) or len(jobs) > 20 or (offset == 0 and len(jobs) > payload['total']):
         raise ValueError('invalid Workday page')
-    for job in jobs:
-        if (not isinstance(job, dict) or not isinstance(job.get('title'), str) or not job['title'].strip()
-                or not isinstance(job.get('externalPath'), str) or not JOB_PATH.fullmatch(job['externalPath'])
-                or not isinstance(job.get('bulletFields'), list) or not job['bulletFields']
-                or not isinstance(job['bulletFields'][0], str)):
-            raise ValueError('invalid Workday record')
+    if any(not _valid_record(job) for job in jobs):
+        raise ValueError('invalid Workday record')
     return payload
 
 
