@@ -362,6 +362,13 @@ class _LinkedInCardParser(HTMLParser):
         for class_name, field in self.FIELD_CLASSES.items():
             if class_name in classes:
                 self.captures.append((tag, field))
+                if tag == "time" and field == "posted_ago":
+                    try:
+                        published = date.fromisoformat(attributes.get("datetime", ""))
+                    except ValueError:
+                        pass  # Never turn a relative age into an invented publication date.
+                    else:
+                        self.card["posted_at"] = f"{published.isoformat()}T00:00:00Z"
                 break
 
     def handle_data(self, data: str) -> None:
@@ -397,6 +404,8 @@ class _LinkedInCardParser(HTMLParser):
             "url": str(self.card.get("url", "")),
             "posted_ago": fields.get("posted_ago", ""),
         }
+        if self.card.get("posted_at"):
+            posting["posted_at"] = str(self.card["posted_at"])
         visible = [
             posting["title"],
             posting["company"],

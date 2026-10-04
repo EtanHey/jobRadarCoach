@@ -82,6 +82,7 @@ def test_parse_saved_linkedin_guest_fixture() -> None:
             "location": "Tel Aviv District, Israel",
             "url": "https://il.linkedin.com/jobs/view/full-stack-engineer-at-gotfriends-4449293792",
             "posted_ago": "1 hour ago",
+            "posted_at": "2026-08-09T00:00:00Z",
             "raw_text": "Full Stack Engineer Gotfriends Tel Aviv District, Israel Be an early applicant 1 hour ago",
         },
         {
@@ -91,6 +92,7 @@ def test_parse_saved_linkedin_guest_fixture() -> None:
             "location": "Tel Aviv-Yafo, Tel Aviv District, Israel",
             "url": "https://il.linkedin.com/jobs/view/full-stack-next-js-developer-customer-facing-web-ai-first-at-bridgify-4449288878",
             "posted_ago": "1 hour ago",
+            "posted_at": "2026-08-09T00:00:00Z",
             "raw_text": "Full Stack Next.js Developer, Customer-Facing Web (AI-First) Bridgify Tel Aviv-Yafo, Tel Aviv District, Israel Be an early applicant 1 hour ago",
         },
     ]
@@ -3094,3 +3096,16 @@ def test_run_pipeline_dispatches_registry_queries_and_isolates_tenants(
     assert {(row["source"], row["source_tenant"]) for row in rows} == {
         ("linkedin", "linkedin-guest"), ("lever", "good")
     }
+
+
+def test_linkedin_absolute_publication_is_preserved_without_guessing_relative_age() -> None:
+    harvest = load_harvest_module()
+    html = '''<div class="job-search-card" data-entity-urn="urn:li:jobPosting:123">
+      <a class="base-card__full-link" href="https://example.test/job"></a>
+      <h3 class="base-search-card__title">Engineer</h3>
+      <time class="job-search-card__listdate" datetime="2026-10-01">3 days ago</time>
+    </div>'''
+    assert harvest.parse_job_cards(html)[0]["posted_at"] == "2026-10-01T00:00:00Z"
+    for value in ["", "invalid"]:
+        row = harvest.parse_job_cards(html.replace('datetime="2026-10-01"', f'datetime="{value}"'))[0]
+        assert "posted_at" not in row

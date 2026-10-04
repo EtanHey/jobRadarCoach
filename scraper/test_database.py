@@ -19,7 +19,7 @@ MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
 @pytest.fixture(scope="module")
 def migrated_database_url():
     try:
-        with migrated_database(MIGRATIONS, through=6) as url:
+        with migrated_database(MIGRATIONS, through=19) as url:
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
@@ -160,7 +160,7 @@ def test_posting_upsert_preserves_rich_fields_identity_and_status(connection) ->
         connection, [rich], "2026-09-07T10:00:00Z"
     )
     connection.execute(
-        "update public.posting_status set status = 'saved' where posting_id = %s",
+        "update public.posting_status set status = 'worth_checking' where posting_id = %s",
         (posting_id,),
     )
     thin = {
@@ -208,7 +208,7 @@ def test_posting_upsert_preserves_rich_fields_identity_and_status(connection) ->
     }
     assert connection.execute(
         "select status from public.posting_status where posting_id = %s", (posting_id,)
-    ).fetchone() == ("saved",)
+    ).fetchone() == ("worth_checking",)
     assert connection.execute(
         "select count(*) from public.posting_scores where posting_id = %s", (posting_id,)
     ).fetchone() == (0,)
@@ -350,3 +350,20 @@ def test_concurrent_same_identity_is_counted_new_once(migrated_database_url) -> 
                 "delete from public.postings where source = 'test' and external_id = %s",
                 (external_id,),
             )
+
+
+@pytest.mark.parametrize("later", ["2026-10-01T00:00:00Z", None, "invalid"])
+def test_repost_keeps_original_publication_and_discovery(connection, later) -> None:
+    posting = {"source": "fixture", "id": f"dates-{uuid4()}",
+               "url": "https://example.test/dates", "title": "Engineer", "company": "Fixture",
+               "posted_at": "2026-09-01T00:00:00Z"}
+    [posting_id] = database.persist_postings(connection, [posting], "2026-09-02T00:00:00Z")
+    database.persist_postings(connection, [{**posting, "posted_at": later}], "2026-10-02T00:00:00Z")
+    assert connection.execute("select posted_at::text, first_seen_at::text from postings where id=%s",
+                              (posting_id,)).fetchone() == ("2026-09-01 00:00:00+00", "2026-09-02 00:00:00+00")
+    assert connection.execute("select last_published_at::text from postings where id=%s",
+                              (posting_id,)).fetchone() == (("2026-10-01" if later and later != "invalid" else "2026-09-01") + " 00:00:00+00",)
+    # A late-arriving older observation can repair the original, but cannot roll back the latest.
+    database.persist_postings(connection, [{**posting, "posted_at": "2026-08-01T00:00:00Z"}], "2026-10-03T00:00:00Z")
+    assert connection.execute("select posted_at::text from postings where id=%s",
+                              (posting_id,)).fetchone() == ("2026-08-01 00:00:00+00",)

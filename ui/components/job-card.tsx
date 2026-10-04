@@ -40,7 +40,7 @@ export function JobCard({ job, selected, actions, alternateCount = 0, openerRef,
     <div className="pointer-events-none mt-auto grid min-w-0 gap-1 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2">
       <span className="min-w-0 flex-1 truncate" title={experience}>{experience}</span>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
-        <PostingDates postedAt={job.posted_at} firstSeenAt={job.first_seen_at} className="shrink-0" />
+        <PostingDates postedAt={job.posted_at} lastPublishedAt={job.last_published_at} firstSeenAt={job.first_seen_at} className="shrink-0" />
         <span className="shrink-0 capitalize">{job.source}</span>
         {alternateCount > 0 && <span className="shrink-0" title="Open to choose another listing">{alternateCount + 1} listings</span>}
       </div>

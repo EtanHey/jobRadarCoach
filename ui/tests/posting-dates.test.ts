@@ -8,13 +8,13 @@ const now = Date.parse("2026-09-08T12:00:00Z");
 const found = "2026-09-08T10:00:00Z";
 const posted = "2026-09-07T12:00:00Z";
 
-function markup(postedAt: string | null, firstSeenAt: string | null): string {
+function markup(postedAt: string | null, firstSeenAt: string | null, lastPublishedAt: string | null = null): string {
   const componentUrl = pathToFileURL(resolve(import.meta.dirname, "../components/posting-dates.tsx")).href;
   const probe = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", `
     import { renderToStaticMarkup } from "react-dom/server";
     import * as module from ${JSON.stringify(componentUrl)};
     const PostingDates = module.PostingDates ?? module.default?.PostingDates;
-    process.stdout.write(renderToStaticMarkup(PostingDates(${JSON.stringify({ postedAt, firstSeenAt, now })})));
+    process.stdout.write(renderToStaticMarkup(PostingDates(${JSON.stringify({ postedAt, firstSeenAt, lastPublishedAt, now })})));
   `], { cwd: resolve(import.meta.dirname, ".."), encoding: "utf8" });
   assert.equal(probe.status, 0, probe.stderr);
   return probe.stdout;
@@ -31,4 +31,12 @@ test("missing publish date shows only discovery age", () => {
   const rendered = markup(null, found);
   assert.match(rendered, /Found 2h ago/);
   assert.doesNotMatch(rendered, /Posted/);
+});
+
+
+test("republication renders its own machine-readable timestamp", () => {
+  const rendered = markup("2026-09-01T12:00:00Z", found, posted);
+  assert.match(rendered, /Posted 7d ago.*Republished 1d ago.*Found 2h ago/);
+  assert.match(rendered, /dateTime="2026-09-01T12:00:00Z"/);
+  assert.match(rendered, /dateTime="2026-09-07T12:00:00Z"/);
 });

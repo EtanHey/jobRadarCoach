@@ -28,3 +28,14 @@ test("cards keep published and first-discovery dates distinct", () => {
   assert.deepEqual(postingDates(posted, null, now), [{ label: "Posted 1d ago", dateTime: posted }]);
   assert.deepEqual(postingDates(null, null, now), [{ label: "Date unavailable", dateTime: undefined }]);
 });
+
+test("latest publication is separate and equal instants do not masquerade as reposts", () => {
+  const original = "2026-09-01T12:00:00Z", latest = "2026-09-07T12:00:00Z", found = "2026-09-08T10:00:00Z";
+  assert.deepEqual(postingDates(original, found, now, latest), [
+    { label: "Posted 7d ago", dateTime: original },
+    { label: "Republished 1d ago", dateTime: latest },
+    { label: "Found 2h ago", dateTime: found },
+  ]);
+  assert.equal(postingDates(original, found, now, "2026-09-01T14:00:00+02:00").length, 2);
+  assert.equal(postingDates(original, found, now, "invalid").length, 2);
+});
