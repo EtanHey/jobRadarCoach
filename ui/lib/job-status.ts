@@ -13,3 +13,8 @@ export const statusLabels: Record<JobStatus, string> = {
 export const statusOptions = JobStatusSchema.options.filter((value) => value !== "skipped")
   .map((value) => ({value, label: statusLabels[value]}));
 export const pipelineStatusOptions = pipelineStatusValues.map((value) => ({ value, label: statusLabels[value] }));
+
+/** "New for me" keeps a visit's cards on screen; one whose status moved on from new shows it as a settled cue. */
+export function keptCardStatus(filter: string, status: JobStatus): JobStatus | null {
+  return filter === "new-for-me" && status !== "new" ? status : null;
+}
