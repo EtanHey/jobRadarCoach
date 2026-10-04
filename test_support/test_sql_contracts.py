@@ -43,13 +43,15 @@ def test_latest_migrations_apply():
 @pytest.mark.parametrize("contract", CONTRACTS, ids=lambda path: path.name)
 def test_sql_contract(contract):
     # Numbered contract files include assertions updated by later migrations.
-    with migrated_database(MIGRATIONS, through=LATEST) as url:
-        with psycopg.connect(url, autocommit=True) as db:
-            cursor = db.execute(contract.read_text(encoding="utf-8"))
-            output = []
-            while True:
-                if cursor.description:
-                    output.extend(row[0] for row in cursor.fetchall() if isinstance(row[0], str))
-                if not cursor.nextset():
-                    break
-            assert_tap(output)
+    with (
+        migrated_database(MIGRATIONS, through=LATEST) as url,
+        psycopg.connect(url, autocommit=True) as db,
+    ):
+        cursor = db.execute(contract.read_text(encoding="utf-8"))
+        output = []
+        while True:
+            if cursor.description:
+                output.extend(row[0] for row in cursor.fetchall() if isinstance(row[0], str))
+            if not cursor.nextset():
+                break
+        assert_tap(output)
