@@ -34,6 +34,13 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    const assertPinnedHeader = async () => {
+      const metrics = await page.locator(".globe-rail").evaluate(rail => {
+        const header = rail.querySelector(".globe-rail-header"), railBox = rail.getBoundingClientRect(), headerBox = header.getBoundingClientRect();
+        return { gap: headerBox.top - railBox.top, coversTop: header.contains(document.elementFromPoint(headerBox.left + headerBox.width / 2, railBox.top + 1)) };
+      });
+      assert.ok(Math.abs(metrics.gap) <= .5 && metrics.coversTop, `sticky chip covers rail top: ${JSON.stringify(metrics)}`);
+    };
     let spread = false;
     await page.route("**/*", route => {
       const request = route.request(), url = new URL(request.url());
@@ -60,11 +67,21 @@ try {
     assert.equal(await page.locator('[data-globe-section="outside"]').count(), 0);
     assert.ok(Number(await page.locator("[data-projection]").getAttribute("data-zoom")) >= zoom);
     assert.equal(await page.locator('[aria-label="Job search"]').getByText(/posting/i).count(), 0);
+    await assertPinnedHeader();
+    const firstCard = await page.locator('[data-globe-card]').first().boundingBox();
+    const chipHeader = await page.locator(".globe-rail-header").boundingBox();
+    assert.ok(firstCard.y >= chipHeader.y + chipHeader.height, "first card is clear of the chip at list top");
+    await page.locator(".globe-rail").evaluate(rail => { rail.scrollTop = 75; });
+    await assertPinnedHeader();
     await page.keyboard.press("Escape");
     await page.getByRole("heading", { name: "On screen", exact: true }).waitFor();
+    await assertPinnedHeader();
     await page.waitForTimeout(200);
     await bubble.click();
     await page.getByRole("button", { name: "Clear bubble filter" }).waitFor();
+    await assertPinnedHeader();
+    await page.locator(".globe-rail").evaluate(rail => { rail.scrollTop = 0; });
+    await assertPinnedHeader();
     const canvas = await page.locator(".maplibregl-canvas").boundingBox();
     await page.mouse.move(canvas.x + canvas.width * .75, canvas.y + canvas.height * .4);
     await page.mouse.down();
@@ -74,6 +91,7 @@ try {
     await bubble.click();
     await page.getByRole("button", { name: "Clear bubble filter" }).click();
     await page.getByRole("heading", { name: "On screen", exact: true }).waitFor();
+    await assertPinnedHeader();
     await page.getByPlaceholder("Search title, company, or stack").fill("Fixture role 11");
     await page.locator('[data-globe-section="visible"] [data-posting-id]').first().waitFor({ timeout: 10000 });
     await page.waitForFunction(() => document.querySelectorAll('[data-globe-section="visible"] [data-posting-id]').length === 1);
@@ -101,6 +119,13 @@ try {
     assert.equal(await page.locator("#globe-visible-heading button").count(), 1, "dot click keeps its bubble chip behind the detail dialog");
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Clear bubble filter" }).waitFor({ timeout: 5000 });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mobileHeader = await page.locator(".globe-rail-header").boundingBox();
+    const mobileCard = await page.locator('[data-globe-card]').first().boundingBox();
+    assert.ok(mobileCard.y >= mobileHeader.y + mobileHeader.height, "mobile card stays below the filter header");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "mobile rail has no horizontal overflow");
+    await page.locator('[data-globe-card]').first().locator("button").first().click();
+    assert.equal(await page.locator('[data-globe-card]').first().getAttribute("data-globe-selected"), "true", "mobile card click still selects its row");
     assert.deepEqual(errors, []);
     console.log("chooser removed; 12-role stack filters rail; Escape, drag, and chip clear; duplicate listings make one dot");
   } finally { await context.close(); }

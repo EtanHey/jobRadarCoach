@@ -215,7 +215,8 @@ html[data-globe-transition="off"]::view-transition-old(globe-slot) { animation: 
   .job-search-globe { display: flex; flex: 1; min-height: 0; flex-direction: column; }
   .globe-layout-open { flex: 1; height: 100%; align-items: stretch; }
   .globe-layout-open .globe-slot { position: static; height: auto; }
-  .globe-layout-open .globe-rail { overflow-y: auto; }
+  /* Let the sticky header cover the rail's top edge, including while cards scroll beneath it. */
+  .globe-layout-open .globe-rail { overflow-y: auto; padding-top: 0; }
 }
 @media (max-width: 900px) {
   .board-globe-open { min-height: 100dvh; }
