@@ -31,32 +31,38 @@ function normalize(value: string): string {
   return value.normalize("NFKC").toLowerCase().replace(/\([^)]*\)/gu, "")
     .replace(/[.’']/gu, "").replace(/[-–/|]/gu, " ").replace(/\s+/gu, " ").trim();
 }
-function facts(value: string | null) {
-  const text = normalize(value ?? ""), parts = text.split(",").map(part => part.trim());
-  const country = countries.filter(([, aliases]) => new RegExp(`(?:^|[ ,])(?:${aliases})(?:$|[ ,])`, "u").test(text)).map(([key]) => key);
-  let city: string | null = null, region: string | null = null;
-  const first = parts[0];
+type LocationFacts = { text: string; country: string[]; city: string | null; region: string | null };
+function israelHints(result: LocationFacts, first: string) {
   for (const [key, area, aliases] of israelCities) {
-    if (aliases.split("|").includes(first)) { city = key; region = area; if (!country.length) country.push("israel"); }
+    if (aliases.split("|").includes(first)) { result.city = key; result.region = area; if (!result.country.length) result.country.push("israel"); }
   }
   for (const area of ["tel aviv", "haifa", "jerusalem", "center", "north", "south"]) {
-    if (text.includes(`${area} district`)) { region = area; if (!country.length) country.push("israel"); }
+    if (result.text.includes(`${area} district`)) { result.region = area; if (!result.country.length) result.country.push("israel"); }
   }
-  if (country.length === 0) {
+}
+function usHints(result: LocationFacts, parts: string[]) {
+  if (result.country.length === 0) {
     for (const [key, area] of usCities) {
-      if (first === key && !country.length) { city = key; region = area; country.push("us"); }
+      if (parts[0] === key && !result.country.length) { result.city = key; result.region = area; result.country.push("us"); }
     }
   }
-  const namedStates = Object.keys(states).filter(name => new RegExp(`(?:^|[ ,])${name}(?:$|[ ,])`, "u").test(text));
-  if (namedStates.length && !country.length) country.push("us");
-  if (country.length === 1 && country[0] === "us") {
+  const namedStates = Object.keys(states).filter(name => new RegExp(`(?:^|[ ,])${name}(?:$|[ ,])`, "u").test(result.text));
+  if (namedStates.length && !result.country.length) result.country.push("us");
+  if (result.country.length === 1 && result.country[0] === "us") {
     const codes = [...new Set(parts.map(part => part.replace(/^or /u, "")).filter(part => stateCodes.includes(part)))];
     const areas = [...new Set([...codes, ...namedStates.map(name => states[name])])];
-    if (areas.length === 1) region = areas[0];
+    if (areas.length === 1) result.region = areas[0];
   }
-  if (country.length === 1 && !city && parts.length > 1 && !countries.some(([, aliases]) => aliases.split("|").includes(first))
-    && !states[first] && !/district|region|remote|central|customer/gu.test(first)) city = first;
-  return { text, country, city, region };
+}
+function facts(value: string | null): LocationFacts {
+  const text = normalize(value ?? ""), parts = text.split(",").map(part => part.trim()), first = parts[0];
+  const country = countries.filter(([, aliases]) => new RegExp(`(?:^|[ ,])(?:${aliases})(?:$|[ ,])`, "u").test(text)).map(([key]) => key);
+  const result: LocationFacts = { text, country, city: null, region: null };
+  israelHints(result, first);
+  usHints(result, parts);
+  if (country.length === 1 && !result.city && parts.length > 1 && !countries.some(([, aliases]) => aliases.split("|").includes(first))
+    && !states[first] && !/district|region|remote|central|customer/gu.test(first)) result.city = first;
+  return result;
 }
 export function compatibleRepostLocations(a: string | null, b: string | null): boolean {
   const left = facts(a), right = facts(b);

@@ -54,7 +54,7 @@ const server = createServer((req, res) => {
   return res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/app.js"></script></body></html>');
 });
 await new Promise(ready => server.listen(0, "127.0.0.1", ready));
-let browser;
+let browser = null;
 try {
   browser = await chromium.launch({ headless: true });
   for (const width of [1280, 390]) {

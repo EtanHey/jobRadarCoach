@@ -118,13 +118,13 @@ test("short listing IDs remain stable and distinguish fixture postings", () => {
 
 
 test("matching company/title and compatible location links new IDs across sources without JD", () => {
-  const a = { ...job(40, { apply_url: null, url: "https://www.linkedin.com/jobs/view/400" }), external_id: "old" };
-  const b = { ...job(41, { apply_url: null, url: "https://www.linkedin.com/jobs/view/401" }), external_id: "new" };
-  assert.equal(groupDuplicateJobs([a, b]).length, 1);
+  const leftListing = { ...job(40, { apply_url: null, url: "https://www.linkedin.com/jobs/view/400" }), external_id: "old" };
+  const rightListing = { ...job(41, { apply_url: null, url: "https://www.linkedin.com/jobs/view/401" }), external_id: "new" };
+  assert.equal(groupDuplicateJobs([leftListing, rightListing]).length, 1);
   const ats = { ...job(42, { source: "greenhouse", apply_url: null, url: "https://boards.greenhouse.io/fixture/jobs/123" }), external_id: "123" };
-  const groups = groupDuplicateJobs([a, ats]);
+  const groups = groupDuplicateJobs([leftListing, ats]);
   assert.equal(groups.length, 1);
-  assert.deepEqual(globePoints(groups, [a, ats].map(row => ({posting_id: row.id, lat: 32, lng: 34, precision: "city", source: "fixture", resolved_at: row.first_seen_at}))).map(point => point.rowId), [groups[0].job.id, groups[0].job.id]);
+  assert.deepEqual(globePoints(groups, [leftListing, ats].map(row => ({posting_id: row.id, lat: 32, lng: 34, precision: "city", source: "fixture", resolved_at: row.first_seen_at}))).map(point => point.rowId), [groups[0].job.id, groups[0].job.id]);
 });
 
 test("different known locations stay separate even with shared role URL", () => {
@@ -153,11 +153,11 @@ test("strong canonical role links title drift and preserves original group date"
 });
 
 test("missing-location bridge cannot collapse different locations; membership is input-stable", () => {
-  const a = job(80, { location: "Tel Aviv, Israel" });
+  const leftListing = job(80, { location: "Tel Aviv, Israel" });
   const bridge = job(81, { location: null });
   const other = job(82, { location: "Haifa, Israel" });
-  for (const rows of [[a, bridge, other], [other, bridge, a]]) {
-    assert.deepEqual(groupDuplicateJobs(rows).map(group => [group.job.id, ...group.alternates.map(row => row.id)]), [[a.id, bridge.id], [other.id]]);
+  for (const rows of [[leftListing, bridge, other], [other, bridge, leftListing]]) {
+    assert.deepEqual(groupDuplicateJobs(rows).map(group => [group.job.id, ...group.alternates.map(row => row.id)]), [[leftListing.id, bridge.id], [other.id]]);
   }
 });
 
