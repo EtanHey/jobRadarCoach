@@ -39,7 +39,7 @@ test("catalog logos render on the shared neutral frame and stay hidden until loa
 });
 
 test("every size shares one frame and only the box size changes", () => {
-  const frame = (html: string) => html.match(/^<span data-company-logo[^>]+class="([^"]+)"/)![1].split(" ").filter((name) => !name.startsWith("size-") && !name.startsWith("sm:size-") && !name.startsWith("text-")).sort();
+  const frame = (html: string) => (html.match(/^<span data-company-logo[^>]+class="([^"]+)"/)?.[1] ?? "").split(" ").filter((name) => !name.startsWith("size-") && !name.startsWith("sm:size-") && !name.startsWith("text-")).sort();
   const sm = render({ company: "Wix", size: "sm" });
   const md = render({ company: "Wix" });
   assert.match(sm, /data-logo-size="sm"/);
@@ -68,5 +68,6 @@ test("Logo.dev attribution renders only when Logo.dev can serve logos, and keeps
   const html = render({}, { NEXT_PUBLIC_LOGO_DEV_KEY: "pk_component_test" }, "LogoDevAttribution");
   assert.match(html, /<a[^>]+href="https:\/\/logo\.dev"[^>]*>Logos provided by Logo\.dev<\/a>/);
   assert.doesNotMatch(html, /noreferrer/);
+  assert.match(html, /<a[^>]+target="_blank"[^>]+rel="noopener"/);
   assert.match(readFileSync(resolve(uiRoot, "components/job-board.tsx"), "utf8"), /<LogoDevAttribution \/>/);
 });

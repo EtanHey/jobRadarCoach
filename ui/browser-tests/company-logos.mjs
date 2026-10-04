@@ -27,7 +27,7 @@ const jobs = companies.map(({ company, apply_url = null }, n) => ({ id: id(n), t
 const detail = job => ({ ...job, raw_jd: "Synthetic description for the logo fixture.", reasons: [], score_payload: null, brain: null, scored_at: null });
 const globe = { jobs, points: places.map(([, lng, lat], n) => ({ posting_id: id(n), lng, lat, precision: "city", source: "Synthetic fixture", resolved_at: "2026-10-04T00:00:00Z" })),
   total_count: jobs.length, resolved_count: jobs.length, unresolved_count: 0, attribution: "© OpenStreetMap contributors" };
-const syntheticLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="64" cy="64" r="44" fill="#7c3aed"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">AR</text></svg>`;
+const syntheticLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="64" cy="64" r="44" fill="#7c3aed"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">AR</text></svg>';
 
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const failures = [], passed = [], logoRequests = new Set();
@@ -39,7 +39,7 @@ async function open(viewport, colorScheme, body) {
       localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter: "all",
         view: { search: "", source: "", location: "", seniority: "", fit: "", statuses: [], availability: "active", sort: "fit" } }));
       localStorage.setItem("job-globe-dragged", "1");
-      class FixtureEvents extends EventTarget { constructor() { super(); setTimeout(() => this.dispatchEvent(new Event("ready")), 20); } close() {} }
+      class FixtureEvents extends EventTarget { constructor() { super(); setTimeout(() => this.dispatchEvent(new Event("ready")), 20); } close() { this.closed = true; } }
       window.EventSource = FixtureEvents;
     });
     const page = await context.newPage(), errors = [];
@@ -143,4 +143,4 @@ try {
 } catch (error) { failures.push(`requests: ${error.message.split("\n")[0]}`); }
 finally { await browser.close(); }
 console.log(JSON.stringify({ passed, failures, logoRequests: [...logoRequests] }, null, 1));
-if (failures.length) process.exit(1);
+if (failures.length) process.exitCode = 1;

@@ -37,8 +37,9 @@ export function companyInitials(company: string): string {
 
 function registrableDomain(hostname: string): string | null {
   const labels = hostname.replace(/\.$/, "").split(".");
-  if (labels.length < 2 || labels.some((label) => !/^[a-z0-9-]+$/.test(label)) || /^\d+$/.test(labels.at(-1)!)) return null;
-  const take = labels.length >= 3 && labels.at(-1)!.length === 2 && secondLevelLabels.has(labels.at(-2)!) ? 3 : 2;
+  const [tld = "", second = ""] = labels.slice(-2).reverse();
+  if (labels.length < 2 || labels.some((label) => !/^[a-z0-9-]+$/.test(label)) || /^\d+$/.test(tld)) return null;
+  const take = labels.length >= 3 && tld.length === 2 && secondLevelLabels.has(second) ? 3 : 2;
   return labels.slice(-take).join(".");
 }
 

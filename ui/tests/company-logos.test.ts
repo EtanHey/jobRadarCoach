@@ -34,7 +34,10 @@ test("fallback initials support words and non-Latin names", () => {
 });
 
 const KEY = "pk_test_publishable";
-const logoDev = (src: string | undefined) => (src ? new URL(src) : null);
+const logoDev = (src: string | undefined): URL => {
+  assert.ok(src, "expected a Logo.dev URL");
+  return new URL(src);
+};
 
 test("curated catalog wins over Logo.dev even when a key and a company domain exist", () => {
   const resolved = resolveCompanyLogo({ company: "Wix", applyUrl: "https://careers.wix.com/jobs/1" }, { logoDevKey: KEY });
@@ -51,7 +54,7 @@ test("without a publishable key nothing resolves to Logo.dev", () => {
 test("a trustworthy company-site apply URL resolves Logo.dev by registrable domain", () => {
   const resolved = resolveCompanyLogo({ company: "Acme Robotics", applyUrl: "https://careers.acme.co.il/jobs/42", url: "https://www.linkedin.com/jobs/view/1" }, { logoDevKey: KEY });
   assert.equal(resolved?.kind, "logo-dev");
-  const url = logoDev(resolved?.src)!;
+  const url = logoDev(resolved?.src);
   assert.equal(url.origin, "https://img.logo.dev");
   assert.equal(url.pathname, "/acme.co.il");
   assert.equal(url.searchParams.get("token"), KEY);
@@ -67,13 +70,13 @@ test("ATS and job-board hosts are never used as the company domain", () => {
     "https://acme.bamboohr.com/careers/1", "https://acme.recruitee.com/o/1",
   ];
   for (const applyUrl of hosts) {
-    const url = logoDev(resolveCompanyLogo({ company: "Acme", applyUrl, url: applyUrl }, { logoDevKey: KEY })?.src)!;
+    const url = logoDev(resolveCompanyLogo({ company: "Acme", applyUrl, url: applyUrl }, { logoDevKey: KEY })?.src);
     assert.equal(url.pathname, "/name/Acme", applyUrl);
   }
 });
 
 test("a host that does not match the company name falls back to a name lookup", () => {
-  const url = logoDev(resolveCompanyLogo({ company: "Acme Robotics", applyUrl: "https://jobs.some-aggregator.com/acme/1" }, { logoDevKey: KEY })?.src)!;
+  const url = logoDev(resolveCompanyLogo({ company: "Acme Robotics", applyUrl: "https://jobs.some-aggregator.com/acme/1" }, { logoDevKey: KEY })?.src);
   assert.equal(url.pathname, `/name/${encodeURIComponent("Acme Robotics")}`);
   assert.equal(url.searchParams.get("fallback"), "404");
 });
@@ -95,7 +98,7 @@ test("override map pins a bad match to initials, a curated file, or a known doma
   } as const;
   assert.equal(resolveCompanyLogo({ company: " ACME " }, { logoDevKey: KEY, overrides }), null);
   assert.deepEqual(resolveCompanyLogo({ company: "Beta Labs" }, { logoDevKey: KEY, overrides }), { kind: "override", src: "/companies/wix-295a1f6f92.png" });
-  assert.equal(logoDev(resolveCompanyLogo({ company: "Gamma" }, { logoDevKey: KEY, overrides })?.src)!.pathname, "/gamma.app");
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Gamma" }, { logoDevKey: KEY, overrides })?.src).pathname, "/gamma.app");
   assert.equal(resolveCompanyLogo({ company: "Gamma" }, { overrides }), null, "a domain pin still needs the key");
 });
 

@@ -41,5 +41,8 @@ export function CompanyLogo({ company, applyUrl, url, size = "md", className }: 
 /** Logo.dev's free plan asks for a followable link (referrer intact) wherever its logos appear. */
 export function LogoDevAttribution() {
   if (!logoDevKey.startsWith("pk_")) return null;
-  return <p className="mt-1 text-xs text-muted-foreground"><a href="https://logo.dev" target="_blank" rel="noopener" className="underline-offset-2 hover:underline">Logos provided by Logo.dev</a></p>;
+  return <p className="mt-1 text-xs text-muted-foreground">
+    {/* skipcq: JS-0422 -- Logo.dev verifies attribution by referrer, so noreferrer would break it (logo.dev/docs/platform/attribution); noopener still blocks window.opener. */}
+    <a href="https://logo.dev" target="_blank" rel="noopener" className="underline-offset-2 hover:underline">Logos provided by Logo.dev</a>
+  </p>;
 }
