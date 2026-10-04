@@ -201,7 +201,7 @@ test("grouping prepares identity and location evidence once instead of per pair"
       counts.url += 1;
       return Reflect.construct(target, args, newTarget);
     } });
-    context.mock.method(String.prototype, "normalize", function(this: string, form?: Parameters<String["normalize"]>[0]) {
+    context.mock.method(String.prototype, "normalize", function(this: string, form?: Parameters<string["normalize"]>[0]) {
       if (locations.includes(String(this))) counts.location += 1;
       return originalNormalize.call(this, form);
     });
