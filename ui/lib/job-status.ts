@@ -24,3 +24,10 @@ export const pipelineStatusOptions = pipelineStatusValues.map((value) => ({ valu
 export function keptCardStatus(filter: string, status: JobStatus): JobStatus | null {
   return filter === "new-for-me" && status !== "new" ? status : null;
 }
+
+/** Terminal statuses dim a card's content in every view; Seen and the live pipeline stay at full strength. */
+const dimmingStatuses = new Set<JobStatus>(["skipped", "applied", "contract", "rejected", "archived", "not_relevant"]);
+export const statusDimsCard = (status: JobStatus) => dimmingStatuses.has(status);
+
+/** A failed save carries the server's message for the select's inline error; a skipped save carries none. */
+export type StatusChangeResult = { ok: true } | { ok: false; error?: string };

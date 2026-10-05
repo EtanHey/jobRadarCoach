@@ -98,3 +98,19 @@ test("every sort mode orders duplicate groups by the displayed representative", 
   assert.deepEqual(ids("posted"), [duplicateNewest.id, junior.id, mid.id]);
   assert.deepEqual(ids("seniority"), [junior.id, mid.id, duplicateNewest.id]);
 });
+
+test("equal Best Fit scores prefer original publication, regardless of repost and discovery", () => {
+  const old = { ...job(50, 80), title: "Old", posted_at: "2026-09-01T00:00:00Z", last_published_at: "2026-10-04T00:00:00Z", first_seen_at: "2026-10-04T00:00:00Z" };
+  const recent = { ...job(51, 80), title: "Recent", posted_at: "2026-10-01T00:00:00Z", first_seen_at: "2026-10-02T00:00:00Z" };
+  for (const rows of [[old, recent], [recent, old]]) {
+    assert.deepEqual(filterJobs(rows, options).map(row => row.id), [recent.id, old.id]);
+    assert.deepEqual(filterJobGroups(rows, options).map(({job: row}) => row.id), [recent.id, old.id]);
+  }
+});
+
+test("Best Fit falls back to discovery only for missing publication and finally sorts by id", () => {
+  const known = { ...job(60, 80), posted_at: "2026-10-02T00:00:00Z", first_seen_at: "2026-10-04T00:00:00Z" };
+  const unknown = { ...job(61, 80), first_seen_at: "2026-10-03T00:00:00Z" };
+  const tie = { ...job(62, 80), posted_at: known.posted_at, first_seen_at: "2026-10-05T00:00:00Z" };
+  assert.deepEqual(filterJobs([tie, known, unknown], options).map(row => row.id), [unknown.id, known.id, tie.id]);
+});
