@@ -2,7 +2,7 @@ import { z } from "zod";
 import { WorkModeSchema, JobIdSchema, JobListQuerySchema, JobSummarySchema } from "./contracts";
 import { pipelineStatusValues } from "./job-status";
 
-export const GlobeQuerySchema = JobListQuerySchema.omit({ limit: true }).extend({
+export const GlobeQuerySchema = z.object({ availability: JobListQuerySchema.shape.availability }).extend({
   filter: JobListQuerySchema.shape.filter.default("all"),
   search: z.string().max(2000).default(""), source: z.string().max(200).default(""),
   location: z.enum(["", "israel", "united-states", "other"]).default(""),

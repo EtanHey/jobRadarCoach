@@ -79,7 +79,10 @@ export const JobListQuerySchema = z.object({
   filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),
   limit,
-}).strict();
+  ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
+}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all"), {
+  message: "ID lookup requires all statuses and availability.",
+});
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);
 const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);

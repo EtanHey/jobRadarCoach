@@ -8,7 +8,7 @@ import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
 import { JobIdSchema, JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
 import { HttpError } from "../lib/http";
 import type { ApiStore } from "../lib/server";
-import { availabilityPredicate, parseSummaryRows } from "../lib/server";
+import { availabilityPredicate, parseSummaryRows, selectSummaries } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
 const summary: JobSummary = {
@@ -328,4 +328,29 @@ test("summary projection preserves original, latest publication and discovery se
   assert.equal(row.posted_at, raw.posted_at);
   assert.equal((row as unknown as Record<string, unknown>).last_published_at, raw.last_published_at);
   assert.equal(row.first_seen_at, raw.first_seen_at);
+});
+
+test("ID lookup validates and bounds IDs and requires an unfiltered availability set", async () => {
+  let received: unknown;
+  const handler = makeGetJobs(store({ listJobs: query => { received = query; return Promise.resolve([{ ...summary, status: "applied", alive: false }]); } }));
+  const response = await handler(new Request(`http://localhost/api/jobs?filter=all&availability=all&limit=100&ids=${ID}`));
+  assert.equal(response.status, 200);
+  assert.deepEqual(received, { filter: "all", availability: "all", limit: 100, ids: [ID] });
+  assert.equal((await response.json()).jobs[0].status, "applied");
+  for (const query of ["ids=bad", "ids=", `ids=${Array(101).fill(ID).join(",")}`, `ids=${ID}&filter=new-for-me&availability=all`, `ids=${ID}&filter=all&availability=active`]) {
+    assert.equal((await handler(new Request(`http://localhost/api/jobs?${query}`))).status, 400);
+  }
+});
+
+
+test("summary ID lookup queries postings by ID without status, availability or visit exclusions", async () => {
+  const calls: unknown[] = [];
+  const query = {
+    select(columns: string) { assert.ok(!columns.includes("!inner")); return this; },
+    in(column: string, ids: string[]) { calls.push([column, ids]); return this; },
+    limit(count: number) { calls.push(count); return Promise.resolve({ data: [], error: null }); },
+  };
+  const db = { from(table: string) { assert.equal(table, "postings"); return query; } };
+  await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter: "all", availability: "all", limit: 100, ids: [ID] });
+  assert.deepEqual(calls, [["id", [ID]], 100]);
 });

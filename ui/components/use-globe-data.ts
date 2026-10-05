@@ -12,6 +12,13 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
   const [result, setResult] = useState<{ key: string; data: GlobeResponse } | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   useEffect(() => {
+    // Leaving a view ends its visit, even when the globe is closed.
+    cohort.current = null;
+    let active = true;
+    queueMicrotask(() => { if (active) setResult(null); });
+    return () => { active = false; };
+  }, [key]);
+  useEffect(() => {
     if (!open) return;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
@@ -21,21 +28,25 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
       .then(async response => {
         if (!response.ok) throw new Error("Globe unavailable");
         let incoming = GlobeResponseSchema.parse(await response.json());
+        let latest: GlobeResponse | undefined;
         if (filter === "new-for-me") {
           const incomingIds = new Set(incoming.jobs.map(job => job.id));
-          const missing = new Set(retainedRef.current.filter(job => !incomingIds.has(job.id)).map(job => job.id));
+          const previous = cohort.current?.key === key ? cohort.current.data : null;
+          const retainedJobs = [...(previous?.jobs ?? []), ...retainedRef.current];
+          const missing = new Set(retainedJobs.filter(job => !incomingIds.has(job.id)).map(job => job.id));
           if (missing.size) {
-            // Hydrate retained list IDs from the full availability set, never guess their geography.
-            const all = await fetch(`/api/jobs/globe?${new URLSearchParams({ filter: "all", availability })}`, { cache: "no-store", signal: controller.signal });
+            // Hydrate retained list and globe IDs, including newly inactive roles.
+            const all = await fetch(`/api/jobs/globe?${new URLSearchParams({ filter: "all", availability: "all" })}`, { cache: "no-store", signal: controller.signal });
             if (!all.ok) throw new Error("Retained locations unavailable");
             const complete = GlobeResponseSchema.parse(await all.json());
+            latest = complete;
             const extraJobs = complete.jobs.filter(job => missing.has(job.id));
             const extraPoints = complete.points.filter(point => missing.has(point.posting_id));
             incoming = { ...incoming, jobs: [...incoming.jobs, ...extraJobs], points: [...incoming.points, ...extraPoints], total_count: incoming.total_count + extraJobs.length, resolved_count: incoming.resolved_count + extraPoints.length, unresolved_count: incoming.unresolved_count + extraJobs.length - extraPoints.length };
           }
         }
         if (!active) return;
-        const data = filter === "new-for-me" ? retainGlobeCohort(cohort.current?.key === key ? cohort.current.data : null, incoming) : incoming;
+        const data = filter === "new-for-me" ? retainGlobeCohort(cohort.current?.key === key ? cohort.current.data : null, incoming, latest) : incoming;
         cohort.current = { key, data }; setResult({ key, data });
       }).catch(() => { if (active) setFailure("The globe is unavailable. Your list is still here."); })
       .finally(() => clearTimeout(timeout));

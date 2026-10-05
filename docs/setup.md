@@ -135,6 +135,7 @@ environment contracts in Vercel; never commit their values:
 | `UI_ORIGIN` | server | Exact production HTTPS origin |
 | `JRC_OWNER_RECOVERY_ENABLED` | server | Explicit recovery gate |
 | `JRC_OWNER_RECOVERY_EMAIL` | secret, server only | Existing owner recovery address |
+| `NEXT_PUBLIC_LOGO_DEV_KEY` | browser, optional | Logo.dev publishable `pk_` key for company logos outside the curated catalog; unset = catalog + initials only. Never an `sk_` key. Needs a rebuild to take effect |
 
 Missing or malformed Auth configuration intentionally returns a private,
 non-cacheable unavailable response. After deployment, verify signed-out denial,

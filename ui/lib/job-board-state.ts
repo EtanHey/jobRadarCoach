@@ -112,13 +112,27 @@ export function uniqueJobsById<T extends { id: string }>(jobs: T[]): T[] {
   return unique.length === jobs.length ? jobs : unique;
 }
 
-export function retainVisitCohort<T extends { id: string }>(current: T[] | null, incoming: T[]): T[] {
+export function retainVisitCohort<T extends { id: string }>(current: T[] | null, incoming: T[], latest: T[] = []): T[] {
   const uniqueIncoming = uniqueJobsById(incoming);
   if (current === null) return uniqueIncoming;
   const uniqueCurrent = uniqueJobsById(current);
-  const incomingById = new Map(uniqueIncoming.map((job) => [job.id, job]));
+  const incomingById = new Map([...uniqueIncoming, ...latest].map((job) => [job.id, job]));
   const retainedIds = new Set(uniqueCurrent.map((job) => job.id));
   return uniqueCurrent
     .map((job) => incomingById.get(job.id) ?? job)
     .concat(uniqueIncoming.filter((job) => !retainedIds.has(job.id)));
+}
+
+// Hydrate excluded retained IDs independently of status/availability and list limits.
+// Errors propagate so the UI reports previous results rather than caching stale truth.
+export async function refreshVisitCohort<T extends { id: string }>(
+  current: T[] | null, incoming: T[], readByIds: (ids: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const incomingIds = new Set(incoming.map(job => job.id));
+  const missing = [...new Set(current?.filter(job => !incomingIds.has(job.id)).map(job => job.id))];
+  const latest: T[] = [];
+  for (let offset = 0; offset < missing.length; offset += 100) {
+    latest.push(...await readByIds(missing.slice(offset, offset + 100)));
+  }
+  return retainVisitCohort(current, incoming, latest);
 }
