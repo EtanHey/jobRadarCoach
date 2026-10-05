@@ -1,9 +1,25 @@
 import json
+from datetime import datetime, timedelta, timezone
 import pytest
 from scripts.backfill_ats_liveness import backfill
 
 TAG = {"posting_id":"00000000-0000-0000-0000-000000000001", "source":"greenhouse",
        "external_id":"greenhouse:acme:1", "verdict":"gone", "checked_at":"2026-10-05T02:00:00Z"}
+
+
+class Clock(datetime):
+    current = datetime(2026, 10, 5, tzinfo=timezone.utc)
+
+    @classmethod
+    def now(cls, tz=None):
+        return cls.current
+
+
+@pytest.fixture(autouse=True)
+def synthetic_clock(monkeypatch):
+    import scraper.ats_liveness as module
+    Clock.current = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr(module, 'datetime', Clock)
 
 
 class Database:
@@ -23,7 +39,7 @@ def test_dry_run_never_fetches_or_connects():
 @pytest.mark.parametrize("alive,expected", [(False,1),(True,0),(None,0)])
 def test_apply_requires_fresh_absence_and_preserves_scores_status(alive, expected):
     db = Database()
-    db.row = (*db.row[:4], {"ats_miss_count": 1})
+    db.row = (*db.row[:4], {"ats_miss_count": 1, "ats_first_miss_at": "2026-10-04T23:00:00+00:00"})
     receipt = backfill([TAG, {**TAG,"posting_id":"00000000-0000-0000-0000-000000000002","verdict":"unknown"}],
                        connection=db, checker=lambda _: {"alive":alive,"liveness_reason":"synthetic"},
                        url_checker=lambda _: {"alive":False,"liveness_status":404,"liveness_reason":"http-404"})
@@ -61,7 +77,7 @@ def test_cli_apply_is_blocked_before_the_demo_freeze_ends(monkeypatch, tmp_path)
 def test_concurrent_identity_change_does_not_count_a_guarded_zero_row_update():
     db = Database()
     db.rowcount = 0
-    db.row = (*db.row[:4], {"ats_miss_count": 1})
+    db.row = (*db.row[:4], {"ats_miss_count": 1, "ats_first_miss_at": "2026-10-04T23:00:00+00:00"})
     assert backfill([TAG], connection=db, checker=lambda _: {"alive":False},
                     url_checker=lambda _: {"alive":False,"liveness_status":410})["applied"] == 0
 
@@ -82,6 +98,7 @@ def test_apply_records_two_observations_and_requires_own_url_proof(gone):
     check = lambda _: {'alive': False}
     assert backfill([TAG], connection=db, checker=check, url_checker=direct)['applied'] == 0
     assert urls == [] and db.row[4]['ats_miss_count'] == 1
+    Clock.current += timedelta(hours=1)
     second = backfill([TAG], connection=db, checker=check, url_checker=direct)
     assert second['applied'] == int(gone) and len(urls) == 1
     assert (db.row[4].get('alive') is False) == gone
@@ -94,5 +111,21 @@ def test_list_error_and_reappearance_use_the_ongoing_gate():
     backfill([TAG], connection=db, checker=lambda _: {'alive': None})
     assert db.row[4]['ats_miss_count'] == 0 and db.row[4]['ats_alert_count'] == 1
     db.row = (*db.row[:4], {**db.row[4], 'alive': False})
+    Clock.current += timedelta(hours=1)
     backfill([TAG], connection=db, checker=lambda _: {'alive': True})
     assert db.row[4]['alive'] is True
+
+
+def test_apply_right_after_hourly_stays_pending(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    import scraper.ats_liveness as module
+    first = datetime(2026, 10, 5, 10, tzinfo=timezone.utc)
+    frozen = type('Clock', (datetime,), {'now': classmethod(lambda *_: first + timedelta(minutes=2))})
+    monkeypatch.setattr(module, 'datetime', frozen)
+    db = Database()
+    db.row = (*db.row[:4], {'ats_miss_count': 1, 'ats_first_miss_at': first.isoformat(),
+                           'ats_last_list_checked_at': first.isoformat()})
+    receipt = backfill([TAG], connection=db, checker=lambda _: {'alive': False},
+                       url_checker=lambda _: pytest.fail('apply cannot supply a second strike minutes after hourly'))
+    assert receipt['applied'] == 0 and receipt['observed'] == 1
+    assert db.row[4]['ats_miss_count'] == 1 and db.row[4]['last_attempt_verdict'] == 'pending'
