@@ -11,11 +11,9 @@ import sys
 from typing import Protocol, cast
 
 try:
-    from scraper.work_mode import posting_mode
-    from scraper.annotate import _load_safe_profile_contract
+    from scraper.annotate import _load_safe_profile_contract, posting_mode
 except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
-    from work_mode import posting_mode
-    from annotate import _load_safe_profile_contract
+    from annotate import _load_safe_profile_contract, posting_mode
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
 UNKNOWN_TEXT_VALUES = frozenset(

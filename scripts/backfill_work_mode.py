@@ -10,7 +10,7 @@ import os
 import psycopg
 from psycopg.rows import dict_row
 
-from scraper.work_mode import location_mode
+from scraper.annotate import location_mode
 
 
 def candidates(rows):

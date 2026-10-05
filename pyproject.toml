@@ -22,7 +22,6 @@ jrc-analysis-supervisor = "scripts.local_analysis_supervisor:main"
 [tool.setuptools]
 include-package-data = false
 py-modules = [
-  "classifier.calibration",
   "classifier.core",
   "classifier.embeddings",
   "classifier.facts",
@@ -40,7 +39,6 @@ py-modules = [
   "scraper.brain_contract",
   "scraper.codex_process",
   "scraper.database",
-  "scraper.work_mode",
   "scripts.local_analysis",
   "scripts.backfill_posting_facts",
   "scripts.local_analysis_supervisor",

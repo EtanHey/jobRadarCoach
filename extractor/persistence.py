@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from scraper.work_mode import location_mode, posting_mode
+from scraper.annotate import location_mode, posting_mode
 
 from collections.abc import Mapping
 from contextlib import AbstractContextManager

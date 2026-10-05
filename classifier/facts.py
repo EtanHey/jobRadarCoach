@@ -8,7 +8,7 @@ import hashlib
 import json
 import re
 
-from scraper.work_mode import canonical_mode
+from scraper.annotate import canonical_mode
 from urllib.parse import urlsplit
 
 
