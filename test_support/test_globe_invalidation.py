@@ -171,7 +171,7 @@ def test_same_values_and_unrelated_scraper_upsert_preserve_geo(
             "2026-09-22Z",
             "2026-09-22Z",
             "{}",
-            False,
+            None, None, False,
         ),
     )
     assert rows(db, "posting_geo") == original
@@ -203,7 +203,7 @@ def test_real_scraper_upsert_and_current_hq_fallback(database, tmp_path):
             "2026-09-22Z",
             "2026-09-22Z",
             "{}",
-            False,
+            "remote", "structured", False,
         ),
     )
     served = {r["posting_id"]: r for r in geo(db)}
