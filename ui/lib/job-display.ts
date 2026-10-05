@@ -45,14 +45,18 @@ function isRepublished(posted: number | null, latest: number | null): boolean {
 }
 
 export function postingDates(postedAt: string | null, firstSeenAt: string | null, now = Date.now(), lastPublishedAt: string | null = null, timeZone?: string): PostingDate[] {
-  const posted = parsedTime(postedAt), latest = parsedTime(lastPublishedAt), found = parsedTime(firstSeenAt);
+  const posted = parsedTime(postedAt), latest = parsedTime(lastPublishedAt);
   const dates: PostingDate[] = [];
-  const add = (kind: PostingDateKind, time: number, value: string, tooltip: string) =>
-    dates.push({ kind, short: compactAge(time, now), tooltip, label: `${tooltip}, ${spokenAge(time, now)}`, dateTime: value });
-  if (posted !== null) add("posted", posted, postedAt!, `Posted ${calendarStamp(posted, timeZone, false)}`);
-  if (latest !== null && isRepublished(posted, latest)) add("republished", latest, lastPublishedAt!, `Republished ${calendarStamp(latest, timeZone, false)}`);
-  else if (latest !== null && posted === null) add("published", latest, lastPublishedAt!, `Published ${calendarStamp(latest, timeZone, false)}`);
-  if (found !== null) add("found", found, firstSeenAt!, `Found by JRC ${calendarStamp(found, timeZone, true)}`);
+  const add = (kind: PostingDateKind, value: string | null, tooltip: (stamp: (withTime: boolean) => string) => string) => {
+    const time = parsedTime(value);
+    if (value === null || time === null) return;
+    const text = tooltip(withTime => calendarStamp(time, timeZone, withTime));
+    dates.push({ kind, short: compactAge(time, now), tooltip: text, label: `${text}, ${spokenAge(time, now)}`, dateTime: value });
+  };
+  add("posted", postedAt, stamp => `Posted ${stamp(false)}`);
+  if (isRepublished(posted, latest)) add("republished", lastPublishedAt, stamp => `Republished ${stamp(false)}`);
+  else if (posted === null) add("published", lastPublishedAt, stamp => `Published ${stamp(false)}`);
+  add("found", firstSeenAt, stamp => `Found by JRC ${stamp(true)}`);
   return dates;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useRef, type RefObject } from "react";
-import type { DuplicateJobGroup } from "@/lib/job-dedup";
+import { earlierListingCount, type DuplicateJobGroup } from "@/lib/job-dedup";
 import { partitionGlobeGroups } from "@/lib/globe-viewport";
 import { JobCard } from "./job-card";
 import { TechnologyChips } from "./technology-chips";
@@ -20,7 +20,7 @@ export function JobCards({ groups, globeOpen, visiblePostingIds, selectedId, ope
   }, [groups, globeOpen, visiblePostingIds, bubble]);
   const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
-      selected={globeOpen ? selectedId === job.id : undefined} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>
+      selected={globeOpen ? selectedId === job.id : undefined} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob}>
       <TechnologyChips names={job.stack} presentation="card" />
     </JobCard>
   </div>);

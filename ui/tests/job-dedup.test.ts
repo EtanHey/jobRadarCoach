@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobSummary } from "../lib/contracts";
-import { groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
+import { earlierListingCount, groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
 
 function job(id: number, overrides: Partial<JobSummary> = {}): JobSummary {
   return {
@@ -112,4 +112,26 @@ test("keeps loaded peers reachable after the selected listing leaves the view", 
 test("short listing IDs remain stable and distinguish fixture postings", () => {
   assert.equal(shortListingId(job(20).id), "00000020");
   assert.equal(shortListingId(job(21).id), "00000021");
+});
+
+test("only demonstrably earlier alternates count as earlier listings", () => {
+  const at = "2026-10-02T12:00:00Z";
+  const simultaneous = groupDuplicateJobs([job(20, { posted_at: at, first_seen_at: at }), job(21, { posted_at: at, first_seen_at: at })])[0];
+  assert.equal(simultaneous.alternates.length, 1);
+  assert.equal(earlierListingCount(simultaneous.job, simultaneous.alternates), 0);
+
+  const current = job(22, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" });
+  const older = job(23, { posted_at: "2026-08-20T12:00:00Z", first_seen_at: "2026-08-20T13:00:00Z" });
+  const samePostedLaterSeen = job(24, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-27T13:00:00Z" });
+  const unknownPosted = job(25, { posted_at: null, first_seen_at: "2026-08-01T00:00:00Z" });
+  assert.equal(earlierListingCount(current, [older]), 1);
+  assert.equal(earlierListingCount(current, [samePostedLaterSeen]), 0);
+  assert.equal(earlierListingCount(current, [unknownPosted]), 0);
+  assert.equal(earlierListingCount(current, [older, samePostedLaterSeen, unknownPosted]), 1);
+
+  const seenOnly = job(26, { posted_at: null, first_seen_at: "2026-09-10T00:00:00Z" });
+  const seenEarlier = job(27, { posted_at: null, first_seen_at: "2026-09-01T00:00:00Z" });
+  assert.equal(earlierListingCount(seenOnly, [seenEarlier]), 1);
+  assert.equal(earlierListingCount(seenOnly, [job(28, { posted_at: null, first_seen_at: "2026-09-10T00:00:00Z" })]), 0);
+  assert.equal(earlierListingCount(job(29, { posted_at: "invalid", first_seen_at: "invalid" }), [older]), 0);
 });

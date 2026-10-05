@@ -19,6 +19,7 @@ import { JobCard } from "./components/job-card";
 import { JobDrawer } from "./components/job-drawer";
 import { PostingDates } from "./components/posting-dates";
 import { filterJobGroups } from "./lib/job-filters";
+import { earlierListingCount } from "./lib/job-dedup";
 const base = { company: "Fixture", source: "fixture", location: "Tel Aviv, Israel", remote: true,
   seniority: null, stack: [], salary: null, url: "https://example.test", apply_url: null,
   score: 80, status: "new", status_reason: null, alive: null, fit_line: null, recommendation: null,
@@ -33,6 +34,10 @@ const rows = [
     posted_at: "2026-09-28T12:00:00Z", last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" },
   { ...base, id: "00000000-0000-4000-8000-000000000004", title: "Relisted role", score: 60, experience: "4+ years building production systems",
     posted_at: "2026-08-20T12:00:00Z", last_published_at: "2026-08-20T12:00:00Z", first_seen_at: "2026-08-20T13:00:00Z" },
+  { ...base, id: "00000000-0000-4000-8000-000000000005", title: "Simultaneous twin role", score: 50, experience: "2+ years of experience",
+    posted_at: "2026-10-02T12:00:00Z", last_published_at: "2026-10-02T12:00:00Z", first_seen_at: "2026-10-02T12:00:00Z" },
+  { ...base, id: "00000000-0000-4000-8000-000000000006", title: "Simultaneous twin role", score: 50, experience: "2+ years of experience",
+    posted_at: "2026-10-02T12:00:00Z", last_published_at: "2026-10-02T12:00:00Z", first_seen_at: "2026-10-02T12:00:00Z" },
 ];
 const options = { search: "", source: "", location: "", seniority: "", fit: "", statuses: [], availability: "active", sort: "fit" };
 const compare = rows[0];
@@ -41,7 +46,7 @@ function App() {
   const selectedJob = rows.find(row => row.id === selected);
   return <main className="mx-auto min-h-screen max-w-5xl bg-background p-4 text-foreground"><h1 className="mb-4 text-xl font-semibold">Best Fit · date icons fixture</h1>
     <section className="grid gap-4 sm:grid-cols-2">{filterJobGroups(rows, options).map(({job, alternates}) =>
-      <JobCard key={job.id} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>{null}</JobCard>)}</section>
+      <JobCard key={job.id} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob}>{null}</JobCard>)}</section>
     <section data-compare className="mt-6 grid gap-2 rounded-xl border bg-card p-4 text-xs text-muted-foreground">
       <p className="font-medium text-foreground">Posted icon: plus vs calendar-plus</p>
       <div data-compare-variant="plus" className="flex items-center gap-3"><span className="w-28">plus (shipped)</span><PostingDates postedAt={compare.posted_at} lastPublishedAt={compare.last_published_at} firstSeenAt={compare.first_seen_at} /></div>
@@ -57,7 +62,7 @@ const server = createServer((req, res) => {
   if (req.url === "/app.js") { res.setHeader("Content-Type", "text/javascript"); return res.end(bundle.outputFiles[0].text); }
   if (req.url === "/style.css") { res.setHeader("Content-Type", "text/css"); return res.end(css); }
   res.setHeader("Content-Type", "text/html");
-  return res.end('<!doctype html><html' + (req.url.includes("theme=dark") ? ' class="dark"' : "") + '><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/app.js"></script></body></html>');
+  return res.end(`<!doctype html><html${req.url.includes("theme=dark") ? ' class="dark"' : ""}><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="root"></div><script src="/app.js"></script></body></html>`);
 });
 await new Promise(ready => server.listen(0, "127.0.0.1", ready));
 
@@ -99,6 +104,11 @@ try {
     assert.equal(await old.locator("[data-repost-marker]").count(), 1);
     assert.equal(await relisted.locator("[data-repost-marker]").count(), 1);
     assert.equal(await fresh.locator("[data-repost-marker]").count(), 0);
+    // Same-instant twins are alternative listings, not evidence of a repost.
+    const twins = page.locator("article").filter({ has: page.getByRole("heading", { name: "Simultaneous twin role" }) });
+    assert.equal(await twins.count(), 1);
+    assert.equal(await twins.locator("[data-repost-marker]").count(), 0);
+    assert.match(await twins.innerText(), /2 listings/);
     await relisted.getByRole("button", { name: "Reposted: 1 earlier listing of this role" }).waitFor();
     // The experience text is never truncated and nothing overflows the viewport.
     const clipped = await page.locator("[data-experience]").evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));

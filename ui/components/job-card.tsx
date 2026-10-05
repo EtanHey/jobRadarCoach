@@ -12,6 +12,8 @@ import { PostingDates } from "./posting-dates";
 type Props = {
   job: JobSummary;
   alternateCount?: number;
+  /** Alternates demonstrably listed before this one; drives the repost marker. */
+  earlierListings?: number;
   selected?: boolean;
   actions?: ReactNode;
   openerRef: RefObject<HTMLButtonElement | null>;
@@ -19,9 +21,9 @@ type Props = {
   children: ReactNode;
 };
 
-export function JobCard({ job, selected, actions, alternateCount = 0, openerRef, selectJob, children }: Props) {
+export function JobCard({ job, selected, actions, alternateCount = 0, earlierListings = 0, openerRef, selectJob, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
-  const repost = repostNote(job.posted_at, job.last_published_at, alternateCount);
+  const repost = repostNote(job.posted_at, job.last_published_at, earlierListings);
   return <article data-posting-id={job.id} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:border-ring/50 focus-within:ring-2 focus-within:ring-ring">
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
