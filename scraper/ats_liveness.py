@@ -13,6 +13,7 @@ from scraper.ats_sources import ATS_SOURCES as ATS_SOURCES
 from scraper.source_registry import detect_supported_ats
 from scraper.sources.comeet import POSITIONS_PATTERN
 from scraper.sources.workable import DETAIL_PATTERN
+from scraper.sources import ashby, smartrecruiters, workday
 
 USER_AGENT = "JobRadarCoach/1.0 (+https://jobradarcoach.vercel.app)"
 IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]{1,200}")
@@ -24,14 +25,20 @@ URL_BACKOFF = timedelta(hours=24)
 
 
 def public_get(*, clock=time.monotonic, sleep=time.sleep):
-    """One GET/second/host, pinned public DNS, no redirects, bounded body/time."""
+    """One request/second/host, pinned public DNS, no redirects, bounded body/time."""
     last = {}
-    def get(url):
+    def get(url, *, data=None):
         host = urlparse(url).hostname
         if host in last:
             sleep(max(0, 1 - (clock() - last[host])))
         try:
-            request = Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+            headers = {"User-Agent": USER_AGENT}
+            if data is not None or host in {"api.ashbyhq.com", "api.smartrecruiters.com"} or workday.HOST.fullmatch(host or ""):
+                headers["Accept"] = "application/json"
+            if data is not None:
+                headers["Content-Type"] = "application/json"
+            request = Request(url, data=data, headers=headers,
+                              method="POST" if data is not None else "GET")
             cap = LEVER_BOARD_CAP if host in {"api.lever.co", "api.eu.lever.co"} else BOARD_CAP
             with pinned_open(request, timeout=10) as response:
                 body = bytearray()
@@ -87,7 +94,22 @@ def _lever_region(posting):
                        for k in ("apply_url", "url")) else ""
 
 
+def _workday_identity(posting):
+    prefix, account, site, job = str(posting.get("external_id") or posting.get("id", "")).split(":")
+    coordinates = workday.coordinates(str(posting.get("url") or ""))
+    if prefix != "workday" or not all(IDENTIFIER.fullmatch(v) for v in (account, site, job)) or not coordinates:
+        raise ValueError("invalid Workday identity")
+    query, path = coordinates
+    if (query["account"] != account or query["site"] != site
+            or not path or path.rsplit("/", 1)[-1] != job):
+        raise ValueError("Workday identity mismatch")
+    tenant = f"{account}.{query['cluster']}.myworkdayjobs.com/{site}"
+    return "workday", tenant, job.casefold(), workday.base(query) + "/jobs"
+
+
 def board_identity(posting):
+    if posting["source"] == "workday":
+        return _workday_identity(posting)
     source, tenant, job = _stored_identity(posting)
     detected = _detected_board(posting)
     if detected and detected["source"] != source:
@@ -105,6 +127,10 @@ def board_identity(posting):
         url = f"https://{host}/v0/postings/{tenant}?mode=json"
     elif source == "workable":
         url = f"https://apply.workable.com/{tenant}/jobs.md"
+    elif source == "ashby":
+        url = f"https://api.ashbyhq.com/posting-api/job-board/{tenant}"
+    elif source == "smartrecruiters":
+        url = smartrecruiters.endpoint(tenant)
     else:
         raise ValueError("adapter not yet available")
     return source, (f"eu:{tenant}" if region else tenant), job, url
@@ -154,6 +180,8 @@ def _record_id(record, key):
 
 
 def active_ids(source, body, tenant=None):
+    if source == "ashby":
+        return ashby.active_ids(json.loads(body))
     if source == "workable":
         return _workable_ids(body, tenant)
     records, key = _records(source, body)
@@ -163,6 +191,21 @@ def active_ids(source, body, tenant=None):
     if len(ids) != len(records):
         raise ValueError("duplicate board identifiers")
     return ids
+
+
+def _snapshot_ids(source, tenant, url, fetcher):
+    # Exhaust generators: a present ID on page one cannot hide a failed later page.
+    if source == "smartrecruiters":
+        return {row["id"] for row in smartrecruiters.active_list(tenant, fetcher=fetcher)}
+    if source == "workday":
+        query, _ = workday.coordinates("https://" + tenant)
+        # Israel facets are for discovery only. Membership must cover the entire site.
+        rows = list(workday.active_list(query, fetcher=fetcher))
+        ids = [row["externalPath"].rsplit("/", 1)[-1].casefold() for row in rows]
+        if len(set(ids)) != len(ids):
+            raise ValueError("duplicate Workday posting identity")
+        return set(ids)
+    return active_ids(source, fetcher(url), tenant)
 
 
 class BoardChecker:
@@ -181,7 +224,7 @@ class BoardChecker:
             if key not in self.cache:
                 ids, error = None, None
                 try:
-                    ids = active_ids(source, self.fetcher(url), tenant)
+                    ids = _snapshot_ids(source, tenant, url, self.fetcher)
                 except Exception as exc:
                     ids, error = None, f"board-unknown:{type(exc).__name__}"
                 self.cache[key] = ids, error, checked_at

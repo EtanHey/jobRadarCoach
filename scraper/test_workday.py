@@ -106,7 +106,7 @@ def test_active_truth_registry_allowlist_and_budgets(tmp_path, monkeypatch):
         assert source_registry.detect_supported_ats(bad) is None
 
 
-def test_recheck_and_jd_retry_use_honest_public_api():
+def test_check_url_and_jd_retry_use_honest_public_api():
     calls = []
     def opener(request, **kwargs):
         calls.append(request)

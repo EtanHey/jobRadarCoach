@@ -68,7 +68,7 @@ def pinned_open(
             path += "?" + parsed.query
         headers = dict(request.header_items())
         headers["Host"] = host
-        connection.request(request.get_method(), path, headers=headers)
+        connection.request(request.get_method(), path, body=request.data, headers=headers)
         wrapped = _Response(connection.getresponse(), connection, request.full_url)
         if not 200 <= wrapped.status <= 299:
             error = HTTPError(

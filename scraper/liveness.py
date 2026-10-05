@@ -162,16 +162,10 @@ def _check_smartrecruiters(url, opener, timeout):
 
 
 def _ashby_alive(payload: object, job_id: str) -> bool | None:
-    if not isinstance(payload, dict) or not isinstance(payload.get("jobs"), list):
+    try:
+        return job_id in ashby.active_ids(payload)
+    except ValueError:
         return None
-    jobs = payload["jobs"]
-    if any(not isinstance(job, dict) or not isinstance(job.get("id"), str) or not job["id"].strip()
-           or type(job.get("isListed")) is not bool for job in jobs):
-        return None
-    matches = [job for job in jobs if job["id"] == job_id]
-    if len(matches) > 1:
-        return None
-    return matches[0]["isListed"] if matches else False
 
 
 def _check_ashby_url(url: str, opener: Callable[..., object], timeout: float) -> dict[str, object]:
