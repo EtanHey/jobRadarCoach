@@ -23,7 +23,8 @@ def test_pins_socket_but_retains_original_tls_hostname_and_body(monkeypatch, dat
         def __init__(self, host, timeout):
             self.sock = None
 
-        def request(self, *args, **kwargs):
+        @staticmethod
+        def request(*args, **kwargs):
             sent.append((args, kwargs))
 
         def close(self):
