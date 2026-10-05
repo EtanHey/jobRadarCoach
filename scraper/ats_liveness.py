@@ -9,11 +9,11 @@ from urllib.request import Request
 from urllib.error import HTTPError
 
 from scraper.public_https import pinned_open
+from scraper.ats_sources import ATS_SOURCES as ATS_SOURCES
 from scraper.source_registry import detect_supported_ats
 from scraper.sources.comeet import POSITIONS_PATTERN
 from scraper.sources.workable import DETAIL_PATTERN
 
-ATS_SOURCES = ("greenhouse", "lever", "comeet", "workable", "ashby", "smartrecruiters", "workday")
 USER_AGENT = "JobRadarCoach/1.0 (+https://jobradarcoach.vercel.app)"
 IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]{1,200}")
 BOARD_CAP = 2_000_000
