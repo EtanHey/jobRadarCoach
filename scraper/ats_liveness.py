@@ -9,7 +9,7 @@ from urllib.request import Request
 from urllib.error import HTTPError
 
 from scraper.public_https import pinned_open
-from scraper.ats_sources import ATS_SOURCES
+from scraper.ats_sources import ATS_SOURCES as ATS_SOURCES
 from scraper.source_registry import detect_supported_ats
 from scraper.sources.comeet import POSITIONS_PATTERN
 from scraper.sources.workable import DETAIL_PATTERN
