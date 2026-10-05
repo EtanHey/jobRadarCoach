@@ -82,11 +82,12 @@ def test_honest_get_transport_is_bounded_and_paced_per_host(monkeypatch):
     import scraper.ats_liveness as module
     calls, waits = [], []
     class Response:
+        def __init__(self): self.body = b"{}"
         def __enter__(self): return self
-        def __exit__(self, *_): pass
+        def __exit__(self, *_): return False
         def read(self, cap):
             assert cap == 2_000_001
-            return b"{}"
+            return self.body
     def open_request(request, **kwargs):
         calls.append(request)
         assert kwargs["timeout"] == 10

@@ -36,32 +36,58 @@ def public_get(*, clock=time.monotonic, sleep=time.sleep):
     return get
 
 
-def board_identity(posting):
+def _stored_identity(posting):
     source = posting["source"]
     prefix, tenant, job = str(posting.get("external_id") or posting.get("id", "")).split(":")
     if prefix != source or not all(IDENTIFIER.fullmatch(v) for v in (tenant, job)):
         raise ValueError("invalid stored identity")
-    detected = next((t for url in (posting.get("apply_url"), posting.get("url"))
-                     if url and (t := detect_supported_ats(str(url)))), None)
+    return source, tenant, job
+
+
+def _detected_board(posting):
+    for field in ("apply_url", "url"):
+        url = posting.get(field)
+        if url:
+            detected = detect_supported_ats(str(url))
+            if detected is not None:
+                return detected
+    return None
+
+
+def _comeet_identity(tenant, job, detected):
+    if not detected or detected["identifiers"]["company_uid"] != tenant:
+        raise ValueError("Comeet requires matching slug/company uid")
+    slug = detected["identifiers"]["slug"]
+    return "comeet", f"{slug}/{tenant}", job, f"https://www.comeet.com/jobs/{slug}/{tenant}"
+
+
+def _region(source, tenant, detected):
+    if not detected:
+        return ""
+    identifiers = detected["identifiers"]
+    if identifiers["board" if source == "greenhouse" else "account"] != tenant:
+        raise ValueError("tenant mismatch")
+    return identifiers.get("region", "")
+
+
+def _lever_region(posting):
+    return "eu" if any(urlparse(str(posting.get(k) or "")).hostname == "jobs.eu.lever.co"
+                       for k in ("apply_url", "url")) else ""
+
+
+def board_identity(posting):
+    source, tenant, job = _stored_identity(posting)
+    detected = _detected_board(posting)
     if detected and detected["source"] != source:
         raise ValueError("source mismatch")
-    region = ""
     if source == "comeet":
-        if not detected or detected["identifiers"]["company_uid"] != tenant:
-            raise ValueError("Comeet requires matching slug/company uid")
-        slug = detected["identifiers"]["slug"]
-        return source, f"{slug}/{tenant}", job, f"https://www.comeet.com/jobs/{slug}/{tenant}"
-    if detected:
-        identifiers = detected["identifiers"]
-        if identifiers["board" if source == "greenhouse" else "account"] != tenant:
-            raise ValueError("tenant mismatch")
-        region = identifiers.get("region", "")
+        return _comeet_identity(tenant, job, detected)
+    region = _region(source, tenant, detected)
     if source == "greenhouse":
         # Greenhouse's documented public API is shared by US/EU hosted boards.
         url = f"https://boards-api.greenhouse.io/v1/boards/{tenant}/jobs"
     elif source == "lever":
-        region = "eu" if any(urlparse(str(posting.get(k) or "")).hostname == "jobs.eu.lever.co"
-                             for k in ("apply_url", "url")) else ""
+        region = _lever_region(posting)
         host = "api.eu.lever.co" if region else "api.lever.co"
         url = f"https://{host}/v0/postings/{tenant}?mode=json"
     elif source == "workable":
@@ -71,33 +97,56 @@ def board_identity(posting):
     return source, (f"eu:{tenant}" if region else tenant), job, url
 
 
-def active_ids(source, body, tenant=None):
-    if source == "workable":
-        if not re.search(r"^# .*All Open Positions", body, re.M) or "| Posted | Details |" not in body:
-            raise ValueError("missing complete Workable board")
-        rows = [line for line in body.splitlines() if line.startswith("|")
-                and "| Title |" not in line and not re.fullmatch(r"[| :\-]+", line)]
-        if any(not DETAIL_PATTERN.search(line) for line in rows) or re.search(r"[?&]page=", body):
+def _workable_rows(body):
+    if not re.search(r"^# .*All Open Positions", body, re.M) or "| Posted | Details |" not in body:
+        raise ValueError("missing complete Workable board")
+    return [line for line in body.splitlines() if line.startswith("|")
+            and "| Title |" not in line and not re.fullmatch(r"[| :\-]+", line)]
+
+
+def _workable_ids(body, tenant):
+    for line in _workable_rows(body):
+        if not DETAIL_PATTERN.search(line):
             raise ValueError("incomplete Workable board")
-        if tenant and any(f"https://apply.workable.com/{tenant}/jobs/view/" not in line for line in rows):
+        if tenant and f"https://apply.workable.com/{tenant}/jobs/view/" not in line:
             raise ValueError("Workable tenant mismatch")
-        return set(DETAIL_PATTERN.findall(body))
+    if re.search(r"[?&]page=", body):
+        raise ValueError("incomplete Workable board")
+    return set(DETAIL_PATTERN.findall(body))
+
+
+def _records(source, body):
     if source == "comeet":
         match = POSITIONS_PATTERN.search(body)
         if not match:
             raise ValueError("missing Comeet positions")
-        records, key = json.loads(match.group(1)), "uid"
-    else:
-        payload = json.loads(body)
-        records = payload["jobs"] if source == "greenhouse" else payload
-        key = "id"
-        if source == "greenhouse" and (type(payload.get("meta", {}).get("total")) is not int
-                                       or payload["meta"]["total"] != len(records)):
+        return json.loads(match.group(1)), "uid"
+    payload = json.loads(body)
+    if source == "greenhouse":
+        records = payload["jobs"]
+        if (type(payload.get("meta", {}).get("total")) is not int
+                or payload["meta"]["total"] != len(records)):
             raise ValueError("incomplete Greenhouse board")
-    if not isinstance(records, list) or any(not isinstance(r, dict)
-            or type(r.get(key)) not in (str, int) or not IDENTIFIER.fullmatch(str(r[key])) for r in records):
+        return records, "id"
+    return payload, "id"
+
+
+def _record_id(record, key):
+    if not isinstance(record, dict) or type(record.get(key)) not in (str, int):
+        raise ValueError("invalid board record")
+    identifier = str(record[key])
+    if not IDENTIFIER.fullmatch(identifier):
+        raise ValueError("invalid board identifier")
+    return identifier
+
+
+def active_ids(source, body, tenant=None):
+    if source == "workable":
+        return _workable_ids(body, tenant)
+    records, key = _records(source, body)
+    if not isinstance(records, list):
         raise ValueError("invalid board records")
-    ids = {str(r[key]) for r in records}
+    ids = {_record_id(record, key) for record in records}
     if len(ids) != len(records):
         raise ValueError("duplicate board identifiers")
     return ids
