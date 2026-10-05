@@ -32,7 +32,8 @@ try {
         const url = new URL(route.request().url());
         const isNew = url.searchParams.get("filter") === "new-for-me";
         const filtered = isNew ? jobs.filter(job => job.status === "new") : jobs;
-        if (url.pathname === "/api/jobs/new-count") return route.fulfill({ json: { count: state.newRoles } });
+        // The new-roles poll (since=) sees one arriving role while state.newRoles is set.
+        if (url.searchParams.has("since")) return route.fulfill({ json: { jobs: state.newRoles ? [{ ...fixtureJob(99), title: "Arriving role", company: "Arriving", score: 80 }] : [] } });
         if (url.pathname === "/api/jobs") {
           if (!isNew) state.allLists += 1;
           return route.fulfill({ json: { jobs: filtered.slice(0, 2) } });
@@ -68,6 +69,9 @@ try {
       if (mode === "open") await expect.poll(() => state.allRequested).toBe(true);
       // Refresh All roles before returning, clearing master’s old list cache while
       // all globe responses remain held. Only the old globe cohort can resurrect.
+      // The poll arms once the All roles list has loaded.
+      await expect.poll(() => state.allLists).toBeGreaterThanOrEqual(1);
+      await page.clock.runFor(500);
       state.newRoles = 1;
       await page.clock.fastForward(91_000);
       await page.locator("[data-new-roles]").click();

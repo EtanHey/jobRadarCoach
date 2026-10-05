@@ -4,12 +4,11 @@ import { test } from "node:test";
 import { makeGetJob } from "../app/api/jobs/[id]/route";
 import { makePatchStatus } from "../app/api/jobs/[id]/status/route";
 import { GET as getJobs, makeGetJobs } from "../app/api/jobs/route";
-import { makeGetNewJobCount } from "../app/api/jobs/new-count/route";
 import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
 import { JobIdSchema, JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
 import { HttpError } from "../lib/http";
 import type { ApiStore } from "../lib/server";
-import { availabilityPredicate, countSummariesSince, parseSummaryRows, selectSummaries } from "../lib/server";
+import { availabilityPredicate, parseSummaryRows, selectSummaries } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
 const summary: JobSummary = {
@@ -61,7 +60,6 @@ const profile = {
 function store(overrides: Partial<ApiStore> = {}): ApiStore {
   return {
     listJobs: () => Promise.resolve([summary]),
-    countJobsSince: () => Promise.resolve(0),
     getJob: () => Promise.resolve(detail),
     setStatus: (input) => Promise.resolve({
       status: input.status,
@@ -348,40 +346,41 @@ test("summary ID lookup queries postings by ID without status, availability or v
 });
 
 
-test("the new-roles count is a bounded, strict query that returns only a count", async () => {
+test("the list accepts a strictly-newer cursor for the new-roles poll", async () => {
   const received: unknown[] = [];
-  const handler = makeGetNewJobCount(store({ countJobsSince: async (query) => { received.push(query); return 3; } }));
+  const handler = makeGetJobs(store({ listJobs: async (query) => { received.push(query); return [summary]; } }));
   const since = "2026-10-05T10:00:00.123456+00:00";
-  const response = await handler(new Request(`http://localhost/api/jobs/new-count?${new URLSearchParams({ filter: "new-for-me", availability: "all", since })}`));
+  const response = await handler(new Request(`http://localhost/api/jobs?${new URLSearchParams({ filter: "new-for-me", availability: "all", limit: "101", since })}`));
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { count: 3 });
-  assert.equal(response.headers.get("cache-control"), "no-store");
-  assert.deepEqual(received, [{ filter: "new-for-me", availability: "all", since }]);
-  for (const query of ["filter=all", "filter=all&since=yesterday", `filter=bogus&since=${encodeURIComponent(since)}`, `filter=all&since=${encodeURIComponent(since)}&limit=5`, `filter=all&since=${encodeURIComponent(since)}&ids=${ID}`]) {
-    assert.equal((await handler(new Request(`http://localhost/api/jobs/new-count?${query}`))).status, 400, query);
+  assert.deepEqual(received, [{ filter: "new-for-me", availability: "all", limit: 101, since }]);
+  for (const query of ["since=yesterday", `since=${encodeURIComponent(since)}&filter=all&availability=all&ids=${ID}`]) {
+    assert.equal((await handler(new Request(`http://localhost/api/jobs?${query}`))).status, 400, query);
   }
   assert.equal(received.length, 1);
 });
 
-test("the new-roles count reuses the list's status and availability rules with a head-only count", async () => {
+test("the cursor narrows the list query with the list's own filters, ordering and limit", async () => {
   const since = "2026-10-05T10:00:00.123456+00:00";
-  for (const [filter, columns, statusFilter] of [["all", "id", null], ["applied", "id,posting_status!inner(status)", "applied"]] as const) {
+  for (const [filter, statusFilter] of [["all", null], ["applied", "applied"]] as const) {
     const calls: unknown[] = [];
     const query = {
-      select(selected: string, options: unknown) { calls.push(["select", selected, options]); return this; },
+      select(selected: string) { calls.push(["select", selected.includes("posting_status!inner(") ? "inner" : "left"]); return this; },
       eq(column: string, value: unknown) { calls.push(["eq", column, value]); return this; },
       or(value: string) { calls.push(["or", value]); return this; },
       gt(column: string, value: string) { calls.push(["gt", column, value]); return this; },
-      then(resolve: (value: unknown) => void) { resolve({ data: null, count: 7, error: null }); },
+      order(column: string, options?: unknown) { calls.push(["order", column, options ?? null]); return this; },
+      limit(count: number) { calls.push(["limit", count]); return Promise.resolve({ data: [], error: null }); },
     };
     const db = { from(table: string) { assert.equal(table, "postings"); return query; } };
-    const count = await countSummariesSince(db as unknown as Parameters<typeof countSummariesSince>[0], { filter, availability: "active", since });
-    assert.equal(count, 7);
+    await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter, availability: "active", limit: 101, since });
     assert.deepEqual(calls, [
-      ["select", columns, { count: "exact", head: true }],
+      ["select", statusFilter ? "inner" : "left"],
       ...(statusFilter ? [["eq", "posting_status.status", statusFilter]] : []),
       ["or", "liveness->alive.neq.false,liveness->alive.is.null"],
       ["gt", "first_seen_at", since],
+      ["order", "first_seen_at", { ascending: false }],
+      ["order", "id", null],
+      ["limit", 101],
     ]);
   }
 });

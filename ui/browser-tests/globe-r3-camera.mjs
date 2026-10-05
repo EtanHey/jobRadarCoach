@@ -32,7 +32,7 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
     if (url.hostname!=="127.0.0.1") return url.hostname.endsWith(".cartocdn.com")?route.continue():route.abort();
     if (!url.pathname.startsWith("/api/")) return route.continue();
     if (request.method()!=="GET") return route.fulfill({status:405,json:{error:"Read-only fixture"}});
-    if (url.pathname==="/api/jobs/new-count") return route.fulfill({json:{count:newRoles}});
+    if (url.searchParams.has("since")) return route.fulfill({json:{jobs:newRoles?[{...jobs[0],id:id(99),title:"Arriving role",company:"Arriving"}]:[]}});
     if (url.pathname==="/api/jobs/globe") {fetches++;return route.fulfill({json:{...payload,jobs:jobs.map(job=>({...job,title:`${job.title} refresh ${fetches}`}))}});}
     if (url.pathname==="/api/jobs") return route.fulfill({json:{jobs:jobs.map(job=>({...job,title:`${job.title} refresh ${fetches}`}))}});
     const job=jobs.find(job=>url.pathname===`/api/jobs/${job.id}`);

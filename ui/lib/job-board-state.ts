@@ -35,6 +35,21 @@ export function updateJobStatus<T extends { id: string; status: string; status_r
   return jobs.map((job) => job.id === id ? { ...job, status, status_reason: statusReason } : job);
 }
 
+export type StatusMutation<S extends string = string> = { status: S; reason: string | null; remove: boolean };
+
+// Applies PATCH replies that landed while this snapshot was being read, so a read that
+// started before them cannot undo them (and nothing needs to be read again).
+export function reconcileStatusMutations<T extends { id: string; status: string; status_reason: string | null }>(
+  jobs: T[], mutations: ReadonlyMap<string, StatusMutation<T["status"]>>,
+): T[] {
+  if (mutations.size === 0) return jobs;
+  return jobs.flatMap((job) => {
+    const mutation = mutations.get(job.id);
+    if (!mutation) return [job];
+    return mutation.remove ? [] : [{ ...job, status: mutation.status, status_reason: mutation.reason }];
+  });
+}
+
 export function createRequestFence() {
   let generation = 0;
   return {

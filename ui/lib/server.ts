@@ -6,14 +6,13 @@ import { z } from "zod";
 import {
   JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
-  type Availability, type JobSummary, type NewJobCountQuery, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
+  type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
 import { postingUrl, titleSeniority, experiencePhrase, technologyMentions } from "./job-metadata";
 import { HttpError } from "./http";
 
 export interface ApiStore {
   listJobs(input: JobListQuery): Promise<JobSummary[]>;
-  countJobsSince(input: NewJobCountQuery): Promise<number>;
   getJob(id: string): Promise<JobDetail | null>;
   setStatus(input: StatusPatch & { posting_id: string }): Promise<StatusResult>;
   getProfile(): Promise<Profile>;
@@ -102,43 +101,35 @@ export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidR
   return { jobs: rows.map(summary), invalidRowCount: 0 };
 }
 
-type ListFilter = Pick<JobListQuery, "filter" | "availability">;
-type PostingQuery = ReturnType<ReturnType<SupabaseClient["from"]>["select"]>;
-
-// One status/availability/visit rule set for the list and its new-roles count.
-// Boxed: an async function returning the thenable builder would run the query.
-async function filteredPostings(db: SupabaseClient, input: ListFilter, select: (statusJoin: boolean) => PostingQuery): Promise<{ query: PostingQuery }> {
-  let query = select(input.filter !== "all");
-  if (input.filter !== "all") query = query.eq("posting_status.status", input.filter === "new-for-me" ? "new" : input.filter);
-  const availability = availabilityPredicate(input.availability);
-  if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
-  else if (availability?.method === "or") query = query.or(availability.filter);
-  if (input.filter === "new-for-me") {
-    const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
-      db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
-    ));
-    if (visit?.last_visit_at) {
-      const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
-      query = query.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
-    }
-  }
-  return { query };
-}
-
 export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
   if (input.ids) {
     return parseSummaryRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
-  const { query } = await filteredPostings(db, input, statusJoin => db.from("postings").select(statusJoin ? STATUS_SUMMARY : SUMMARY));
-  return parseSummaryRows(await data(query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit))).jobs;
-}
-
-export async function countSummariesSince(db: SupabaseClient, input: NewJobCountQuery): Promise<number> {
-  const { query } = await filteredPostings(db, input, statusJoin => db.from("postings")
-    .select(statusJoin ? "id,posting_status!inner(status)" : "id", { count: "exact", head: true }));
-  const response = await query.gt("first_seen_at", input.since);
-  if (response.error || typeof response.count !== "number") throw new HttpError(503, "Database request failed.", "database");
-  return response.count;
+  if (input.filter === "new-for-me") {
+    const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
+      db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
+    ));
+    let fresh = db.from("postings").select(STATUS_SUMMARY)
+      .eq("posting_status.status", "new");
+    const availability = availabilityPredicate(input.availability);
+    if (availability?.method === "eq") fresh = fresh.eq(availability.column, availability.value);
+    else if (availability?.method === "or") fresh = fresh.or(availability.filter);
+    if (visit?.last_visit_at) {
+      const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
+      fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
+    }
+    if (input.since) fresh = fresh.gt("first_seen_at", input.since);
+    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+    return parseSummaryRows(await data(fresh)).jobs;
+  }
+  let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
+  if (input.filter !== "all") query = query.eq("posting_status.status", input.filter);
+  const availability = availabilityPredicate(input.availability);
+  if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
+  else if (availability?.method === "or") query = query.or(availability.filter);
+  if (input.since) query = query.gt("first_seen_at", input.since);
+  query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
+  return parseSummaryRows(await data(query)).jobs;
 }
 
 async function readDetail(db: SupabaseClient, id: string): Promise<z.infer<typeof rawDetailSchema> | null> {
@@ -162,7 +153,6 @@ async function readProfile(db: SupabaseClient): Promise<Profile> {
 export function getApiStore(): ApiStore {
   return {
     listJobs: (input) => selectSummaries(client(), input),
-    countJobsSince: (input) => countSummariesSince(client(), input),
     async getJob(id) {
       const db = client();
       const row = await readDetail(db, id);

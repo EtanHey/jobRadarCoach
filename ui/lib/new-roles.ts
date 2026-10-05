@@ -1,8 +1,12 @@
-import type { Availability } from "./contracts";
+import type { Availability, JobSummary } from "./contracts";
+import { uniqueJobsById } from "./job-board-state";
+import { filterJobGroups, type ViewOptions } from "./job-filters";
 
 export const NEW_ROLES_POLL_MS = 90_000;
 // Focus and visibility polls wait this long after the last poll or list load.
 export const NEW_ROLES_MIN_GAP_MS = 15_000;
+// The poll reads at most this many newer postings; one extra row marks the page as truncated.
+export const NEW_ROLES_LIMIT = 100;
 const EVERYTHING = new Date(0).toISOString();
 
 // Keeps the database's own spelling: re-serialising through Date drops microseconds,
@@ -17,8 +21,17 @@ export function newRolesSince(jobs: readonly { first_seen_at: string }[]): strin
   return newest ?? EVERYTHING;
 }
 
-export function newRolesCountPath(input: { filter: string; availability: Availability; since: string }): string {
-  return `/api/jobs/new-count?${new URLSearchParams({ filter: input.filter, availability: input.availability, since: input.since })}`;
+export function newRolesRequestPath(input: { filter: string; availability: Availability; since: string }): string {
+  return `/api/jobs?${new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(NEW_ROLES_LIMIT + 1), since: input.since })}`;
+}
+
+// The pill's number is the cards Show would add: the board's own view filters and
+// duplicate grouping run over the loaded list with and without the newer postings.
+export function countNewRoleCards(current: JobSummary[], incoming: JobSummary[], view: ViewOptions): number {
+  if (incoming.length === 0) return 0;
+  const visible = new Set(filterJobGroups(current, view).flatMap(group => [group.job, ...group.alternates].map(job => job.id)));
+  return filterJobGroups(uniqueJobsById([...current, ...incoming]), view)
+    .filter(group => ![group.job, ...group.alternates].some(job => visible.has(job.id))).length;
 }
 
 export function createNewRolesPollGate(minGapMs = NEW_ROLES_MIN_GAP_MS) {
@@ -33,6 +46,6 @@ export function createNewRolesPollGate(minGapMs = NEW_ROLES_MIN_GAP_MS) {
   };
 }
 
-export function newRolesLabel(count: number): string {
-  return `${count} new ${count === 1 ? "role" : "roles"}`;
+export function newRolesLabel(count: number, truncated: boolean): string {
+  return `${count}${truncated ? "+" : ""} new ${count === 1 && !truncated ? "role" : "roles"}`;
 }

@@ -42,7 +42,7 @@ test("private pages and APIs deny unauthenticated callers without trusting a coo
     "https://jobs.example.com/login?next=%2F%3Fview%3Dall",
   );
 
-  for (const path of ["/api/jobs", "/api/jobs/new-count"]) {
+  for (const path of ["/api/jobs", "/api/profile"]) {
     const result = await authorizeOwnerRequest(
       request(path),
       configuredEnvironment,
@@ -73,7 +73,7 @@ test("missing or malformed auth configuration fails closed", async () => {
     { ...configuredEnvironment, NEXT_PUBLIC_SUPABASE_URL: "not-a-url" },
   ]) {
     assert.equal(readOwnerAuthConfig(environment).ok, false);
-    for (const path of ["/", "/api/jobs", "/api/jobs/new-count", "/api/profile"]) {
+    for (const path of ["/", "/api/jobs", "/api/profile"]) {
       const result = await authorizeOwnerRequest(request(path), environment, verifier(null));
       assert.ok(result.kind === "deny", path);
       assert.equal(result.response.status, 503, path);
@@ -82,13 +82,12 @@ test("missing or malformed auth configuration fails closed", async () => {
   }
 });
 
-test("the configured owner can reach pages, data, mutations, and the new-roles count", async () => {
+test("the configured owner can reach pages, data, and mutations", async () => {
   for (const [path, method] of [
     ["/", "GET"],
     ["/api/jobs", "GET"],
     ["/api/jobs/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/status", "PATCH"],
     ["/api/profile", "PATCH"],
-    ["/api/jobs/new-count", "GET"],
   ] as const) {
     const result = await authorizeOwnerRequest(
       request(path, method),
@@ -120,7 +119,6 @@ test("only the explicit login, callback, recovery, and static paths are public",
     "/_next/data/build-id/dashboard.json",
     "/api/jobs",
     "/api/profile",
-    "/api/jobs/new-count",
   ]) assert.equal(classifyAuthPath(path), "private", path);
 });
 
@@ -145,7 +143,7 @@ test("every current page and route file is covered by the default-private policy
     "/",
     "/api/jobs",
     "/api/jobs/example",
-    "/api/jobs/example/status", "/api/jobs/globe", "/api/jobs/new-count",
+    "/api/jobs/example/status", "/api/jobs/globe",
     "/api/profile",
     "/auth/callback",
     "/auth/passkeys",
@@ -188,7 +186,7 @@ test("the proxy verifies claims and forwards refreshed cookies with anti-cache h
   if (!configured.ok) return;
 
   const session = await verifySupabaseIdentity(
-    new NextRequest("https://jobs.example.com/api/jobs/new-count"),
+    new NextRequest("https://jobs.example.com/api/jobs"),
     configured.value,
     createClient,
   );
