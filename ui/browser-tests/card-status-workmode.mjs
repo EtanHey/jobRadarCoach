@@ -33,8 +33,8 @@ const failures = [], passed = [];
 
 async function openBoard({ viewport, colorScheme, filter, jobs, patch }) {
   const context = await browser.newContext({ viewport, colorScheme, reducedMotion: "reduce" });
-  await context.addInitScript(filter => {
-    localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter,
+  await context.addInitScript(savedFilter => {
+    localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter: savedFilter,
       view: { search: "", source: "", location: "", seniority: "", fit: "", statuses: [], availability: "active", sort: "fit" } }));
     localStorage.setItem("job-globe-dragged", "1");
     class FixtureEvents extends EventTarget { constructor() { super(); setTimeout(() => this.dispatchEvent(new Event("ready")), 20); } close() { this.closed = true; } }
@@ -42,7 +42,7 @@ async function openBoard({ viewport, colorScheme, filter, jobs, patch }) {
   }, filter);
   const page = await context.newPage(), errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.route("**/*", async route => {
+  await page.route("**/*", route => {
     const url = new URL(route.request().url());
     if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
     if (!url.pathname.startsWith("/api/")) return route.continue();
@@ -70,13 +70,17 @@ function measure(page, scope) {
     const mode = card.querySelector("[data-work-mode]"), place = mode?.parentElement, location = mode?.nextElementSibling;
     const h2 = card.querySelector("h2");
     return { id: card.dataset.postingId, header: box(header), title: box(h2).width, titleOpacity: getComputedStyle(h2.parentElement).opacity,
-      score: box(score), chip: chip && { text: chip.textContent, label: chip.getAttribute("title"), box: box(chip) }, cardRight: box(card).right,
-      mode: mode && { label: mode.getAttribute("aria-label"), role: mode.getAttribute("role"), svg: !!mode.querySelector("svg") },
+      score: box(score), scoreColumn: box(score.parentElement), chip: chip && { text: chip.textContent, label: chip.getAttribute("title"), box: box(chip), clipped: chip.scrollHeight - chip.clientHeight },
+      cardRight: box(card).right,
+      mode: mode && { label: mode.getAttribute("aria-label"), role: mode.getAttribute("role"), svg: Boolean(mode.querySelector("svg")) },
       place: place && box(place), locationOverflow: location ? location.scrollWidth - location.clientWidth : null, locationText: location?.textContent };
   }));
 }
 
-function checkCards(cards, where) {
+// Master's title widths for these fixtures (review R1 of #401): the chip must never take width from the title.
+const minimumTitleWidth = { "390": 190, desktop: 272 };
+
+function checkCards(cards, where, minTitle) {
   assert.equal(cards.length, statuses.length, `${where}: every card rendered`);
   const baseline = cards.find(card => card.id === id(0));
   for (const card of cards) {
@@ -88,11 +92,14 @@ function checkCards(cards, where) {
     assert.equal(card.titleOpacity, dimmed.has(status) ? "0.6" : "1", `${at}: dim only terminal statuses`);
     assert.equal(Math.round(card.header.height), Math.round(baseline.header.height), `${at}: header height unchanged by the chip`);
     assert.equal(Math.round(card.title), Math.round(baseline.title), `${at}: title width unchanged by the chip`);
+    assert.ok(card.scoreColumn.width <= card.score.width + 0.5, `${at}: the score column stays score-sized (${card.scoreColumn.width} > ${card.score.width})`);
+    if (minTitle) assert.ok(card.title >= minTitle, `${at}: title keeps master's width (${card.title} < ${minTitle})`);
     if (status === "new") { assert.equal(card.chip, null, `${at}: no chip`); continue; }
     assert.ok(card.chip, `${at}: chip rendered`);
     assert.ok(card.chip.label, `${at}: full label kept for hover`);
     assert.ok(card.chip.box.top >= card.score.bottom - 0.5, `${at}: chip sits under the score box`);
     assert.ok(Math.abs(card.chip.box.right - card.score.right) <= 1, `${at}: chip right-aligned with the score box`);
+    assert.ok(card.chip.clipped <= 1, `${at}: chip label is not clipped (${card.chip.clipped}px hidden)`);
     assert.ok(card.chip.box.bottom <= card.header.bottom + 0.5 && card.chip.box.bottom <= card.place.top, `${at}: chip stays in the header, above the location row`);
     assert.ok(card.chip.box.right <= card.cardRight, `${at}: chip inside the card`);
   }
@@ -107,7 +114,7 @@ for (const [vp, viewport] of [["390", { width: 390, height: 844 }], ["desktop", 
       const { context, page, errors } = await openBoard({ viewport, colorScheme, filter, jobs: freshJobs() });
       try {
         try {
-          checkCards(await measure(page, "main"), `${where} list`);
+          checkCards(await measure(page, "main"), `${where} list`, minimumTitleWidth[vp]);
           assert.ok(await page.evaluate(() => document.scrollingElement.scrollWidth <= window.innerWidth), `${where} list: no horizontal overflow`);
           await shot(page, `${vp}-${colorScheme}-${filter}-list`, { fullPage: vp === "390" });
           passed.push(`${where} list`);

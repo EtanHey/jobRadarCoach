@@ -38,7 +38,7 @@ test("every view shows a status chip under the score box, never on the location 
   const location = html.indexOf("Tel Aviv-Yafo");
   assert.ok(score > -1 && chip > score, "the chip follows the score box");
   assert.ok(chip < location, "the chip sits in the header, above the location row");
-  assert.match(html, /data-card-status="seen" title="Seen"[^>]*><span class="truncate">Seen<\/span>/);
+  assert.match(html, /data-card-status="seen" title="Seen"[^>]*>Seen<\/span>/);
   assert.match(html, new RegExp(`<button[^>]+aria-describedby="card-status-${id}"`), "the status is announced with the card's button");
 });
 
@@ -60,7 +60,7 @@ test("Seen gets a quiet chip without dimming; terminal statuses dim the content,
 
 test("worth checking is a text chip, not a bare bookmark", () => {
   const html = renderCard({ status: "worth_checking" });
-  assert.match(html, /data-card-status="worth_checking"[^>]*><span class="truncate">Worth checking</);
+  assert.match(html, /data-card-status="worth_checking"[^>]*>Worth checking</);
   assert.doesNotMatch(html, /lucide-bookmark/);
 });
 
