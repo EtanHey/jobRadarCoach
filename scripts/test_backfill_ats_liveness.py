@@ -63,7 +63,6 @@ def test_invalid_batch_and_changed_identity_write_nothing():
 def test_cli_apply_is_blocked_before_the_demo_freeze_ends(monkeypatch, tmp_path):
     import scripts.backfill_ats_liveness as module
     import psycopg
-    from datetime import datetime, timezone
     frozen = type("Clock", (datetime,), {"now": classmethod(lambda *_: datetime(2026,10,5,tzinfo=timezone.utc))})
     monkeypatch.setattr(module, "datetime", frozen)
     monkeypatch.setenv("DATABASE_URL", "postgresql://synthetic")
@@ -117,7 +116,6 @@ def test_list_error_and_reappearance_use_the_ongoing_gate():
 
 
 def test_apply_right_after_hourly_stays_pending(monkeypatch):
-    from datetime import datetime, timedelta, timezone
     import scraper.ats_liveness as module
     first = datetime(2026, 10, 5, 10, tzinfo=timezone.utc)
     frozen = type('Clock', (datetime,), {'now': classmethod(lambda *_: first + timedelta(minutes=2))})
