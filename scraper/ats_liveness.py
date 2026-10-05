@@ -225,6 +225,8 @@ class BoardChecker:
                 ids, error = None, None
                 try:
                     ids = _snapshot_ids(source, tenant, url, self.fetcher)
+                except workday.BoardTooLarge:
+                    ids, error = None, "board-too-large"
                 except Exception as exc:
                     ids, error = None, f"board-unknown:{type(exc).__name__}"
                 self.cache[key] = ids, error, checked_at

@@ -11,6 +11,10 @@ HOST = re.compile(r'([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com')
 JOB_PATH = re.compile(r'/job/(?:[A-Za-z0-9._~-]+/)*[A-Za-z0-9.-]+_([A-Za-z0-9-]+)')
 
 
+class BoardTooLarge(ValueError):
+    """The advertised board cannot fit within the bounded traversal."""
+
+
 def coordinates(url):
     try:
         parsed = urlparse(url)
@@ -78,6 +82,8 @@ def active_list(query, *, fetcher, before_request=lambda: None, facets=None, sea
         data = json.dumps({'appliedFacets': facets or {}, 'limit': 20, 'offset': offset, 'searchText': search}).encode()
         page = _page(fetcher(base(query) + '/jobs', data=data), offset)
         jobs, total = page['jobPostings'], page['total'] or (expected if offset else 0)
+        if offset == 0 and total > MAX_PAGES * 20:
+            raise BoardTooLarge('Workday board exceeds traversal cap')
         if expected is not None and expected != total:
             raise ValueError('changing Workday list')
         expected = total

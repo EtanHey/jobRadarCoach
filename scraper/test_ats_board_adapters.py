@@ -144,3 +144,43 @@ def test_transport_sends_honest_bounded_json_get_or_post(monkeypatch, data):
     monkeypatch.setattr(module, 'pinned_open', lambda *a, **k: io.BytesIO(b' ' * (module.BOARD_CAP + 1)))
     with pytest.raises(ValueError, match='response cap'):
         get('https://api.ashbyhq.com/oversized', data=data)
+
+
+@pytest.mark.parametrize('total', (501, 2000))
+def test_oversized_workday_board_fetches_once_per_run_and_alerts_once(db, total):
+    row = posting('workday')
+    db.execute('update postings set source=%s,external_id=%s,url=%s',
+               (row['source'], row['external_id'], row['url']))
+    calls = []
+    def fetch(url, **kwargs):
+        offset = json.loads(kwargs['data'])['offset']
+        calls.append(offset)
+        return page('workday', range(offset + 1, offset + 21), total)
+    alerts = []
+    for _ in range(2):
+        Clock.current += timedelta(hours=1)
+        board = BoardChecker(fetch)
+        verdict = board(row)
+        assert verdict['alive'] is None
+        assert verdict['liveness_reason'] == 'board-too-large'
+        receipt = recheck(db, scope='ats', board_checker=board,
+                          checker=lambda _: pytest.fail('oversized board cannot confirm closure'))
+        assert receipt['unknown'] == 1 and receipt['closed'] == 0
+        assert state(db)['ats_miss_count'] == 0
+        assert state(db)['last_attempt_verdict'] == 'unknown'
+        alerts.append(receipt['alerts'])
+    assert calls == [0, 0]
+    assert alerts == [1, 0]
+    assert state(db)['ats_alert_count'] == 1
+
+
+def test_workday_board_at_traversal_cap_remains_complete():
+    calls = []
+    def fetch(url, **kwargs):
+        offset = json.loads(kwargs['data'])['offset']
+        calls.append(offset)
+        return page('workday', range(offset + 1, offset + 21), 500)
+    board = BoardChecker(fetch)
+    assert board(posting('workday', '500'))['alive'] is True
+    assert board(posting('workday', '501'))['alive'] is False
+    assert calls == list(range(0, 500, 20))
