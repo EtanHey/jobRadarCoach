@@ -7,3 +7,5 @@ Stored active ATS jobs are rechecked against complete tenant boards, not a gener
 Public GETs use the honest JobRadarCoach UA, public-IP-pinned HTTPS without redirects, a ten-second timeout, a two-megabyte body cap, and at least one second after each response on the same host. No company-domain guessing or browser is involved. Tests use synthetic companies only.
 
 Current supported sources: Greenhouse, Lever, Comeet, Workable. Ashby/SmartRecruiters/Workday adapters remain separate unmerged lanes; their stored rows are selected but stay unknown until their active-list readers are integrated. The read-only L15 snapshot had zero rows from those three sources. This change does not migrate the database, dispatch a workflow, change drawer design, or apply the collected tags.
+
+Lever offset pagination can omit a live ID during concurrent changes. A list miss requires the documented individual posting lookup: matching ID proves presence; undocumented 404s, empty/mismatched records and errors remain unknown. Lever absence cannot currently close a posting.

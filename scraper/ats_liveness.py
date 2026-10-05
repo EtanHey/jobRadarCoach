@@ -158,6 +158,14 @@ class BoardChecker:
         self.fetcher = fetcher or public_get()
         self.cache = {}
 
+    def _lever_lookup(self, url, job):
+        # Offset pages are not a stable snapshot; undocumented misses are unknown.
+        try:
+            record = json.loads(self.fetcher(url))
+            return True if _record_id(record, "id") == job else None
+        except Exception:
+            return None
+
     def __call__(self, posting):
         checked_at = datetime.now(timezone.utc).isoformat()
         url = str(posting.get("url") or "")
@@ -187,6 +195,11 @@ class BoardChecker:
             ids, error, checked_at = self.cache[key]
             if ids is not None:
                 alive, reason, status = job in ids, "ats-active-list-present" if job in ids else "ats-active-list-absent", 200
+                if source == "lever" and not alive:
+                    url = f"{url.split('?')[0]}/{job}?mode=json"
+                    alive = self._lever_lookup(url, job)
+                    reason = "ats-posting-present" if alive else "lever-miss-unconfirmed"
+                    status = 200 if alive else None
             else:
                 reason = error
         except (KeyError, TypeError, ValueError):
