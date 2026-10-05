@@ -46,6 +46,9 @@ export function createNewRolesPollGate(minGapMs = NEW_ROLES_MIN_GAP_MS) {
   };
 }
 
-export function newRolesLabel(count: number, truncated: boolean): string {
+// A truncated page only samples the newest postings, so zero visible matches there is not
+// zero arrivals: offer Show without claiming a number.
+export function newRolesNotice(count: number, truncated: boolean): string | null {
+  if (count === 0) return truncated ? "New roles may be available" : null;
   return `${count}${truncated ? "+" : ""} new ${count === 1 && !truncated ? "role" : "roles"}`;
 }

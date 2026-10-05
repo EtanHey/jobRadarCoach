@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { JobSummary } from "../lib/contracts";
 import { reconcileStatusMutations } from "../lib/job-board-state";
 import { defaultBoardPreferences } from "../lib/job-board-preferences";
-import { countNewRoleCards, createNewRolesPollGate, NEW_ROLES_LIMIT, NEW_ROLES_MIN_GAP_MS, NEW_ROLES_POLL_MS, newRolesLabel, newRolesRequestPath, newRolesSince } from "../lib/new-roles";
+import { countNewRoleCards, createNewRolesPollGate, NEW_ROLES_LIMIT, NEW_ROLES_MIN_GAP_MS, NEW_ROLES_POLL_MS, newRolesNotice, newRolesRequestPath, newRolesSince } from "../lib/new-roles";
 
 test("the cutoff is the newest loaded first_seen_at, verbatim, so the newest loaded role is never counted as new", () => {
   const jobs = [
@@ -38,10 +38,17 @@ test("the poll is cheap: every 90s, and focus or visibility polls only after a q
   assert.equal(gate.shouldPoll(1_000 + NEW_ROLES_POLL_MS, false), true);
 });
 
-test("the pill label is singular for one role and marks a truncated page", () => {
-  assert.equal(newRolesLabel(1, false), "1 new role");
-  assert.equal(newRolesLabel(20, false), "20 new roles");
-  assert.equal(newRolesLabel(100, true), "100+ new roles");
+test("the notice is singular for one role, marks a truncated page, and is absent when nothing is new", () => {
+  assert.equal(newRolesNotice(0, false), null);
+  assert.equal(newRolesNotice(1, false), "1 new role");
+  assert.equal(newRolesNotice(20, false), "20 new roles");
+  assert.equal(newRolesNotice(1, true), "1+ new roles");
+  assert.equal(newRolesNotice(100, true), "100+ new roles");
+});
+
+test("a truncated page whose sampled roles are all hidden still offers Show", () => {
+  // The sampled page is newest-first; a role the view shows may sit past the sample.
+  assert.equal(newRolesNotice(0, true), "New roles may be available");
 });
 
 const role = (n: number, overrides: Partial<JobSummary> = {}): JobSummary => ({
