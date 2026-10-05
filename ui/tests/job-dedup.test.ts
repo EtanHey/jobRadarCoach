@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { globePoints } from "../lib/globe-model";
-import type { JobSummary } from "../lib/contracts";
+import { JobSummarySchema, type JobSummary } from "../lib/contracts";
 import { earlierListingCount, groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
 import { repostNote } from "../lib/job-display";
 
@@ -265,4 +265,37 @@ test("linked groups mark reposts by republished date; earlier-listing counts onl
   ]);
   assert.equal(undated.length, 1);
   assert.equal(marker(undated[0]), "Reposted: 1 earlier listing of this role");
+});
+
+test("a known latest publication blocks the discovery fallback even without original dates", () => {
+  const marker = ({ job: row, alternates }: ReturnType<typeof groupDuplicateJobs>[number]) =>
+    repostNote(row.posted_at, row.last_published_at, earlierListingCount(row, alternates), "UTC");
+  // R13 scratch case: schema-valid twins share one known latest publication but were found weeks apart.
+  const latestOnly = groupDuplicateJobs([
+    job(40, { posted_at: null, last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
+    job(41, { posted_at: null, last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-01T13:00:00Z" }),
+  ].map(row => JobSummarySchema.parse(row)));
+  assert.equal(latestOnly.length, 1);
+  assert.equal(latestOnly[0].job.posted_at, null);
+  assert.equal(latestOnly[0].job.last_published_at, "2026-09-28T12:00:00Z");
+  assert.equal(earlierListingCount(latestOnly[0].job, latestOnly[0].alternates), 0);
+  assert.equal(marker(latestOnly[0]), null);
+
+  // Differing latest dates without a known original are still not "later than the original".
+  const latestDiffers = groupDuplicateJobs([
+    job(42, { posted_at: null, last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
+    job(43, { posted_at: null, last_published_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T13:00:00Z" }),
+  ]);
+  assert.equal(latestDiffers.length, 1);
+  assert.equal(earlierListingCount(latestDiffers[0].job, latestDiffers[0].alternates), 0);
+  assert.equal(marker(latestDiffers[0]), null);
+
+  // One member's latest publication dates the whole group.
+  const partlyDated = groupDuplicateJobs([
+    job(44, { posted_at: null, last_published_at: null, first_seen_at: "2026-09-28T13:00:00Z" }),
+    job(45, { posted_at: null, last_published_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T13:00:00Z" }),
+  ]);
+  assert.equal(partlyDated.length, 1);
+  assert.equal(earlierListingCount(partlyDated[0].job, partlyDated[0].alternates), 0);
+  assert.equal(marker(partlyDated[0]), null);
 });

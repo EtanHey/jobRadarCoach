@@ -67,18 +67,19 @@ export function linkedPublicationDates(jobs: JobSummary[]): Pick<JobSummary, "po
   return { posted_at: originals[0] ?? null, last_published_at: publications[0] ?? null };
 }
 
-function isEarlier(alternate: JobSummary, job: JobSummary): boolean {
+function isEarlier(alternate: JobSummary, job: JobSummary, discoveryFallback: boolean): boolean {
   const posted = [timestamp(alternate.posted_at), timestamp(job.posted_at)];
   if (posted[0] !== null && posted[1] !== null) return posted[0] < posted[1];
-  if (alternate.posted_at !== null || job.posted_at !== null) return false; // mixed or unparseable chronology is not evidence
+  if (!discoveryFallback) return false; // mixed or unparseable chronology is not evidence
   const seen = [timestamp(alternate.first_seen_at), timestamp(job.first_seen_at)];
   return seen[0] !== null && seen[1] !== null && seen[0] < seen[1];
 }
 
-// Alternates that were demonstrably published (or, lacking publish dates, found) before `job`.
+// Alternates that were demonstrably published (or, when no listing has any publish date, found) before `job`.
 // Same-instant twins and unknown chronology are alternative listings, not evidence of a repost.
 export function earlierListingCount(job: JobSummary, alternates: JobSummary[]): number {
-  return alternates.filter(alternate => isEarlier(alternate, job)).length;
+  const discoveryFallback = [job, ...alternates].every(listing => listing.posted_at === null && (listing.last_published_at ?? null) === null);
+  return alternates.filter(alternate => isEarlier(alternate, job, discoveryFallback)).length;
 }
 
 export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
