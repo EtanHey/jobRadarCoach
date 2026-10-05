@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { globePoints } from "../lib/globe-model";
 import type { JobSummary } from "../lib/contracts";
-import { groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
+import { earlierListingCount, groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
+import { repostNote } from "../lib/job-display";
 
 function job(id: number, overrides: Partial<JobSummary> = {}): JobSummary {
   return {
@@ -215,4 +216,53 @@ test("grouping prepares identity and location evidence once instead of per pair"
   assert.equal(counts.regex, 0, "country/state regexes must be compiled before grouping");
   assert.ok(counts.location <= locations.length, "each location must be parsed at most once per grouping call");
   assert.ok(counts.url <= rows.length * 2, "each listing URL must be parsed at most once per grouping call");
+});
+
+test("only demonstrably earlier alternates count as earlier listings", () => {
+  const at = "2026-10-02T12:00:00Z";
+  const simultaneous = groupDuplicateJobs([job(20, { posted_at: at, first_seen_at: at }), job(21, { posted_at: at, first_seen_at: at })])[0];
+  assert.equal(simultaneous.alternates.length, 1);
+  assert.equal(earlierListingCount(simultaneous.job, simultaneous.alternates), 0);
+
+  const current = job(22, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" });
+  const older = job(23, { posted_at: "2026-08-20T12:00:00Z", first_seen_at: "2026-08-20T13:00:00Z" });
+  const samePostedLaterSeen = job(24, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-27T13:00:00Z" });
+  const unknownPosted = job(25, { posted_at: null, first_seen_at: "2026-08-01T00:00:00Z" });
+  assert.equal(earlierListingCount(current, [older]), 1);
+  assert.equal(earlierListingCount(current, [samePostedLaterSeen]), 0);
+  assert.equal(earlierListingCount(current, [unknownPosted]), 0);
+  assert.equal(earlierListingCount(current, [older, samePostedLaterSeen, unknownPosted]), 1);
+
+  const seenOnly = job(26, { posted_at: null, first_seen_at: "2026-09-10T00:00:00Z" });
+  const seenEarlier = job(27, { posted_at: null, first_seen_at: "2026-09-01T00:00:00Z" });
+  assert.equal(earlierListingCount(seenOnly, [seenEarlier]), 1);
+  assert.equal(earlierListingCount(seenOnly, [job(28, { posted_at: null, first_seen_at: "2026-09-10T00:00:00Z" })]), 0);
+  assert.equal(earlierListingCount(job(29, { posted_at: "invalid", first_seen_at: "invalid" }), [older]), 0);
+});
+
+test("linked groups mark reposts by republished date; earlier-listing counts only without publication dates", () => {
+  const marker = ({ job: row, alternates }: ReturnType<typeof groupDuplicateJobs>[number]) =>
+    repostNote(row.posted_at, row.last_published_at, earlierListingCount(row, alternates), "UTC");
+  const dated = groupDuplicateJobs([
+    job(30, { posted_at: "2026-09-28T12:00:00Z", last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
+    job(31, { posted_at: "2026-08-20T12:00:00Z", last_published_at: "2026-08-20T12:00:00Z", first_seen_at: "2026-08-20T13:00:00Z" }),
+  ]);
+  assert.equal(dated.length, 1);
+  assert.equal(dated[0].job.posted_at, "2026-08-20T12:00:00Z");
+  assert.equal(earlierListingCount(dated[0].job, dated[0].alternates), 0);
+  assert.equal(marker(dated[0]), "Reposted: republished 2026-09-28");
+
+  const mixed = groupDuplicateJobs([
+    job(32, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
+    job(33, { posted_at: null, first_seen_at: "2026-08-01T00:00:00Z" }),
+  ]);
+  assert.equal(mixed.length, 1);
+  assert.equal(earlierListingCount(mixed[0].job, mixed[0].alternates), 0);
+
+  const undated = groupDuplicateJobs([
+    job(34, { posted_at: null, last_published_at: null, first_seen_at: "2026-09-10T00:00:00Z" }),
+    job(35, { posted_at: null, last_published_at: null, first_seen_at: "2026-09-01T00:00:00Z" }),
+  ]);
+  assert.equal(undated.length, 1);
+  assert.equal(marker(undated[0]), "Reposted: 1 earlier listing of this role");
 });

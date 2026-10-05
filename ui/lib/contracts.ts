@@ -77,7 +77,12 @@ export const JobListQuerySchema = z.object({
   filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),
   limit,
-}).strict();
+  ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
+  // Strictly-newer cursor for the board's new-roles poll.
+  since: z.iso.datetime({ offset: true }).optional(),
+}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since), {
+  message: "ID lookup requires all statuses and availability, without a cursor.",
+});
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);
 const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);
