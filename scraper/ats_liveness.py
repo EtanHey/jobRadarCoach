@@ -4,8 +4,9 @@ import json
 import re
 import time
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request
+from urllib.error import HTTPError
 
 from scraper.public_https import pinned_open
 from scraper.source_registry import detect_supported_ats
@@ -86,6 +87,7 @@ def board_identity(posting):
     if source == "greenhouse":
         # Greenhouse's documented public API is shared by US/EU hosted boards.
         url = f"https://boards-api.greenhouse.io/v1/boards/{tenant}/jobs"
+        region = ""  # US/EU job URLs share the same board snapshot.
     elif source == "lever":
         region = _lever_region(posting)
         host = "api.eu.lever.co" if region else "api.lever.co"
@@ -158,14 +160,6 @@ class BoardChecker:
         self.fetcher = fetcher or public_get()
         self.cache = {}
 
-    def _lever_lookup(self, url, job):
-        # Offset pages are not a stable snapshot; undocumented misses are unknown.
-        try:
-            record = json.loads(self.fetcher(url))
-            return True if _record_id(record, "id") == job else None
-        except Exception:
-            return None
-
     def __call__(self, posting):
         checked_at = datetime.now(timezone.utc).isoformat()
         url = str(posting.get("url") or "")
@@ -176,33 +170,118 @@ class BoardChecker:
             if key not in self.cache:
                 ids, error = None, None
                 try:
-                    if source == "lever":
-                        ids = set()
-                        for offset in range(0, 1000, 50):
-                            page = active_ids(source, self.fetcher(f"{url}&skip={offset}&limit=50"))
-                            if ids.intersection(page):
-                                raise ValueError("repeated Lever page")
-                            ids.update(page)
-                            if len(page) < 50:
-                                break
-                        else:
-                            raise ValueError("Lever page cap reached")
-                    else:
-                        ids = active_ids(source, self.fetcher(url), tenant)
+                    ids = active_ids(source, self.fetcher(url), tenant)
                 except Exception as exc:
                     ids, error = None, f"board-unknown:{type(exc).__name__}"
                 self.cache[key] = ids, error, checked_at
             ids, error, checked_at = self.cache[key]
             if ids is not None:
                 alive, reason, status = job in ids, "ats-active-list-present" if job in ids else "ats-active-list-absent", 200
-                if source == "lever" and not alive:
-                    url = f"{url.split('?')[0]}/{job}?mode=json"
-                    alive = self._lever_lookup(url, job)
-                    reason = "ats-posting-present" if alive else "lever-miss-unconfirmed"
-                    status = 200 if alive else None
             else:
                 reason = error
         except (KeyError, TypeError, ValueError):
             pass
         return {"alive": alive, "liveness_reason": reason, "liveness_status": status,
                 "liveness_final_url": url, "liveness_checked_at": checked_at}
+
+
+REDIRECT_CODES = {301, 302, 303, 307, 308}
+
+
+def _generic_careers_redirect(posting, final_url):
+    original, final = urlparse(posting["url"]), urlparse(final_url)
+    if (final.scheme != "https" or final.username or final.password
+            or final.port not in (None, 443)):
+        return False
+    detected = detect_supported_ats(posting["url"])
+    if detected or (posting["source"] == "lever" and original.hostname in {"jobs.lever.co", "jobs.eu.lever.co"}):
+        source, tenant, _, _ = board_identity(posting)
+        if source == "lever":
+            tenant = _stored_identity(posting)[1]
+        paths = {"greenhouse": f"/{tenant}", "lever": f"/{tenant}",
+                 "comeet": f"/jobs/{tenant}", "workable": f"/{tenant}"}
+        generic = paths.get(source)
+        # Same tenant/origin only; auth, another tenant and job-specific redirects stay unknown.
+        query = parse_qs(final.query, keep_blank_values=True)
+        return (final.netloc.lower() == original.netloc.lower()
+                and final.path.rstrip("/") == generic
+                and (not query or query == {"error": ["true"]}))
+    # Stored employer-hosted URLs may redirect within that employer's careers section.
+    return (final.netloc.lower() == original.netloc.lower() and not final.query
+            and final.path.rstrip("/") in {"/careers", "/jobs", "/careers/jobs"}
+            and final_url != posting["url"])
+
+
+def check_posting_url(posting):
+    """Check the stored URL once; never follow or guess a redirect destination."""
+    url = posting["url"]
+    status, alive, reason, final_url = None, None, "posting-url-unknown", url
+    try:
+        parsed = urlparse(url)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+                or parsed.password or parsed.port not in (None, 443)):
+            raise ValueError("invalid posting URL")
+        request = Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+        with pinned_open(request, timeout=10) as response:
+            status = response.getcode()
+    except HTTPError as error:
+        status = error.code
+        if status in (404, 410):
+            alive, reason = False, f"http-{status}"
+        elif status in REDIRECT_CODES:
+            final_url = urljoin(url, error.headers.get("Location", ""))
+            try:
+                if _generic_careers_redirect(posting, final_url):
+                    alive, reason = False, "ats-generic-careers-redirect"
+            except (ValueError, KeyError, TypeError):
+                pass
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return {"alive": alive, "liveness_status": status, "liveness_reason": reason,
+            "liveness_final_url": final_url,
+            "liveness_checked_at": datetime.now(timezone.utc).isoformat()}
+
+
+def _counter(state, key):
+    value = state.get(key, 0)
+    return value if type(value) is int and value >= 0 else 0
+
+
+def reliability_update(posting, result, direct_checker):
+    """Persist list strikes separately from conclusive availability; errors break the streak."""
+    state = posting.get("liveness", {})
+    now = datetime.now(timezone.utc).isoformat()
+    update = {"last_attempt_at": now, "last_attempt_reason": result.get("liveness_reason", "unknown"),
+              "last_attempt_verdict": "unknown", "ats_alert_count": _counter(state, "ats_alert_count")}
+    checked_at = result.get("liveness_checked_at", now)
+    if checked_at == state.get("ats_last_list_checked_at"):
+        update["last_attempt_verdict"] = "duplicate-snapshot"
+        return update
+    update["ats_last_list_checked_at"] = checked_at
+    if result.get("alive") is True:
+        update.update(result)
+        update.update(ats_miss_count=0, ats_last_seen_in_list=result.get("liveness_checked_at", now),
+                      last_attempt_verdict="alive")
+    elif result.get("alive") is False:
+        misses = min(2, _counter(state, "ats_miss_count") + 1)
+        update["ats_miss_count"] = misses
+        if misses < 2:
+            update["last_attempt_verdict"] = "pending"
+            return update
+        if state.get("alive") is False:
+            update.update(alive=False, last_attempt_verdict="gone")
+            return update
+        try:
+            direct = direct_checker(posting)
+        except Exception as error:
+            direct = {"alive": None, "liveness_reason": type(error).__name__}
+        update["last_attempt_reason"] = direct.get("liveness_reason", "posting-url-unknown")
+        if direct.get("alive") is False and (direct.get("liveness_status") in (404, 410)
+                or direct.get("liveness_reason") == "ats-generic-careers-redirect"):
+            update.update(direct)
+            update["last_attempt_verdict"] = "gone"
+        else:
+            update["ats_alert_count"] += 1
+    else:
+        update.update(ats_miss_count=0, ats_alert_count=update["ats_alert_count"] + 1)
+    return update

@@ -53,40 +53,6 @@ def test_bad_mismatched_or_unsupported_identity_never_fetches(row):
     assert BoardChecker(lambda _: pytest.fail("no request"))(row)["alive"] is None
 
 
-def test_lever_pagination_must_finish_before_any_absence_is_conclusive():
-    calls = []
-    def fetch(url):
-        calls.append(url)
-        if "/missing?" in url:
-            return '{}'
-        return json.dumps([{"id": str(i)} for i in range(50)]) if "skip=0" in url else '[{"id":"last"}]'
-    checker = BoardChecker(fetch)
-    assert checker(posting("lever", job="last"))["alive"] is True
-    assert checker(posting("lever", job="missing"))["alive"] is None
-    assert len(calls) == 3 and "skip=50" in calls[1]
-    assert BoardChecker(lambda _: json.dumps([{"id":str(i)} for i in range(50)]))(
-        posting("lever"))["alive"] is None
-
-
-@pytest.mark.parametrize("direct,expected", [('{"id":"50"}', True), ('{}', None),
-    ('{"id":"other"}', None), ('[]', None), (404, None)])
-def test_lever_offset_race_cannot_close_a_still_live_posting(direct, expected):
-    calls = []
-    def fetch(url):
-        calls.append(url)
-        if "skip=0" in url:
-            return json.dumps([{"id":str(i)} for i in range(50)])
-        if "skip=50" in url:
-            # ID0 vanished: live ID50 shifted to index49 between offset reads.
-            return json.dumps([{"id":str(i)} for i in range(51,100)])
-        if direct == 404:
-            raise HTTPError(url,404,"synthetic",{},None)
-        return direct
-    result = BoardChecker(fetch)(posting("lever", job="50", url="https://jobs.eu.lever.co/acme/50"))
-    assert result["alive"] is expected
-    assert calls[-1] == "https://api.eu.lever.co/v0/postings/acme/50?mode=json"
-
-
 def test_comeet_and_workable_use_adapter_board_identifiers():
     assert active_ids("comeet", 'COMPANY_POSITIONS_DATA = [{"uid":"A.1"}]; POSITION_DATA = null;') == {"A.1"}
     body = "# acme — All Open Positions\n| Title | Department | Location | Type | Salary | Posted | Details |\n|---|---|---|---|---|---|---|\n| Engineer | Eng | IL | Full | — | 2026-10-01 | [View](https://apply.workable.com/acme/jobs/view/ABC.md) |"
@@ -123,3 +89,20 @@ def test_honest_get_transport_is_bounded_and_paced_per_host(monkeypatch):
                and "Chrome" not in r.get_header("User-agent") for r in calls)
     monkeypatch.setattr(Response, "read", lambda _self, _cap: b"{}" + b" " * 1_999_999)
     with pytest.raises(ValueError): get("https://boards-api.greenhouse.io/oversized")
+
+
+def test_lever_fetches_the_unfiltered_list_once_per_tenant_without_offset_polling():
+    calls = []
+    body = json.dumps([{'id': str(i)} for i in range(125)])
+    board = BoardChecker(lambda url: calls.append(url) or body)
+    assert board(posting('lever', job='124'))['alive'] is True
+    assert board(posting('lever', job='missing'))['alive'] is False
+    assert calls == ['https://api.lever.co/v0/postings/acme?mode=json']
+
+
+def test_greenhouse_us_and_eu_urls_share_the_same_tenant_snapshot():
+    calls = []
+    board = BoardChecker(lambda url: calls.append(url) or '{"jobs":[{"id":1}],"meta":{"total":1}}')
+    assert board(posting())['alive'] is True
+    assert board(posting(url='https://job-boards.eu.greenhouse.io/acme/jobs/1'))['alive'] is True
+    assert len(calls) == 1
