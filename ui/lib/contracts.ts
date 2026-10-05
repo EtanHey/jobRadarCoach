@@ -72,14 +72,22 @@ export const JobDetailSchema = JobSummarySchema.extend({
 
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 const filterStatus = JobStatusSchema.exclude(["skipped"]);
+const listFilter = z.enum(["all", "new-for-me", ...filterStatus.options]);
 export const JobListQuerySchema = z.object({
-  filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
+  filter: listFilter,
   availability: AvailabilitySchema.default("active"),
   limit,
   ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
 }).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all"), {
   message: "ID lookup requires all statuses and availability.",
 });
+
+export const NewJobCountQuerySchema = z.object({
+  filter: listFilter,
+  availability: AvailabilitySchema.default("active"),
+  since: z.iso.datetime({ offset: true }),
+}).strict();
+export const NewJobCountResponseSchema = z.object({ count: z.number().int().min(0) }).strict();
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);
 const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);
@@ -127,6 +135,7 @@ export const ProfileResponseSchema = z.object({ profile: ProfileSchema }).strict
 export type JobSummary = z.infer<typeof JobSummarySchema>;
 export type JobDetail = z.infer<typeof JobDetailSchema>;
 export type JobListQuery = z.infer<typeof JobListQuerySchema>;
+export type NewJobCountQuery = z.infer<typeof NewJobCountQuerySchema>;
 export type Availability = z.infer<typeof AvailabilitySchema>;
 export type StatusPatch = z.infer<typeof StatusPatchSchema>;
 export type StatusResult = z.infer<typeof StatusResultSchema>;

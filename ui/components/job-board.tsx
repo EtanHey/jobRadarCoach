@@ -11,10 +11,13 @@ import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { DETAIL_LOAD_TIMEOUT_MESSAGE, DETAIL_LOAD_TIMEOUT_MS, loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
+import { newRolesSince } from "@/lib/new-roles";
+import { useNewRoles } from "./use-new-roles";
+import { NewRolesPill } from "./new-roles-pill";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
 import { LogoDevAttribution } from "./company-logo";
@@ -122,26 +125,35 @@ export function JobBoard() {
       if (delta) rail.scrollTo({ top: rail.scrollTop + delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
   }
-  const [connection, setConnection] = useState("Connecting live updates…");
   const [detailCoordinator] = useState(createDetailCoordinator);
   const [refreshWarning, setRefreshWarning] = useState("");
-  const detailRequestRef = useRef<AbortController | null>(null);
   const listCacheRef = useRef(createBoundedJobListCache<CachedList>());
   const listRequestFenceRef = useRef(createRequestFence());
-  const listRefreshCoordinatorRef = useRef(createListRefreshCoordinator());
-  const realtimeReadyRef = useRef(false);
-  const readyRetryUsedRef = useRef(false);
+  const listPendingRef = useRef(false);
   const visitCohortRef = useRef<JobSummary[] | null>(null);
   const preferenceStorageRef = useRef<Storage | null>(null);
   const filterRef = useRef<Filter>(filter);
   const hasLoadedRef = useRef(false);
   const openerRef = useRef<HTMLButtonElement | null>(null);
-  const invalidateListCache = useCallback(() => { listRequestFenceRef.current.invalidate(); listRefreshCoordinatorRef.current.cancelRequest(); listCacheRef.current.clear(); }, []);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const newRolesCutoff = useMemo(() => newRolesSince(jobs), [jobs]);
+  const newRoles = useNewRoles(preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff);
+  const invalidateListCache = useCallback(() => { listRequestFenceRef.current.invalidate(); listPendingRef.current = false; listCacheRef.current.clear(); }, []);
   const requestRefresh = useCallback(() => { invalidateListCache(); setError(""); setRevision((value) => value + 1); }, [invalidateListCache]);
+  // A status reply already patched the drawer and list; only a list read that may predate it is replaced.
+  const settleListAfterStatus = useCallback(() => { if (listPendingRef.current) requestRefresh(); else listCacheRef.current.clear(); }, [requestRefresh]);
   const retry = useCallback(() => { visitCohortRef.current = null; listCacheRef.current.clear(); hasLoadedRef.current = false; setJobs([]); setLoadedUpdatedAt(null); setRefreshWarning(""); setLoading(true); requestRefresh(); }, [requestRefresh]);
+  function showNewRoles() {
+    newRoles.dismiss();
+    // The pill unmounts on click; keep focus and the reader at the top of the refreshed list.
+    headingRef.current?.focus({ preventScroll: true });
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
+    window.scrollTo({ top: 0, behavior });
+    document.querySelector(".globe-rail-list")?.scrollTo({ top: 0, behavior });
+    requestRefresh();
+  }
   function selectJob(id: string | null, markSeen = true) {
     setMarkSeenOnOpen(markSeen);
-    detailRequestRef.current?.abort();
     detailCoordinator.select(id);
     setSelected(id);
     // Keep the previous body intact during the sheet closing transition.
@@ -156,7 +168,6 @@ export function JobBoard() {
   }
   function retryDetail() {
     if (!selected || saving) return;
-    detailRequestRef.current?.abort();
     detailCoordinator.select(selected);
     setDetailError("");
     setDetailRevision((value) => value + 1);
@@ -166,7 +177,7 @@ export function JobBoard() {
     visitCohortRef.current = null;
     const cached = value === "new-for-me" ? undefined : listCacheRef.current.get(listKey(value, availability));
     if (cached) {
-      listRefreshCoordinatorRef.current.cancelRequest();
+      listPendingRef.current = false;
       hasLoadedRef.current = true;
       setJobs(cached.jobs);
       setLoadedUpdatedAt(cached.loadedUpdatedAt);
@@ -281,45 +292,11 @@ export function JobBoard() {
   }, [preferences, preferencesReady]);
 
   useEffect(() => {
-    const events = new EventSource("/api/events");
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    function requestRealtimeListRefresh() {
-      if (listRefreshCoordinatorRef.current.requestRefresh()) requestRefresh();
-      else listCacheRef.current.clear();
-    }
-    function refreshListAndDetail() {
-      requestRealtimeListRefresh();
-      detailRequestRef.current?.abort();
-      const read = detailCoordinator.beginRead();
-      const id = read.selection.id;
-      if (!id) return;
-      const controller = new AbortController();
-      detailRequestRef.current = controller;
-      loadJobDetail(id, controller.signal).then((job) => {
-        if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) { setDetail(job); setDetailError(""); }
-      }).catch((cause) => { if (!controller.signal.aborted && detailCoordinator.acceptRead(read)) setDetailError(cause instanceof Error ? cause.message : "Could not refresh this job. Try again."); });
-    }
-    function queueRefresh() { clearTimeout(timer); timer = setTimeout(refreshListAndDetail, 150); }
-    events.addEventListener("ready", () => {
-      realtimeReadyRef.current = true;
-      setConnection("Live updates connected");
-      if (listRefreshCoordinatorRef.current.markReady()) requestRealtimeListRefresh();
-      else if (!hasLoadedRef.current && !listRefreshCoordinatorRef.current.isRequestPending() && !readyRetryUsedRef.current) {
-        readyRetryUsedRef.current = true;
-        requestRefresh();
-      }
-    });
-    events.addEventListener("refresh", queueRefresh);
-    events.addEventListener("error", () => { listRefreshCoordinatorRef.current.markDisconnected(); setConnection("Reconnecting live updates…"); });
-    return () => { events.close(); clearTimeout(timer); detailRequestRef.current?.abort(); };
-  }, [detailCoordinator, requestRefresh]);
-
-  useEffect(() => {
     if (!preferencesReady) return undefined;
     const key = listKey(filter, view.availability);
     const cached = filter === "new-for-me" ? undefined : listCacheRef.current.get(key);
     if (cached) {
-      listRefreshCoordinatorRef.current.cancelRequest();
+      listPendingRef.current = false;
       hasLoadedRef.current = true;
       setJobs(cached.jobs);
       setLoadedUpdatedAt(cached.loadedUpdatedAt);
@@ -328,7 +305,7 @@ export function JobBoard() {
     }
     const controller = new AbortController();
     const generation = listRequestFenceRef.current.capture();
-    listRefreshCoordinatorRef.current.beginRequest();
+    listPendingRef.current = true;
     request(jobListRequestPath({ filter, availability: view.availability, limit: 1000 }), { signal: controller.signal })
       .then(async (body) => {
         if (controller.signal.aborted || !listRequestFenceRef.current.isCurrent(generation)) return;
@@ -341,13 +318,13 @@ export function JobBoard() {
         if (filter === "new-for-me") visitCohortRef.current = displayed;
         const updatedAt = displayed.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null);
         listCacheRef.current.set(key, { jobs: displayed, loadedUpdatedAt: updatedAt });
-        hasLoadedRef.current = true; readyRetryUsedRef.current = false;
+        hasLoadedRef.current = true;
         setRefreshWarning(""); setJobs(displayed); setLoadedUpdatedAt(updatedAt);
       })
-      .catch((cause: unknown) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); if (realtimeReadyRef.current && !readyRetryUsedRef.current) { readyRetryUsedRef.current = true; queueMicrotask(requestRefresh); } } })
-      .finally(() => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const followUp = listRefreshCoordinatorRef.current.finishRequest(); setLoading(false); if (followUp) queueMicrotask(requestRefresh); } });
+      .catch((cause: unknown) => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { const message = cause instanceof Error ? cause.message : "Could not load jobs."; if (hasLoadedRef.current) setRefreshWarning(`${message} Showing previous results.`); else setError(message); } })
+      .finally(() => { if (!controller.signal.aborted && listRequestFenceRef.current.isCurrent(generation)) { listPendingRef.current = false; setLoading(false); } });
     return () => controller.abort();
-  }, [filter, preferencesReady, requestRefresh, revision, view.availability]);
+  }, [filter, preferencesReady, revision, view.availability]);
 
   useEffect(() => {
     if (!selected) return undefined;
@@ -368,12 +345,11 @@ export function JobBoard() {
         }));
         if (controller.signal.aborted) return;
         if (detailCoordinator.commitMutation(identity)) {
-          detailRequestRef.current?.abort();
           visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, selected!, status.status, status.reason) : null;
           setJobs((current) => updateJobStatus(current, selected!, status.status, status.reason));
           setDetail({ ...job, status: status.status, status_reason: status.reason });
           patchGlobeStatus(selected!, status, false);
-          requestRefresh();
+          settleListAfterStatus();
         }
       } catch (cause) {
         if (!controller.signal.aborted && detailCoordinator.isCurrent(identity) && (patchStarted || detailCoordinator.acceptRead(read))) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
@@ -381,13 +357,12 @@ export function JobBoard() {
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
+  }, [detailCoordinator, settleListAfterStatus, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
 
   useEffect(() => {
-    // SSE refreshes can replace reads, but cannot extend this selection's loading budget.
+    // Retried reads cannot extend this selection's loading budget.
     const timer = selected && !detail && !detailError ? setTimeout(() => {
       if (detailCoordinator.current().id !== selected) return;
-      detailRequestRef.current?.abort();
       setDetailError(DETAIL_LOAD_TIMEOUT_MESSAGE);
     }, DETAIL_LOAD_TIMEOUT_MS) : undefined;
     return () => clearTimeout(timer);
@@ -404,7 +379,6 @@ export function JobBoard() {
         method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify(patch),
       }));
       if (identity.id === id && detailCoordinator.commitMutation(identity)) {
-        detailRequestRef.current?.abort();
         setDetail((current) => current?.id === id ? { ...current, status: result.status, status_reason: result.reason } : current);
       }
       visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
@@ -415,7 +389,7 @@ export function JobBoard() {
         visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
         setJobs((current) => current.filter((job) => job.id !== id));
       }
-      requestRefresh();
+      settleListAfterStatus();
       return true;
     } catch (cause) {
       if (detailCoordinator.current().id === id) setDetailError(cause instanceof Error ? cause.message : "Could not update status.");
@@ -434,11 +408,11 @@ export function JobBoard() {
   const globeToggle = <Button variant={globeActive ? "default" : "outline"} className={`size-10 p-0 ${globeActive ? "shadow-[inset_0_0_0_2px_color-mix(in_oklch,var(--primary-foreground)_35%,transparent)]" : ""}`} aria-label="Globe" title="Globe" aria-pressed={globeActive} onClick={toggleGlobe}><Globe aria-hidden="true" /></Button>;
   const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.mapped} on the globe · {globeCounts.unmapped} without a location</span>{points.length > 5000 && <span>Showing a sample of 5,000 roles</span>}</>}{globeActive && !globe.data && <span role="status">Loading all role locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
   return <div className={`bg-background text-foreground ${globeActive ? "board-globe-open" : "min-h-screen"}`}>
-    <BoardHeader>{globeActive && <span role="status" title={refreshWarning ? `${connection} ${refreshWarning}` : connection} className="flex items-center gap-1 text-xs text-muted-foreground"><i aria-hidden="true" className={`size-2 rounded-full ${connection.startsWith("Live") ? "bg-emerald-500" : "bg-amber-500"}`} />{connection.startsWith("Live") ? "Live" : connection.startsWith("Reconnecting") ? "Reconnecting…" : "Connecting…"}</span>}<ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
+    <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
-      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
-      {(!globeActive || refreshWarning) && <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>}
+      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 ref={headingRef} tabIndex={-1} className="mr-auto text-lg font-semibold text-foreground outline-none">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
+      <JobsPanel notice={<NewRolesPill count={newRoles.count} onShow={showNewRoles} />} {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
+      {refreshWarning && <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning}</p>}
       {!globeActive && <LogoDevAttribution />}
     </main>
     <JobDrawer

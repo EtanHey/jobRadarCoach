@@ -18,20 +18,14 @@ const browser = await chromium.launch({ headless: true, args: ["--use-angle=swif
 const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" })));
 const pages = await Promise.all(contexts.map(context => context.newPage()));
 const errors = [];
-const fixture = { failHydration: false, hydrationCalls: 0 };
+const fixture = { failHydration: false, hydrationCalls: 0, newRoles: 0 };
 for (const page of pages) {
   page.on("pageerror", error => errors.push(error.message));
-  await page.addInitScript(() => {
-    window.EventSource = class {
-      listeners = new Map();
-      constructor() { window.fixtureEvents = this; }
-      addEventListener(name, listener) { this.listeners.set(name, listener); }
-      close() { this.listeners.clear(); }
-    };
-  });
+  await page.clock.install();
   await page.route("**/api/**", route => {
     const url = new URL(route.request().url());
     const filtered = url.searchParams.get("filter") === "new-for-me" ? jobs.filter(job => job.status === "new") : jobs;
+    if (url.pathname === "/api/jobs/new-count") return route.fulfill({ json: { count: fixture.newRoles } });
     if (url.pathname === "/api/jobs") {
       const ids = url.searchParams.get("ids")?.split(",");
       if (ids) fixture.hydrationCalls += 1;
@@ -52,7 +46,13 @@ for (const page of pages) {
   });
 }
 const card = (page, n) => page.locator(`article[data-posting-id="${jobs[n].id}"]`);
-const refresh = page => page.evaluate(() => window.fixtureEvents.listeners.get("refresh")());
+// The board no longer refreshes itself: the next poll offers the pill, and Show reloads.
+async function refresh(page) {
+  fixture.newRoles = 1;
+  await page.clock.fastForward(91_000);
+  await page.locator("[data-new-roles]").click();
+  fixture.newRoles = 0;
+}
 // In New for me a kept card that moved on from "new" is settled: dimmed content plus a text status chip.
 const keptChip = (page, n) => card(page, n).locator("[data-kept-status]");
 try {

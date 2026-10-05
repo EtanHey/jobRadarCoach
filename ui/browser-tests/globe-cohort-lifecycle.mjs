@@ -21,24 +21,18 @@ try {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" });
     const page = await context.newPage();
     const jobs = [0, 1, 2].map(fixtureJob);
-    const state = { holdAll: mode === "open", allRequested: false, allLists: 0, newRequests: 0 };
+    const state = { holdAll: mode === "open", allRequested: false, allLists: 0, newRequests: 0, newRoles: 0 };
     let releaseAll = null;
     const heldAll = new Promise(resolve => { releaseAll = resolve; });
     const errors = [];
     try {
       page.on("pageerror", error => errors.push(error.message));
-      await page.addInitScript(() => {
-        window.EventSource = class {
-          listeners = new Map();
-          constructor() { window.fixtureEvents = this; }
-          addEventListener(name, listener) { this.listeners.set(name, listener); }
-          close() { this.listeners.clear(); }
-        };
-      });
+      await page.clock.install();
       await page.route("**/api/**", async route => {
         const url = new URL(route.request().url());
         const isNew = url.searchParams.get("filter") === "new-for-me";
         const filtered = isNew ? jobs.filter(job => job.status === "new") : jobs;
+        if (url.pathname === "/api/jobs/new-count") return route.fulfill({ json: { count: state.newRoles } });
         if (url.pathname === "/api/jobs") {
           if (!isNew) state.allLists += 1;
           return route.fulfill({ json: { jobs: filtered.slice(0, 2) } });
@@ -74,7 +68,10 @@ try {
       if (mode === "open") await expect.poll(() => state.allRequested).toBe(true);
       // Refresh All roles before returning, clearing master’s old list cache while
       // all globe responses remain held. Only the old globe cohort can resurrect.
-      await page.evaluate(() => window.fixtureEvents.listeners.get("refresh")());
+      state.newRoles = 1;
+      await page.clock.fastForward(91_000);
+      await page.locator("[data-new-roles]").click();
+      state.newRoles = 0;
       await expect.poll(() => state.allLists).toBeGreaterThanOrEqual(2);
       await page.getByRole("button", { name: "New for me", exact: true }).click();
       if (mode === "closed") {
