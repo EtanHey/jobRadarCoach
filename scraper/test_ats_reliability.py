@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.error import HTTPError
 
 import psycopg
+from psycopg.conninfo import make_conninfo
 import pytest
 
 from scraper.ats_liveness import BoardChecker
@@ -222,7 +223,7 @@ def test_cli_scope_and_jitter_reach_the_persisted_writer(db, monkeypatch, tmp_pa
     monkeypatch.setattr(module, 'recheck', check)
     monkeypatch.setattr(module.time, 'sleep', calls.append)
     monkeypatch.setattr(module.random, 'uniform', lambda low, high: 17)
-    monkeypatch.setenv('DATABASE_URL', db.info.dsn)
+    monkeypatch.setenv('DATABASE_URL', make_conninfo(db.info.dsn, password=db.info.password))
     receipt = tmp_path / 'receipt.json'
     assert module.main(['--scope', 'ats', '--jitter', '--receipt', str(receipt)]) == 0
     assert calls == [17, {'limit': 60, 'scope': 'ats'}]
