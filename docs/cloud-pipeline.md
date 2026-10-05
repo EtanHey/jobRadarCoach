@@ -72,6 +72,22 @@ sections and support later retries. Observed careers-link validation is wired;
 company-name guessing is unchanged. Hosted published/scored counts require a
 separate authorized scrape after merge.
 
+## Ashby public boards
+
+The scraper supports curated Ashby tenants through the anonymous
+[public job-board API](https://developers.ashbyhq.com/docs/public-job-posting-api).
+The initial enabled tenant is Loora; additional observed careers links can be
+validated through the source registry. Company-name guessing in `ats_discovery`
+does not probe Ashby yet. Existing Israel, title, employer and minimum-years
+admission rules apply to this source.
+
+Only `isListed: true` records enter the pipeline. Stored-job rechecks use board
+membership; malformed or failed board requests remain unknown. Description
+retries read the same public board. A timezone-qualified `publishedAt` is copied
+to `posted_at`; Ashby defines it as the last publication time. Missing dates stay
+empty, without substituting discovery time. Source support alone does not prove
+that Ashby rows have been published or scored by the hosted pipeline.
+
 ## Schedule and cost contract
 
 The workflow's GitHub Actions native schedule is `17 */6 * * *`: 00:17, 06:17,

@@ -129,7 +129,7 @@ GUEST_SEARCH_ENDPOINT = (
 )
 GUEST_JOB_ENDPOINT = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting"
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
-SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable", "smartrecruiters")
+SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters")
 NATIVE_ATS_SOURCES = frozenset(SOURCE_ORDER[1:])
 PostingIdentity = tuple[str, str]
 STAFFING_COMPANIES = frozenset(
@@ -147,6 +147,7 @@ STAFFING_SIGNAL_PATTERN = re.compile(
     re.I,
 )
 SOURCE_LABELS = {
+    "ashby": "Ashby",
     "smartrecruiters": "SmartRecruiters",
     "linkedin": "LinkedIn",
     "comeet": "Comeet",
@@ -917,7 +918,7 @@ def apply_liveness_checks(
     cache: dict[str, dict[str, object]] = {}
     for posting in postings:
         result = dict(posting)
-        if _posting_source(result) == "smartrecruiters":
+        if _posting_source(result) in {"ashby", "smartrecruiters"}:
             checked.append(result)
             continue
         url = str(posting.get("url", ""))

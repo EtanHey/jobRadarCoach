@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, type ReactNode, type RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { JobDetail, JobSummary } from "@/lib/contracts";
-import { companyInitials, logoPathForCompany } from "@/lib/company-logos";
 import { workMode } from "@/lib/job-display";
 import { shortListingId } from "@/lib/job-dedup";
 import { statusLabels } from "@/lib/job-status";
-import { cn } from "@/lib/utils";
 import { AssessmentSheet } from "./assessment-sheet";
+import { CompanyLogo } from "./company-logo";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./ui/sheet";
 import { JobDescription } from "./job-description";
@@ -32,27 +31,12 @@ export type JobDrawerProps = {
 const experienceStatus = (job: JobDetail) => job.experience
   ?? (job.description_available ? "Check description for experience" : "Description unavailable");
 
-function DrawerCompanyLogo({ company }: { company: string }) {
-  const src = logoPathForCompany(company);
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const frame = "grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg border sm:size-16";
-
-  if (!src || failedSrc === src) {
-    return <span role="img" aria-label={`${company} logo unavailable`} data-logo-state={src ? "load-failed" : "unmapped"} className={cn(frame, "bg-muted text-sm font-bold text-muted-foreground")}>{companyInitials(company)}</span>;
-  }
-
-  return <span className={frame}>{/* Deliberately portable: this component's import tree cannot depend on Next.js. */}
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={src} alt={`${company} logo`} width={64} height={64} className="size-full object-contain" onError={() => setFailedSrc(src)} />
-  </span>;
-}
-
 export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs = [], retryDetail, retryDisabled = false, selected, selectedJob, selectJob }: JobDrawerProps) {
   const heading = detail ?? selectedJob;
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
-        <div className="flex items-center gap-3">{heading && <DrawerCompanyLogo company={heading.company} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
+        <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {heading && <p className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} firstSeenAt={heading.first_seen_at} /></p>}
         {detail && <>

@@ -21,7 +21,7 @@ FIXTURES = HERE / "fixtures"
 SEARCHES_PATH = HERE / "searches.yaml"
 REGISTRY_PATH = HERE / "source-registry.json"
 REGISTRY_MODULE_PATH = HERE / "source_registry.py"
-SOURCE_NAMES = ("comeet", "greenhouse", "lever", "workable", "smartrecruiters")
+SOURCE_NAMES = ("comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters")
 REQUIRED_POSTING_FIELDS = {
     "id", "title", "company", "location", "url", "posted_ago", "source"
 }

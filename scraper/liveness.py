@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 import re
 from datetime import datetime, timezone
 from typing import Callable
@@ -11,6 +12,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from scraper.sources import smartrecruiters
+from scraper.sources import ashby
 
 
 BROWSER_USER_AGENT = (
@@ -142,6 +144,39 @@ def _check_smartrecruiters(url, opener, timeout):
     return _result(alive, status=None, reason="smartrecruiters-active-list" if alive is not None else "smartrecruiters-board-uncertain", final_url=url)
 
 
+def _ashby_alive(payload: object, job_id: str) -> bool | None:
+    if not isinstance(payload, dict) or not isinstance(payload.get("jobs"), list):
+        return None
+    jobs = payload["jobs"]
+    if any(not isinstance(job, dict) or not isinstance(job.get("id"), str) or not job["id"].strip()
+           or type(job.get("isListed")) is not bool for job in jobs):
+        return None
+    matches = [job for job in jobs if job["id"] == job_id]
+    if len(matches) > 1:
+        return None
+    return matches[0]["isListed"] if matches else False
+
+
+def _check_ashby_url(url: str, opener: Callable[..., object], timeout: float) -> dict[str, object]:
+    parts = [part for part in urlparse(url).path.split("/") if part]
+    if len(parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9._-]+", part) for part in parts):
+        return _result(None, status=None, reason="ashby-invalid-url", final_url=url)
+    endpoint = f"https://api.ashbyhq.com/posting-api/job-board/{parts[0]}"
+    status = None
+    try:
+        request = Request(endpoint, headers={"User-Agent": ashby.USER_AGENT, "Accept": "application/json"})
+        with opener(request, timeout=timeout) as response:
+            status = int(response.getcode())
+            final_url = str(response.geturl())
+            body = response.read(512_000).decode("utf-8", errors="replace")
+        if status != 200 or final_url != endpoint:
+            return _result(None, status=status, reason="ashby-board-uncertain", final_url=final_url)
+        alive = _ashby_alive(json.loads(body), parts[1])
+        return _result(alive, status=status, reason="ashby-active-list" if alive is not None else "ashby-board-uncertain", final_url=endpoint)
+    except (OSError, ValueError):
+        return _result(None, status=status, reason="ashby-board-uncertain", final_url=endpoint)
+
+
 def check_url(
     url: str,
     *,
@@ -155,6 +190,8 @@ def check_url(
 
     if urlparse(url).netloc in {"jobs.smartrecruiters.com", "www.smartrecruiters.com"}:
         return _check_smartrecruiters(url, opener, timeout)
+    if urlparse(url).netloc == "jobs.ashbyhq.com" and urlparse(url).scheme == "https":
+        return _check_ashby_url(url, opener, timeout)
     headers = {"User-Agent": BROWSER_USER_AGENT, "Accept": "text/html,*/*"}
     try:
         get = Request(url, headers=headers, method="GET")
