@@ -37,7 +37,10 @@ try {
     await expect(page.locator('article[data-posting-id]')).toHaveAttribute('data-posting-id',jobs[n].id);
    }
    await select.click(); await page.getByRole('option',{name:'Hybrid',exact:true}).click();
-   if(width===390)await page.getByRole('button',{name:'Show roles',exact:true}).click();
+   if(width===390){
+    const show=page.getByRole('button',{name:'Show roles',exact:true});
+    await show.click();await expect(show).toBeHidden();
+   }
    await page.screenshot({path:`${output}/hybrid-${width}.png`});
    await page.reload();await expect(page.locator('article[data-posting-id]')).toHaveCount(1);
    assert.deepEqual(errors,[]);
