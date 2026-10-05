@@ -36,12 +36,12 @@ insert into postings (
   ('00000000-0000-0000-0000-000000008003','list-jobs','ml','https://example.test/ml','ML Engineer','AI Labs','Haifa','Senior',array['Python','PyTorch'],'2026-01-01 17:00Z'),
   ('00000000-0000-0000-0000-000000008004','list-jobs','percent','https://example.test/percent','Infrastructure Engineer','Percent Works','100% Remote','Staff',array['Rust'],'2026-01-01 16:00Z'),
   ('00000000-0000-0000-0000-000000008005','list-jobs','low','https://example.test/low','Junior Engineer','Low Co','Jerusalem','Junior',array['Ruby'],'2026-01-01 15:00Z'),
-  ('00000000-0000-0000-0000-000000008006','list-jobs','unscored','https://example.test/unscored','Unscored Engineer','No Score Ltd','Tel Aviv','Mid',array['Elixir'],'2026-01-01 14:00Z'),
+  ('00000000-0000-0000-0000-000000008006','list-jobs','unscored','https://example.test/unscored','Unscored Engineer','No Score Ltd','Tel Aviv','Mid',array['Elixir'],null),
   ('00000000-0000-0000-0000-000000008007','list-jobs','seen','https://example.test/seen','Seen Engineer','Seen Co','Tel Aviv','Senior',array['Go'],'2026-01-01 20:00Z'),
   ('00000000-0000-0000-0000-000000008008','list-jobs','saved','https://example.test/saved','Saved Engineer','Saved Co','Tel Aviv','Senior',array['Go'],'2026-01-01 13:00Z'),
   ('00000000-0000-0000-0000-000000008009','list-jobs','old','https://example.test/old','Old Engineer','Old Co','Tel Aviv','Senior',array['Go'],'2026-01-01 11:00Z'),
   ('00000000-0000-0000-0000-000000008010','list-jobs','old-tie','https://example.test/old-tie','Old Tie Engineer','Old Tie Co','Tel Aviv','Senior',array['Go'],'2026-01-01 11:00Z');
-update postings set posted_at = null, first_seen_at = '2026-01-01 14:00Z'
+update postings set first_seen_at = '2026-01-01 14:00Z'
 where id = '00000000-0000-0000-0000-000000008006';
 
 insert into posting_scores (
