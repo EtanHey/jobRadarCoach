@@ -8,6 +8,7 @@ const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL
 
 export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "skipped", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
+export const WorkModeSchema = z.enum(["hybrid", "remote", "on-site"]);
 export const AvailabilitySchema = z.enum(["active", "inactive", "all"]);
 // PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
 // without restricting RFC version or variant bits. Match that database domain.
@@ -47,6 +48,7 @@ export const JobSummarySchema = z.object({
   extraction_state: z.enum(["not-extracted", "extracted"]),
   location: nullableText,
   remote: z.boolean().nullable(),
+  work_mode: WorkModeSchema.nullable().optional(),
   seniority: nullableText,
   stack: z.array(text),
   salary: nullableText,

@@ -114,3 +114,17 @@ test("Best Fit falls back to discovery only for missing publication and finally 
   const tie = { ...job(62, 80), posted_at: known.posted_at, first_seen_at: "2026-10-05T00:00:00Z" };
   assert.deepEqual(filterJobs([tie, known, unknown], options).map(row => row.id), [unknown.id, known.id, tie.id]);
 });
+
+test("hybrid is a distinct contract and filter value, preserving legacy remote fallback", () => {
+  const rows = [JobSummarySchema.parse({...job(51,null), work_mode:"hybrid"}),
+    {...job(52,null),remote:true}, {...job(53,null),remote:false}, job(54,null)];
+  assert.deepEqual(filterJobs(rows,{...options,work_mode:"hybrid"}).map(row=>row.id),[rows[0].id]);
+  assert.deepEqual(filterJobs(rows,{...options,work_mode:"remote"}).map(row=>row.id),[rows[1].id]);
+  assert.deepEqual(filterJobs(rows,{...options,work_mode:"on-site"}).map(row=>row.id),[rows[2].id]);
+  assert.equal(JobSummarySchema.safeParse({...job(55,null),work_mode:"maybe"}).success,false);
+});
+
+test("explicit work mode takes precedence over a restored legacy boolean", () => {
+  const hybrid = JobSummarySchema.parse({...job(56,null),work_mode:"hybrid"});
+  assert.deepEqual(filterJobs([hybrid],{...options,remote:true,work_mode:"hybrid"}),[hybrid]);
+});
