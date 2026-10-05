@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: cloud-scrape
+  group: ats-liveness
   cancel-in-progress: false
 jobs:
   recheck:
@@ -29,7 +29,7 @@ jobs:
           if [[ -f ats-liveness-receipt.json ]]; then
             cat ats-liveness-receipt.json >> "$GITHUB_STEP_SUMMARY"
             if jq -e '.alerts > 0' ats-liveness-receipt.json > /dev/null; then
-              echo "::warning::ATS liveness has unknown checks; inspect the receipt alert counter"
+              echo "::warning::ATS liveness has new uncertainty or tenant list errors; inspect the receipt"
             fi
           fi
       - name: Preserve receipt

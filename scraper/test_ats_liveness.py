@@ -1,3 +1,4 @@
+import io
 import json
 from urllib.error import HTTPError
 
@@ -68,13 +69,11 @@ def test_comeet_and_workable_use_adapter_board_identifiers():
 def test_honest_get_transport_is_bounded_and_paced_per_host(monkeypatch):
     import scraper.ats_liveness as module
     calls, waits = [], []
-    class Response:
-        def __init__(self): self.body = b"{}"
-        def __enter__(self): return self
-        def __exit__(self, *_): return False
+    class Response(io.BytesIO):
+        def __init__(self, body=b"{}"): super().__init__(body)
         def read(self, cap):
-            assert cap == 2_000_001
-            return self.body
+            assert 0 < cap <= 65_536
+            return super().read(cap)
     def open_request(request, **kwargs):
         calls.append(request)
         assert kwargs["timeout"] == 10
@@ -87,7 +86,7 @@ def test_honest_get_transport_is_bounded_and_paced_per_host(monkeypatch):
     assert waits == [1]
     assert all(r.get_method() == "GET" and "JobRadarCoach" in r.get_header("User-agent")
                and "Chrome" not in r.get_header("User-agent") for r in calls)
-    monkeypatch.setattr(Response, "read", lambda _self, _cap: b"{}" + b" " * 1_999_999)
+    monkeypatch.setattr(module, "pinned_open", lambda *_a, **_k: Response(b"{}" + b" " * 1_999_999))
     with pytest.raises(ValueError): get("https://boards-api.greenhouse.io/oversized")
 
 

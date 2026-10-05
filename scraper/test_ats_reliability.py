@@ -1,5 +1,6 @@
 """Synthetic persisted reliability checks against disposable PostgreSQL."""
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.error import HTTPError
 
@@ -9,6 +10,22 @@ import pytest
 from scraper.ats_liveness import BoardChecker
 from scraper.recheck import recheck
 from test_support.postgres import migrated_database
+
+
+class Clock(datetime):
+    current = datetime(2026, 10, 5, tzinfo=timezone.utc)
+
+
+    @classmethod
+    def now(cls, tz=None):
+        return cls.current
+
+
+@pytest.fixture(autouse=True)
+def synthetic_clock(monkeypatch):
+    import scraper.ats_liveness as module
+    Clock.current = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr(module, 'datetime', Clock)
 
 
 @pytest.fixture
@@ -27,6 +44,7 @@ def state(db):
 
 
 def run(db, present=False, direct=None, body=None):
+    Clock.current += timedelta(hours=1)
     board = BoardChecker(lambda _: body if body is not None else json.dumps(
         {'jobs': [{'id': 1}] if present else [], 'meta': {'total': int(present)}}))
     return recheck(db, board_checker=board, checker=direct or (lambda _: {
@@ -46,6 +64,26 @@ def test_two_misses_and_url_gone_deactivate_preserving_status_and_score(db):
     assert state(db)['alive'] is False and state(db)['ats_miss_count'] == 2
     assert db.execute('select status from posting_status').fetchone() == ('saved',)
     assert db.execute('select score from posting_scores').fetchone() == (80,)
+
+
+def test_persisted_gate_rejects_an_immediate_second_run(db):
+    run(db)
+    first = state(db)['ats_first_miss_at']
+    Clock.current -= timedelta(minutes=58)  # run() adds one hour: only two minutes elapsed.
+    assert run(db, direct=lambda _: pytest.fail('too early'))['closed'] == 0
+    assert state(db)['ats_miss_count'] == 1 and state(db)['ats_first_miss_at'] == first
+    assert state(db)['last_attempt_verdict'] == 'pending'
+    Clock.current -= timedelta(minutes=17)  # 45 minutes after the original first miss.
+    assert run(db)['closed'] == 1
+
+
+def test_receipts_warn_once_for_steady_url_unknown_and_skip_backed_off_gets(db):
+    calls = []
+    direct = lambda _: calls.append(True) or {'alive': None, 'liveness_reason': 'posting-url-unknown'}
+    assert run(db, direct=direct)['alerts'] == 0
+    assert [run(db, direct=direct)['alerts'] for _ in range(3)] == [1, 0, 0]
+    assert run(db, direct=lambda _: pytest.fail('24h backoff'))['alerts'] == 0
+    assert len(calls) == 3 and state(db)['ats_url_next_check_at']
 
 
 @pytest.mark.parametrize('direct', [
@@ -127,7 +165,7 @@ def test_hourly_workflow_is_jittered_and_cloud_does_not_duplicate_ats_runs():
     hourly = (root / 'ats-liveness.yml').read_text()
     assert 'cron: "37 * * * *"' in hourly
     assert '--scope ats --jitter' in hourly
-    assert 'group: cloud-scrape' in hourly and 'cancel-in-progress: false' in hourly
+    assert 'group: ats-liveness' in hourly and 'cancel-in-progress: false' in hourly
     assert '--scope linkedin' in (root / 'cloud-scrape.yml').read_text()
 
 
@@ -202,6 +240,7 @@ def test_cli_scope_and_jitter_reach_the_persisted_writer(db, monkeypatch, tmp_pa
 def test_reliability_applies_to_each_supported_adapter(db, source, identity, url, body, gone):
     db.execute('update postings set source=%s, external_id=%s, url=%s', (source, identity, url))
     def check():
+        Clock.current += timedelta(hours=1)
         return recheck(db, board_checker=BoardChecker(lambda _: body), checker=lambda _: {
             'alive': False if gone else None, 'liveness_status': 404 if gone else 200,
             'liveness_reason': 'http-404' if gone else 'posting-url-unknown'})

@@ -3,7 +3,7 @@
 import json
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request
 from urllib.error import HTTPError
@@ -16,6 +16,11 @@ from scraper.sources.workable import DETAIL_PATTERN
 ATS_SOURCES = ("greenhouse", "lever", "comeet", "workable", "ashby", "smartrecruiters", "workday")
 USER_AGENT = "JobRadarCoach/1.0 (+https://jobradarcoach.vercel.app)"
 IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]{1,200}")
+BOARD_CAP = 2_000_000
+LEVER_BOARD_CAP = 16_000_000
+STRIKE_SPACING = timedelta(minutes=45)
+URL_UNKNOWN_LIMIT = 3
+URL_BACKOFF = timedelta(hours=24)
 
 
 def public_get(*, clock=time.monotonic, sleep=time.sleep):
@@ -27,10 +32,16 @@ def public_get(*, clock=time.monotonic, sleep=time.sleep):
             sleep(max(0, 1 - (clock() - last[host])))
         try:
             request = Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+            cap = LEVER_BOARD_CAP if host in {"api.lever.co", "api.eu.lever.co"} else BOARD_CAP
             with pinned_open(request, timeout=10) as response:
-                body = response.read(2_000_001)
-            if len(body) > 2_000_000:
-                raise ValueError("board exceeds response cap")
+                body = bytearray()
+                while True:
+                    chunk = response.read(min(65_536, cap + 1 - len(body)))
+                    if not chunk:
+                        break
+                    body.extend(chunk)
+                    if len(body) > cap:
+                        raise ValueError("board exceeds response cap")
             return body.decode("utf-8")
         finally:
             last[host] = clock()
@@ -247,10 +258,26 @@ def _counter(state, key):
     return value if type(value) is int and value >= 0 else 0
 
 
+def _timestamp(value):
+    try:
+        parsed = datetime.fromisoformat(value)
+        return parsed.astimezone(timezone.utc) if parsed.tzinfo else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _unknown_alert(state, update, reason, status=None, *, list_error=False):
+    key = f"{reason}:{status}"
+    if list_error or state.get("ats_unknown_reason") != key:
+        update["ats_alert_count"] += 1
+    update["ats_unknown_reason"] = key
+
+
 def reliability_update(posting, result, direct_checker):
     """Persist list strikes separately from conclusive availability; errors break the streak."""
     state = posting.get("liveness", {})
-    now = datetime.now(timezone.utc).isoformat()
+    current = datetime.now(timezone.utc)
+    now = current.isoformat()
     update = {"last_attempt_at": now, "last_attempt_reason": result.get("liveness_reason", "unknown"),
               "last_attempt_verdict": "unknown", "ats_alert_count": _counter(state, "ats_alert_count")}
     checked_at = result.get("liveness_checked_at", now)
@@ -259,29 +286,48 @@ def reliability_update(posting, result, direct_checker):
         return update
     update["ats_last_list_checked_at"] = checked_at
     if result.get("alive") is True:
-        update.update(result)
+        # A board API URL is membership evidence, not a posting's own-URL evidence.
+        update.update({key: value for key, value in result.items() if key != "liveness_final_url"})
         update.update(ats_miss_count=0, ats_last_seen_in_list=result.get("liveness_checked_at", now),
-                      last_attempt_verdict="alive")
+                      ats_first_miss_at=None, ats_url_unknown_count=0, ats_url_next_check_at=None,
+                      ats_url_last_attempt_at=None, ats_unknown_reason=None, last_attempt_verdict="alive")
     elif result.get("alive") is False:
-        misses = min(2, _counter(state, "ats_miss_count") + 1)
+        previous = _counter(state, "ats_miss_count")
+        first = _timestamp(state.get("ats_first_miss_at") or state.get("ats_last_list_checked_at"))
+        if previous == 0 or first is None or first > current:
+            first = current
+        update["ats_first_miss_at"] = first.isoformat()
+        misses = 1 if previous < 2 and (previous == 0 or current - first < STRIKE_SPACING) else 2
         update["ats_miss_count"] = misses
         if misses < 2:
-            update["last_attempt_verdict"] = "pending"
+            update.update(last_attempt_verdict="pending", ats_unknown_reason=None)
             return update
         if state.get("alive") is False:
             update.update(alive=False, last_attempt_verdict="gone")
+            return update
+        next_check = _timestamp(state.get("ats_url_next_check_at"))
+        if next_check is not None and current < next_check:
+            update["last_attempt_reason"] = "posting-url-backoff"
             return update
         try:
             direct = direct_checker(posting)
         except Exception as error:
             direct = {"alive": None, "liveness_reason": type(error).__name__}
         update["last_attempt_reason"] = direct.get("liveness_reason", "posting-url-unknown")
+        update["ats_url_last_attempt_at"] = now
         if direct.get("alive") is False and (direct.get("liveness_status") in (404, 410)
                 or direct.get("liveness_reason") == "ats-generic-careers-redirect"):
             update.update(direct)
-            update["last_attempt_verdict"] = "gone"
+            update.update(last_attempt_verdict="gone", ats_unknown_reason=None,
+                          ats_url_unknown_count=0, ats_url_next_check_at=None)
         else:
-            update["ats_alert_count"] += 1
+            unknowns = min(URL_UNKNOWN_LIMIT, _counter(state, "ats_url_unknown_count") + 1)
+            update.update(ats_url_unknown_count=unknowns,
+                          ats_url_next_check_at=(current + URL_BACKOFF).isoformat()
+                          if unknowns >= URL_UNKNOWN_LIMIT else None)
+            _unknown_alert(state, update, update["last_attempt_reason"], direct.get("liveness_status"))
     else:
-        update.update(ats_miss_count=0, ats_alert_count=update["ats_alert_count"] + 1)
+        update.update(ats_miss_count=0, ats_first_miss_at=None)
+        _unknown_alert(state, update, update["last_attempt_reason"], result.get("liveness_status"),
+                       list_error=update["last_attempt_reason"].startswith("board-unknown:"))
     return update
