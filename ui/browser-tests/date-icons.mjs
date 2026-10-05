@@ -14,7 +14,7 @@ await mkdir(output, { recursive: true });
 const bundle = await build({ write: false, bundle: true, format: "iife", jsx: "automatic", tsconfig: resolve(root, "tsconfig.json"),
   define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" }, stdin: { resolveDir: root, loader: "tsx", contents: `
 import { createRoot } from "react-dom/client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { JobCard } from "./components/job-card";
 import { JobDrawer } from "./components/job-drawer";
 import { PostingDates } from "./components/posting-dates";
@@ -44,6 +44,9 @@ const compare = rows[0];
 function App() {
   const openerRef = useRef(null), [selected, selectJob] = useState(null);
   const selectedJob = rows.find(row => row.id === selected);
+  // Detail arrives after the drawer opens, as the real fetch does.
+  const [loaded, setLoaded] = useState(null);
+  useEffect(() => { const timer = setTimeout(() => setLoaded(selected), 150); return () => clearTimeout(timer); }, [selected]);
   return <main className="mx-auto min-h-screen max-w-5xl bg-background p-4 text-foreground"><h1 className="mb-4 text-xl font-semibold">Best Fit · date icons fixture</h1>
     <section className="grid gap-4 sm:grid-cols-2">{filterJobGroups(rows, options).map(({job, alternates}) =>
       <JobCard key={job.id} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob}>{null}</JobCard>)}</section>
@@ -53,7 +56,7 @@ function App() {
       <div data-compare-variant="calendar-plus" className="flex items-center gap-3"><span className="w-28">calendar-plus</span><PostingDates postedIcon="calendar-plus" postedAt={compare.posted_at} lastPublishedAt={compare.last_published_at} firstSeenAt={compare.first_seen_at} /></div>
     </section>
     <JobDrawer selected={selected} selectedJob={selectedJob} selectJob={selectJob} openerRef={openerRef}
-      detail={selectedJob ? {...selectedJob, raw_jd: null, reasons: [], score_payload: null, brain: null, scored_at: null} : null}
+      detail={selectedJob && loaded === selected ? {...selectedJob, raw_jd: null, reasons: [], score_payload: null, brain: null, scored_at: null} : null}
       detailError="" retryDetail={() => {}} /></main>;
 }
 createRoot(document.getElementById("root")).render(<App/>);` } });
@@ -142,8 +145,20 @@ try {
     await expectNoTooltip(page);
     await foundIcon.blur();
 
-    await page.getByRole("button", { name: "Open Older republished role at Fixture", exact: true }).click();
+    const openOld = page.getByRole("button", { name: "Open Older republished role at Fixture", exact: true });
     const drawer = page.getByRole("dialog");
+    // Opening the drawer by pointer or keyboard must not land focus on a date icon (popping its tooltip),
+    // so a single Escape still closes the drawer.
+    for (const how of ["pointer", "keyboard"]) {
+      if (how === "pointer") await openOld.click(); else { await openOld.focus(); await page.keyboard.press("Enter"); }
+      await drawer.waitFor();
+      await page.waitForTimeout(400);
+      assert.equal(await page.evaluate(() => document.activeElement?.closest("[data-date-kind]") ? document.activeElement.getAttribute("aria-label") : null), null, `${how} open must not focus a date icon`);
+      assert.equal(await tooltip(page).count(), 0, `${how} open must not show a date tooltip`);
+      await page.keyboard.press("Escape");
+      await drawer.waitFor({ state: "hidden", timeout: 3000 });
+    }
+    await openOld.click();
     await drawer.waitFor();
     const header = drawer.locator("[data-posting-dates]").first();
     assert.deepEqual(await header.locator("[data-date-kind]").evaluateAll(nodes => nodes.map(node => node.dataset.dateKind)), ["posted", "republished", "found"]);
