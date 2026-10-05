@@ -85,6 +85,16 @@ def test_unusable_legacy_strike_time_starts_a_safe_spacing_window(clock, first):
     assert update['ats_miss_count'] == 1 and update['last_attempt_verdict'] == 'pending'
 
 
+def test_delayed_row_processing_does_not_age_a_too_early_board_snapshot(clock):
+    state = {}
+    observe(clock, state, 0, lambda _: None)
+    clock.current += timedelta(minutes=60)
+    early = {'alive': False, 'liveness_checked_at': '2026-10-05T00:02:00+00:00'}
+    update = module.reliability_update({'liveness': state}, early,
+                                     lambda _: pytest.fail('snapshot was fetched only two minutes later'))
+    assert update['ats_miss_count'] == 1 and update['last_attempt_verdict'] == 'pending'
+
+
 def test_repeated_url_uncertainty_quiets_alerts_and_backs_off_after_three(clock):
     state, calls = {}, []
     direct = lambda _: calls.append(clock.current) or {'alive': None, 'liveness_reason': 'posting-url-unknown'}

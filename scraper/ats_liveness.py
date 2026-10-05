@@ -293,11 +293,14 @@ def reliability_update(posting, result, direct_checker):
                       ats_url_last_attempt_at=None, ats_unknown_reason=None, last_attempt_verdict="alive")
     elif result.get("alive") is False:
         previous = _counter(state, "ats_miss_count")
+        observed = _timestamp(checked_at)
+        if observed is None or observed > current:
+            observed = current
         first = _timestamp(state.get("ats_first_miss_at") or state.get("ats_last_list_checked_at"))
-        if previous == 0 or first is None or first > current:
-            first = current
+        if previous == 0 or first is None or first > observed:
+            first = observed
         update["ats_first_miss_at"] = first.isoformat()
-        misses = 1 if previous < 2 and (previous == 0 or current - first < STRIKE_SPACING) else 2
+        misses = 1 if previous < 2 and (previous == 0 or observed - first < STRIKE_SPACING) else 2
         update["ats_miss_count"] = misses
         if misses < 2:
             update.update(last_attempt_verdict="pending", ats_unknown_reason=None)
