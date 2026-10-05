@@ -54,8 +54,8 @@ async function refresh(page) {
   await page.locator("[data-new-roles]").click();
   fixture.newRoles = 0;
 }
-// In New for me a kept card that moved on from "new" is settled: dimmed content plus a text status chip.
-const keptChip = (page, n) => card(page, n).locator("[data-kept-status]");
+// In New for me a kept card that moved on from "new" is settled and names its status in a chip (terminal statuses also dim).
+const keptChip = (page, n) => card(page, n).locator("[data-card-status]");
 try {
   const [a, b] = pages;
   await Promise.all(pages.map(page => page.goto(base)));
@@ -86,23 +86,23 @@ try {
   // the drawer detail GET which independently reads the latest status.
   jobs[0].status = "worth_checking";
   await refresh(a);
-  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
+  await expect(card(a, 0).locator("[data-card-status]")).toHaveText("Worth checking");
   await a.screenshot({ path: `${output}/list-retained.png` });
   fixture.failHydration = true;
   await refresh(a);
   await expect(a.getByText(/Showing previous results/)).toBeVisible();
-  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
+  await expect(card(a, 0).locator("[data-card-status]")).toHaveText("Worth checking");
   fixture.failHydration = false;
   await a.getByRole("button", { name: "Globe", exact: true }).click();
   await expect(card(a, 2)).toBeVisible({ timeout: 30000 });
-  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
+  await expect(card(a, 0).locator("[data-card-status]")).toHaveText("Worth checking");
   // ID 2 exists only in the globe cohort, beyond the list fixture's row limit.
   await b.evaluate(async id => {
     await fetch(`/api/jobs/${id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "worth_checking" }) });
   }, jobs[2].id);
   await refresh(a);
-  await expect(card(a, 2).locator("[data-kept-status]")).toHaveText("Worth checking");
-  await expect(card(a, 0).locator("[data-kept-status]")).toHaveText("Worth checking");
+  await expect(card(a, 2).locator("[data-card-status]")).toHaveText("Worth checking");
+  await expect(card(a, 0).locator("[data-card-status]")).toHaveText("Worth checking");
   await a.screenshot({ path: `${output}/globe-retained.png` });
   await a.getByRole("button", { name: "Globe", exact: true }).click();
   await a.getByRole("button", { name: "All roles", exact: true }).click();

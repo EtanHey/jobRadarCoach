@@ -29,7 +29,7 @@ const failures = [], passed = [];
 function measure(page, scope) {
   return page.locator(`${scope} article[data-posting-id]`).evaluateAll(cards => cards.map(card => {
     const box = element => element.getBoundingClientRect();
-    const chip = card.querySelector("[data-kept-status]");
+    const chip = card.querySelector("[data-card-status]");
     const row = chip?.parentElement;
     return { id: card.dataset.postingId, height: Math.round(box(card).height), header: Math.round(box(card.children[1]).height),
       title: Math.round(box(card.querySelector("h2")).width), cardRight: box(card).right,

@@ -36,6 +36,20 @@ function newestFirst(a: JobSummary, b: JobSummary): number {
     || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
+function isEarlier(alternate: JobSummary, job: JobSummary): boolean {
+  const posted = [timestamp(alternate.posted_at), timestamp(job.posted_at)];
+  if (posted[0] !== null && posted[1] !== null) return posted[0] < posted[1];
+  if (alternate.posted_at !== null || job.posted_at !== null) return false; // mixed or unparseable chronology is not evidence
+  const seen = [timestamp(alternate.first_seen_at), timestamp(job.first_seen_at)];
+  return seen[0] !== null && seen[1] !== null && seen[0] < seen[1];
+}
+
+// Alternates that were demonstrably published (or, lacking publish dates, found) before `job`.
+// Same-instant twins and unknown chronology are alternative listings, not evidence of a repost.
+export function earlierListingCount(job: JobSummary, alternates: JobSummary[]): number {
+  return alternates.filter(alternate => isEarlier(alternate, job)).length;
+}
+
 export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
   const groups = new Map<string, JobSummary[]>();
   for (const job of uniqueJobsById(jobs)) {

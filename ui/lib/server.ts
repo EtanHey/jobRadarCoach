@@ -38,16 +38,16 @@ const rawBaseSchema = z.object({
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
   remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),
-  posted_at: z.string().nullable(), first_seen_at: z.string(),
+  posted_at: z.string().nullable(), last_published_at: z.string().nullable().default(null), first_seen_at: z.string(),
   posting_status: z.object({ status: z.string(), reason: z.string().nullable() }).nullable(),
 });
 const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSchema.nullable() });
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);

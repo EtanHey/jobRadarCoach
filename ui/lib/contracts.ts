@@ -53,6 +53,7 @@ export const JobSummarySchema = z.object({
   url: publicUrl,
   apply_url: publicUrl.nullable(),
   posted_at: nullableText,
+  last_published_at: nullableText.optional(),
   first_seen_at: text,
   status: JobStatusSchema,
   status_reason: nullableText,
