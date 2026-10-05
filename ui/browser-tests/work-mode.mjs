@@ -22,7 +22,7 @@ try {
   try {
    await context.addInitScript(()=>{
     if(!localStorage.getItem('job-radar.board-preferences'))localStorage.setItem('job-radar.board-preferences',JSON.stringify({version:3,filter:'all',view:{search:'',source:'',location:'',seniority:'',fit:'',statuses:[],availability:'active',sort:'fit'}}));
-    window.EventSource=class extends EventTarget {close(){}};
+    window.EventSource=class extends EventTarget {close(){this.closed=true;}};
    });
    const page=await context.newPage(); const errors=[];
    page.on('pageerror',error=>errors.push(error.message));
