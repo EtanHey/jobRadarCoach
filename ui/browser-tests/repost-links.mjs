@@ -55,6 +55,13 @@ const server = createServer((req, res) => {
 });
 await new Promise(ready => server.listen(0, "127.0.0.1", ready));
 let browser = null;
+// Linked group dates: the earliest original plus the latest publication, as date-icon buttons.
+async function expectLinkedDates(scope) {
+  assert.deepEqual(await scope.locator("[data-posting-dates]").first().locator("[data-date-kind]").evaluateAll(nodes => nodes.map(node => node.dataset.dateKind)), ["posted", "republished", "found"]);
+  await scope.getByRole("button", { name: "Posted 2026-09-01, 33 days ago" }).waitFor();
+  await scope.getByRole("button", { name: "Republished 2026-10-03, 1 day ago" }).waitFor();
+  await scope.getByRole("button", { name: /^Found by JRC 2026-10-04 .*, 2 hours ago$/ }).waitFor();
+}
 try {
   browser = await chromium.launch({ headless: true });
   for (const width of [1280, 390]) {
@@ -67,7 +74,7 @@ try {
     await page.locator("article").first().waitFor({ timeout: 10000 });
     assert.deepEqual(await page.locator("article h2").allTextContents(), ["Independent opening", "Independent opening", "Linked role"]);
     const old = page.locator('article[data-posting-id$="000002"]');
-    assert.match(await old.innerText(), /Posted 33d ago · Republished 1d ago · Found 2h ago/);
+    await expectLinkedDates(old);
     assert.equal(await old.locator("time").count(), 3);
     assert.match(await old.innerText(), /2 listings/);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -75,12 +82,12 @@ try {
     await page.getByRole("button", { name: "Open Linked role at Fixture", exact: true }).click();
     const drawer = page.getByRole("dialog");
     await drawer.waitFor();
-    assert.match(await drawer.innerText(), /Posted 33d ago · Republished 1d ago · Found 2h ago/);
+    await expectLinkedDates(drawer);
     await drawer.getByText("Other listings for this role (1)").click();
     assert.match(await drawer.innerText(), /linkedin/);
     await drawer.getByRole("button", { name: /listing .*00000001/ }).click();
     assert.match(await drawer.innerText(), /Other listings for this role \(1\)/);
-    assert.match(await drawer.innerText(), /Posted 33d ago/);
+    await drawer.getByRole("button", { name: "Posted 2026-09-01, 33 days ago" }).waitFor();
     await page.screenshot({ path: resolve(output, `drawer-${width}.png`), fullPage: true, animations: "disabled" });
     assert.deepEqual(errors, []);
     await page.close();
