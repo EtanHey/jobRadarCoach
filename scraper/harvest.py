@@ -129,7 +129,7 @@ GUEST_SEARCH_ENDPOINT = (
 )
 GUEST_JOB_ENDPOINT = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting"
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
-SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable")
+SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters", "workday")
 NATIVE_ATS_SOURCES = frozenset(SOURCE_ORDER[1:])
 PostingIdentity = tuple[str, str]
 STAFFING_COMPANIES = frozenset(
@@ -147,11 +147,14 @@ STAFFING_SIGNAL_PATTERN = re.compile(
     re.I,
 )
 SOURCE_LABELS = {
+    "ashby": "Ashby",
+    "smartrecruiters": "SmartRecruiters",
     "linkedin": "LinkedIn",
     "comeet": "Comeet",
     "greenhouse": "Greenhouse",
     "lever": "Lever",
     "workable": "Workable",
+    "workday": "Workday",
 }
 OUTPUT_FIELDS = (
     "id",
@@ -916,10 +919,13 @@ def apply_liveness_checks(
     cache: dict[str, dict[str, object]] = {}
     for posting in postings:
         result = dict(posting)
+        if _posting_source(result) in {"ashby", "smartrecruiters"}:
+            checked.append(result)
+            continue
         url = str(posting.get("url", ""))
         try:
             if url not in cache:
-                cache[url] = checker(posting)
+                cache[url] = posting if posting.get("liveness_reason") == "workday-active-list" else checker(posting)
             evidence = cache[url]
             if not isinstance(evidence, dict) or "alive" not in evidence:
                 raise ValueError("liveness checker returned an invalid result")
@@ -1252,7 +1258,7 @@ def harvest_sources(
                     "fetcher": fetcher,
                     "before_request": before_request,
                 }
-                if name == "workable" and posting_filter is not None:
+                if name in {"workable", "smartrecruiters", "workday"} and posting_filter is not None:
                     def counted_filter(posting):
                         nonlocal prefilter_count
                         prefilter_count += 1
@@ -1496,13 +1502,16 @@ def fetch_html(
     url: str,
     *,
     opener: Callable[..., object] = urlopen,
+    data: bytes | None = None,
     sleep: Callable[[float], None] = time.sleep,
     backoffs: tuple[float, ...] = (1.0, 2.0),
     timeout: int = 20,
 ) -> str | None:
     """Fetch one guest page with a bounded retry budget and no credentials."""
 
-    request = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
+    request = Request(url, data=data, headers={"User-Agent": USER_AGENT,
+        "Accept": "application/json" if data is not None or "/wday/cxs/" in url else "text/html",
+        **({"Content-Type": "application/json"} if data is not None else {})})
     attempts = len(backoffs) + 1
     for attempt in range(attempts):
         try:

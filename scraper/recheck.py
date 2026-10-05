@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from scraper.sources import workday
+
 import argparse
 from datetime import datetime, timezone
 import json
@@ -23,7 +25,7 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 PUBLIC_HOSTS = {
-    "linkedin.com", "comeet.com", "greenhouse.io", "lever.co", "workable.com",
+    "linkedin.com", "comeet.com", "greenhouse.io", "lever.co", "workable.com", "ashbyhq.com", "smartrecruiters.com",
 }
 SELECT_STALE = """
 with candidates as (
@@ -51,7 +53,8 @@ def public_job_url(url: str) -> bool:
         return (
             parsed.scheme == "https" and parsed.port in (None, 443)
             and parsed.username is None and parsed.password is None
-            and any(host == base or host.endswith("." + base) for base in PUBLIC_HOSTS)
+            and (any(host == base or host.endswith("." + base) for base in PUBLIC_HOSTS)
+                 or bool(workday.coordinates(url)))
         )
     except ValueError:
         return False
