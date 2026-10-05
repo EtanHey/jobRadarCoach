@@ -273,6 +273,44 @@ def _unknown_alert(state, update, reason, status=None, *, list_error=False):
     update["ats_unknown_reason"] = key
 
 
+def _list_miss(state, checked_at, current, update):
+    previous = _counter(state, "ats_miss_count")
+    observed = _timestamp(checked_at)
+    if observed is None or observed > current:
+        observed = current
+    first = _timestamp(state.get("ats_first_miss_at") or state.get("ats_last_list_checked_at"))
+    if previous == 0 or first is None or first > observed:
+        first = observed
+    update["ats_first_miss_at"] = first.isoformat()
+    misses = 1 if previous < 2 and (previous == 0 or observed - first < STRIKE_SPACING) else 2
+    update["ats_miss_count"] = misses
+    return misses
+
+
+def _confirm_absence(posting, state, update, direct_checker, current):
+    next_check = _timestamp(state.get("ats_url_next_check_at"))
+    if next_check is not None and current < next_check:
+        update["last_attempt_reason"] = "posting-url-backoff"
+        return
+    try:
+        direct = direct_checker(posting)
+    except Exception as error:
+        direct = {"alive": None, "liveness_reason": type(error).__name__}
+    update["last_attempt_reason"] = direct.get("liveness_reason", "posting-url-unknown")
+    update["ats_url_last_attempt_at"] = current.isoformat()
+    if direct.get("alive") is False and (direct.get("liveness_status") in (404, 410)
+            or direct.get("liveness_reason") == "ats-generic-careers-redirect"):
+        update.update(direct)
+        update.update(last_attempt_verdict="gone", ats_unknown_reason=None,
+                      ats_url_unknown_count=0, ats_url_next_check_at=None)
+    else:
+        unknowns = min(URL_UNKNOWN_LIMIT, _counter(state, "ats_url_unknown_count") + 1)
+        update.update(ats_url_unknown_count=unknowns,
+                      ats_url_next_check_at=(current + URL_BACKOFF).isoformat()
+                      if unknowns >= URL_UNKNOWN_LIMIT else None)
+        _unknown_alert(state, update, update["last_attempt_reason"], direct.get("liveness_status"))
+
+
 def reliability_update(posting, result, direct_checker):
     """Persist list strikes separately from conclusive availability; errors break the streak."""
     state = posting.get("liveness", {})
@@ -292,43 +330,12 @@ def reliability_update(posting, result, direct_checker):
                       ats_first_miss_at=None, ats_url_unknown_count=0, ats_url_next_check_at=None,
                       ats_url_last_attempt_at=None, ats_unknown_reason=None, last_attempt_verdict="alive")
     elif result.get("alive") is False:
-        previous = _counter(state, "ats_miss_count")
-        observed = _timestamp(checked_at)
-        if observed is None or observed > current:
-            observed = current
-        first = _timestamp(state.get("ats_first_miss_at") or state.get("ats_last_list_checked_at"))
-        if previous == 0 or first is None or first > observed:
-            first = observed
-        update["ats_first_miss_at"] = first.isoformat()
-        misses = 1 if previous < 2 and (previous == 0 or observed - first < STRIKE_SPACING) else 2
-        update["ats_miss_count"] = misses
-        if misses < 2:
+        if _list_miss(state, checked_at, current, update) < 2:
             update.update(last_attempt_verdict="pending", ats_unknown_reason=None)
-            return update
-        if state.get("alive") is False:
+        elif state.get("alive") is False:
             update.update(alive=False, last_attempt_verdict="gone")
-            return update
-        next_check = _timestamp(state.get("ats_url_next_check_at"))
-        if next_check is not None and current < next_check:
-            update["last_attempt_reason"] = "posting-url-backoff"
-            return update
-        try:
-            direct = direct_checker(posting)
-        except Exception as error:
-            direct = {"alive": None, "liveness_reason": type(error).__name__}
-        update["last_attempt_reason"] = direct.get("liveness_reason", "posting-url-unknown")
-        update["ats_url_last_attempt_at"] = now
-        if direct.get("alive") is False and (direct.get("liveness_status") in (404, 410)
-                or direct.get("liveness_reason") == "ats-generic-careers-redirect"):
-            update.update(direct)
-            update.update(last_attempt_verdict="gone", ats_unknown_reason=None,
-                          ats_url_unknown_count=0, ats_url_next_check_at=None)
         else:
-            unknowns = min(URL_UNKNOWN_LIMIT, _counter(state, "ats_url_unknown_count") + 1)
-            update.update(ats_url_unknown_count=unknowns,
-                          ats_url_next_check_at=(current + URL_BACKOFF).isoformat()
-                          if unknowns >= URL_UNKNOWN_LIMIT else None)
-            _unknown_alert(state, update, update["last_attempt_reason"], direct.get("liveness_status"))
+            _confirm_absence(posting, state, update, direct_checker, current)
     else:
         update.update(ats_miss_count=0, ats_first_miss_at=None)
         _unknown_alert(state, update, update["last_attempt_reason"], result.get("liveness_status"),
