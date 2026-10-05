@@ -1937,6 +1937,46 @@
       ],
       "last_verified_at": "2026-10-04",
       "enabled": true
+    },
+    {
+      "source": "smartrecruiters",
+      "identifiers": {
+        "account": "Wix2"
+      },
+      "company": "Wix",
+      "careers_url": "https://careers.smartrecruiters.com/Wix2",
+      "provenance": [
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.smartrecruiters.com/v1/companies/Wix2/postings?country=il&limit=100&offset=0"
+        },
+        {
+          "kind": "public-careers-link",
+          "reference": "https://jobs.smartrecruiters.com/Wix2/744000153371359-ui-designer-brand-ui-team"
+        }
+      ],
+      "last_verified_at": "2026-10-04",
+      "enabled": true
+    },
+    {
+      "source": "ashby",
+      "identifiers": {
+        "account": "loora"
+      },
+      "company": "Loora",
+      "careers_url": "https://jobs.ashbyhq.com/loora",
+      "provenance": [
+        {
+          "kind": "public-endpoint-live-check",
+          "reference": "https://api.ashbyhq.com/posting-api/job-board/loora"
+        },
+        {
+          "kind": "public-careers-link",
+          "reference": "https://jobs.ashbyhq.com/loora/f2a31e7f-d110-48e7-a908-b7a79c0f0050"
+        }
+      ],
+      "last_verified_at": "2026-10-04",
+      "enabled": true
     }
   ]
 }

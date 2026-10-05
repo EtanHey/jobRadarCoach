@@ -21,7 +21,7 @@ FIXTURES = HERE / "fixtures"
 SEARCHES_PATH = HERE / "searches.yaml"
 REGISTRY_PATH = HERE / "source-registry.json"
 REGISTRY_MODULE_PATH = HERE / "source_registry.py"
-SOURCE_NAMES = ("comeet", "greenhouse", "lever", "workable", "workday")
+SOURCE_NAMES = ("comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters", "workday")
 REQUIRED_POSTING_FIELDS = {
     "id", "title", "company", "location", "url", "posted_ago", "source"
 }
@@ -1927,7 +1927,7 @@ def test_source_failure_isolated_to_one_seed_not_its_siblings(monkeypatch, caplo
     "bad_sources",
     [
         {"comeet": "not-a-list"},
-        {"smartrecruiters": [{"board": "future-seed"}]},
+        {"future_ats": [{"board": "future-seed"}]},
     ],
 )
 def test_enabled_source_config_error_never_kills_linkedin_feed(

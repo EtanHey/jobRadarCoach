@@ -22,11 +22,11 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 PUBLIC_HOSTS = {
-    "linkedin.com", "comeet.com", "greenhouse.io", "lever.co", "workable.com",
+    "linkedin.com", "comeet.com", "greenhouse.io", "lever.co", "workable.com", "ashbyhq.com", "smartrecruiters.com",
 }
 SELECT_STALE = """
 select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'workday')
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'ashby', 'smartrecruiters', 'workday')
 order by coalesce(liveness->>'last_attempt_at', ''), first_seen_at, id
 limit %s
 """

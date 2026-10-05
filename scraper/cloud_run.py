@@ -19,13 +19,13 @@ ALL_SOURCES = ("linkedin", *ATS_SOURCES)
 REGISTRY_PATH = source_registry.REGISTRY_PATH
 REQUEST_LIMITS = {
     "linkedin": 10, "comeet": 11, "greenhouse": 13, "lever": 5,
-    "workable": 9, "workable_detail": 9, "workday": 26, "workday_detail": 8, "jd": 8, "liveness": 4,
+    "workable": 9, "workable_detail": 9, "ashby": 1, "smartrecruiters": 5, "smartrecruiters_detail": 8, "workday": 26, "workday_detail": 8, "jd": 8, "liveness": 4,
 }
 URL_BUCKETS = tuple(
     (host, source) for source, host in {
         "linkedin": "linkedin.com/", "comeet": "comeet.com/",
         "greenhouse": "greenhouse.io/", "lever": "lever.co/",
-        "workable": "workable.com/", "workday": "myworkdayjobs.com/",
+        "workable": "workable.com/", "ashby": "ashbyhq.com/", "smartrecruiters": "smartrecruiters.com/", "workday": "myworkdayjobs.com/",
     }.items()
 )
 class _NoRedirect(urllib_request.HTTPRedirectHandler):
@@ -171,6 +171,8 @@ def main(
             bucket = "workable_detail"
         if bucket == "workday" and "/wday/cxs/" in url and not url.endswith("/jobs"):
             bucket = "workday_detail"
+        if bucket == "smartrecruiters" and "/postings/" in url:
+            bucket = "smartrecruiters_detail"
         if not budget.take(bucket):
             return None
         pacer()

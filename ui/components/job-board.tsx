@@ -13,15 +13,21 @@ import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch } from "@/lib/contracts";
 import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
-import { loadJobDetail } from "@/lib/job-detail-request";
+import { DETAIL_LOAD_TIMEOUT_MESSAGE, DETAIL_LOAD_TIMEOUT_MS, loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
 import { filterJobGroups, type ViewOptions } from "@/lib/job-filters";
+import { LogoDevAttribution } from "./company-logo";
+import { provideLogoMissFetcher } from "@/lib/company-logo-cache";
 import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
 import { StatusSelect } from "./status-select";
+import { isStatusPatchNoop, statusMutationRemovesCard } from "@/lib/job-status";
 import { buttonVariants } from "./ui/button";
+
+// The board is the host that may touch the network; logo tiles only confirm a Logo.dev 404 through this.
+provideLogoMissFetcher((input, init) => fetch(input, init));
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
   const response = await fetch(path, { cache: "no-store", ...options });
@@ -108,11 +114,11 @@ export function JobBoard() {
     const rowId = groups.find(group => [group.job, ...group.alternates].some(job => job.id === id))?.job.id;
     if (rowId) requestAnimationFrame(() => {
       const row = document.querySelector<HTMLElement>(`[data-posting-id="${rowId}"]`);
-      const rail = row?.closest<HTMLElement>(".globe-rail");
+      const rail = row?.closest<HTMLElement>(".globe-rail-list");
       if (!row || !rail || rail.scrollHeight <= rail.clientHeight) return;
-      // Click-only scroll, block "nearest", clearing the sticky rail header.
+      // Click-only scroll, block "nearest". The rail header sits above the list, so the list's own edges are the bounds.
       const card = row.getBoundingClientRect(), viewport = rail.getBoundingClientRect();
-      const delta = card.top < viewport.top + 36 ? card.top - viewport.top - 36 : card.bottom > viewport.bottom ? card.bottom - viewport.bottom + 3 : 0;
+      const delta = card.top < viewport.top + 3 ? card.top - viewport.top - 3 : card.bottom > viewport.bottom ? card.bottom - viewport.bottom + 3 : 0;
       if (delta) rail.scrollTo({ top: rail.scrollTop + delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
   }
@@ -377,8 +383,19 @@ export function JobBoard() {
     return () => controller.abort();
   }, [detailCoordinator, requestRefresh, selected, detailRevision, patchGlobeStatus, markSeenOnOpen]);
 
+  useEffect(() => {
+    // SSE refreshes can replace reads, but cannot extend this selection's loading budget.
+    const timer = selected && !detail && !detailError ? setTimeout(() => {
+      if (detailCoordinator.current().id !== selected) return;
+      detailRequestRef.current?.abort();
+      setDetailError(DETAIL_LOAD_TIMEOUT_MESSAGE);
+    }, DETAIL_LOAD_TIMEOUT_MS) : undefined;
+    return () => clearTimeout(timer);
+  }, [detailCoordinator, selected, detail, detailError, detailRevision]);
+
   async function changeStatus(patch: StatusPatch) {
     if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
+    if (isStatusPatchNoop(detail, patch)) return true;
     const id = detail.id;
     const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
@@ -392,8 +409,9 @@ export function JobBoard() {
       }
       visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
       setJobs((current) => updateJobStatus(current, id, result.status, result.reason));
-      patchGlobeStatus(id, result, filterRef.current === "new-for-me");
-      if (filterRef.current === "new-for-me") {
+      const remove = statusMutationRemovesCard(filterRef.current, result.status);
+      patchGlobeStatus(id, result, remove);
+      if (remove) {
         visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
         setJobs((current) => current.filter((job) => job.id !== id));
       }
@@ -421,6 +439,7 @@ export function JobBoard() {
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 className="mr-auto text-lg font-semibold text-foreground">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
       <JobsPanel {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, loadedUpdatedAt, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={!!globe.data} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
       {(!globeActive || refreshWarning) && <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning ? `${connection} ${refreshWarning}` : connection}</p>}
+      {!globeActive && <LogoDevAttribution />}
     </main>
     <JobDrawer
       retryDetail={retryDetail}

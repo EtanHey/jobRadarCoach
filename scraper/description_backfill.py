@@ -9,18 +9,21 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 from urllib.request import Request
 
 from scraper.jd_fetch import BROWSER_USER_AGENT, MIN_PLAUSIBLE_JD_CHARS, extract_full_jd
 from scraper.public_https import pinned_open
 from scraper.recheck import public_job_url
+from scraper.sources import ashby, smartrecruiters
+from scraper.source_registry import IDENTIFIER_RE
 
 MAX_ITEMS = 12
 MAX_COMPRESSED_BYTES = 2_000_000
 MAX_BODY_BYTES = 4_000_000
 SELECT = """
 select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'workday')
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'ashby', 'smartrecruiters', 'workday')
 and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
 order by coalesce(liveness->>'description_fetch_attempt_at', ''), first_seen_at, id
 limit %s
@@ -33,15 +36,43 @@ where id = %s and url = %s
 """
 
 
+def _ashby_coordinates(url: str) -> tuple[str, str] | None:
+    parsed = urlparse(url)
+    if parsed.hostname != "jobs.ashbyhq.com":
+        return None
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) != 2 or not all(IDENTIFIER_RE.fullmatch(part) for part in parts):
+        raise ValueError("unsupported-public-url")
+    return parts[0], parts[1]
+
+
+def _description(body: str, coordinates: tuple[str, str] | None) -> str:
+    if coordinates is None:
+        return extract_full_jd(body)
+    account, job_id = coordinates
+    rows = ashby.fetch({"account": account}, fetcher=lambda _: body, before_request=lambda: None)
+    matches = [row for row in rows if row["id"] == f"ashby:{account}:{job_id}"]
+    return str(matches[0]["jd_text"]) if len(matches) == 1 else ""
+
+
 def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     if not public_job_url(url):
         raise ValueError("unsupported-public-url")
     opener = opener or pinned_open
     from scraper.sources import workday
     found = workday.coordinates(url)
-    if found and found[1]:
-        url = workday.base(found[0]) + found[1]
-    request = Request(url, headers={"User-Agent": workday.USER_AGENT if found else BROWSER_USER_AGENT,
+    coordinates = _ashby_coordinates(url)
+    request_url = f"https://api.ashbyhq.com/posting-api/job-board/{coordinates[0]}" if coordinates else url
+    smart_coordinates = smartrecruiters.coordinates(url)
+    user_agent = ashby.USER_AGENT if coordinates else BROWSER_USER_AGENT
+    if smart_coordinates:
+        request_url = smartrecruiters.endpoint(*smart_coordinates)
+        user_agent = smartrecruiters.USER_AGENT
+    if found:
+        user_agent = workday.USER_AGENT
+        if found[1]:
+            request_url = workday.base(found[0]) + found[1]
+    request = Request(request_url, headers={"User-Agent": user_agent,
         "Accept": "application/json" if found else "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
     with opener(request, timeout=min(timeout, 20)) as response:
         body = response.read(MAX_COMPRESSED_BYTES + 1)
@@ -54,7 +85,12 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
             raise ValueError("body-too-large")
         charset = response.headers.get_content_charset() or "utf-8"
         text = body.decode(charset, errors="replace")
-        description = workday.description(workday.detail(text, found[0], found[1])) if found else extract_full_jd(text)
+        if found:
+            description = workday.description(workday.detail(text, found[0], found[1]))
+        elif smart_coordinates:
+            description = smartrecruiters.description(text, smart_coordinates[1])
+        else:
+            description = _description(text, coordinates)
     if len(description) < MIN_PLAUSIBLE_JD_CHARS:
         raise ValueError("description-missing-or-short")
     return description
