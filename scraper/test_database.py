@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+import json
 from pathlib import Path
 from threading import Barrier
 from uuid import uuid4
@@ -14,6 +15,7 @@ psycopg = pytest.importorskip("psycopg")
 from test_support.postgres import DatabaseUnavailable, migrated_database  # noqa: E402
 
 MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
+ATS_SOURCES = ("greenhouse", "lever", "comeet", "workable", "ashby", "smartrecruiters", "workday")
 
 
 @pytest.fixture(scope="module")
@@ -51,6 +53,63 @@ def write_public_seed(tmp_path: Path) -> tuple[Path, Path]:
         encoding="utf-8",
     )
     return profile_path, searches_path
+
+
+def harvest_observation(source, *, alive=True, checked_at="2026-10-05T10:00:00Z"):
+    return {
+        "source": source, "id": f"{source}:synthetic:123",
+        "url": "https://jobs.example.test/123", "title": "Engineer", "company": "Synthetic",
+        "alive": alive, "liveness_status": 200, "liveness_reason": "http-live" if alive else "closed-page-text",
+        "liveness_final_url": "https://jobs.example.test/123", "liveness_checked_at": checked_at,
+    }
+
+
+@pytest.mark.parametrize("source", ATS_SOURCES)
+@pytest.mark.parametrize("alive", [True, False, None])
+@pytest.mark.parametrize("original_alive", [True, False])
+def test_upsert_preserves_ats_gate_state(connection, source, alive, original_alive):
+    observation = harvest_observation(source)
+    [posting_id] = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
+    gate = {
+        "ats_miss_count": 1, "ats_alert_count": 3,
+        "ats_last_list_checked_at": "2026-10-05T10:00:00Z",
+    }
+    original = {**database._liveness_evidence(observation), **gate, "alive": original_alive}
+    connection.execute("update public.postings set liveness = %s::jsonb where id = %s", (json.dumps(original), posting_id))
+    newer = harvest_observation(source, alive=alive, checked_at="2026-10-05T11:00:00Z")
+    # Exercise the real conflict SQL, not a mock or a second insert.
+    connection.execute(database.POSTING_UPSERT, database._posting_values(newer, database._timestamp("2026-10-05T11:00:00Z")))
+    [stored] = connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone()
+    assert {key: stored.get(key) for key in gate} == gate
+    assert stored["alive"] is (True if alive else original_alive)
+    assert stored["liveness_checked_at"] == (newer["liveness_checked_at"] if alive else original["liveness_checked_at"])
+
+
+def test_harvest_closure_protection_covers_every_gate_source():
+    from scraper.ats_liveness import ATS_SOURCES as gate_sources
+
+    assert database.ATS_SOURCES == set(gate_sources) == set(ATS_SOURCES)
+
+
+@pytest.mark.parametrize("source", ATS_SOURCES)
+@pytest.mark.parametrize("status", [200, 404])
+def test_harvest_cannot_close_ats_on_insert_or_update(connection, source, status):
+    observation = {**harvest_observation(source, alive=False), "liveness_status": status}
+    [posting_id] = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
+    [stored] = connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone()
+    assert stored == {}
+    database.persist_postings(connection, [{**observation, "liveness_checked_at": "2026-10-05T11:00:00Z"}], "2026-10-05T11:00:00Z")
+    assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == ({},)
+
+
+def test_linkedin_harvest_still_closes_and_reopens_with_newer_evidence(connection):
+    dead = harvest_observation("linkedin", alive=False)
+    [posting_id] = database.persist_postings(connection, [dead], "2026-10-05T10:00:00Z")
+    assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == (database._liveness_evidence(dead),)
+    for alive, checked_at in [(True, "2026-10-05T11:00:00Z"), (False, "2026-10-05T12:00:00Z")]:
+        observation = harvest_observation("linkedin", alive=alive, checked_at=checked_at)
+        database.persist_postings(connection, [observation], checked_at)
+        assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == (database._liveness_evidence(observation),)
 
 
 def test_runtime_only_bootstraps_full_profile_then_db_wins(connection, tmp_path: Path) -> None:

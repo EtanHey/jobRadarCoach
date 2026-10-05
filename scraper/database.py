@@ -16,6 +16,11 @@ except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
     from annotate import _load_safe_profile_contract
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
+# Keep aligned with ats_liveness.ATS_SOURCES without importing its network adapters
+# into the standalone analysis wheel. Only the ATS gate may persist a closure.
+ATS_SOURCES = frozenset(
+    {"greenhouse", "lever", "comeet", "workable", "ashby", "smartrecruiters", "workday"}
+)
 UNKNOWN_TEXT_VALUES = frozenset(
     {"unknown", "unspecified", "not specified", "n/a", "na", "none", "null"}
 )
@@ -272,6 +277,8 @@ def _known_stack(value: object) -> list[str]:
 
 def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
     alive = posting.get("alive")
+    if alive is False and posting.get("source") in ATS_SOURCES:
+        return {}
     status = posting.get("liveness_status")
     reason = _known_text(posting.get("liveness_reason"))
     final_url = _nonblank(posting.get("liveness_final_url"))
@@ -345,7 +352,7 @@ on conflict on constraint postings_source_external_id_key do update set
       then (excluded.liveness->>'liveness_checked_at')::timestamptz >=
            (current.liveness->>'liveness_checked_at')::timestamptz
       else true
-    end then excluded.liveness
+    end then current.liveness || excluded.liveness
     else current.liveness
   end
 returning id
