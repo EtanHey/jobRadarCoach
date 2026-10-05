@@ -69,7 +69,9 @@ def harvest_observation(source, *, alive=True, checked_at="2026-10-05T10:00:00Z"
 @pytest.mark.parametrize("original_alive", [True, False])
 def test_upsert_preserves_ats_gate_state(connection, source, alive, original_alive):
     observation = harvest_observation(source)
-    [posting_id] = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
+    posting_ids = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
+    assert len(posting_ids) == 1
+    posting_id = posting_ids[0]
     gate = {
         "ats_miss_count": 1, "ats_alert_count": 3,
         "ats_last_list_checked_at": "2026-10-05T10:00:00Z",
@@ -95,7 +97,9 @@ def test_harvest_closure_protection_covers_every_gate_source():
 @pytest.mark.parametrize("status", [200, 404])
 def test_harvest_cannot_close_ats_on_insert_or_update(connection, source, status):
     observation = {**harvest_observation(source, alive=False), "liveness_status": status}
-    [posting_id] = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
+    posting_ids = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
+    assert len(posting_ids) == 1
+    posting_id = posting_ids[0]
     [stored] = connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone()
     assert stored == {}
     database.persist_postings(connection, [{**observation, "liveness_checked_at": "2026-10-05T11:00:00Z"}], "2026-10-05T11:00:00Z")
@@ -104,7 +108,9 @@ def test_harvest_cannot_close_ats_on_insert_or_update(connection, source, status
 
 def test_linkedin_harvest_still_closes_and_reopens_with_newer_evidence(connection):
     dead = harvest_observation("linkedin", alive=False)
-    [posting_id] = database.persist_postings(connection, [dead], "2026-10-05T10:00:00Z")
+    posting_ids = database.persist_postings(connection, [dead], "2026-10-05T10:00:00Z")
+    assert len(posting_ids) == 1
+    posting_id = posting_ids[0]
     assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == (database._liveness_evidence(dead),)
     for alive, checked_at in [(True, "2026-10-05T11:00:00Z"), (False, "2026-10-05T12:00:00Z")]:
         observation = harvest_observation("linkedin", alive=alive, checked_at=checked_at)
