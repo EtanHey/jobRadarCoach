@@ -27,8 +27,7 @@ export function useNewRoles(enabled: boolean, filter: string, availability: Avai
           const jobs = JobListResponseSchema.parse(body).jobs;
           setResult({ path, jobs: jobs.slice(0, NEW_ROLES_LIMIT), truncated: jobs.length > NEW_ROLES_LIMIT });
         })
-        // A failed poll keeps the last answer; the next poll asks again.
-        .catch(() => {});
+        .catch(() => { /* A failed poll keeps the last answer; the next poll asks again. */ });
     }
     const visible = () => { if (document.visibilityState === "visible") poll(); };
     const timer = setInterval(poll, NEW_ROLES_POLL_MS);

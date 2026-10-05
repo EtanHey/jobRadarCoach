@@ -60,7 +60,7 @@ try {
             : inFilter(visible).filter(row => !since || row.first_seen_at > since).slice(0, limit));
           const gate = since ? hold.poll : kind ? null : hold.list;
           if (gate) { gate.started = true; await gate.promise; }
-          return route.fulfill({ json: { jobs: rows } }).catch(() => {});
+          return route.fulfill({ json: { jobs: rows } }).catch(() => { /* the board aborted this read */ });
         }
         const row = jobs.find(candidate => url.pathname.startsWith(`/api/jobs/${candidate.id}`));
         if (!row) return route.fulfill({ status: 404, json: { error: "fixture only" } });
@@ -71,7 +71,7 @@ try {
         }
         return route.fulfill({ json: { job: { ...row, raw_jd: null, reasons: [], score_payload: null, brain: null, scored_at: null } } });
       });
-      const gate = () => { let release; const promise = new Promise(resolve => { release = resolve; }); return { promise, release, started: false }; };
+      const gate = () => { const { promise, resolve } = Promise.withResolvers(); return { promise, release: resolve, started: false }; };
       const card = n => page.locator(`article[data-posting-id="${id(n)}"]`);
       const role1 = page.locator(`article[data-posting-id="${id(1)}"], article[data-posting-id="${id(6)}"]`);
       const listReads = () => log.filter(entry => entry === "GET /api/jobs").length;

@@ -22,7 +22,7 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
     return () => { active = false; };
   }, [key]);
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
     let active = true;

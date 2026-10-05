@@ -348,7 +348,7 @@ test("summary ID lookup queries postings by ID without status, availability or v
 
 test("the list accepts a strictly-newer cursor for the new-roles poll", async () => {
   const received: unknown[] = [];
-  const handler = makeGetJobs(store({ listJobs: async (query) => { received.push(query); return [summary]; } }));
+  const handler = makeGetJobs(store({ listJobs: (query) => { received.push(query); return Promise.resolve([summary]); } }));
   const since = "2026-10-05T10:00:00.123456+00:00";
   const response = await handler(new Request(`http://localhost/api/jobs?${new URLSearchParams({ filter: "new-for-me", availability: "all", limit: "101", since })}`));
   assert.equal(response.status, 200);
