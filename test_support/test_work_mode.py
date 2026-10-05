@@ -36,3 +36,19 @@ def test_location_mode_changes_and_unknowns_are_not_onsite(db):
     assert db.execute('select work_mode from postings where id=%s', (unknown,)).fetchone() == (None,)
     with pytest.raises(psycopg.errors.CheckViolation):
         db.execute("update postings set work_mode='maybe' where id=%s", (unknown,))
+
+
+@pytest.mark.parametrize(('location', 'mode', 'remote'), [
+    ('Remote - United States', 'remote', True),
+    ('Remote (United States)', 'remote', True),
+    ('Remote, Israel', 'remote', True),
+    ('New York, NY; Remote - United States', None, True),
+    ('Remoteville, Israel', None, None),
+    ('Israel (Hybrid)', 'hybrid', None),
+])
+def test_remote_locations_keep_ingestion_compatibility(db, location, mode, remote):
+    row = dict(source='test', id='remote-location', url='https://example.test/job',
+               title='Engineer', company='Example', location=location)
+    identity = persist_postings(db, [row], '2026-10-05T03:00:00Z')[0]
+    assert db.execute('select work_mode,remote from postings where id=%s',
+                      (identity,)).fetchone() == (mode, remote)

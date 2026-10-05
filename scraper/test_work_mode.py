@@ -8,7 +8,7 @@ from scraper.annotate import location_mode, posting_mode
     ('Tel Aviv · Remote', 'remote'), ('Israel - On-site', 'on-site'),
     ('Israel (Onsite)', 'on-site'), ('Israel (On site)', 'on-site'),
     ('Remote', 'remote'), ('Israel [Hybrid]', 'hybrid'),
-    ('Remoteville', None), ('Hybrid City', None), ('Remote - Israel', None),
+    ('Remoteville', None), ('Hybrid City', None), ('Remote - Israel', 'remote'),
     ('Israel (not remote)', None), ('Israel (Hybrid / Remote)', None),
     ('Israel (Remote) (On-site)', None), ('Israel', None), (None, None),
 ])
@@ -33,4 +33,16 @@ def test_structured_values_take_precedence(posting, expected):
     ('Israel [Hybrid)', None), ('Israel (On site) campus', None),
 ])
 def test_common_trailing_labels_require_balanced_brackets(location, mode):
+    assert location_mode(location) == mode
+
+
+@pytest.mark.parametrize(('location', 'mode'), [
+    ('Remote - United States', 'remote'), ('Remote (United States)', 'remote'),
+    ('Remote, Israel', 'remote'), ('rEmOtE – Canada', 'remote'),
+    ('Fully Remote (United States)', 'remote'),
+    ('Remoteville - United States', None), ('Remote Sensing - United States', None),
+    ('Remote (United States', None), ('Remote - Hybrid', None),
+    ('Remote (United States) (On-site)', None),
+])
+def test_leading_remote_locations_and_neighbours(location, mode):
     assert location_mode(location) == mode

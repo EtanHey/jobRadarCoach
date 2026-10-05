@@ -312,6 +312,9 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
     location = _nonblank(posting.get("location"))
     mode, mode_source = posting_mode(posting)
     remote = {"remote": True, "on-site": False}.get(mode)
+    # Preserve pre-work-mode inference for multi-location ATS labels.
+    if mode is None and location and re.search(r"\bremote\b", location, re.IGNORECASE):
+        remote = True
     apply_url = _nonblank(posting.get("apply_url"))
     return (
         source, external_id, url, title, company,
@@ -342,7 +345,9 @@ on conflict on constraint postings_source_external_id_key do update set
   end,
   remote = case when current.work_mode_source = 'structured'
     and excluded.work_mode_source is distinct from 'structured' then current.remote
-    when excluded.work_mode is not null then excluded.remote else coalesce(excluded.remote, current.remote) end,
+    when excluded.work_mode is not null then excluded.remote
+    when current.work_mode is not null then current.remote
+    else coalesce(excluded.remote, current.remote) end,
   work_mode = case when current.work_mode_source = 'structured'
     and excluded.work_mode_source is distinct from 'structured' then current.work_mode
     else coalesce(excluded.work_mode, current.work_mode) end,

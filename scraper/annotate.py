@@ -26,6 +26,11 @@ _WORK_MODE_SUFFIX = re.compile(
     rf'(?:^|\s+(?:[·|,–—-]\s*)?)(?P<plain>{_WORK_MODE_LABEL}))\s*$', re.I,
 )
 
+_WORK_MODE_REMOTE_PREFIX = re.compile(
+    r'(?:fully\s+)?remote\s*(?:[-,·|–—]\s*(?P<places>[^()[\]]+)|'
+    r'\(\s*(?P<round_place>[^()[\]]+)\s*\))\s*$', re.I,
+)
+
 
 def canonical_mode(value: object) -> str | None:
     if not isinstance(value, str):
@@ -38,7 +43,13 @@ def canonical_mode(value: object) -> str | None:
 def location_mode(value: object) -> str | None:
     if not isinstance(value, str):
         return None
-    match = _WORK_MODE_SUFFIX.search(value.strip())
+    location = value.strip()
+    leading = _WORK_MODE_REMOTE_PREFIX.fullmatch(location)
+    if leading:
+        place = (leading.group("places") or leading.group("round_place")).strip()
+        if place and not re.search(rf'\b{_WORK_MODE_LABEL}\b', place, re.I):
+            return 'remote'
+    match = _WORK_MODE_SUFFIX.search(location)
     if not match:
         return None
     # Multiple labels, including a preceding parenthetical label, are ambiguous.
