@@ -31,22 +31,20 @@ HQ = {
 
 @pytest.fixture
 def database():
-    with migrated_database(MIGRATIONS, through=19) as url:
-        with psycopg.connect(url, row_factory=dict_row) as db:
-            _seed(db)
-            db.execute("select set_status(%s,'interview_technical',null)", (IDS[0],))
-            db.execute(
-                "insert into application_history(company,role,application_date) values ('Acme','Engineer','2026-09-22')"
-            )
-            db.commit()
-            db.execute("set role service_role")
-            db.commit()
-            yield url, db
-            # Session role must not affect disposable database teardown.
-            db.rollback()
-            db.execute("reset role")
-            db.commit()
-
+    with migrated_database(MIGRATIONS, through=19) as url, psycopg.connect(url, row_factory=dict_row) as db:
+        _seed(db)
+        db.execute("select set_status(%s,'interview_technical',null)", (IDS[0],))
+        db.execute(
+            "insert into application_history(company,role,application_date) values ('Acme','Engineer','2026-09-22')"
+        )
+        db.commit()
+        db.execute("set role service_role")
+        db.commit()
+        yield url, db
+        # Session role must not affect disposable database teardown.
+        db.rollback()
+        db.execute("reset role")
+        db.commit()
 
 def rows(db, table):
     return db.execute(

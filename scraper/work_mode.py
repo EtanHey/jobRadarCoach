@@ -30,7 +30,7 @@ def location_mode(value: object) -> str | None:
         return None
     if re.search(rf'\b{_LABEL}\b', prefix, re.I):
         return None
-    return canonical_mode(next(group for group in match.groups() if group))
+    return canonical_mode(match.group("round") or match.group("square") or match.group("plain"))
 
 
 def posting_mode(posting: Mapping[str, object]) -> tuple[str | None, str | None]:

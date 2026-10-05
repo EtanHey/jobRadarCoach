@@ -92,12 +92,13 @@ def persist_extraction(
             "location": payload.facts["location"]["value"],
             "remote": payload.facts["remote"]["value"],
         })
-        resulting_mode = "case when work_mode_source = 'structured' then work_mode else coalesce(%s, work_mode) end"
         updated = connection.execute(
             "update public.postings set location = coalesce(%s, location), "
-            "remote = case (" + resulting_mode + ") when 'remote' then true when 'on-site' then false "
+            "remote = case (case when work_mode_source = 'structured' then work_mode "
+            "else coalesce(%s, work_mode) end) when 'remote' then true when 'on-site' then false "
             "when 'hybrid' then null else coalesce(%s, remote) end, "
-            "work_mode = (" + resulting_mode + "), "
+            "work_mode = case when work_mode_source = 'structured' then work_mode "
+            "else coalesce(%s, work_mode) end, "
             "work_mode_source = case when work_mode_source = 'structured' then work_mode_source "
             "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
