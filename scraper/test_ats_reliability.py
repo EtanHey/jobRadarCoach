@@ -13,15 +13,14 @@ from test_support.postgres import migrated_database
 
 @pytest.fixture
 def db():
-    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=1) as url:
-        with psycopg.connect(url, autocommit=True) as connection:
-            connection.execute("insert into postings (source,external_id,url,title,company) values "
-                               "('greenhouse','greenhouse:acme:1',"
-                               "'https://job-boards.greenhouse.io/acme/jobs/1','Engineer','Synthetic')")
-            connection.execute("insert into posting_status(posting_id,status) select id,'saved' from postings")
-            connection.execute("insert into posting_scores(posting_id,score,brain) select id,80,'synthetic' from postings")
-            yield connection
-
+    with (migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=1) as url,
+          psycopg.connect(url, autocommit=True) as connection):
+        connection.execute("insert into postings (source,external_id,url,title,company) values "
+                           "('greenhouse','greenhouse:acme:1',"
+                           "'https://job-boards.greenhouse.io/acme/jobs/1','Engineer','Synthetic')")
+        connection.execute("insert into posting_status(posting_id,status) select id,'saved' from postings")
+        connection.execute("insert into posting_scores(posting_id,score,brain) select id,80,'synthetic' from postings")
+        yield connection
 
 def state(db):
     return db.execute('select liveness from postings order by external_id').fetchone()[0]
