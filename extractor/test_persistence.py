@@ -31,7 +31,7 @@ MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
 @pytest.fixture(scope="module")
 def migrated_database_url():
     try:
-        with migrated_database(MIGRATIONS, through=6) as url:
+        with migrated_database(MIGRATIONS, through=19) as url:
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
@@ -84,7 +84,7 @@ def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
         (posting_id, posting_id, raw_jd),
     )
     connection.execute(
-        "insert into public.posting_status (posting_id, status) values (%s, 'saved')",
+        "insert into public.posting_status (posting_id, status) values (%s, 'worth_checking')",
         (posting_id,),
     )
     reasons: list[object] = []
@@ -232,3 +232,26 @@ def test_provider_failure_leaves_last_good_untouched(connection) -> None:
             ),
         )
     assert durable_state(connection, posting_id) == before
+
+
+def test_extraction_cannot_flip_structured_hybrid_to_remote(connection):
+    posting_id = insert_posting(connection)
+    connection.execute("update postings set work_mode='hybrid', work_mode_source='structured', remote=null where id=%s", (posting_id,))
+    persistence.persist_extraction(connection, posting_id, RAW_JD, extraction())
+    assert connection.execute("select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,)).fetchone() == ('hybrid', 'structured', None)
+
+
+def test_extracted_hybrid_location_keeps_legacy_boolean_unknown(connection):
+    raw_jd = RAW_JD.replace('Tel Aviv.', 'Tel Aviv (Hybrid).')
+    posting_id = insert_posting(connection, raw_jd)
+    facts = deepcopy(FACTS)
+    facts['location'] = {'value': 'Tel Aviv (Hybrid)', 'evidence_quote': 'Tel Aviv (Hybrid)'}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute("select work_mode,remote from postings where id=%s", (posting_id,)).fetchone() == ('hybrid', None)
+
+
+def test_fresh_extraction_updates_inferred_mode(connection):
+    posting_id = insert_posting(connection)
+    connection.execute("update postings set work_mode='on-site',work_mode_source='location' where id=%s", (posting_id,))
+    persistence.persist_extraction(connection, posting_id, RAW_JD, extraction())
+    assert connection.execute('select work_mode,work_mode_source,remote from postings where id=%s',(posting_id,)).fetchone() == ('remote','extracted',True)

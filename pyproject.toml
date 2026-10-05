@@ -40,6 +40,7 @@ py-modules = [
   "scraper.brain_contract",
   "scraper.codex_process",
   "scraper.database",
+  "scraper.work_mode",
   "scripts.local_analysis",
   "scripts.backfill_posting_facts",
   "scripts.local_analysis_supervisor",
