@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import re
@@ -261,6 +261,13 @@ def _timestamp(value: object) -> datetime | None:
     return parsed if parsed.tzinfo is not None else None
 
 
+
+def _publication_timestamp(value: object, observed_at: datetime) -> datetime | None:
+    parsed = _timestamp(value)
+    return parsed if parsed is not None and (
+        datetime(2000, 1, 1, tzinfo=timezone.utc) <= parsed <= observed_at + timedelta(days=1)
+    ) else None
+
 def _known_stack(value: object) -> list[str]:
     if not isinstance(value, list) or not value:
         return []
@@ -313,7 +320,10 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
         location, remote, _known_text(posting.get("seniority")),
         _known_stack(posting.get("stack")),
         _nonblank(posting.get("salary")), apply_url or url,
-        _timestamp(posting.get("posted_at")), _nonblank(posting.get("jd_text")),
+        _publication_timestamp(posting.get("posted_at"), observed_at),
+        _publication_timestamp(posting.get("last_published_at"), observed_at)
+        or _publication_timestamp(posting.get("posted_at"), observed_at),
+        _nonblank(posting.get("jd_text")),
         observed_at, observed_at,
         json.dumps(_liveness_evidence(posting), ensure_ascii=False),
         apply_url is not None,
@@ -323,8 +333,8 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
 POSTING_UPSERT = """
 insert into public.postings as current (
   source, external_id, url, title, company, location, remote, seniority, stack,
-  salary, apply_url, posted_at, raw_jd, first_seen_at, last_seen_at, liveness
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
 on conflict on constraint postings_source_external_id_key do update set
   url = excluded.url, title = excluded.title, company = excluded.company,
   location = coalesce(excluded.location, current.location),
@@ -336,7 +346,8 @@ on conflict on constraint postings_source_external_id_key do update set
   seniority = coalesce(excluded.seniority, current.seniority),
   stack = case when cardinality(excluded.stack) > 0 then excluded.stack else current.stack end,
   salary = coalesce(excluded.salary, current.salary),
-  posted_at = coalesce(excluded.posted_at, current.posted_at),
+  posted_at = least(excluded.posted_at, current.posted_at),
+  last_published_at = greatest(excluded.last_published_at, current.last_published_at),
   raw_jd = coalesce(excluded.raw_jd, current.raw_jd),
   last_seen_at = greatest(excluded.last_seen_at, current.last_seen_at),
   liveness = case
@@ -355,8 +366,8 @@ returning id
 POSTING_INSERT = """
 insert into public.postings (
   source, external_id, url, title, company, location, remote, seniority, stack,
-  salary, apply_url, posted_at, raw_jd, first_seen_at, last_seen_at, liveness
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
 on conflict on constraint postings_source_external_id_key do nothing
 returning id
 """
