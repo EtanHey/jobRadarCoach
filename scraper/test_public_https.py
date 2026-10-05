@@ -30,7 +30,8 @@ def test_pins_socket_but_retains_original_tls_hostname_and_body(monkeypatch, dat
         def close(self):
             self.sock.close()
 
-        def getresponse(self):
+        @staticmethod
+        def getresponse():
             return type(
                 "R",
                 (),
@@ -90,12 +91,14 @@ def test_non_success_raises_http_error_and_closes_without_following(monkeypatch)
             self.sock = None
 
         def request(self, *_a, **_k):
-            pass
+            self.request_args = (_a, _k)
 
         def getresponse(self):
+            assert self.request_args[0] == ('GET', '/a')
             return response
 
         def close(self):
+            self.sock.close()
             closed.append("connection")
 
     monkeypatch.setattr("scraper.public_https.http.client.HTTPSConnection", Connection)
