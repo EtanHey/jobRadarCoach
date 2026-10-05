@@ -16,22 +16,23 @@ type Props = {
   selected?: boolean;
   /** Set in "New for me" when this kept card's status no longer qualifies: dims the content and names the status. */
   keptStatus?: JobStatus | null;
+  logoSize?: "sm" | "md";
   actions?: ReactNode;
   openerRef: RefObject<HTMLButtonElement | null>;
   selectJob: (id: string | null) => void;
   children: ReactNode;
 };
 
-export function JobCard({ job, selected, keptStatus = null, actions, alternateCount = 0, openerRef, selectJob, children }: Props) {
+export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, openerRef, selectJob, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   const place = `${job.location ?? "Location unspecified"} · ${workMode(job.remote)}`;
   // Dim the content, never the frame: hover border and focus ring stay full strength on settled cards.
   const dim = keptStatus ? "opacity-60" : "";
   const keptId = `kept-status-${job.id}`;
-  return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-colors hover:border-ring/50 focus-within:ring-2 focus-within:ring-ring">
+  return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={keptStatus ? keptId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
-      <CompanyLogo company={job.company} className={cn("size-14 sm:size-16", dim)} />
+      <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
         <p className="truncate text-sm text-muted-foreground">{job.company}</p>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
