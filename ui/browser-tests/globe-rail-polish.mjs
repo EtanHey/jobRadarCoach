@@ -101,12 +101,51 @@ await phase("layout-empty", {}, async page => {
   assert.equal(layout.page, 0, `page must not scroll: ${JSON.stringify(layout)}`);
   assert.ok(Math.abs(layout.railBottom - layout.target) <= 2 && Math.abs(layout.slotBottom - layout.target) <= 2, JSON.stringify(layout));
   assert.deepEqual(layout.scrollers.length, 1, JSON.stringify(layout.scrollers));
-  assert.match(layout.scrollers[0], /globe-rail/);
-  const sticky = await page.evaluate(() => {
-    const rail = document.querySelector(".globe-rail"); rail.scrollTop = 400;
-    return document.getElementById("globe-visible-heading").getBoundingClientRect().top - rail.getBoundingClientRect().top;
+  assert.match(layout.scrollers[0], /globe-rail-list/, "only the card list scrolls, so its scrollbar sits beside the list");
+  // Whatever scrolls inside the rail, the header must stay outside it and no card may paint inside the header box.
+  const railScroller = () => page.locator(".globe-rail").evaluateHandle(rail => [rail, ...rail.querySelectorAll("*")]
+    .find(el => /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1));
+  const headerAtTop = async () => page.evaluate(scroller => {
+    const rail = document.querySelector(".globe-rail"), header = rail.querySelector(".globe-rail-header");
+    const railBox = rail.getBoundingClientRect(), headerBox = header.getBoundingClientRect(), listBox = scroller.getBoundingClientRect();
+    const topPixel = document.elementFromPoint(headerBox.left + headerBox.width / 2, railBox.top + 1);
+    let cardPixels = 0;
+    for (let x = headerBox.left + 2; x < headerBox.right - 2; x += 6) for (let y = headerBox.top; y < headerBox.bottom; y += 2) if (document.elementFromPoint(x, y)?.closest("[data-globe-card]")) cardPixels++;
+    return { gap: headerBox.top - railBox.top, coversTop: header.contains(topPixel), headerScrolls: scroller.contains(header), listBelowHeader: listBox.top - headerBox.bottom, cardPixels };
+  }, await railScroller());
+  const scrollRail = async top => (await railScroller()).evaluate((scroller, next) => { scroller.scrollTop = next; }, top);
+  for (const scrollTop of [0, 75, 400]) {
+    await scrollRail(scrollTop);
+    const top = await headerAtTop();
+    assert.ok(Math.abs(top.gap) <= .5 && top.coversTop, `rail header covers top edge at ${scrollTop}: ${JSON.stringify(top)}`);
+    assert.ok(!top.headerScrolls && top.listBelowHeader >= -.5, `header sits outside the scrolling list at ${scrollTop}: ${JSON.stringify(top)}`);
+    assert.equal(top.cardPixels, 0, `no card paints inside the header at ${scrollTop}: ${JSON.stringify(top)}`);
+  }
+  // Focus scrolling brings a card into the list's own viewport, never under the header.
+  await page.locator('[data-globe-card] > article > button').first().focus();
+  const focused = await page.evaluate(() => {
+    const header = document.querySelector(".globe-rail-header").getBoundingClientRect(), card = document.activeElement.closest("article").getBoundingClientRect();
+    return { cardTop: card.top, headerBottom: header.bottom };
   });
-  assert.ok(sticky >= 0 && sticky <= 12, `rail header stays pinned: ${sticky}`);
+  assert.ok(focused.cardTop >= focused.headerBottom - .5, `focused card clears the header: ${JSON.stringify(focused)}`);
+  await page.evaluate(() => document.activeElement?.blur());
+  // Clicking a card cut off at the list's top scrolls it fully into the list, clear of the header (mouse at absolute coordinates, so Playwright cannot pre-scroll).
+  const cutCard = await page.locator('[data-globe-card]').nth(2).elementHandle();
+  const clickAt = await (await railScroller()).evaluate((list, card) => {
+    list.scrollTop += card.getBoundingClientRect().top - list.getBoundingClientRect().top + 60;
+    const box = card.getBoundingClientRect(), listBox = list.getBoundingClientRect();
+    return { x: box.left + 30, y: Math.max(box.top, listBox.top) + 30 };
+  }, cutCard);
+  await page.mouse.click(clickAt.x, clickAt.y);
+  await page.waitForFunction(card => card.closest("[data-globe-card]").dataset.globeSelected === "true", cutCard);
+  await page.waitForTimeout(700);
+  const revealed = await cutCard.evaluate(card => {
+    const box = card.getBoundingClientRect(), header = document.querySelector(".globe-rail-header").getBoundingClientRect(), list = document.querySelector(".globe-rail-list")?.getBoundingClientRect();
+    return { cardTop: box.top, headerBottom: header.bottom, listTop: list?.top };
+  });
+  assert.ok(revealed.cardTop >= revealed.headerBottom - .5 && revealed.cardTop >= revealed.listTop - .5, `selected card scrolls fully into the list: ${JSON.stringify(revealed)}`);
+  await page.keyboard.press("Escape");
+  await scrollRail(400);
   const canvas = await page.locator(".maplibregl-canvas").boundingBox();
   // One drag turns the globe to the empty Pacific; the fixture has no roles there.
   await page.mouse.move(canvas.x + canvas.width * .85, canvas.y + canvas.height * .5);
@@ -149,7 +188,7 @@ await phase("hover-sync", {}, async page => {
   assert.equal(new Set(hoverStates).size, 1, `hovered bubble must hold still under a moving pointer: ${hoverStates}`);
   assert.ok(await page.evaluate(() => window.__commits) <= 1, `hovered bubble must not flicker React state: ${await page.evaluate(() => window.__commits)}`);
   const before = await camera(page);
-  const rail = page.locator(".globe-rail");
+  const rail = page.locator(".globe-rail-list");
   const railTop = await rail.evaluate(el => el.scrollTop);
   const berlinCard = page.locator(`[data-globe-card="${BERLIN}"]`);
   await berlinCard.hover();
