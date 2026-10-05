@@ -9,7 +9,7 @@ from test_support.postgres import migrated_database
 
 @pytest.fixture
 def db():
-    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=19) as url, psycopg.connect(url) as connection:
+    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=20) as url, psycopg.connect(url) as connection:
         yield connection
 
 def test_ingestion_and_rpc_preserve_structured_mode_on_rescrape(db):

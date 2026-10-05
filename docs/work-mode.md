@@ -2,23 +2,42 @@
 
 `postings.work_mode` is nullable `hybrid`, `remote`, or `on-site`.
 `work_mode_source` records structured source data, a location label, or extracted evidence.
-Structured ATS values take precedence on ingestion, rescrape, and extraction.
+Precedence is structured ATS mode/boolean > parsed location label > extracted evidence.
+Extraction preserves both structured and location-derived modes; re-scrape can
+replace an extracted mode with a location label, keeping event order consistent.
 Hybrid keeps the compatibility `remote` boolean null. A city alone leaves the mode unknown.
 
 Location inference accepts trailing English labels, balanced parentheses/brackets,
+and leading Remote - country / Remote (country) / Remote, country forms,
 case variations, and separator forms. Conflicting labels stay unknown.
+Legacy word-boundary remote inference is retained for multi-location ATS strings
+that do not yield one canonical mode. An existing canonical mode keeps its
+compatibility boolean when such a rescrape supplies no new mode.
 Lever supplies its structured `workplaceType`; the other current adapters reach
 the shared location parser through posting persistence. No Hebrew mode labels
 were present in the measured data.
 
 ## Migration
 
-NEEDS MIGRATION APPLY. The lead must renumber `0019_posting_work_mode.sql`
-when integrating queued #377, which also reserves 0019. Adjust the migration
-ceiling in the corresponding database tests after renumbering.
-Apply the reviewed migration before deploying code that selects/writes these
-columns or replacing the operator-owned analysis wheel. No hosted apply is
-part of this source change. P2 owns the displayed icons and location cleanup.
+NEEDS MIGRATION APPLY. `0020_posting_work_mode.sql` is stacked after #377's
+`0019_publication_dates.sql`. Its card projection retains `last_published_at`
+before `work_mode`; detail is populated by name. The contract snapshot and
+database test ceilings cover 0020. Fresh migration and upgrade from 0019 must
+both pass before apply. The migration runs in one transaction.
+
+This is a one-shot migration, not idempotent after success: record its successful
+application and do not rerun it. A failure rolls back all DDL; retry only after
+fixing the cause. For rollback, first revert/stop code that reads or writes these
+columns. In one transaction: drop the `work_mode` attributes from `job_detail`
+and `job_card`; restore `_job_card` and `get_job` from migration 0019; drop
+`postings_work_mode_provenance`, `work_mode_source` and `work_mode` from
+`postings`; notify PostgREST to reload its schema, then commit. Rollback discards
+stored mode values, while retaining publication-date behavior. These steps are
+verified on disposable PostgreSQL, not executed against hosted data.
+
+Apply the reviewed migration before merging/deploying column readers/writers or
+replacing the operator-owned analysis wheel. Hosted apply is lead-only. #401
+must merge before #404 so the UI renders its mode icons and location cleanup.
 
 ## Backfill and filters
 

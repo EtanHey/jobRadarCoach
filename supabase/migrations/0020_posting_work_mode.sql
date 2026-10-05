@@ -1,4 +1,11 @@
--- No inferred default: a city alone does not establish onsite work.
+-- One-shot migration after 0019_publication_dates; not idempotent after success.
+-- Record successful apply; do not rerun it. Any failure rolls back the whole DDL,
+-- so retry only after fixing the cause. No inferred default from a city alone.
+-- Rollback only after reverting/stopping column consumers, in one transaction:
+-- drop work_mode attributes from job_detail, then job_card; restore _job_card/get_job
+-- from 0019; drop postings_work_mode_provenance and both work-mode columns;
+-- notify pgrst to reload, then commit. This discards stored work-mode values.
+begin;
 alter table public.postings
   add column work_mode text check (work_mode in ('hybrid', 'remote', 'on-site')),
   add column work_mode_source text check (work_mode_source in ('structured', 'location', 'extracted')),
@@ -24,19 +31,23 @@ as $$
       then (p.liveness->>'alive')::boolean end,
     p.link_url, public.score_band(ps.score),
     ps.score_payload->>'fit_tier', coalesce(s.seen, false), s.seen_at,
-    case when s.status in ('new', 'seen') then null else s.status end, p.work_mode
+    case when s.status in ('new', 'seen') then null else s.status end,
+    p.last_published_at, p.work_mode
   from links p left join public.posting_status s on s.posting_id = p.id
     left join public.posting_scores ps on ps.posting_id = p.id
 $$;
 
+-- Populate by name: new card attributes must not shift the existing detail fields.
 create or replace function public.get_job(posting_id uuid)
-returns setof public.job_detail language sql stable security invoker set search_path = ''
-as $$
-  select (pg_catalog.jsonb_populate_record(null::public.job_detail,
-    pg_catalog.to_jsonb(card) || pg_catalog.jsonb_build_object(
-      'raw_jd', p.raw_jd, 'labels', ps.labels, 'score_payload', ps.score_payload,
-      'brain', ps.brain, 'scored_at', ps.scored_at))).*
-  from public.postings p left join public.posting_scores ps on ps.posting_id=p.id
-    cross join lateral public._job_card(p.id) card where p.id=$1
+returns setof public.job_detail language sql stable security invoker set search_path = '' as $$
+  select detail.*
+  from public.postings p left join public.posting_scores ps on ps.posting_id = p.id
+    cross join lateral public._job_card(p.id) card
+    cross join lateral pg_catalog.jsonb_populate_record(null::public.job_detail,
+      pg_catalog.to_jsonb(card) || pg_catalog.jsonb_build_object(
+        'raw_jd',p.raw_jd,'labels',ps.labels,'score_payload',ps.score_payload,
+        'brain',ps.brain,'scored_at',ps.scored_at)) detail
+  where p.id = $1
 $$;
 notify pgrst, 'reload schema';
+commit;

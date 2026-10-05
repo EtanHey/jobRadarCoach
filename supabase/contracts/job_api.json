@@ -256,6 +256,11 @@
             "name": "last_published_at",
             "type": "timestamp with time zone",
             "order": 32
+          },
+          {
+            "name": "work_mode",
+            "type": "text",
+            "order": 33
           }
         ]
       }
@@ -526,6 +531,11 @@
             "name": "last_published_at",
             "type": "timestamp with time zone",
             "order": 37
+          },
+          {
+            "name": "work_mode",
+            "type": "text",
+            "order": 38
           }
         ]
       }

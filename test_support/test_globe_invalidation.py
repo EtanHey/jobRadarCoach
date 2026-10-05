@@ -31,7 +31,7 @@ HQ = {
 
 @pytest.fixture
 def database():
-    with migrated_database(MIGRATIONS, through=19) as url, psycopg.connect(url, row_factory=dict_row) as db:
+    with migrated_database(MIGRATIONS, through=20) as url, psycopg.connect(url, row_factory=dict_row) as db:
         _seed(db)
         db.execute("select set_status(%s,'interview_technical',null)", (IDS[0],))
         db.execute(

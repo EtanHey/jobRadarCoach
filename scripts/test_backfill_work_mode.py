@@ -33,7 +33,7 @@ def test_real_backfill_is_idempotent_and_preserves_explicit_modes():
     import psycopg
     from psycopg.rows import dict_row
     from test_support.postgres import migrated_database
-    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=19) as url, psycopg.connect(url, row_factory=dict_row) as connection:
+    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=20) as url, psycopg.connect(url, row_factory=dict_row) as connection:
         connection.execute("insert into postings(source,external_id,url,title,company,location) values ('fixture','one','https://example.test','Engineer','Example','Israel (Hybrid)')")
         rows = connection.execute('select * from postings').fetchall()
         assert backfill(connection, rows)['planned'] == 1
