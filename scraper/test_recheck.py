@@ -7,7 +7,8 @@ from scraper.recheck import public_job_url, recheck
 
 class Database:
     def __init__(self, rows):
-        self.rows = rows
+        # Legacy URL-check cases model the LinkedIn path; ATS cases supply identity.
+        self.rows = [(*row, "linkedin", "synthetic") if len(row) == 2 else row for row in rows]
         self.writes = []
 
     def execute(self, sql, params=()):
@@ -29,7 +30,7 @@ def test_closed_and_unknown_preserve_application_state_and_prior_evidence():
             return {"alive": False, "liveness_reason": "closed-page-text"}
         return {"alive": None, "liveness_reason": "http-429-uncertain"}
     receipt = recheck(db, limit=2, checker=check)
-    assert receipt == {"checked": 2, "closed": 1, "unknown": 1, "unsupported": 0}
+    assert receipt == {"checked": 2, "closed": 1, "alive": 0, "unknown": 1, "unsupported": 0}
     assert json.loads(db.writes[0][1][0])["alive"] is False
     unknown = json.loads(db.writes[1][1][0])
     assert "alive" not in unknown and "liveness_reason" not in unknown
@@ -38,7 +39,7 @@ def test_closed_and_unknown_preserve_application_state_and_prior_evidence():
         assert "liveness = liveness ||" in sql
         assert "and url = %s" in sql
         assert "posting_status" not in sql and "posting_scores" not in sql
-        assert len(params) == 3
+        assert len(params) == 5
 
 
 @pytest.mark.parametrize("url", ["http://linkedin.com/jobs/1", "https://127.0.0.1/",
@@ -76,3 +77,26 @@ def test_default_transport_preserves_greenhouse_closed_redirect(monkeypatch):
     receipt = recheck(db)
     assert receipt["closed"] == 1
     assert json.loads(db.writes[0][1][0])["liveness_reason"] == "greenhouse-board-error-redirect"
+
+
+def test_ats_recheck_closes_only_absent_ids_and_binds_stored_identity():
+    from scraper.ats_liveness import BoardChecker
+    db = Database([("gone", "https://acme.example/jobs/1", "greenhouse", "greenhouse:acme:1"),
+                   ("live", "https://acme.example/jobs/2", "greenhouse", "greenhouse:acme:2")])
+    calls = []
+    board = BoardChecker(lambda url: calls.append(url) or '{"jobs":[{"id":2}],"meta":{"total":1}}')
+    receipt = recheck(db, board_checker=board)
+    assert receipt["closed"] == 1 and receipt["alive"] == 1 and len(calls) == 1
+    assert json.loads(db.writes[0][1][0])["alive"] is False
+    for sql, params in db.writes:
+        assert "source = %s" in sql and "external_id = %s" in sql
+        assert params[-2:] == ("greenhouse", f"greenhouse:acme:{1 if params[1] == 'gone' else 2}")
+
+
+def test_unknown_ats_result_preserves_prior_closure_and_attempt_rotation():
+    from scraper.ats_liveness import BoardChecker
+    db = Database([("unknown", "https://acme.example/jobs/1", "greenhouse", "greenhouse:acme:1")])
+    receipt = recheck(db, board_checker=BoardChecker(lambda _: '{}'))
+    assert receipt["unknown"] == 1 and receipt["closed"] == 0
+    update = json.loads(db.writes[0][1][0])
+    assert "last_attempt_at" in update and "alive" not in update

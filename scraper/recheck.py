@@ -12,6 +12,7 @@ from urllib.request import HTTPRedirectHandler
 
 from scraper.liveness import check_url
 from scraper.public_https import pinned_open
+from scraper.ats_liveness import ATS_SOURCES, BoardChecker
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -23,14 +24,15 @@ PUBLIC_HOSTS = {
     "linkedin.com", "comeet.com", "greenhouse.io", "lever.co", "workable.com",
 }
 SELECT_STALE = """
-select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable')
+select id, url, source, external_id from public.postings
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'ashby', 'smartrecruiters', 'workday')
+and (source = 'linkedin' or liveness->'alive' is distinct from 'false'::jsonb)
 order by coalesce(liveness->>'last_attempt_at', ''), first_seen_at, id
 limit %s
 """
 UPDATE_RESULT = """
 update public.postings set liveness = liveness || %s::jsonb
-where id = %s and url = %s
+where id = %s and url = %s and source = %s and external_id = %s
 """
 
 
@@ -47,18 +49,21 @@ def public_job_url(url: str) -> bool:
         return False
 
 
-def recheck(connection, *, limit: int = 60, checker=None) -> dict:
+def recheck(connection, *, limit: int = 60, checker=None, board_checker=None) -> dict:
     """Round-robin bounded checks; unknown never erases a confirmed closure."""
     if not 1 <= limit <= 120:
         raise ValueError("limit must be 1..120")
     if checker is None:
         def checker(url):
             return check_url(url, opener=pinned_open, timeout=8)
+    board_checker = board_checker or BoardChecker()
     rows = connection.execute(SELECT_STALE, (limit,)).fetchall()
-    receipt = {"checked": 0, "closed": 0, "unknown": 0, "unsupported": 0}
-    for posting_id, url in rows:
+    receipt = {"checked": 0, "closed": 0, "alive": 0, "unknown": 0, "unsupported": 0}
+    for posting_id, url, source, external_id in rows:
         now = datetime.now(timezone.utc).isoformat()
-        if not public_job_url(url):
+        if source in ATS_SOURCES:
+            result = board_checker({"source": source, "external_id": external_id, "url": url})
+        elif not public_job_url(url):
             result = {"alive": None, "liveness_reason": "unsupported-public-url"}
             receipt["unsupported"] += 1
         else:
@@ -74,9 +79,11 @@ def recheck(connection, *, limit: int = 60, checker=None) -> dict:
         if result.get("alive") is False:
             update.update(result)
             receipt["closed"] += 1
+        elif result.get("alive") is True:
+            receipt["alive"] += 1
         else:
             receipt["unknown"] += 1
-        connection.execute(UPDATE_RESULT, (json.dumps(update), posting_id, url))
+        connection.execute(UPDATE_RESULT, (json.dumps(update), posting_id, url, source, external_id))
         receipt["checked"] += 1
     return receipt
 
