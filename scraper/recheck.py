@@ -14,7 +14,8 @@ from urllib.request import HTTPRedirectHandler
 
 from scraper.liveness import check_url
 from scraper.public_https import pinned_open
-from scraper.ats_liveness import ATS_SOURCES, BoardChecker, check_posting_url, reliability_update, _counter
+from scraper.ats_sources import ATS_SOURCES
+from scraper.ats_liveness import BoardChecker, check_posting_url, reliability_update, _counter
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -31,7 +32,7 @@ with candidates as (
  row_number() over (partition by source = 'linkedin'
    order by coalesce(liveness->>'last_attempt_at', ''), first_seen_at, id) as position
  from public.postings
- where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'ashby', 'smartrecruiters', 'workday')
+ where source = any(%s)
  and (%s = 'all' or (%s = 'linkedin') = (source = 'linkedin'))
 )
 select id, url, source, external_id, liveness from candidates
@@ -67,7 +68,7 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
         time.sleep(1)  # Exceptional URL confirmations remain paced, never routine job polling.
         return check_posting_url(posting)
     board_checker = board_checker or BoardChecker()
-    rows = connection.execute(SELECT_STALE, (scope, scope, limit)).fetchall()
+    rows = connection.execute(SELECT_STALE, (["linkedin", *ATS_SOURCES], scope, scope, limit)).fetchall()
     receipt = {"checked": 0, "closed": 0, "alive": 0, "unknown": 0, "unsupported": 0, "alerts": 0}
     for posting_id, url, source, external_id, state in rows:
         posting = {"source": source, "external_id": external_id, "url": url, "liveness": state}

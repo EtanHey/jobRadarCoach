@@ -9,13 +9,13 @@ from uuid import uuid4
 import pytest
 
 from scraper import database
+from scraper.ats_sources import ATS_SOURCES
 
 
 psycopg = pytest.importorskip("psycopg")
 from test_support.postgres import DatabaseUnavailable, migrated_database  # noqa: E402
 
 MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
-ATS_SOURCES = ("greenhouse", "lever", "comeet", "workable", "ashby", "smartrecruiters", "workday")
 
 
 @pytest.fixture(scope="module")
@@ -67,36 +67,63 @@ def harvest_observation(source, *, alive=True, checked_at="2026-10-05T10:00:00Z"
 @pytest.mark.parametrize("source", ATS_SOURCES)
 @pytest.mark.parametrize("alive", [True, False, None])
 @pytest.mark.parametrize("original_alive", [True, False])
-def test_upsert_preserves_ats_gate_state(connection, source, alive, original_alive):
+@pytest.mark.parametrize("padding", ["", " \t"])
+def test_upsert_preserves_ats_gate_state(connection, source, alive, original_alive, padding):
     observation = harvest_observation(source)
     posting_ids = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
     assert len(posting_ids) == 1
     posting_id = posting_ids[0]
     gate = {
-        "ats_miss_count": 1, "ats_alert_count": 3,
+        "ats_miss_count": 2 if not original_alive else 1, "ats_alert_count": 3,
         "ats_last_list_checked_at": "2026-10-05T10:00:00Z",
     }
-    original = {**database._liveness_evidence(observation), **gate, "alive": original_alive}
+    original = {
+        **gate, "alive": original_alive, "liveness_status": 404 if not original_alive else 200,
+        "liveness_reason": "ats-direct-confirmed-gone" if not original_alive else "ats-active-list-present",
+        "liveness_final_url": observation["url"], "liveness_checked_at": "2026-10-05T10:00:00Z",
+        "ats_first_miss_at": "2026-10-05T09:00:00Z", "ats_url_next_check_at": None,
+        "ats_url_unknown_count": 2, "ats_unknown_reason": None,
+        "ats_url_last_attempt_at": "2026-10-05T10:00:00Z", "description_fetch_attempt_at": "retained",
+    }
     connection.execute("update public.postings set liveness = %s::jsonb where id = %s", (json.dumps(original), posting_id))
-    newer = harvest_observation(source, alive=alive, checked_at="2026-10-05T11:00:00Z")
+    newer = {**harvest_observation(source, alive=alive, checked_at="2026-10-05T11:00:00Z"),
+             "source": padding + source + padding}
     # Exercise the real conflict SQL, not a mock or a second insert.
     connection.execute(database.POSTING_UPSERT, database._posting_values(newer, database._timestamp("2026-10-05T11:00:00Z")))
     [stored] = connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone()
-    assert {key: stored.get(key) for key in gate} == gate
-    assert stored["alive"] is (True if alive else original_alive)
-    assert stored["liveness_checked_at"] == (newer["liveness_checked_at"] if alive else original["liveness_checked_at"])
+    assert stored == original
 
 
 def test_harvest_closure_protection_covers_every_gate_source():
     from scraper.ats_liveness import ATS_SOURCES as gate_sources
+    from scraper.harvest import NATIVE_ATS_SOURCES
+    from scraper.recheck import ATS_SOURCES as selected_sources
 
-    assert database.ATS_SOURCES == set(gate_sources) == set(ATS_SOURCES)
+    assert database.ATS_SOURCES is gate_sources is selected_sources is ATS_SOURCES
+    assert NATIVE_ATS_SOURCES <= set(gate_sources)
+
+
+def test_recheck_selects_every_registered_ats_source(connection):
+    from scraper.recheck import recheck
+
+    observations = [harvest_observation(source) for source in ATS_SOURCES]
+    database.persist_postings(connection, observations, "2026-10-05T10:00:00Z")
+    seen = set()
+    def board(posting):
+        seen.add(posting["source"])
+        return {"alive": None, "liveness_reason": "synthetic-unknown"}
+    receipt = recheck(connection, scope="ats", board_checker=board)
+    assert seen == set(ATS_SOURCES)
+    assert receipt["checked"] == len(ATS_SOURCES)
 
 
 @pytest.mark.parametrize("source", ATS_SOURCES)
 @pytest.mark.parametrize("status", [200, 404])
-def test_harvest_cannot_close_ats_on_insert_or_update(connection, source, status):
-    observation = {**harvest_observation(source, alive=False), "liveness_status": status}
+@pytest.mark.parametrize("alive", [True, False])
+@pytest.mark.parametrize("padding", ["", " \t"])
+def test_harvest_cannot_set_ats_liveness_on_insert_or_update(connection, source, status, alive, padding):
+    observation = {**harvest_observation(source, alive=alive), "liveness_status": status,
+                   "source": padding + source + padding}
     posting_ids = database.persist_postings(connection, [observation], "2026-10-05T10:00:00Z")
     assert len(posting_ids) == 1
     posting_id = posting_ids[0]
