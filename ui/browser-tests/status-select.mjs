@@ -1,4 +1,4 @@
-// Real local JobBoard, synthetic APIs/SSE. Run only through run-suite-capped.sh.
+// Real local JobBoard, synthetic APIs. Run only through run-suite-capped.sh.
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
@@ -27,9 +27,6 @@ try {
     const errors = [];
     try {
       page.on("pageerror", error => errors.push(error.message));
-      await page.addInitScript(() => {
-        window.EventSource = class { listeners = new Map(); addEventListener(n, listener) { this.listeners.set(n, listener); } close() { this.listeners.clear(); } };
-      });
       await page.route("**/api/**", async route => {
         const url = new URL(route.request().url());
         if (url.pathname === "/api/jobs" || url.pathname === "/api/jobs/globe") {
@@ -67,7 +64,7 @@ try {
       const dialog = page.getByRole("dialog");
       const status = dialog.getByRole("combobox", { name: "Application status" });
       await expect(status).toHaveText("Seen");
-      await page.waitForTimeout(300); // settle the automatic Seen refresh before holding later reads
+      await page.waitForTimeout(300);
       await page.evaluate(id => {
         const selector = `article[data-posting-id="${id}"]`;
         const original = document.querySelector(selector);
@@ -83,7 +80,8 @@ try {
       await status.click();
       await page.getByRole("option", { name: "New", exact: true }).click();
       await expect(status).toHaveText("New");
-      await expect.poll(() => state.held).toBeGreaterThan(0);
+      await page.waitForTimeout(300);
+      assert.equal(state.held, 0, "the PATCH reply is the update; no list or globe read follows");
       const probe = await page.evaluate(id => ({ removed: window.cardProbe.removed,
         sameNode: document.querySelector(`article[data-posting-id="${id}"]`) === window.cardProbe.original }), jobs[0].id);
       console.log(`${mode}: New card probe ${JSON.stringify(probe)}`);
@@ -95,18 +93,18 @@ try {
       assert.deepEqual({ patches: state.patches, reads: state.reads }, before, "same-value New must not PATCH or refetch");
       assert.equal(await page.evaluate(() => window.cardProbe.removed), probe.removed, "same-value must not touch the card");
       if (probe.sameNode) await page.screenshot({ path: `${output}/${mode}-new.png` });
-      // Explicit Applied still drops the card; old held New reads must not resurrect it.
+      // Explicit Applied still drops the card without a read.
       state.hold = false;
       await status.click();
       await page.getByRole("option", { name: "Applied", exact: true }).click();
       await expect(status).toHaveText("Applied");
       await expect(card).toHaveCount(0);
-      release();
       await page.waitForTimeout(300);
+      assert.equal(state.reads, before.reads, "Applied does not refetch");
       await expect(card).toHaveCount(0);
       await expect(dialog).toBeVisible();
       assert.deepEqual(errors, []);
-      console.log(`${mode}: probe=${JSON.stringify(probe)}; same-value zero PATCH/read; Applied removal and stale-read fence pass`);
+      console.log(`${mode}: probe=${JSON.stringify(probe)}; zero reads after New/Applied; same-value zero PATCH; Applied removal pass`);
     } catch (error) { failures.push(`${mode}: ${error.message}`); }
     finally { release(); await context.close(); }
   }

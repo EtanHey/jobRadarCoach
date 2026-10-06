@@ -26,8 +26,6 @@ async function phase(name, options, body) {
       localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter: "all",
         view: { search: "", source: "", location, seniority: "", fit: "", statuses: [], availability: "active", sort: "fit" } }));
       localStorage.setItem("job-globe-dragged", "1");
-      class FixtureEvents extends EventTarget { constructor() { super(); setTimeout(() => this.dispatchEvent(new Event("ready")), 20); } close() {} }
-      window.EventSource = FixtureEvents;
       window.__commits = 0;
       window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = { renderers: new Map(), supportsFiber: true, isDisabled: false, inject() { return 1; }, checkDCE() {},
         onScheduleFiberRoot() {}, onCommitFiberRoot() { window.__commits++; }, onCommitFiberUnmount() {}, onPostCommitFiberRoot() {} };
@@ -88,10 +86,7 @@ await phase("n4-slow-other", { location: "other", holdGlobeMs: 17000 }, async pa
 await phase("layout-empty", {}, async page => {
   await settle(page);
   await page.locator('[data-globe-section="visible"] [data-posting-id]').first().waitFor({ timeout: 30000 });
-  const live = page.locator("header").getByText("Live", { exact: true });
-  await live.waitFor({ timeout: 5000 });
-  assert.equal(await page.locator("header [title='Live updates connected']").count(), 1, "Live dot carries the full status as a tooltip");
-  assert.equal(await page.locator("main").getByText("Live updates connected").count(), 0, "footer status moved into the header");
+  assert.equal(await page.getByText(/^Live$|Live updates|Reconnecting|Connecting/).count(), 0, "the board has no live-sync status");
   const layout = await page.evaluate(() => {
     const rail = document.querySelector(".globe-rail"), slot = document.querySelector(".globe-slot");
     const scrollers = [...document.querySelectorAll("body *")].filter(el => /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1);

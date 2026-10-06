@@ -80,8 +80,10 @@ export const JobListQuerySchema = z.object({
   availability: AvailabilitySchema.default("active"),
   limit,
   ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
-}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all"), {
-  message: "ID lookup requires all statuses and availability.",
+  // Strictly-newer cursor for the board's new-roles poll.
+  since: z.iso.datetime({ offset: true }).optional(),
+}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since), {
+  message: "ID lookup requires all statuses and availability, without a cursor.",
 });
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);

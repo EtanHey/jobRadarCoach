@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+import { createBoundedJobListCache, createDetailCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
 
 test("private list cache keys the complete server query and evicts the least-recently-used view", () => {
   assert.throws(() => createBoundedJobListCache(0), RangeError);
@@ -50,43 +50,14 @@ test("status invalidation rejects an older list response before it can refill ca
   assert.equal(fence.isCurrent(fence.capture()), true);
 });
 
-test("a realtime refresh arriving during a list request schedules one follow-up", () => {
-  const coordinator = createListRefreshCoordinator();
-  coordinator.beginRequest();
-
-  assert.equal(coordinator.requestRefresh(), false);
-  assert.equal(coordinator.requestRefresh(), false);
-  assert.equal(coordinator.finishRequest(), true);
-  assert.equal(coordinator.finishRequest(), false);
-});
-
-test("a reconnect-ready event refreshes loaded cached rows", () => {
-  const coordinator = createListRefreshCoordinator();
-
-  assert.equal(coordinator.markReady(), false);
-  coordinator.markDisconnected();
-  assert.equal(coordinator.markReady(), true);
-  assert.equal(coordinator.markReady(), false);
-});
-
-test("a reconnect-ready refresh queues behind an in-flight list request", () => {
-  const coordinator = createListRefreshCoordinator();
-  coordinator.beginRequest();
-  coordinator.markDisconnected();
-
-  assert.equal(coordinator.markReady(), true);
-  assert.equal(coordinator.requestRefresh(), false);
-  assert.equal(coordinator.finishRequest(), true);
-});
-
-test("a successful mutation invalidates an older SSE detail read", () => {
+test("a successful mutation invalidates an older detail read", () => {
   const coordinator = createDetailCoordinator();
   const selected = coordinator.select("job-a");
-  const staleSseRead = coordinator.beginRead();
+  const staleRead = coordinator.beginRead();
 
-  assert.equal(coordinator.acceptRead(staleSseRead), true);
+  assert.equal(coordinator.acceptRead(staleRead), true);
   assert.equal(coordinator.commitMutation(selected), true);
-  assert.equal(coordinator.acceptRead(staleSseRead), false);
+  assert.equal(coordinator.acceptRead(staleRead), false);
 });
 
 test("selection generations reject detail work from a previously opened job", () => {

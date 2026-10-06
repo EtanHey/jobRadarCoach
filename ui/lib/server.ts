@@ -118,6 +118,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
       const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
       fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
     }
+    if (input.since) fresh = fresh.gt("first_seen_at", input.since);
     fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
     return parseSummaryRows(await data(fresh)).jobs;
   }
@@ -126,6 +127,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
+  if (input.since) query = query.gt("first_seen_at", input.since);
   query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   return parseSummaryRows(await data(query)).jobs;
 }

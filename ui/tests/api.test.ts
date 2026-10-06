@@ -354,3 +354,43 @@ test("summary ID lookup queries postings by ID without status, availability or v
   await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter: "all", availability: "all", limit: 100, ids: [ID] });
   assert.deepEqual(calls, [["id", [ID]], 100]);
 });
+
+
+test("the list accepts a strictly-newer cursor for the new-roles poll", async () => {
+  const received: unknown[] = [];
+  const handler = makeGetJobs(store({ listJobs: (query) => { received.push(query); return Promise.resolve([summary]); } }));
+  const since = "2026-10-05T10:00:00.123456+00:00";
+  const response = await handler(new Request(`http://localhost/api/jobs?${new URLSearchParams({ filter: "new-for-me", availability: "all", limit: "101", since })}`));
+  assert.equal(response.status, 200);
+  assert.deepEqual(received, [{ filter: "new-for-me", availability: "all", limit: 101, since }]);
+  for (const query of ["since=yesterday", `since=${encodeURIComponent(since)}&filter=all&availability=all&ids=${ID}`]) {
+    assert.equal((await handler(new Request(`http://localhost/api/jobs?${query}`))).status, 400, query);
+  }
+  assert.equal(received.length, 1);
+});
+
+test("the cursor narrows the list query with the list's own filters, ordering and limit", async () => {
+  const since = "2026-10-05T10:00:00.123456+00:00";
+  for (const [filter, statusFilter] of [["all", null], ["applied", "applied"]] as const) {
+    const calls: unknown[] = [];
+    const query = {
+      select(selected: string) { calls.push(["select", selected.includes("posting_status!inner(") ? "inner" : "left"]); return this; },
+      eq(column: string, value: unknown) { calls.push(["eq", column, value]); return this; },
+      or(value: string) { calls.push(["or", value]); return this; },
+      gt(column: string, value: string) { calls.push(["gt", column, value]); return this; },
+      order(column: string, options?: unknown) { calls.push(["order", column, options ?? null]); return this; },
+      limit(count: number) { calls.push(["limit", count]); return Promise.resolve({ data: [], error: null }); },
+    };
+    const db = { from(table: string) { assert.equal(table, "postings"); return query; } };
+    await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter, availability: "active", limit: 101, since });
+    assert.deepEqual(calls, [
+      ["select", statusFilter ? "inner" : "left"],
+      ...(statusFilter ? [["eq", "posting_status.status", statusFilter]] : []),
+      ["or", "liveness->alive.neq.false,liveness->alive.is.null"],
+      ["gt", "first_seen_at", since],
+      ["order", "first_seen_at", { ascending: false }],
+      ["order", "id", null],
+      ["limit", 101],
+    ]);
+  }
+});
