@@ -69,7 +69,7 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
         if checker is not None:
             return checker(posting["url"])
         time.sleep(1)  # Exceptional URL confirmations remain paced, never routine job polling.
-        return check_posting_url(posting)
+        return check_posting_url(posting, board_checker=board_checker)
     board_checker = board_checker or BoardChecker()
     rows = connection.execute(SELECT_STALE, (["linkedin", *ATS_SOURCES], scope, scope, limit)).fetchall()
     receipt = {"checked": 0, "closed": 0, "alive": 0, "unknown": 0, "unsupported": 0, "alerts": 0}

@@ -1,6 +1,7 @@
 """Conclusive ATS availability from complete, unfiltered public tenant boards."""
 
 import json
+import ipaddress
 import re
 import time
 from datetime import datetime, timedelta, timezone
@@ -22,6 +23,8 @@ LEVER_BOARD_CAP = 16_000_000
 STRIKE_SPACING = timedelta(minutes=45)
 URL_UNKNOWN_LIMIT = 3
 URL_BACKOFF = timedelta(hours=24)
+GREENHOUSE_PAGE_HOSTS = {"job-boards.greenhouse.io", "job-boards.eu.greenhouse.io",
+                         "boards.greenhouse.io", "boards.eu.greenhouse.io"}
 
 
 def public_get(*, clock=time.monotonic, sleep=time.sleep):
@@ -63,10 +66,10 @@ def _stored_identity(posting):
     return source, tenant, job
 
 
-def _detected_board(posting):
+def _detected_board(posting, *, hosts=None):
     for field in ("apply_url", "url"):
         url = posting.get(field)
-        if url:
+        if url and (hosts is None or urlparse(str(url)).hostname in hosts):
             detected = detect_supported_ats(str(url))
             if detected is not None:
                 return detected
@@ -213,6 +216,25 @@ class BoardChecker:
     def __init__(self, fetcher=None):
         self.fetcher = fetcher or public_get()
         self.cache = {}
+        self.greenhouse_controls = {}
+
+    def greenhouse_control(self, posting, canonical_url):
+        """One listed sibling must serve 200 on this host; cache success or failure."""
+        source, tenant, _, _ = board_identity(posting)
+        host = urlparse(canonical_url).hostname
+        if tenant not in self.greenhouse_controls:
+            self.greenhouse_controls[tenant] = host, False
+            ids, error, _ = self.cache.get((source, tenant), (None, None, None))
+            if ids and error is None:
+                control_url = canonical_url.rsplit("/", 1)[0] + "/" + min(ids)
+                try:
+                    time.sleep(1)
+                    with pinned_open(_posting_request(control_url), timeout=10) as response:
+                        self.greenhouse_controls[tenant] = host, response.getcode() == 200
+                except (OSError, ValueError, KeyError, TypeError):
+                    pass
+        control_host, passed = self.greenhouse_controls[tenant]
+        return control_host == host and passed
 
     def __call__(self, posting):
         checked_at = datetime.now(timezone.utc).isoformat()
@@ -268,34 +290,99 @@ def _generic_careers_redirect(posting, final_url):
             and final_url != posting["url"])
 
 
-def check_posting_url(posting):
-    """Check the stored URL once; never follow or guess a redirect destination."""
-    url = posting["url"]
+def greenhouse_canonical_url(posting):
+    """Bind the canonical job page to stored identity and detected US/EU region."""
+    source, tenant, job, _ = board_identity(posting)
+    if source != "greenhouse":
+        raise ValueError("not a Greenhouse posting")
+    detected = _detected_board(posting, hosts=GREENHOUSE_PAGE_HOSTS)
+    # The shared board API has no regional provenance; never infer US from it.
+    if not detected:
+        raise ValueError("unknown Greenhouse region")
+    region = _region(source, tenant, detected)
+    host = "job-boards.eu.greenhouse.io" if region == "eu" else "job-boards.greenhouse.io"
+    return f"https://{host}/{tenant}/jobs/{job}"
+
+
+def _greenhouse_error_redirect(posting, url, final_url):
+    original, final = urlparse(url), urlparse(final_url)
+    return (final.scheme == "https"
+            and final.netloc.lower() == original.netloc.lower()
+            and final.path.rstrip("/") == "/" + _stored_identity(posting)[1]
+            and parse_qs(final.query, keep_blank_values=True) == {"error": ["true"]})
+
+
+def _posting_request(url):
+    parsed = urlparse(url)
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+            or parsed.password or parsed.port not in (None, 443)):
+        raise ValueError("invalid posting URL")
+    return Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+
+
+def _posting_redirect_gone(posting, url, status, final_url, canonical):
+    try:
+        if canonical:
+            return status == 302 and _greenhouse_error_redirect(posting, url, final_url)
+        return _generic_careers_redirect(posting, final_url)
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
+def _check_posting_url(posting, url, *, canonical=False):
+    """One pinned request; canonical Greenhouse responses have a stricter gate."""
     status, alive, reason, final_url = None, None, "posting-url-unknown", url
     try:
-        parsed = urlparse(url)
-        if (parsed.scheme != "https" or not parsed.hostname or parsed.username
-                or parsed.password or parsed.port not in (None, 443)):
-            raise ValueError("invalid posting URL")
-        request = Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+        request = _posting_request(url)
         with pinned_open(request, timeout=10) as response:
             status = response.getcode()
     except HTTPError as error:
         status = error.code
-        if status in (404, 410):
+        if status == 404 or (status == 410 and not canonical):
             alive, reason = False, f"http-{status}"
         elif status in REDIRECT_CODES:
             final_url = urljoin(url, error.headers.get("Location", ""))
-            try:
-                if _generic_careers_redirect(posting, final_url):
-                    alive, reason = False, "ats-generic-careers-redirect"
-            except (ValueError, KeyError, TypeError):
-                pass
+            if _posting_redirect_gone(posting, url, status, final_url, canonical):
+                alive, reason = False, "ats-generic-careers-redirect"
     except (OSError, ValueError, KeyError, TypeError):
         pass
     return {"alive": alive, "liveness_status": status, "liveness_reason": reason,
             "liveness_final_url": final_url,
             "liveness_checked_at": datetime.now(timezone.utc).isoformat()}
+
+
+def check_posting_url(posting, *, board_checker=None):
+    """Try stored evidence, then a Greenhouse canonical page if inconclusive."""
+    url = posting["url"]
+    canonical_url = None
+    greenhouse_hosted = False
+    if posting["source"] == "greenhouse":
+        try:
+            _posting_request(url)
+            parsed = urlparse(url)
+            greenhouse_hosted = parsed.hostname in GREENHOUSE_PAGE_HOSTS
+            try:
+                address = ipaddress.ip_address(parsed.hostname)
+            except ValueError:
+                address = None
+            if address is not None and not address.is_global:
+                raise ValueError("nonpublic posting URL")
+            canonical_url = greenhouse_canonical_url(posting)
+        except (ValueError, KeyError, TypeError):
+            pass
+    result = _check_posting_url(posting, url, canonical=greenhouse_hosted)
+    if greenhouse_hosted and url != canonical_url and result["alive"] is False:
+        # A control on the canonical host cannot authenticate a different URL.
+        result = {**result, "alive": None}
+    if ((greenhouse_hosted and result["alive"] is False)
+            or (result["alive"] is None and canonical_url and canonical_url != url)):
+        if not (canonical_url and isinstance(board_checker, BoardChecker)
+                and board_checker.greenhouse_control(posting, canonical_url)):
+            return {**result, "alive": None, "liveness_reason": "greenhouse-control-unknown"}
+    if result["alive"] is None and canonical_url and canonical_url != url:
+        time.sleep(1)  # Pace the additional exceptional confirmation too.
+        return _check_posting_url(posting, canonical_url, canonical=True)
+    return result
 
 
 def _counter(state, key):
