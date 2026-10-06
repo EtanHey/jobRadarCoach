@@ -201,7 +201,7 @@ test("Opus-reviewed homonyms and suspect brands resolve to initials", () => {
   const companies = [
     "Siemens EDA (Siemens Digital Industries Software)", "Roark (YC W25)", "DRW",
     "Minute", "DT", "Dialog", "Medulla", "Venn", "Nimble",
-    "ACT", "OP", "Neo", "ELTA Systems Ltd", "Mylo AI",
+    "ACT", "OP", "Neo", "ELTA Systems Ltd", "Mylo AI", "Yara AI", "Ocho",
   ];
   assert.deepEqual(
     companies.map((company) => resolveCompanyLogo({ company }, { logoDevKey: KEY })),
