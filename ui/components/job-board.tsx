@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import { focusManager, QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flushSync } from "react-dom";
 import dynamic from "next/dynamic";
 import { GlobeBoundary } from "./globe-boundary";
@@ -43,6 +43,14 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
   }
   return response.json();
 }
+
+// TanStack v5 defaults to visibilitychange; preserve the board's window-focus contract too.
+if (typeof window !== "undefined") focusManager.setEventListener(handleFocus => {
+  const focus = () => handleFocus();
+  window.addEventListener("focus", focus);
+  document.addEventListener("visibilitychange", focus);
+  return () => { window.removeEventListener("focus", focus); document.removeEventListener("visibilitychange", focus); };
+});
 
 const JobGlobe = dynamic(() => import("./job-globe"), { ssr: false });
 
@@ -168,8 +176,11 @@ function Board() {
   const newRoles = useNewRoles(preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff);
   const newRoleCount = useMemo(() => countNewRoleCards(jobs, newRoles.jobs, view), [jobs, newRoles.jobs, view]);
   const refetchList = listQuery.refetch;
-  const invalidateListCache = useCallback(() => { statusMutationsRef.current.clear(); client.removeQueries({ queryKey: ["board-list"], type: "inactive" }); }, [client]);
-  const requestRefresh = useCallback(() => { invalidateListCache(); void refetchList(); setRevision(value => value + 1); }, [invalidateListCache, refetchList]);
+  const refresh = useCallback(() => {
+    void client.invalidateQueries({ queryKey: ["board-list"], refetchType: "none" });
+    void refetchList();
+    setRevision(value => value + 1);
+  }, [client, refetchList]);
   const settleListAfterStatus = useCallback((id: string, result: StatusResult, remove: boolean) => {
     client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
     if (client.isFetching({ queryKey: ["board-list"] })) statusMutationsRef.current.set(id, { status: result.status, reason: result.reason, remove });
@@ -182,7 +193,7 @@ function Board() {
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth";
     window.scrollTo({ top: 0, behavior });
     document.querySelector(".globe-rail-list")?.scrollTo({ top: 0, behavior });
-    requestRefresh();
+    refresh();
   }
   function selectJob(id: string | null, markSeen = true) {
     setMarkSeenOnOpen(markSeen);
@@ -376,7 +387,7 @@ function Board() {
     } finally { setSaving(false); }
   }
   if (!preferencesReady) return <div className="min-h-screen bg-background text-foreground">
-    <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
+    <BoardHeader><ProfileDrawer onUpdated={refresh} /></BoardHeader>
     <main className="grid min-h-[35rem] place-items-center px-4 py-16"><p role="status" className="text-sm text-muted-foreground">Restoring saved view…</p></main>
   </div>;
 
@@ -385,7 +396,7 @@ function Board() {
   const globeToggle = <Button variant={globeActive ? "default" : "outline"} className={`size-10 p-0 ${globeActive ? "shadow-[inset_0_0_0_2px_color-mix(in_oklch,var(--primary-foreground)_35%,transparent)]" : ""}`} aria-label="Globe" title="Globe" aria-pressed={globeActive} onClick={toggleGlobe}><Globe aria-hidden="true" /></Button>;
   const globeMeta = <>{globeActive && globeCounts && <><span>{globeCounts.mapped} on the globe · {globeCounts.unmapped} without a location</span>{points.length > 5000 && <span>Showing a sample of 5,000 roles</span>}</>}{globeActive && !globe.data && <span role="status">Loading all role locations…</span>}{(globe.failure || globeWarning) && <span role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-medium text-amber-800 dark:text-amber-200">{globeWarning || globe.failure} Use Globe to retry.</span>}</>;
   return <div className={`bg-background text-foreground ${globeActive ? "board-globe-open" : "min-h-screen"}`}>
-    <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
+    <BoardHeader><ProfileDrawer onUpdated={refresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 ref={headingRef} tabIndex={-1} className="mr-auto text-lg font-semibold text-foreground outline-none">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
       <JobsPanel notice={<NewRolesPill count={newRoleCount} truncated={newRoles.truncated} onShow={showNewRoles} />} {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={Boolean(globe.data)} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
