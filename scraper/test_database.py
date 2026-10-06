@@ -22,7 +22,7 @@ MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
 @pytest.fixture(scope="module")
 def migrated_database_url():
     try:
-        with migrated_database(MIGRATIONS, through=19) as url:
+        with migrated_database(MIGRATIONS, through=20) as url:
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))

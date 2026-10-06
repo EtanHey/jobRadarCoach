@@ -14,9 +14,9 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
 }) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const active = [options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit"].filter(Boolean).length;
-  const fields: { key: "remote" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
-    { key: "remote", label: "Work mode", choices: [{ value: "", label: "Any work mode" }, { value: "true", label: "Remote" }, { value: "false", label: "On-site / hybrid" }] },
+  const active = [options.work_mode !== undefined || options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit"].filter(Boolean).length;
+  const fields: { key: "work_mode" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
+    { key: "work_mode", label: "Work mode", choices: [{ value: "", label: "Any work mode" }, { value: "remote", label: "Remote" }, { value: "hybrid", label: "Hybrid" }, { value: "on-site", label: "On-site" }] },
     { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(jobs, options.source).map((source) => ({value: source, label: source}))] },
     { key: "location", label: "Location", choices: [{value: "", label: "All locations"}, {value: "israel", label: "Israel"}, {value: "united-states", label: "United States"}, {value: "other", label: "Other"}] },
     { key: "seniority", label: "Seniority", choices: [{value: "", label: "All levels"}, {value: "non-senior", label: "Hide senior+ (keep unknown)"}, ...levelOrder.map((level) => ({value: level, label: level}))] },
@@ -26,7 +26,7 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
   ] as const;
   const controls = fields.flatMap(({key, label, choices}) => [
     ...(key === "sort" ? [<PipelineStatusFilter key="statuses" value={options.statuses} onChange={(statuses) => onChange({ ...options, statuses })} />] : []),
-    <div key={key} className="min-w-0"><AppSelect compact label={label} value={options[key] === undefined ? "" : String(options[key])} options={choices} onValueChange={(value) => onChange({ ...options, [key]: key === "remote" ? value === "" ? undefined : value === "true" : value })} /></div>,
+    <div key={key} className="min-w-0"><AppSelect compact label={label} value={key === "work_mode" ? options.work_mode ?? (options.remote === true ? "remote" : options.remote === false ? "on-site" : "") : String(options[key] ?? "")} options={choices} onValueChange={(value) => onChange(key === "work_mode" ? { ...options, remote: undefined, work_mode: value === "" ? undefined : value as ViewOptions["work_mode"] } : { ...options, [key]: value })} /></div>,
   ]);
   return <div data-job-toolbar>
     <div className={`hidden items-end gap-3 pb-2 ${globeOpen ? "xl:flex" : "md:flex"}`}><div className="grid min-w-0 flex-1 grid-cols-3 items-end gap-3 xl:grid-cols-8">{controls}</div><div className="flex h-10 shrink-0 items-center gap-1"><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div></div>

@@ -31,22 +31,20 @@ HQ = {
 
 @pytest.fixture
 def database():
-    with migrated_database(MIGRATIONS, through=19) as url:
-        with psycopg.connect(url, row_factory=dict_row) as db:
-            _seed(db)
-            db.execute("select set_status(%s,'interview_technical',null)", (IDS[0],))
-            db.execute(
-                "insert into application_history(company,role,application_date) values ('Acme','Engineer','2026-09-22')"
-            )
-            db.commit()
-            db.execute("set role service_role")
-            db.commit()
-            yield url, db
-            # Session role must not affect disposable database teardown.
-            db.rollback()
-            db.execute("reset role")
-            db.commit()
-
+    with migrated_database(MIGRATIONS, through=20) as url, psycopg.connect(url, row_factory=dict_row) as db:
+        _seed(db)
+        db.execute("select set_status(%s,'interview_technical',null)", (IDS[0],))
+        db.execute(
+            "insert into application_history(company,role,application_date) values ('Acme','Engineer','2026-09-22')"
+        )
+        db.commit()
+        db.execute("set role service_role")
+        db.commit()
+        yield url, db
+        # Session role must not affect disposable database teardown.
+        db.rollback()
+        db.execute("reset role")
+        db.commit()
 
 def rows(db, table):
     return db.execute(
@@ -171,7 +169,7 @@ def test_same_values_and_unrelated_scraper_upsert_preserve_geo(
             "2026-09-22Z",
             "2026-09-22Z",
             "{}",
-            False,
+            None, None, False,
         ),
     )
     assert rows(db, "posting_geo") == original
@@ -203,7 +201,7 @@ def test_real_scraper_upsert_and_current_hq_fallback(database, tmp_path):
             "2026-09-22Z",
             "2026-09-22Z",
             "{}",
-            False,
+            "remote", "structured", False,
         ),
     )
     served = {r["posting_id"]: r for r in geo(db)}

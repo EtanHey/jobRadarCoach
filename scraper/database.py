@@ -12,10 +12,10 @@ from typing import Protocol, cast
 
 try:
     from scraper.ats_sources import ATS_SOURCES
-    from scraper.annotate import _load_safe_profile_contract
+    from scraper.annotate import _load_safe_profile_contract, posting_mode
 except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
     from ats_sources import ATS_SOURCES
-    from annotate import _load_safe_profile_contract
+    from annotate import _load_safe_profile_contract, posting_mode
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
 UNKNOWN_TEXT_VALUES = frozenset(
@@ -315,9 +315,10 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
     title = _required_text(posting.get("title"), "title")
     company = _required_text(posting.get("company"), "company")
     location = _nonblank(posting.get("location"))
-    explicit_remote = posting.get("remote")
-    remote = explicit_remote if isinstance(explicit_remote, bool) else None
-    if remote is None and location and re.search(r"\bremote\b", location, re.I):
+    mode, mode_source = posting_mode(posting)
+    remote = {"remote": True, "on-site": False}.get(mode)
+    # Preserve pre-work-mode inference for multi-location ATS labels.
+    if mode is None and location and re.search(r"\bremote\b", location, re.IGNORECASE):
         remote = True
     apply_url = _nonblank(posting.get("apply_url"))
     return (
@@ -331,15 +332,15 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
         _nonblank(posting.get("jd_text")),
         observed_at, observed_at,
         json.dumps(_liveness_evidence(posting), ensure_ascii=False),
-        apply_url is not None,
+        mode, mode_source, apply_url is not None,
     )
 
 
 POSTING_UPSERT = """
 insert into public.postings as current (
   source, external_id, url, title, company, location, remote, seniority, stack,
-  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness, work_mode, work_mode_source
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
 on conflict on constraint postings_source_external_id_key do update set
   url = excluded.url, title = excluded.title, company = excluded.company,
   location = coalesce(excluded.location, current.location),
@@ -347,7 +348,17 @@ on conflict on constraint postings_source_external_id_key do update set
     when %s then excluded.apply_url
     else coalesce(current.apply_url, excluded.apply_url)
   end,
-  remote = coalesce(excluded.remote, current.remote),
+  remote = case when current.work_mode_source = 'structured'
+    and excluded.work_mode_source is distinct from 'structured' then current.remote
+    when excluded.work_mode is not null then excluded.remote
+    when current.work_mode is not null then current.remote
+    else coalesce(excluded.remote, current.remote) end,
+  work_mode = case when current.work_mode_source = 'structured'
+    and excluded.work_mode_source is distinct from 'structured' then current.work_mode
+    else coalesce(excluded.work_mode, current.work_mode) end,
+  work_mode_source = case when current.work_mode_source = 'structured'
+    and excluded.work_mode_source is distinct from 'structured' then current.work_mode_source
+    else coalesce(excluded.work_mode_source, current.work_mode_source) end,
   seniority = coalesce(excluded.seniority, current.seniority),
   stack = case when cardinality(excluded.stack) > 0 then excluded.stack else current.stack end,
   salary = coalesce(excluded.salary, current.salary),
@@ -371,8 +382,8 @@ returning id
 POSTING_INSERT = """
 insert into public.postings (
   source, external_id, url, title, company, location, remote, seniority, stack,
-  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness, work_mode, work_mode_source
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
 on conflict on constraint postings_source_external_id_key do nothing
 returning id
 """

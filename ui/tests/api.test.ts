@@ -128,6 +128,7 @@ test("unknown and malformed liveness remain visible as unknown summary data", ()
     posting_status: null, posting_scores: null,
   };
   assert.equal(parseSummaryRows([raw]).jobs[0].alive, null);
+  assert.equal(parseSummaryRows([{ ...raw, work_mode: "hybrid" }]).jobs[0].work_mode, "hybrid");
   assert.equal(parseSummaryRows([{ ...raw, liveness: { alive: "false" } }]).jobs[0].alive, null);
 });
 

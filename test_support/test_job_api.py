@@ -54,7 +54,7 @@ def _ids(rows: list[dict[str, object]]) -> list[str]:
 
 def test_job_api_contract_snapshot_matches_migrated_database(tmp_path: Path) -> None:
     try:
-        database = migrated_database(MIGRATIONS, through=19)
+        database = migrated_database(MIGRATIONS, through=20)
         with database as url, psycopg.connect(url) as connection:
             generated = tmp_path / "job_api.json"
             write_contract(connection, generated)
@@ -64,7 +64,7 @@ def test_job_api_contract_snapshot_matches_migrated_database(tmp_path: Path) -> 
 
 def test_job_api_search_count_detail_and_security_contract() -> None:
     try:
-        database = migrated_database(MIGRATIONS, through=19)
+        database = migrated_database(MIGRATIONS, through=20)
         with database as url, psycopg.connect(url, row_factory=dict_row) as connection:
             _seed(connection)
             assert connection.execute("select array[public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s)] bands", (None, 0, 39, 40, 69, 70, 100)).fetchone()["bands"] == [None, "below", "below", "more", "more", "strong", "strong"]
