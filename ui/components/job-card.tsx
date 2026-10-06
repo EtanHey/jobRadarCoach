@@ -24,10 +24,12 @@ type Props = {
   actions?: ReactNode;
   openerRef: RefObject<HTMLButtonElement | null>;
   selectJob: (id: string | null) => void;
+  /** Warms the drawer's detail read on mouse/pen hover or keyboard focus; never on touch. */
+  prefetchIntent?: { start: (id: string) => void; end: (id: string) => void };
   children: ReactNode;
 };
 
-export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, earlierListings = 0, openerRef, selectJob, children }: Props) {
+export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, earlierListings = 0, openerRef, selectJob, prefetchIntent, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   const repost = repostNote(job.posted_at, job.last_published_at, earlierListings);
   const location = job.location ?? "Location unspecified";
@@ -36,8 +38,9 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
   const chip = job.status === "new" ? null : statusLabels[job.status];
   const dim = statusDimsCard(job.status) || keptStatus === "seen" ? "opacity-60" : "";
   const chipId = `card-status-${job.id}`;
-  return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
-    <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
+  return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} onPointerEnter={event => { if (event.pointerType !== "touch") prefetchIntent?.start(job.id); }} onPointerLeave={() => prefetchIntent?.end(job.id)} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+    <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }}
+      onFocus={event => { if (event.currentTarget.matches(":focus-visible")) prefetchIntent?.start(job.id); }} onBlur={() => prefetchIntent?.end(job.id)} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>

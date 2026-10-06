@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobDetail, JobSummary } from "../../lib/contracts";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead } from "../../lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
 
 test("list queries isolate filter and availability and reuse their cached response", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
@@ -131,5 +131,58 @@ test("closing a detail observer aborts its read and cannot publish into the next
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(client.getQueryData(oldKey), undefined);
   assert.equal(client.getQueryData(nextKey), "next role body");
+  client.clear();
+});
+
+const detailFixture = {
+  id: "0199d9c3-a742-7000-8000-000000000001", title: "Engineer", company: "Example", source: "fixture", last_seen_at: "2026-09-08T10:00:00Z", first_seen_at: "2026-09-08T10:00:00Z",
+  experience: null, description_available: true, seniority_origin: "unknown", extraction_state: "not-extracted", location: null, remote: null,
+  seniority: null, stack: [], salary: null, url: "https://example.test/job", apply_url: null, posted_at: null, status: "new", status_reason: null,
+  score: null, fit_line: null, recommendation: null, raw_jd: "Synthetic description", reasons: [], score_payload: null, brain: null, scored_at: null,
+};
+
+test("hover prefetch and the drawer share one detail query: open reads from cache, staleTime bounds refetches", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  const reads: string[] = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    reads.push(String(input));
+    return Response.json({ job: detailFixture });
+  }) as typeof fetch;
+  try {
+    const options = jobDetailQueryOptions(client, detailFixture.id);
+    assert.deepEqual(options.queryKey, ["board-detail", detailFixture.id]);
+    assert.ok(Number.isFinite(options.staleTime) && (options.staleTime as number) > 0, "finite detail staleTime");
+    assert.ok((options.gcTime as number) >= (options.staleTime as number), "prefetched data outlives its freshness window");
+    await Promise.all([client.prefetchQuery(options), client.prefetchQuery(jobDetailQueryOptions(client, detailFixture.id))]);
+    assert.equal(reads.length, 1, "one in-flight prefetch per card");
+    await client.prefetchQuery(jobDetailQueryOptions(client, detailFixture.id));
+    assert.equal(reads.length, 1, "fresh data is not refetched");
+    const observer = new QueryObserver(client, { ...jobDetailQueryOptions(client, detailFixture.id), enabled: true });
+    const stop = observer.subscribe(() => {});
+    assert.equal(observer.getCurrentResult().data?.raw_jd, "Synthetic description", "the drawer renders the prefetched body at once");
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(reads.length, 1, "opening adds zero detail reads");
+    stop();
+  } finally {
+    globalThis.fetch = original;
+    client.clear();
+  }
+});
+
+test("a status-only cache write keeps the detail read's age, so score and body still refresh after staleTime", () => {
+  const client = new QueryClient();
+  const key = jobDetailQueryOptions(client, row.id).queryKey;
+  const readAt = Date.now() - DETAIL_STALE_MS - 1_000;
+  client.setQueryData(key, { ...row, raw_jd: "Synthetic description" } as JobDetail, { updatedAt: readAt });
+  for (const result of [{ status: "seen", reason: null }, { status: "applied", reason: null }] as const) {
+    patchCachedDetailStatus(client, row.id, result);
+    const state = client.getQueryState(key);
+    assert.equal(client.getQueryData<JobDetail>(key)?.status, result.status);
+    assert.equal(state?.dataUpdatedAt, readAt, "a status write is not a detail read");
+  }
+  assert.equal(client.getQueryCache().find({ queryKey: key })?.isStaleByTime(DETAIL_STALE_MS), true, "the next opening refetches score and body");
+  patchCachedDetailStatus(client, "never-read", { status: "seen", reason: null });
+  assert.equal(client.getQueryCache().find({ queryKey: ["board-detail", "never-read"] }), undefined, "no entry is created for an unread role");
   client.clear();
 });

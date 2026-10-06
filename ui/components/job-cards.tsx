@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useRef, type RefObject } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
+import { createPrefetchIntent } from "@/lib/detail-prefetch";
 import { earlierListingCount, type DuplicateJobGroup } from "@/lib/job-dedup";
 import { partitionGlobeGroups } from "@/lib/globe-viewport";
 import { keptCardStatus } from "@/lib/job-status";
@@ -9,8 +10,10 @@ import { Button } from "./ui/button";
 
 type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; filter?: string; visiblePostingIds?: readonly string[]; selectedId?: string | null;
   bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void;
-  openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void };
-export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, selectedId, openerRef, selectJob, openDetail, bubble, clearBubble, onWholeWorld }: Props) {
+  openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void; prefetchDetail?: (id: string) => void };
+export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, selectedId, openerRef, selectJob, openDetail, prefetchDetail, bubble, clearBubble, onWholeWorld }: Props) {
+  const prefetchIntent = useMemo(() => prefetchDetail && createPrefetchIntent(prefetchDetail), [prefetchDetail]);
+  useEffect(() => () => prefetchIntent?.dispose(), [prefetchIntent]);
   const hoveredCard = useRef<string | null>(null);
   // Card hover tells the globe once per card boundary, never per mousemove.
   const hoverCard = (id: string | null) => { if (id !== hoveredCard.current) { hoveredCard.current = id; window.dispatchEvent(new CustomEvent("job-globe-hover", { detail: id })); } };
@@ -22,7 +25,7 @@ export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, se
   }, [groups, globeOpen, visiblePostingIds, bubble]);
   const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
-      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} logoSize={sections ? "sm" : "md"} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob}>
+      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} logoSize={sections ? "sm" : "md"} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob} prefetchIntent={prefetchIntent}>
       <TechnologyChips names={job.stack} presentation="card" />
     </JobCard>
   </div>);
