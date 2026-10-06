@@ -19,13 +19,13 @@ ALL_SOURCES = ("linkedin", *ATS_SOURCES)
 REGISTRY_PATH = source_registry.REGISTRY_PATH
 REQUEST_LIMITS = {
     "linkedin": 10, "comeet": 11, "greenhouse": 13, "lever": 5,
-    "workable": 9, "workable_detail": 9, "jd": 8, "liveness": 4,
+    "workable": 9, "workable_detail": 9, "ashby": 1, "jd": 8, "liveness": 4,
 }
 URL_BUCKETS = tuple(
     (host, source) for source, host in {
         "linkedin": "linkedin.com/", "comeet": "comeet.com/",
         "greenhouse": "greenhouse.io/", "lever": "lever.co/",
-        "workable": "workable.com/",
+        "workable": "workable.com/", "ashby": "ashbyhq.com/",
     }.items()
 )
 class _NoRedirect(urllib_request.HTTPRedirectHandler):
