@@ -67,6 +67,23 @@ def test_two_misses_and_url_gone_deactivate_preserving_status_and_score(db):
     assert db.execute('select score from posting_scores').fetchone() == (80,)
 
 
+@pytest.mark.parametrize('status,closed', [(302, True), (404, True), (200, False), (429, False)])
+def test_canonical_confirmation_reaches_guarded_persisted_writer(db, monkeypatch, status, closed):
+    from scraper import ats_liveness as module
+    from scraper.test_greenhouse_canonical import transport
+    calls = transport(monkeypatch, status, '/acme?error=true')
+    db.execute("update postings set url='https://careers.acme.example/jobs/1'")
+    def direct(url):
+        return module.check_posting_url({'source': 'greenhouse',
+                                        'external_id': 'greenhouse:acme:1', 'url': url})
+    assert run(db, direct=direct)['closed'] == 0 and not calls
+    assert run(db, direct=direct)['closed'] == int(closed)
+    assert (state(db).get('alive') is False) == closed
+    assert state(db)['ats_miss_count'] == 2 and len(calls) == 2
+    assert db.execute('select status from posting_status').fetchone() == ('saved',)
+    assert db.execute('select score from posting_scores').fetchone() == (80,)
+
+
 def test_persisted_gate_rejects_an_immediate_second_run(db):
     run(db)
     first = state(db)['ats_first_miss_at']
@@ -143,8 +160,8 @@ def test_concurrent_state_change_cannot_overwrite_reactivation(db):
 
 
 @pytest.mark.parametrize('status,location,expected', [
-    (404, None, False), (410, None, False), (429, None, None),
-    (302, '/acme', False), (302, '/acme?error=true', False),
+    (404, None, False), (410, None, None), (429, None, None),
+    (302, '/acme', None), (302, '/acme?error=true', False),
     (302, '/other', None), (302, '/login', None),
     (302, 'https://foreign.example/careers', None),
 ])
