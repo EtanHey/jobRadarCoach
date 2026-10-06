@@ -6,11 +6,6 @@ export function relativeAge(value: string | null, now = Date.now()): string | nu
   return hours < 1 ? "just now" : hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
 }
 
-export function publishedAge(value: string | null, now = Date.now()): string {
-  const age = relativeAge(value, now);
-  return age ? `Posted ${age}` : "Posted date unavailable";
-}
-
 export type PostingDateKind = "posted" | "republished" | "published" | "found";
 export type PostingDate = { kind: PostingDateKind; short: string; tooltip: string; label: string; dateTime: string };
 

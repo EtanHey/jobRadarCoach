@@ -144,7 +144,7 @@ test("PostgreSQL UUID forms are not rejected by stricter RFC version and variant
     posting_status: null, posting_scores: null,
   };
   const result = parseSummaryRows([raw]);
-  assert.equal(result.invalidRowCount, 0);
+  assert.deepEqual(Object.keys(result), ["jobs"]);
   assert.equal(result.jobs.length, 1);
 });
 

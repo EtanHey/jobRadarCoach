@@ -2,8 +2,12 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { canonicalCompanyName, companyDomain, companyInitials, logoPathForCompany, resolveCompanyLogo } from "../lib/company-logos";
+import { canonicalCompanyName, companyDomain, companyInitials, resolveCompanyLogo } from "../lib/company-logos";
+import catalog from "../lib/company-logo-catalog.json";
 import { companyLogoOverrides } from "../lib/company-logo-overrides";
+
+const logoPathForCompany = (company: string): string | null => (catalog as Record<string, string>)[canonicalCompanyName(company)] ?? null;
+
 
 test("company names canonicalize without guessing corporate aliases", () => {
   assert.equal(canonicalCompanyName("  ACME\t Labs  "), "acme labs");
