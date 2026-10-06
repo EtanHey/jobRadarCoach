@@ -42,7 +42,7 @@ def backfill(tags, *, connection=None, checker=None, url_checker=None):
         if url_checker is not None:
             return url_checker(posting)
         time.sleep(1)
-        return check_posting_url(posting)
+        return check_posting_url(posting, board_checker=checker)
     for tag in gone:
         row = connection.execute("select id, url, source, external_id, liveness from public.postings "
             "where id = %s and source = %s and external_id = %s",

@@ -23,6 +23,8 @@ LEVER_BOARD_CAP = 16_000_000
 STRIKE_SPACING = timedelta(minutes=45)
 URL_UNKNOWN_LIMIT = 3
 URL_BACKOFF = timedelta(hours=24)
+GREENHOUSE_PAGE_HOSTS = {"job-boards.greenhouse.io", "job-boards.eu.greenhouse.io",
+                         "boards.greenhouse.io", "boards.eu.greenhouse.io"}
 
 
 def public_get(*, clock=time.monotonic, sleep=time.sleep):
@@ -64,10 +66,10 @@ def _stored_identity(posting):
     return source, tenant, job
 
 
-def _detected_board(posting):
+def _detected_board(posting, *, hosts=None):
     for field in ("apply_url", "url"):
         url = posting.get(field)
-        if url:
+        if url and (hosts is None or urlparse(str(url)).hostname in hosts):
             detected = detect_supported_ats(str(url))
             if detected is not None:
                 return detected
@@ -214,6 +216,25 @@ class BoardChecker:
     def __init__(self, fetcher=None):
         self.fetcher = fetcher or public_get()
         self.cache = {}
+        self.greenhouse_controls = {}
+
+    def greenhouse_control(self, posting, canonical_url):
+        """One listed sibling must serve 200 on this host; cache success or failure."""
+        source, tenant, _, _ = board_identity(posting)
+        host = urlparse(canonical_url).hostname
+        if tenant not in self.greenhouse_controls:
+            self.greenhouse_controls[tenant] = host, False
+            ids, error, _ = self.cache.get((source, tenant), (None, None, None))
+            if ids and error is None:
+                control_url = canonical_url.rsplit("/", 1)[0] + "/" + min(ids)
+                try:
+                    time.sleep(1)
+                    with pinned_open(_posting_request(control_url), timeout=10) as response:
+                        self.greenhouse_controls[tenant] = host, response.getcode() == 200
+                except (OSError, ValueError, KeyError, TypeError):
+                    pass
+        control_host, passed = self.greenhouse_controls[tenant]
+        return control_host == host and passed
 
     def __call__(self, posting):
         checked_at = datetime.now(timezone.utc).isoformat()
@@ -274,7 +295,11 @@ def greenhouse_canonical_url(posting):
     source, tenant, job, _ = board_identity(posting)
     if source != "greenhouse":
         raise ValueError("not a Greenhouse posting")
-    region = _region(source, tenant, _detected_board(posting))
+    detected = _detected_board(posting, hosts=GREENHOUSE_PAGE_HOSTS)
+    # The shared board API has no regional provenance; never infer US from it.
+    if not detected:
+        raise ValueError("unknown Greenhouse region")
+    region = _region(source, tenant, detected)
     host = "job-boards.eu.greenhouse.io" if region == "eu" else "job-boards.greenhouse.io"
     return f"https://{host}/{tenant}/jobs/{job}"
 
@@ -326,14 +351,16 @@ def _check_posting_url(posting, url, *, canonical=False):
             "liveness_checked_at": datetime.now(timezone.utc).isoformat()}
 
 
-def check_posting_url(posting):
+def check_posting_url(posting, *, board_checker=None):
     """Try stored evidence, then a Greenhouse canonical page if inconclusive."""
     url = posting["url"]
     canonical_url = None
+    greenhouse_hosted = False
     if posting["source"] == "greenhouse":
         try:
             _posting_request(url)
             parsed = urlparse(url)
+            greenhouse_hosted = parsed.hostname in GREENHOUSE_PAGE_HOSTS
             try:
                 address = ipaddress.ip_address(parsed.hostname)
             except ValueError:
@@ -343,7 +370,15 @@ def check_posting_url(posting):
             canonical_url = greenhouse_canonical_url(posting)
         except (ValueError, KeyError, TypeError):
             pass
-    result = _check_posting_url(posting, url, canonical=url == canonical_url)
+    result = _check_posting_url(posting, url, canonical=greenhouse_hosted)
+    if greenhouse_hosted and url != canonical_url and result["alive"] is False:
+        # A control on the canonical host cannot authenticate a different URL.
+        result = {**result, "alive": None}
+    if ((greenhouse_hosted and result["alive"] is False)
+            or (result["alive"] is None and canonical_url and canonical_url != url)):
+        if not (canonical_url and isinstance(board_checker, BoardChecker)
+                and board_checker.greenhouse_control(posting, canonical_url)):
+            return {**result, "alive": None, "liveness_reason": "greenhouse-control-unknown"}
     if result["alive"] is None and canonical_url and canonical_url != url:
         time.sleep(1)  # Pace the additional exceptional confirmation too.
         return _check_posting_url(posting, canonical_url, canonical=True)

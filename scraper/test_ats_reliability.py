@@ -69,17 +69,16 @@ def test_two_misses_and_url_gone_deactivate_preserving_status_and_score(db):
 
 @pytest.mark.parametrize('status,closed', [(302, True), (404, True), (200, False), (429, False)])
 def test_canonical_confirmation_reaches_guarded_persisted_writer(db, monkeypatch, status, closed):
-    from scraper import ats_liveness as module
     from scraper.test_greenhouse_canonical import transport
     calls = transport(monkeypatch, status, '/acme?error=true')
-    db.execute("update postings set url='https://careers.acme.example/jobs/1'")
-    def direct(url):
-        return module.check_posting_url({'source': 'greenhouse',
-                                        'external_id': 'greenhouse:acme:1', 'url': url})
-    assert run(db, direct=direct)['closed'] == 0 and not calls
-    assert run(db, direct=direct)['closed'] == int(closed)
+    def observe():
+        Clock.current += timedelta(hours=1)
+        board = BoardChecker(lambda _: json.dumps({'jobs': [{'id': 2}], 'meta': {'total': 1}}))
+        return recheck(db, board_checker=board)
+    assert observe()['closed'] == 0 and not calls
+    assert observe()['closed'] == int(closed)
     assert (state(db).get('alive') is False) == closed
-    assert state(db)['ats_miss_count'] == 2 and len(calls) == 2
+    assert state(db)['ats_miss_count'] == 2 and len(calls) == (2 if closed else 1)
     assert db.execute('select status from posting_status').fetchone() == ('saved',)
     assert db.execute('select score from posting_scores').fetchone() == (80,)
 
@@ -160,8 +159,8 @@ def test_concurrent_state_change_cannot_overwrite_reactivation(db):
 
 
 @pytest.mark.parametrize('status,location,expected', [
-    (404, None, False), (410, None, None), (429, None, None),
-    (302, '/acme', None), (302, '/acme?error=true', False),
+    (404, None, None), (410, None, None), (429, None, None),
+    (302, '/acme', None), (302, '/acme?error=true', None),
     (302, '/other', None), (302, '/login', None),
     (302, 'https://foreign.example/careers', None),
 ])
@@ -265,3 +264,44 @@ def test_reliability_applies_to_each_supported_adapter(db, source, identity, url
     assert check()['closed'] == 0 and state(db)['ats_miss_count'] == 1
     assert check()['closed'] == int(gone)
     assert (state(db).get('alive') is False) == gone
+
+
+@pytest.mark.parametrize('entrypoint', ['recheck', 'backfill'])
+@pytest.mark.parametrize('url,control_status,closed', [
+    ('https://job-boards.eu.greenhouse.io/acme/jobs/1', 200, True),
+    ('https://job-boards.eu.greenhouse.io/acme/jobs/1', 302, False),  # Wrong-region live board.
+    ('https://job-boards.greenhouse.io/acme/jobs/1', 404, False),  # Invalid board control.
+    ('https://careers.acme.example/jobs/1', 200, False),  # Region not known.
+])
+def test_default_entrypoints_require_regional_evidence_and_positive_control(
+        db, monkeypatch, entrypoint, url, control_status, closed):
+    from scraper import ats_liveness as module
+    from scraper.test_greenhouse_canonical import Response
+    from scripts.backfill_ats_liveness import backfill
+    calls = []
+    monkeypatch.setattr(module.time, 'sleep', lambda _: None)
+    def open_request(request, **_):
+        calls.append(request.full_url)
+        status = control_status if request.full_url.endswith('/jobs/2') else (
+            200 if 'careers.acme.example' in request.full_url else 302)
+        if status != 200:
+            raise HTTPError(request.full_url, status, 'synthetic', {'Location': '/acme?error=true'}, None)
+        return Response()
+    monkeypatch.setattr(module, 'pinned_open', open_request)
+    db.execute('update postings set url=%s', (url,))
+    posting_id = str(db.execute('select id from postings').fetchone()[0])
+    def observe():
+        board = BoardChecker(lambda _: json.dumps({'jobs': [{'id': 2}], 'meta': {'total': 1}}))
+        if entrypoint == 'recheck':
+            return recheck(db, board_checker=board)['closed']
+        tag = {'posting_id': posting_id, 'source': 'greenhouse', 'external_id': 'greenhouse:acme:1',
+               'verdict': 'gone', 'checked_at': Clock.current.isoformat()}
+        return backfill([tag], connection=db, checker=board)['applied']
+    assert observe() == 0 and not calls
+    Clock.current += timedelta(hours=1)
+    assert observe() == int(closed)
+    assert (state(db).get('alive') is False) == closed
+    assert state(db)['last_attempt_verdict'] == ('gone' if closed else 'unknown')
+    assert sum(u.endswith('/jobs/2') for u in calls) == int('greenhouse.io' in url)
+    assert db.execute('select status from posting_status').fetchone() == ('saved',)
+    assert db.execute('select score from posting_scores').fetchone() == (80,)
