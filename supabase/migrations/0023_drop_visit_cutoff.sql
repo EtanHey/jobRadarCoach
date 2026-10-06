@@ -1,4 +1,5 @@
 -- New-for-me is status-based; the unused visits timestamp no longer filters it.
+begin;
 create or replace function public.get_globe_snapshot(filter text default 'all', availability text default 'active')
 returns jsonb language sql stable security invoker set search_path = '' as $$
   with selected as materialized (
@@ -26,3 +27,4 @@ $$;
 revoke all on function public.get_globe_snapshot(text,text) from public, anon, authenticated;
 grant execute on function public.get_globe_snapshot(text,text) to service_role;
 notify pgrst, 'reload schema';
+commit;
