@@ -11,8 +11,10 @@ import sys
 from typing import Protocol, cast
 
 try:
+    from scraper.ats_sources import ATS_SOURCES
     from scraper.annotate import _load_safe_profile_contract
 except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
+    from ats_sources import ATS_SOURCES
     from annotate import _load_safe_profile_contract
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
@@ -278,6 +280,9 @@ def _known_stack(value: object) -> list[str]:
 
 
 def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
+    # Harvest never owns either ATS transition or changes the gate's evidence.
+    if (_nonblank(posting.get("source")) or "linkedin") in ATS_SOURCES:
+        return {}
     alive = posting.get("alive")
     status = posting.get("liveness_status")
     reason = _known_text(posting.get("liveness_reason"))
@@ -356,7 +361,7 @@ on conflict on constraint postings_source_external_id_key do update set
       then (excluded.liveness->>'liveness_checked_at')::timestamptz >=
            (current.liveness->>'liveness_checked_at')::timestamptz
       else true
-    end then excluded.liveness
+    end then current.liveness || excluded.liveness
     else current.liveness
   end
 returning id

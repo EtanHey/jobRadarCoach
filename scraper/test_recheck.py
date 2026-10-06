@@ -16,6 +16,7 @@ class Database:
     def execute(self, sql, params=()):
         if sql.lstrip().startswith(("select", "with")):
             assert "last_attempt_at" in sql
+            self.selection_params = params
             self.selected_limit = params[-1]
             return self
         self.writes.append((sql, params))
@@ -67,6 +68,17 @@ def test_failed_probe_does_not_block_later_jobs():
 def test_work_is_bounded():
     with pytest.raises(ValueError):
         recheck(Database([]), limit=121)
+
+
+def test_selection_binds_registered_sources_instead_of_a_sql_copy(monkeypatch):
+    import scraper.recheck as module
+
+    sources = (*module.ATS_SOURCES, "synthetic-new-ats")
+    monkeypatch.setattr(module, "ATS_SOURCES", sources)
+    db = Database([])
+    recheck(db, scope="ats", limit=7)
+    assert db.selection_params == (["linkedin", *sources], "ats", "ats", 7)
+    assert "source = any(%s)" in module.SELECT_STALE
 
 
 def test_default_transport_preserves_greenhouse_closed_redirect(monkeypatch):

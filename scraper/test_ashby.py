@@ -149,7 +149,7 @@ def test_stored_ashby_recheck_uses_active_list_only(payload, alive):
     result = liveness.check_url(url, opener=opener)
     assert calls == [f"https://api.ashbyhq.com/posting-api/job-board/{ACCOUNT}"]
     assert result["alive"] is alive
-    assert "'ashby'" in recheck.SELECT_STALE
+    assert "ashby" in recheck.ATS_SOURCES
 
 
 @pytest.mark.parametrize(("status", "body", "redirect"), [(403, "denied", False), (404, "missing", False),

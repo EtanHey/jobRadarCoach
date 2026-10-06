@@ -114,7 +114,7 @@ def test_stored_recheck_never_uses_single_posting_details(payload, alive):
         return Response(200, request.full_url, json.dumps(payload))
     assert liveness.check_url(URL, opener=opener)['alive'] is alive
     assert calls == [API + '?limit=100&offset=0']
-    assert recheck.public_job_url(URL) and "'smartrecruiters'" in recheck.SELECT_STALE
+    assert recheck.public_job_url(URL) and "smartrecruiters" in recheck.ATS_SOURCES
 
 
 def test_description_retry_uses_details_for_text_only():

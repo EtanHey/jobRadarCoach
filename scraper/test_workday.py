@@ -119,7 +119,7 @@ def test_recheck_and_jd_retry_use_honest_public_api():
     assert json.loads(calls[0].data)['searchText'] == 'R123' and calls[0].full_url == API + '/jobs'
     assert '4 years experience.' in description_backfill._fetch(URL, opener=opener)
     assert calls[-1].full_url == API + PATH and recheck.public_job_url(URL)
-    assert "'workday'" in recheck.SELECT_STALE and "'workday'" in description_backfill.SELECT
+    assert "workday" in recheck.ATS_SOURCES and "'workday'" in description_backfill.SELECT
 
 
 def test_pipeline_keeps_shared_title_location_and_year_rules(tmp_path, monkeypatch):
