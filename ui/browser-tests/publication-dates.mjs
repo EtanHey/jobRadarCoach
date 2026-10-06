@@ -61,14 +61,16 @@ try {
     await page.getByRole("heading", { name: "New original role" }).waitFor({ timeout: 10000 });
     assert.deepEqual(await page.locator("article h2").allTextContents(), ["New original role", "Older republished role"]);
     const old = page.locator('article[data-posting-id$="000001"]');
-    assert.match(await old.innerText(), /Posted 33d ago · Republished 1d ago · Found 2h ago/);
+    const labels = await old.locator("[data-date-kind]").evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label")));
+    assert.equal(labels.length, 3);
+    [/^Posted 2026-09-01, 33 days ago$/, /^Republished 2026-10-03, 1 day ago$/, /^Found by JRC 2026-10-04 \d\d:00, 2 hours ago$/].forEach((label, index) => assert.match(labels[index], label));
     assert.equal(await old.locator("time").count(), 3);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: resolve(output, `cards-${width}.png`), fullPage: true });
     await page.getByRole("button", { name: "Open Older republished role at Fixture", exact: true }).click();
     const drawer = page.getByRole("dialog");
     await drawer.waitFor();
-    assert.match(await drawer.innerText(), /Posted 33d ago · Republished 1d ago · Found 2h ago/);
+    assert.deepEqual(await drawer.locator("[data-date-kind]").evaluateAll(nodes => nodes.map(node => node.dataset.dateKind)), ["posted", "republished", "found"]);
     await page.screenshot({ path: resolve(output, `drawer-${width}.png`), fullPage: true, animations: "disabled" });
     assert.deepEqual(errors, []);
     await page.close();
