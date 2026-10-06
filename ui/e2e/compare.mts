@@ -1,4 +1,4 @@
-// Hand-written Playwright comparator; shares synthetic data, not assertions.
+// Same-harness direct-Playwright baseline; mirrors the gates and shares the fixture.
 import { chromium, expect } from '@playwright/test';
 import type { Browser as FixtureBrowser } from '@e2e-dev/web';
 import { spawn } from 'node:child_process';
@@ -43,7 +43,7 @@ try {
         state.addRole = true;
         await page.evaluate(() => { const now = Date.now(); Date.now = () => now + 91_000; window.dispatchEvent(new Event('focus')); });
         await expect.poll(() => state.pollReads).toBeGreaterThan(0);
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(3000);
         const pill = page.locator('[data-new-roles]');
         if (flow === 'd') await expect(pill).toHaveCount(0);
         else {
@@ -65,7 +65,10 @@ try {
           await status.click();
           await page.getByRole('option', { name: 'Applied', exact: true }).click();
           await expect(status).toHaveText('Applied');
-          await page.waitForTimeout(500);
+          await page.waitForTimeout(3000);
+          expect(state.patches - before.patches).toBe(1);
+          expect(state.listReads - before.listReads).toBe(0);
+          await expect(status).toHaveText('Applied');
           expect(state.patches - before.patches).toBe(1);
           expect(state.listReads - before.listReads).toBe(0);
         } else {
@@ -74,6 +77,7 @@ try {
           await expect(drawer).toHaveCount(0);
         }
       }
+      if (flow === 'd') await expect(page.locator('[data-new-roles]')).toHaveCount(0);
       results.push({ flow, repeat, passed: true, ms: Math.round(performance.now() - began) });
     } catch (error) {
       results.push({ flow, repeat, passed: false, ms: Math.round(performance.now() - began), error: String(error) });

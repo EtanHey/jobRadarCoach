@@ -42,8 +42,9 @@ usage and each step's cache result. `act` records only after a later locator
 assertion verifies its result; `assert` always calls the model. Our focus and
 network checks remain deterministic. The local cache is ignored, never shared.
 
-Mutation runs use `JRC_E2E_MUTATION=drawer|status|pill|hidden` plus a matching
-`--grep` selection. Changes apply only to the disposable app. Every subsequent
+Mutation runs use `JRC_E2E_MUTATION=drawer|status|delayed|pill|hidden` plus a matching
+`--grep` selection without spaces (e.g. `--grep status.*deterministic`);
+`JRC_E2E_ARGS` uses whitespace splitting, not shell quote parsing. Changes apply only to the disposable app. Every subsequent
 run recreates it from source, restoring the mutation. Unknown/nonmatching
 mutations abort startup, which is an infrastructure failure, not test RED.
 
@@ -53,3 +54,17 @@ Docs read: [Quickstart](https://e2e.tester.army/docs/quickstart),
 [Cache](https://e2e.tester.army/docs/cache), [Models](https://e2e.tester.army/docs/models),
 [Security](https://e2e.tester.army/docs/security),
 [Telemetry](https://e2e.tester.army/docs/telemetry), [CI](https://e2e.tester.army/docs/ci).
+
+Status and hidden-pill negative checks use a deliberate 3000 ms quiet window,
+covering the current 800 ms prefetch timer and the reviewed 1500 ms delayed
+refresh mutation. Status counters are rechecked at test end. This is bounded
+coverage, not proof against arbitrary future timers or the 90 s poll.
+
+`compare.mts` is a same-harness direct-Playwright baseline, not an independent
+implementation or a run of existing browser-tests. Existing `status-select.mjs`,
+`new-roles-pill.mjs`, and `date-icons.mjs` cover broader scenarios and are retained;
+their runtime was not remeasured here.
+
+Review r1 CI run 37457216872 peaked at 2492 MB against the 3072 MB cap
+(81.1% used, 580 MB headroom). The existing cap is retained; a cap exit 137
+is a resource failure, not an assertion failure.

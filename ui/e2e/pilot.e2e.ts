@@ -20,10 +20,13 @@ for (const hybrid of [false, true]) {
       await f.screen.getByRole('option', 'Applied').tap();
     }
     await expect(status).toHaveText('Applied');
-    await f.browser.evaluate(() => new Promise<null>(resolve => setTimeout(() => resolve(null), 500)));
+    // Quiet window covers the 800 ms prefetch and 1500 ms delayed-refresh regression.
+    await f.browser.evaluate(() => new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)));
     expect(state.patches - before.patches).toBe(1);
     expect(state.listReads - before.listReads).toBe(0);
     if (hybrid) await f.agent.assert('The job drawer shows Application status Applied');
+    expect(state.patches - before.patches).toBe(1);
+    expect(state.listReads - before.listReads).toBe(0);
   });
   test(`c drawer: description focused and one Escape (${mode})`, async f => {
     test.skip(hybrid && !modelEnabled, 'No local/subscription model configured');
@@ -48,7 +51,8 @@ for (const hybrid of [false, true]) {
     state.addRole = true;
     await f.browser.evaluate(() => { const now = Date.now(); Date.now = () => now + 91_000; window.dispatchEvent(new Event('focus')); return null; });
     await expect.poll(() => state.pollReads).toBeGreaterThan(0);
-    await f.browser.evaluate(() => new Promise<null>(resolve => setTimeout(() => resolve(null), 300)));
+    // Quiet window covers the 800 ms prefetch and 1500 ms delayed-refresh regression.
+    await f.browser.evaluate(() => new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)));
     const pill = f.browser.locator('[data-new-roles]');
     if (hidden) await expect(pill).toHaveCount(0);
     else {
@@ -60,5 +64,6 @@ for (const hybrid of [false, true]) {
       await expect(pill).toHaveCount(0);
     }
     if (hybrid) await f.agent.assert(hidden ? 'No new roles notice is visible' : 'Incoming engineer is visible and the new roles notice is gone');
+    if (hidden) await expect(pill).toHaveCount(0);
   });
 }

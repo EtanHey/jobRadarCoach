@@ -21,6 +21,7 @@ await writeFile(cssPath, (await readFile(cssPath, 'utf8')).replace('@import "tai
 const mutations = {
   drawer: ['components/job-drawer.tsx', 'initialFocus={() => document.querySelector<HTMLElement>("[data-job-description]")}', 'initialFocus={false}'],
   status: ['components/job-board.tsx', 'settleListAfterStatus(id, result, remove);', 'settleListAfterStatus(id, result, remove); requestRefresh();'],
+  delayed: ['components/job-board.tsx', 'settleListAfterStatus(id, result, remove);', 'settleListAfterStatus(id, result, remove); setTimeout(requestRefresh, 1500);'],
   pill: ['components/new-roles-pill.tsx', 'notice && <button', 'false && <button'],
   hidden: ['components/job-board.tsx', 'countNewRoleCards(jobs, newRoles.jobs, view)', 'newRoles.jobs.length'],
 };
