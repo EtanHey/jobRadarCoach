@@ -94,7 +94,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     const previous = hoverIdRef.current;
     if (previous === rowId) return;
     hoverIdRef.current = rowId;
-    if (process.env.NODE_ENV !== "production" && container.current) { if (rowId) container.current.dataset.hoverId = rowId; else delete container.current.dataset.hoverId; }
+    if (process.env.NEXT_PUBLIC_QA_DATASETS === "1" && container.current) { if (rowId) container.current.dataset.hoverId = rowId; else delete container.current.dataset.hoverId; }
     if (previous) document.querySelector(`[data-globe-card="${previous}"]`)?.removeAttribute("data-hovered");
     if (rowId) document.querySelector(`[data-globe-card="${rowId}"]`)?.setAttribute("data-hovered", "");
     for (const { button, ids } of markerRegistry.current.values()) button.classList.toggle("globe-cluster-hovered", rowId !== null && ids.includes(rowId));
@@ -113,7 +113,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     window.addEventListener("job-globe-hover", cardHover);
     return () => window.removeEventListener("job-globe-hover", cardHover);
   }, [setGlobeHover]);
-  useEffect(() => { if (process.env.NODE_ENV !== "production" && container.current) { if (selected) container.current.dataset.selectedId = selected; else delete container.current.dataset.selectedId; } }, [selected]);
+  useEffect(() => { if (process.env.NEXT_PUBLIC_QA_DATASETS === "1" && container.current) { if (selected) container.current.dataset.selectedId = selected; else delete container.current.dataset.selectedId; } }, [selected]);
   const canInteract = useCallback(() => {
     const element = container.current;
     const canvas = mapRef.current?.getCanvas();
@@ -243,7 +243,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           if (!map) return;
           applyGlobePaint(map);
           setDarkMap(theme === "dark");
-          if (process.env.NODE_ENV !== "production" && container.current) {
+          if (process.env.NEXT_PUBLIC_QA_DATASETS === "1" && container.current) {
             container.current.dataset.styleTheme = theme;
             container.current.dataset.waterColor = String(map.getPaintProperty("water", "fill-color"));
             container.current.dataset.landColor = String(map.getPaintProperty("background", "background-color"));
@@ -260,7 +260,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         };
         map.on("zoomend", updateZoomBounds);
         updateZoomBounds();
-        const publishCamera = () => { if (process.env.NODE_ENV !== "production" && container.current && map) {
+        const publishCamera = () => { if (process.env.NEXT_PUBLIC_QA_DATASETS === "1" && container.current && map) {
           const cameraMap = map;
           container.current.dataset.projection = String(map.getProjection()?.type);
           container.current.dataset.zoom = String(map.getZoom());
@@ -274,8 +274,8 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           ].map(([lng, lat]) => { const screen = cameraMap.project([lng, lat]); return [screen.x, screen.y]; }));
           else delete container.current.dataset.locationCorners;
         } };
-        if (process.env.NODE_ENV !== "production") map.on("moveend", publishCamera);
-        if (process.env.NODE_ENV !== "production") {
+        if (process.env.NEXT_PUBLIC_QA_DATASETS === "1") map.on("moveend", publishCamera);
+        if (process.env.NEXT_PUBLIC_QA_DATASETS === "1") {
           const debugMap = map;
           let flightMinZoom = 0;
           map.on("movestart", () => { flightMinZoom = debugMap.getZoom(); if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
@@ -451,7 +451,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     });
     renderLayers();
     renderLayersRef.current = renderLayers;
-    if (process.env.NODE_ENV !== "production" && container.current) container.current.dataset.dotRingColor = paper.join(",");
+    if (process.env.NEXT_PUBLIC_QA_DATASETS === "1" && container.current) container.current.dataset.dotRingColor = paper.join(",");
     if (!selected) pulsedSelection.current = null;
     const pulseSelection = selected !== null && selected !== pulsedSelection.current;
     const next = new Set<string>();
@@ -513,7 +513,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     const coveredRight = overlap >= mapRect.width - 1 ? 0 : overlap;
     const screen = map.project([selectedLng, selectedLat]);
     const target = focusPointCamera({ zoom: map.getZoom(), width: mapRect.width, height: mapRect.height, coveredRight, x: screen.x, y: screen.y });
-    if (process.env.NODE_ENV !== "production") map.getContainer().dataset.focusDecision = JSON.stringify({ selectionSource, coveredRight, x: screen.x, y: screen.y, target });
+    if (process.env.NEXT_PUBLIC_QA_DATASETS === "1") map.getContainer().dataset.focusDecision = JSON.stringify({ selectionSource, coveredRight, x: screen.x, y: screen.y, target });
     if (target) map.easeTo({ center: [selectedLng, selectedLat], zoom: target.zoom, offset: [target.offsetX, 0], duration: reducedMotion() ? 0 : 600, easing: t => 1 - (1 - t) ** 3 });
   }, [selectionRequest, selectionSource, ready, active, selectedLat, selectedLng]);
   useEffect(() => {
