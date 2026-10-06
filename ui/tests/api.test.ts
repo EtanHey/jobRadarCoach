@@ -394,3 +394,25 @@ test("the cursor narrows the list query with the list's own filters, ordering an
     ]);
   }
 });
+
+
+test("new-for-me uses only new status, availability and cursor, without reading visits", async () => {
+  const calls: unknown[] = [];
+  const query = {
+    select(columns: string) { assert.ok(columns.includes("posting_status!inner(")); return this; },
+    eq(column: string, value: unknown) { calls.push(["eq", column, value]); return this; },
+    or(value: string) { calls.push(["or", value]); return this; },
+    gt(column: string, value: string) { calls.push(["gt", column, value]); return this; },
+    order(column: string, options?: unknown) { calls.push(["order", column, options ?? null]); return this; },
+    limit(value: number) { calls.push(["limit", value]); return Promise.resolve({data: [], error: null}); },
+  };
+  const db = {from(table: string) { assert.equal(table, "postings"); return query; }};
+  const since = "2026-10-05T10:00:00Z";
+  await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], {filter: "new-for-me", availability: "active", since, limit: 101});
+  assert.deepEqual(calls, [
+    ["eq", "posting_status.status", "new"],
+    ["or", "liveness->alive.neq.false,liveness->alive.is.null"],
+    ["gt", "first_seen_at", since],
+    ["order", "first_seen_at", {ascending: false}], ["order", "id", null], ["limit", 101],
+  ]);
+});
