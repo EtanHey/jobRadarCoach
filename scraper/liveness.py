@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from scraper.sources import workday
 from scraper.sources import smartrecruiters
 from scraper.sources import ashby
 
@@ -132,6 +133,22 @@ def _error_location(error: HTTPError, requested_url: str) -> str:
     return error_url
 
 
+def _check_workday(url, opener, timeout):
+    found = workday.coordinates(url)
+    if not found or not found[1]:
+        return _result(None, status=None, reason="workday-invalid-url", final_url=url)
+    query, path = found
+    def fetcher(endpoint, **kwargs):
+        request = Request(endpoint, headers={"User-Agent": workday.USER_AGENT,
+            "Content-Type": "application/json", "Accept": "application/json"}, **kwargs)
+        with opener(request, timeout=timeout) as response:
+            if response.getcode() != 200 or response.geturl() != endpoint:
+                raise ValueError("uncertain Workday list")
+            return response.read(2_000_001).decode("utf-8", errors="replace")
+    alive = workday.is_active(query, path, fetcher=fetcher)
+    return _result(alive, status=None, reason="workday-active-list" if alive is not None else "workday-list-uncertain", final_url=url)
+
+
 def _check_smartrecruiters(url, opener, timeout):
     coordinates = smartrecruiters.coordinates(url)
     def fetcher(endpoint):
@@ -188,6 +205,8 @@ def check_url(
     if not urlparse(url).scheme.startswith("http"):
         return _result(None, status=None, reason="invalid-url", final_url=url)
 
+    if workday.coordinates(url):
+        return _check_workday(url, opener, timeout)
     if urlparse(url).netloc in {"jobs.smartrecruiters.com", "www.smartrecruiters.com"}:
         return _check_smartrecruiters(url, opener, timeout)
     if urlparse(url).netloc == "jobs.ashbyhq.com" and urlparse(url).scheme == "https":

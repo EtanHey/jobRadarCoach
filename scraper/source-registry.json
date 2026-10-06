@@ -1921,6 +1921,24 @@
       "enabled": true
     },
     {
+      "source": "workday",
+      "identifiers": {
+        "account": "nvidia",
+        "cluster": "wd5",
+        "site": "NVIDIAExternalCareerSite"
+      },
+      "company": "NVIDIA",
+      "careers_url": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite",
+      "provenance": [
+        {
+          "kind": "public-employer-board",
+          "reference": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"
+        }
+      ],
+      "last_verified_at": "2026-10-04",
+      "enabled": true
+    },
+    {
       "source": "smartrecruiters",
       "identifiers": {
         "account": "Wix2"
