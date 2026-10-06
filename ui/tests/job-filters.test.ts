@@ -1,23 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { filterJobGroups, filterJobs, levelGroup, locationGroup, sourceFilterValues, type ViewOptions } from "../lib/job-filters";
+import { filterJobGroups, levelGroup, locationGroup, sourceFilterValues, type ViewOptions } from "../lib/job-filters";
 import { JobSummarySchema } from "../lib/contracts";
 import { technologyMentions } from "../lib/job-metadata";
 const options: ViewOptions = {search:"",source:"",location:"",seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"};
+const displayedJobs = (rows: Parameters<typeof filterJobGroups>[0], view: ViewOptions) => filterJobGroups(rows, view).map(group => group.job);
 function job(id: number, score: number | null, seniority: string | null = null, location: string | null = null) {
-  return JobSummarySchema.parse({id:`00000000-0000-4000-8000-${String(id).padStart(12,"0")}`,title:"Engineer",company:"Example",location,remote:null,seniority,stack:[],salary:null,url:"https://example.test/",apply_url:null,posted_at:null,first_seen_at:"2026-09-08T00:00:00Z",last_seen_at:"2026-09-08T00:00:00Z",source:"linkedin",experience:null,description_available:true,seniority_origin:"unknown",extraction_state:"not-extracted",status:"new",status_reason:null,score,fit_line:null,recommendation:null});
+  return JobSummarySchema.parse({id:`00000000-0000-4000-8000-${String(id).padStart(12,"0")}`,title:"Engineer",company:`Example ${id}`,location,remote:null,seniority,stack:[],salary:null,url:"https://example.test/",apply_url:null,posted_at:null,first_seen_at:"2026-09-08T00:00:00Z",last_seen_at:"2026-09-08T00:00:00Z",source:"linkedin",experience:null,description_available:true,seniority_origin:"unknown",extraction_state:"not-extracted",status:"new",status_reason:null,score,fit_line:null,recommendation:null});
 }
 test("best fit keeps zero above unscored and never drops unknown roles by default",()=>{
   const rows=[job(1,null),job(2,0),job(3,75)];
-  assert.deepEqual(filterJobs(rows,options).map(x=>x.score),[75,0,null]);
-  assert.equal(filterJobs(rows,{...options,fit:"scored"}).length,2);
-  assert.equal(filterJobs(rows,{...options,fit:"unscored"}).length,1);
+  assert.deepEqual(displayedJobs(rows,options).map(x=>x.score),[75,0,null]);
+  assert.equal(displayedJobs(rows,{...options,fit:"scored"}).length,2);
+  assert.equal(displayedJobs(rows,{...options,fit:"unscored"}).length,1);
 });
 test("source and level filters compose; unknown levels are explicit",()=>{
   const rows=[job(1,60,"Senior"),{...job(2,null,"Junior"),source:"workable"},job(3,null)];
-  assert.equal(filterJobs(rows,{...options,source:"workable",seniority:"Junior"}).length,1);
-  assert.equal(filterJobs(rows,{...options,seniority:"Unknown"}).length,1);
-  assert.equal(filterJobs(rows,{...options,seniority:"non-senior"}).length,2);
+  assert.equal(displayedJobs(rows,{...options,source:"workable",seniority:"Junior"}).length,1);
+  assert.equal(displayedJobs(rows,{...options,seniority:"Unknown"}).length,1);
+  assert.equal(displayedJobs(rows,{...options,seniority:"non-senior"}).length,2);
   assert.equal(levelGroup("Staff"),"Staff / Principal");
 });
 test("technology badges quote explicit words, not Go prose or Java inside JavaScript",()=>{
@@ -27,16 +28,16 @@ test("technology badges quote explicit words, not Go prose or Java inside JavaSc
 test("location filters keep countryless remote roles unknown",()=>{
   const rows=[job(1,null,null,"Tel Aviv, Israel"),job(2,null,null,"Remote, United States"),job(3,null,null,"London, UK"),job(4,null,null,"Remote"),job(5,null,null,"San Francisco, CA"),job(6,null,null,"Denver, CO"),job(7,null,null,"Bastrop, TX"),job(8,null,null,"San Francisco Bay Area"),job(9,null,null,"Remote / Anywhere"),job(10,null,null,"Remote - Worldwide")];
   assert.deepEqual(rows.map((row)=>locationGroup(row.location)),["israel","united-states","other","unknown","united-states","united-states","united-states","united-states","unknown","unknown"]);
-  assert.deepEqual(filterJobs(rows,{...options,location:"israel"}).map((row)=>row.id),[rows[0].id]);
-  assert.deepEqual(filterJobs(rows,{...options,location:"united-states"}).map((row)=>row.id),[rows[1].id,rows[4].id,rows[5].id,rows[6].id,rows[7].id]);
-  assert.deepEqual(filterJobs(rows,{...options,location:"other"}).map((row)=>row.id),[rows[2].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,location:"israel"}).map((row)=>row.id),[rows[0].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,location:"united-states"}).map((row)=>row.id),[rows[1].id,rows[4].id,rows[5].id,rows[6].id,rows[7].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,location:"other"}).map((row)=>row.id),[rows[2].id]);
 });
 
 test("recommendation filtering composes with location without hiding stretch reviews",()=>{
   const rows=[{...job(1,44,null,"Israel"),recommendation:"review" as const},{...job(2,80,null,"Israel"),recommendation:"skip" as const},{...job(3,92,null,"United States"),recommendation:"apply" as const},job(4,null,null,"Israel")];
-  assert.deepEqual(filterJobs(rows,{...options,fit:"recommended",location:"israel"}).map(x=>x.id),[rows[0].id]);
-  assert.deepEqual(filterJobs(rows,{...options,fit:"skip"}).map(x=>x.id),[rows[1].id]);
-  assert.equal(filterJobs(rows,options).length,4);
+  assert.deepEqual(displayedJobs(rows,{...options,fit:"recommended",location:"israel"}).map(x=>x.id),[rows[0].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,fit:"skip"}).map(x=>x.id),[rows[1].id]);
+  assert.equal(displayedJobs(rows,options).length,4);
 });
 
 test("pipeline statuses OR together and AND with the other facets", () => {
@@ -49,7 +50,7 @@ test("pipeline statuses OR together and AND with the other facets", () => {
   ];
 
   assert.deepEqual(
-    filterJobs(rows, {
+    displayedJobs(rows, {
       ...options,
       source: "workable",
       location: "israel",
@@ -103,8 +104,7 @@ test("equal Best Fit scores prefer original publication, regardless of repost an
   const old = { ...job(50, 80), title: "Old", posted_at: "2026-09-01T00:00:00Z", last_published_at: "2026-10-04T00:00:00Z", first_seen_at: "2026-10-04T00:00:00Z" };
   const recent = { ...job(51, 80), title: "Recent", posted_at: "2026-10-01T00:00:00Z", first_seen_at: "2026-10-02T00:00:00Z" };
   for (const rows of [[old, recent], [recent, old]]) {
-    assert.deepEqual(filterJobs(rows, options).map(row => row.id), [recent.id, old.id]);
-    assert.deepEqual(filterJobGroups(rows, options).map(({job: row}) => row.id), [recent.id, old.id]);
+    assert.deepEqual(displayedJobs(rows, options).map(row => row.id), [recent.id, old.id]);
   }
 });
 
@@ -112,19 +112,19 @@ test("Best Fit falls back to discovery only for missing publication and finally 
   const known = { ...job(60, 80), posted_at: "2026-10-02T00:00:00Z", first_seen_at: "2026-10-04T00:00:00Z" };
   const unknown = { ...job(61, 80), first_seen_at: "2026-10-03T00:00:00Z" };
   const tie = { ...job(62, 80), posted_at: known.posted_at, first_seen_at: "2026-10-05T00:00:00Z" };
-  assert.deepEqual(filterJobs([tie, known, unknown], options).map(row => row.id), [unknown.id, known.id, tie.id]);
+  assert.deepEqual(displayedJobs([tie, known, unknown], options).map(row => row.id), [unknown.id, known.id, tie.id]);
 });
 
 test("hybrid is a distinct contract and filter value, preserving legacy remote fallback", () => {
   const rows = [JobSummarySchema.parse({...job(51,null), work_mode:"hybrid"}),
     {...job(52,null),remote:true}, {...job(53,null),remote:false}, job(54,null)];
-  assert.deepEqual(filterJobs(rows,{...options,work_mode:"hybrid"}).map(row=>row.id),[rows[0].id]);
-  assert.deepEqual(filterJobs(rows,{...options,work_mode:"remote"}).map(row=>row.id),[rows[1].id]);
-  assert.deepEqual(filterJobs(rows,{...options,work_mode:"on-site"}).map(row=>row.id),[rows[2].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,work_mode:"hybrid"}).map(row=>row.id),[rows[0].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,work_mode:"remote"}).map(row=>row.id),[rows[1].id]);
+  assert.deepEqual(displayedJobs(rows,{...options,work_mode:"on-site"}).map(row=>row.id),[rows[2].id]);
   assert.equal(JobSummarySchema.safeParse({...job(55,null),work_mode:"maybe"}).success,false);
 });
 
 test("explicit work mode takes precedence over a restored legacy boolean", () => {
   const hybrid = JobSummarySchema.parse({...job(56,null),work_mode:"hybrid"});
-  assert.deepEqual(filterJobs([hybrid],{...options,remote:true,work_mode:"hybrid"}),[hybrid]);
+  assert.deepEqual(displayedJobs([hybrid],{...options,remote:true,work_mode:"hybrid"}),[hybrid]);
 });

@@ -1,7 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { JobSummary } from "./contracts";
-import { filterJobs } from "./job-filters";
 import { GlobePointSchema, type GlobePoint, type GlobeQuery, type GlobeResponse } from "./globe-contract";
 import { client, data, parseSummaryRows } from "./server";
 import { HttpError } from "./http";
@@ -21,8 +20,7 @@ export function getGlobeStore(db: SupabaseClient = client()): GlobeStore {
 }
 export async function globeResponse(store: GlobeStore, input: GlobeQuery): Promise<GlobeResponse> {
   const snapshot = await store.snapshot(input);
-  const jobs = filterJobs(snapshot.jobs, input).filter((job) =>
-    (input.min_score === undefined || (job.score !== null && job.score >= input.min_score)));
+  const jobs = snapshot.jobs;
   const ids = new Set(jobs.map((job) => job.id));
   if (ids.size !== jobs.length) throw new HttpError(503, "Invalid geographic snapshot.");
   const points: GlobePoint[] = [];

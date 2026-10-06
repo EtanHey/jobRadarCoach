@@ -1,19 +1,9 @@
 import { z } from "zod";
-import { WorkModeSchema, JobIdSchema, JobListQuerySchema, JobSummarySchema } from "./contracts";
-import { pipelineStatusValues } from "./job-status";
+import { JobIdSchema, JobListQuerySchema, JobSummarySchema } from "./contracts";
 
-export const GlobeQuerySchema = z.object({ availability: JobListQuerySchema.shape.availability }).extend({
+export const GlobeQuerySchema = z.object({
   filter: JobListQuerySchema.shape.filter.default("all"),
-  search: z.string().max(2000).default(""), source: z.string().max(200).default(""),
-  location: z.enum(["", "israel", "united-states", "other"]).default(""),
-  seniority: z.enum(["", "non-senior", "Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"]).default(""),
-  fit: z.enum(["", "recommended", "skip", "good", "scored", "unscored"]).default(""),
-  statuses: z.string().default("").transform((s) => s ? s.split(",") : [])
-    .pipe(z.array(z.enum(pipelineStatusValues))),
-  sort: z.enum(["found", "posted", "fit", "seniority"]).default("found"),
-  work_mode: WorkModeSchema.optional(),
-  remote: z.enum(["true", "false"]).transform((s) => s === "true").optional(),
-  min_score: z.coerce.number().int().min(0).max(100).optional(),
+  availability: JobListQuerySchema.shape.availability,
 }).strict();
 const hqSource = /^https:\/\/[A-Za-z0-9.-]+(?::[0-9]+)?(?:\/[^\s|]*)? \| nominatim:osm:(node|way|relation):[1-9][0-9]*$/;
 export const GlobePointSchema = z.object({

@@ -69,11 +69,6 @@ function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
     if (sort === "posted") return timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at);
     return timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
 }
-export function filterJobs(jobs: JobSummary[], options: ViewOptions): JobSummary[] {
-  const needle = options.search.trim().toLocaleLowerCase();
-  return jobs.filter((job) => matchesView(job, options, needle))
-    .sort((a, b) => compareJobs(a, b, options.sort));
-}
 export function filterJobGroups(jobs: JobSummary[], options: ViewOptions): DuplicateJobGroup[] {
   const needle = options.search.trim().toLocaleLowerCase();
   return groupDuplicateJobs(jobs.filter((job) => matchesView(job, options, needle)))
