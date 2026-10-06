@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import pytest
 from scraper import cloud_run
 
 
-def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
-    monkeypatch.setenv("DATABASE_URL", "postgresql://hosted.example/job_radar")
+def _source_fixture(tmp_path: Path):
     registry = json.loads((Path(__file__).parent / "source-registry.json").read_text())
-    appended = next(row.copy() for row in registry["tenants"] if row["source"] == "greenhouse")
+    appended = next((row.copy() for row in registry["tenants"] if row["source"] == "greenhouse"), None)
+    assert appended is not None, "Greenhouse tenant required for the registry fixture"
     appended.update(
         identifiers={"board": "lateaddition"},
         company="Late Addition",
@@ -21,13 +20,46 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     registry["tenants"].append(appended)
     registry_path = tmp_path / "source-registry.json"
     registry_path.write_text(json.dumps(registry))
-    monkeypatch.setattr(cloud_run, "REGISTRY_PATH", registry_path, raising=False)
     searches = json.loads((Path(__file__).parent / "searches.yaml").read_text())["searches"]
     source_urls = {name: [] for name in cloud_run.ALL_SOURCES}
     source_urls["linkedin"] = [f"https://linkedin.com/search/{i}" for i in range(len(searches))]
     for tenant in registry["tenants"]:
         if tenant.get("enabled") is True:
             source_urls[tenant["source"]].append(tenant["careers_url"])
+    return registry_path, source_urls, appended["careers_url"]
+
+
+def _assert_harvest_contract(
+    captured, source_urls, appended_url, attempted,
+    jd_attempted, liveness_attempted, loader_openers,
+):
+    assert isinstance(captured["argv"], list)
+    assert "--jsonl" not in captured["argv"] and "--profile" not in captured["argv"]
+    assert "--no-annotate" in captured["argv"]
+    assert captured["argv"][captured["argv"].index("--sources") + 1] == (
+        "comeet,greenhouse,lever,workable"
+    )
+    assert captured["argv"][captured["argv"].index("--max-pages") + 1] == "2"
+    attempted_set = {url for url, _backoffs, _opener in attempted}
+    assert all(set(urls) <= attempted_set for urls in source_urls.values())
+    assert appended_url in attempted_set
+    assert all(not backoffs and opener is cloud_run.NO_REDIRECT_OPEN for _url, backoffs, opener in attempted)
+    assert loader_openers == [cloud_run.NO_REDIRECT_OPEN] * 2
+    assert len(attempted) == sum(map(len, source_urls.values())) + 5
+    assert len(jd_attempted) == 8 and len(liveness_attempted) == 4
+
+
+@pytest.mark.parametrize("github_run_id", [None, "ci-py-fixture"])
+def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
+    tmp_path: Path, monkeypatch, capsys, github_run_id
+) -> None:
+    if github_run_id is None:
+        monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
+    else:
+        monkeypatch.setenv("GITHUB_RUN_ID", github_run_id)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://hosted.example/job_radar")
+    registry_path, source_urls, appended_url = _source_fixture(tmp_path)
+    monkeypatch.setattr(cloud_run, "REGISTRY_PATH", registry_path, raising=False)
     attempted: list[tuple[str, tuple[object, ...], object]] = []
     jd_attempted: list[str] = []
     liveness_attempted: list[object] = []
@@ -65,27 +97,17 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     )
 
     assert result == 0
-    assert isinstance(captured["argv"], list)
-    assert "--jsonl" not in captured["argv"] and "--profile" not in captured["argv"]
-    assert "--no-annotate" in captured["argv"]
-    assert captured["argv"][captured["argv"].index("--sources") + 1] == (
-        "comeet,greenhouse,lever,workable"
+    _assert_harvest_contract(
+        captured, source_urls, appended_url, attempted,
+        jd_attempted, liveness_attempted, loader_openers,
     )
-    assert captured["argv"][captured["argv"].index("--max-pages") + 1] == "2"
-    attempted_set = {url for url, _backoffs, _opener in attempted}
-    assert all(set(urls) <= attempted_set for urls in source_urls.values())
-    assert appended["careers_url"] in attempted_set
-    assert all(not backoffs and opener == cloud_run.NO_REDIRECT_OPEN for _url, backoffs, opener in attempted)
-    assert loader_openers == [cloud_run.NO_REDIRECT_OPEN] * 2
-    assert len(attempted) == sum(map(len, source_urls.values())) + 5
-    assert len(jd_attempted) == 8 and len(liveness_attempted) == 4
 
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt == {
         "exit_code": 0,
         "network_request_skips": 8,
         "result": {"fetched_count": 8, "new_count": 3},
-        "run_id": "local",
+        "run_id": github_run_id or "local",
         "schema_version": 1,
         "sources": ["linkedin", "comeet", "greenhouse", "lever", "workable"],
         "status": "success",
