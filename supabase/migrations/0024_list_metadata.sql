@@ -1,5 +1,6 @@
 -- Compact display metadata is derived once per description write, including existing rows.
 -- Match the UI's explicit-mention and applicant-context heuristics, never infer requirements.
+begin;
 create function public.posting_list_metadata(description text)
 returns jsonb language plpgsql immutable security invoker set search_path = '' as $fn$
 declare
@@ -176,3 +177,4 @@ $$;
 revoke all on function public.get_globe_snapshot(text,text) from public, anon, authenticated;
 grant execute on function public.get_globe_snapshot(text,text) to service_role;
 notify pgrst, 'reload schema';
+commit;
