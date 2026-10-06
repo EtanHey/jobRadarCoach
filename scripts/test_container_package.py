@@ -39,6 +39,6 @@ def test_container_sources_import_without_repository(tmp_path):
     )
     result = subprocess.run(
         [sys.executable, "-I", "-S", "-c", probe, str(app), sysconfig.get_path("purelib")],
-        cwd=tmp_path, env=env, capture_output=True, text=True,
+        cwd=tmp_path, env=env, capture_output=True, text=True, check=False,
     )
     assert result.returncode == 0, result.stderr
