@@ -1,15 +1,16 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
-import { Bookmark, Recycle } from "lucide-react";
+import { Recycle } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
 import { scoreCss } from "@/lib/globe-model";
-import { repostNote, workMode } from "@/lib/job-display";
-import { statusLabels, type JobStatus } from "@/lib/job-status";
+import { repostNote } from "@/lib/job-display";
+import { statusDimsCard, statusLabels, type JobStatus } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
 import { CompanyLogo } from "./company-logo";
 import { InfoTip } from "./info-tip";
 import { PostingDates } from "./posting-dates";
+import { WorkModeIcon } from "./work-mode-icon";
 
 type Props = {
   job: JobSummary;
@@ -17,7 +18,7 @@ type Props = {
   /** Alternates demonstrably listed before this one; drives the repost marker. */
   earlierListings?: number;
   selected?: boolean;
-  /** Set in "New for me" when this kept card's status no longer qualifies: dims the content and names the status. */
+  /** Set in "New for me" when this kept card's status no longer qualifies; marks the card settled. */
   keptStatus?: JobStatus | null;
   logoSize?: "sm" | "md";
   actions?: ReactNode;
@@ -29,12 +30,14 @@ type Props = {
 export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, earlierListings = 0, openerRef, selectJob, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   const repost = repostNote(job.posted_at, job.last_published_at, earlierListings);
-  const place = `${job.location ?? "Location unspecified"} · ${workMode(job.remote)}`;
-  // Dim the content, never the frame: hover border and focus ring stay full strength on settled cards.
-  const dim = keptStatus ? "opacity-60" : "";
-  const keptId = `kept-status-${job.id}`;
+  const location = job.location ?? "Location unspecified";
+  // Every view names a non-new status under the score; only terminal statuses dim the content, never the frame,
+  // so hover border and focus ring stay full strength.
+  const chip = job.status === "new" ? null : statusLabels[job.status];
+  const dim = statusDimsCard(job.status) ? "opacity-60" : "";
+  const chipId = `card-status-${job.id}`;
   return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
-    <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={keptStatus ? keptId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
+    <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
@@ -44,19 +47,19 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
         </div>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      {/* The score sizes this column; the chip takes exactly its width (w-0 + min-w-full adds none of its own), so the
+          title keeps its width. Long labels wrap to a second line inside the header's fixed height. */}
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
         <span style={job.score === null ? { border: "2px solid var(--globe-unscored-ring)" } : { backgroundColor: scoreCss(job.score), color: "#08111c" }} aria-label={job.score === null ? "Not scored" : `Fit score ${job.score} out of 100`} className={cn(job.score === null ? "rounded-lg px-2 py-1 text-xs text-muted-foreground" : "rounded-lg px-2 py-1", dim)}>
           {job.score === null ? "Unscored" : <><strong className="text-base tabular-nums">{job.score}</strong><span className="text-[10px]">/100</span></>}
         </span>
-        {!keptStatus && job.status === "worth_checking" && <Bookmark size={13} aria-label="Worth checking" className="text-muted-foreground" />}
+        {chip && <span id={chipId} data-card-status={job.status} title={chip} className={cn("line-clamp-2 w-0 min-w-full rounded-md border px-1 py-0.5 text-center text-[10px] font-medium leading-3 [overflow-wrap:anywhere]", job.status === "seen" ? "text-muted-foreground" : "bg-muted text-foreground", dim)}>{chip}</span>}
       </div>
     </div>
-    {keptStatus ? <div className="pointer-events-none flex h-5 min-w-0 items-center gap-2">
-      <p className={cn("min-w-0 flex-1 truncate text-sm text-muted-foreground", dim)} title={place}>{place}</p>
-      {/* A reserved one-line slot: the chip never touches the header, and a long label ellipsizes instead of growing the card. */}
-      <span id={keptId} data-kept-status={keptStatus} title={statusLabels[keptStatus]} className="inline-flex h-5 max-w-[45%] shrink-0 items-center rounded-md border bg-muted px-1.5 text-[11px] font-medium text-foreground"><span className="truncate">{statusLabels[keptStatus]}</span></span>
-    </div>
-      : <p className="pointer-events-none truncate text-sm text-muted-foreground" title={place}>{place}</p>}
+    <p className={cn("pointer-events-none flex h-5 min-w-0 items-center gap-1.5 text-sm text-muted-foreground", dim)}>
+      <WorkModeIcon job={job} />
+      <span className="min-w-0 truncate" title={location}>{location}</span>
+    </p>
     <div className={cn("pointer-events-none relative min-h-[3.625rem] text-muted-foreground [&_button]:pointer-events-auto", dim)}>{job.stack.length ? children : <span className="text-xs">Stack unspecified</span>}</div>
     <div className={cn("pointer-events-none mt-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground", dim)}>
       <span data-experience className="min-w-0 break-words">{experience}</span>

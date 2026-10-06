@@ -22,6 +22,7 @@ jrc-analysis-supervisor = "scripts.local_analysis_supervisor:main"
 [tool.setuptools]
 include-package-data = false
 py-modules = [
+  "classifier.calibration",
   "classifier.core",
   "classifier.embeddings",
   "classifier.facts",

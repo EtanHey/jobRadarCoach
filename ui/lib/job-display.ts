@@ -68,6 +68,18 @@ export function repostNote(postedAt: string | null, lastPublishedAt: string | nu
   return notes.length ? `Reposted: ${notes.join(" · ")}` : null;
 }
 
+export type WorkModeKind = "remote" | "on-site" | "hybrid" | "unknown";
+const workModeLabels: Record<WorkModeKind, string> = { remote: "Remote", "on-site": "On-site", hybrid: "Hybrid", unknown: "Work mode unspecified" };
+const structuredWorkModes: Record<string, WorkModeKind> = { remote: "remote", hybrid: "hybrid", "on-site": "on-site", onsite: "on-site", on_site: "on-site", "on site": "on-site" };
+
+/** A structured work mode (hybrid comes only from it) wins; otherwise the remote flag decides. */
+export function workModeOf(job: { remote: boolean | null; work_mode?: string | null }): { kind: WorkModeKind; label: string } {
+  const structured = job.work_mode?.trim().toLowerCase() ?? "";
+  const kind = Object.hasOwn(structuredWorkModes, structured) ? structuredWorkModes[structured]
+    : job.remote === true ? "remote" : job.remote === false ? "on-site" : "unknown";
+  return { kind, label: workModeLabels[kind] };
+}
+
 export function workMode(remote: boolean | null): string {
-  return remote === true ? "Remote" : remote === false ? "On-site" : "Work mode unspecified";
+  return workModeOf({ remote }).label;
 }
