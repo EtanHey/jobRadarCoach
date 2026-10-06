@@ -115,9 +115,4 @@ This GitHub runner policy does not cover the local Codex CLI subscription or its
 usage quotas; Luna and Terra inference is provided through that CLI rather than
 weights running on the Mac.
 
-The optional
-[Supabase Cron dispatcher](../supabase/scheduling/cloud_scrape/README.md) exists
-for installations that deliberately choose database-driven dispatch. It must
-never run alongside the native GitHub schedule.
-
 Workday uses anonymous CXS JSON POST lists, dynamically selects the Israel country facet, and fetches details after shared title/location admission. Lists have a 26-request allowance (discovery plus 25 pages of 20); details have a separate 8-request allowance. Hourly rechecks cache an entire unfiltered site traversal, with no requisition search or Israel facet; failed or incomplete lists stay unknown. The standalone `check_url` helper still searches by requisition ID and matches the exact job path. NVIDIA's absolute detail `startDate` matches public JSON-LD `datePosted`; provider date-only values normalize to UTC midnight so the persistence layer accepts them; relative `postedOn` stays display text and never becomes a clock-derived publication date. Missing absolute dates remain unknown.
