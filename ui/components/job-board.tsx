@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { focusManager, QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import { focusManager, QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flushSync } from "react-dom";
 import dynamic from "next/dynamic";
 import { GlobeBoundary } from "./globe-boundary";
@@ -11,9 +11,9 @@ import { countGlobeRoles } from "@/lib/globe-viewport";
 import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
-import { JobListResponseSchema, StatusResultSchema, type JobDetail, type JobSummary, type StatusPatch, type StatusResult } from "@/lib/contracts";
-import { createDetailCoordinator, jobListRequestPath, reconcileStatusMutations, refreshVisitCohort, uniqueJobsById, updateJobStatus, type StatusMutation } from "@/lib/job-board-state";
-import { boardListKey, type CachedList } from "@/lib/job-board-query";
+import { JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
+import { createDetailCoordinator, jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead, type CachedList } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { DETAIL_LOAD_TIMEOUT_MESSAGE, DETAIL_LOAD_TIMEOUT_MS, loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
@@ -73,7 +73,6 @@ function Board() {
   const [detail, setDetail] = useState<JobDetail | null>(null);
   const [detailError, setDetailError] = useState("");
   const [detailRevision, setDetailRevision] = useState(0);
-  const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [globeOpen, setGlobeOpen] = useState(false);
   const globeTransitioning = useRef(false);
@@ -90,21 +89,18 @@ function Board() {
   const [cameraAction, setCameraAction] = useState<{ kind: "location" | "reset"; id: number }>({ kind: "reset", id: 0 });
   const [cameraAway, setCameraAway] = useState(false);
   const [globeWarning, setGlobeWarning] = useState("");
-  // Status reconciliation remains here until the status-mutation lesson in part C.
-  const statusMutationsRef = useRef(new Map<string, StatusMutation<JobSummary["status"]>>());
-  const visitCohortRef = useRef<JobSummary[] | null>(null);
   const listQuery = useQuery({
     queryKey: boardListKey(filter, view.availability), enabled: preferencesReady,
     queryFn: async ({ signal }) => {
-      statusMutationsRef.current.clear();
+      const started = confirmedStatusRevision(client);
+      const previous = client.getQueryData<CachedList>(boardListKey(filter, view.availability));
       const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: view.availability, limit: 1000 }), { signal })).jobs);
-      const read = filter === "new-for-me" ? await refreshVisitCohort(visitCohortRef.current, next, async ids => {
+      const read = filter === "new-for-me" ? await refreshVisitCohort(previous?.jobs ?? null, next, async ids => {
         const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
         return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal })).jobs;
       }) : next;
       signal.throwIfAborted();
-      const jobs = reconcileStatusMutations(read, statusMutationsRef.current);
-      if (filter === "new-for-me") visitCohortRef.current = jobs;
+      const jobs = confirmListRead(client, read, filter, started);
       return { jobs, loadedUpdatedAt: jobs.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null) };
     },
   });
@@ -114,9 +110,6 @@ function Board() {
   const listError = listQuery.error?.message ?? "";
   const error = listQuery.data ? "" : listError;
   const refreshWarning = listQuery.data && listError ? `${listError} Showing previous results.` : "";
-  const setJobs = useCallback((update: (current: JobSummary[]) => JobSummary[]) => {
-    client.setQueriesData<CachedList>({ queryKey: ["board-list"], type: "active" }, current => current ? { ...current, jobs: update(current.jobs) } : current);
-  }, [client]);
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
   const patchGlobeStatus = globe.patchStatus;
   const globeActive = globeOpen && !globe.failure;
@@ -177,17 +170,32 @@ function Board() {
   const newRoleCount = useMemo(() => countNewRoleCards(jobs, newRoles.jobs, view), [jobs, newRoles.jobs, view]);
   const refetchList = listQuery.refetch;
   const requestRefresh = useCallback(() => {
-    statusMutationsRef.current.clear();
     client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
     void client.invalidateQueries({ queryKey: ["board-list"], type: "active", refetchType: "none" });
     void refetchList();
     setRevision(value => value + 1);
   }, [client, refetchList]);
-  const settleListAfterStatus = useCallback((id: string, result: StatusResult, remove: boolean) => {
-    client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
-    if (client.isFetching({ queryKey: ["board-list"] })) statusMutationsRef.current.set(id, { status: result.status, reason: result.reason, remove });
-  }, [client]);
-  const retry = useCallback(() => { visitCohortRef.current = null; void client.resetQueries({ queryKey: ["board-list"], type: "active" }); setRevision(value => value + 1); }, [client]);
+  const retry = useCallback(() => { void client.resetQueries({ queryKey: ["board-list"], type: "active" }); setRevision(value => value + 1); }, [client]);
+  const statusMutation = useMutation({
+    scope: { id: "board-status" },
+    mutationFn: async ({ id, patch }: { id: string; patch: StatusPatch }) => StatusResultSchema.parse(await request(`/api/jobs/${id}/status`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify(patch),
+    })),
+    onSuccess: (result, { id, patch }) => {
+      const automatic = "automatic" in patch && Boolean(patch.automatic);
+      applyConfirmedStatus(client, id, result, automatic);
+      patchGlobeStatus(id, result, !automatic && statusMutationRemovesCard(filterRef.current, result.status));
+    },
+  });
+  // Opening a role must not queue behind, or disable, a manual save.
+  const automaticSeen = useMutation({
+    mutationFn: async ({ id, signal }: { id: string; signal: AbortSignal }) => StatusResultSchema.parse(await request(`/api/jobs/${id}/status`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal,
+    })),
+  });
+  const markSeen = automaticSeen.mutateAsync;
+  const saving = statusMutation.isPending;
+  const mutateStatus = statusMutation.mutateAsync;
   function showNewRoles() {
     newRoles.dismiss();
     // The pill unmounts on click; keep focus and the reader at the top of the refreshed list.
@@ -219,7 +227,6 @@ function Board() {
   }
   function prepareListSource(value: Filter, availability: ViewOptions["availability"]) {
     filterRef.current = value;
-    visitCohortRef.current = null;
     if (value === "new-for-me") client.removeQueries({ queryKey: boardListKey(value, availability), exact: true });
   }
   function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value, view.availability); setPreferences((current) => preferencesForBoardFilter(current, value)); }
@@ -237,7 +244,6 @@ function Board() {
     const next = defaultBoardPreferences();
     if (filter !== next.filter || view.availability !== next.view.availability) {
       filterRef.current = next.filter;
-      visitCohortRef.current = null;
       client.removeQueries({ queryKey: boardListKey(next.filter, next.view.availability), exact: true });
     }
     setPreferences(next);
@@ -320,28 +326,25 @@ function Board() {
 
   useEffect(() => {
     if (!selected) return undefined;
+    const id = selected;
     const identity = detailCoordinator.current();
-    if (identity.id !== selected) return undefined;
+    if (identity.id !== id) return undefined;
     const read = detailCoordinator.beginRead();
     const controller = new AbortController();
     let patchStarted = false;
     async function open() {
       try {
-        const job = await loadJobDetail(selected!, controller.signal);
+        const job = await loadJobDetail(id, controller.signal);
         if (controller.signal.aborted) return;
         if (detailCoordinator.acceptRead(read)) setDetail(job);
         if (!markSeenOnOpen) return;
         patchStarted = true;
-        const status = StatusResultSchema.parse(await request(`/api/jobs/${selected}/status`, {
-          method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal: controller.signal,
-        }));
+        const status = await markSeen({ id, signal: controller.signal });
         if (controller.signal.aborted) return;
         if (detailCoordinator.commitMutation(identity)) {
-          visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, selected!, status.status, status.reason) : null;
-          setJobs((current) => updateJobStatus(current, selected!, status.status, status.reason));
+          applyConfirmedStatus(client, id, status, true);
+          patchGlobeStatus(id, status, false);
           setDetail({ ...job, status: status.status, status_reason: status.reason });
-          patchGlobeStatus(selected!, status, false);
-          settleListAfterStatus(job.id, status, false);
         }
       } catch (cause) {
         if (!controller.signal.aborted && detailCoordinator.isCurrent(identity) && (patchStarted || detailCoordinator.acceptRead(read))) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
@@ -349,7 +352,7 @@ function Board() {
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, settleListAfterStatus, selected, detailRevision, patchGlobeStatus, markSeenOnOpen, setJobs]);
+  }, [client, detailCoordinator, selected, detailRevision, markSeenOnOpen, markSeen, patchGlobeStatus]);
 
   useEffect(() => {
     // Retried reads cannot extend this selection's loading budget.
@@ -365,28 +368,17 @@ function Board() {
     if (isStatusPatchNoop(detail, patch)) return { ok: true };
     const id = detail.id;
     const identity = detailCoordinator.current();
-    setSaving(true); setDetailError("");
+    setDetailError("");
     try {
-      const result = StatusResultSchema.parse(await request(`/api/jobs/${id}/status`, {
-        method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify(patch),
-      }));
+      const result = await mutateStatus({ id, patch });
       if (identity.id === id && detailCoordinator.commitMutation(identity)) {
         setDetail((current) => current?.id === id ? { ...current, status: result.status, status_reason: result.reason } : current);
       }
-      visitCohortRef.current = visitCohortRef.current ? updateJobStatus(visitCohortRef.current, id, result.status, result.reason) : null;
-      setJobs((current) => updateJobStatus(current, id, result.status, result.reason));
-      const remove = statusMutationRemovesCard(filterRef.current, result.status);
-      patchGlobeStatus(id, result, remove);
-      if (remove) {
-        visitCohortRef.current = visitCohortRef.current?.filter((job) => job.id !== id) ?? null;
-        setJobs((current) => current.filter((job) => job.id !== id));
-      }
-      settleListAfterStatus(id, result, remove);
       return { ok: true };
     } catch (cause) {
       // The status select reports this inline; the drawer banner stays for detail-loading errors.
       return { ok: false, error: cause instanceof Error ? cause.message : "Could not update status." };
-    } finally { setSaving(false); }
+    }
   }
   if (!preferencesReady) return <div className="min-h-screen bg-background text-foreground">
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>

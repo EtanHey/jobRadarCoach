@@ -110,3 +110,6 @@ try {
   }
   assert.deepEqual(failures, []);
 } finally { await browser.close(); }
+
+// Membership on revisit and abortable automatic Seen are part of the status contract.
+await import("./status-cache.mjs");
