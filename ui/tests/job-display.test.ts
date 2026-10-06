@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { postingDates, publishedAge, relativeAge, repostNote, workMode } from "../lib/job-display";
+import { postingDates, publishedAge, relativeAge, repostNote, workMode, workModeOf } from "../lib/job-display";
 const now = Date.parse("2026-09-08T12:00:00Z");
 test("published dates never substitute observation dates", () => {
   assert.equal(publishedAge(null, now), "Posted date unavailable");
@@ -58,4 +58,17 @@ test("repost note covers a later republish and linked past listings, and nothing
   assert.equal(repostNote(original, null, 0, "UTC"), null);
   assert.equal(repostNote(original, null, 1, "UTC"), "Reposted: 1 earlier listing of this role");
   assert.equal(repostNote(original, latest, 2, "UTC"), "Reposted: republished 2026-09-07 · 2 earlier listings of this role");
+});
+
+test("work mode reads a structured mode first and falls back to the remote flag", () => {
+  assert.deepEqual(workModeOf({ remote: true }), { kind: "remote", label: "Remote" });
+  assert.deepEqual(workModeOf({ remote: false }), { kind: "on-site", label: "On-site" });
+  assert.deepEqual(workModeOf({ remote: null }), { kind: "unknown", label: "Work mode unspecified" });
+  assert.deepEqual(workModeOf({ remote: null, work_mode: "hybrid" }), { kind: "hybrid", label: "Hybrid" });
+  assert.deepEqual(workModeOf({ remote: false, work_mode: "Hybrid" }), { kind: "hybrid", label: "Hybrid" });
+  for (const value of ["onsite", "on_site", "on-site", "On-site"]) assert.equal(workModeOf({ remote: null, work_mode: value }).kind, "on-site", value);
+  assert.equal(workModeOf({ remote: null, work_mode: "remote" }).kind, "remote");
+  assert.equal(workModeOf({ remote: true, work_mode: "flexible" }).kind, "remote", "an unknown structured value falls back to the flag");
+  assert.equal(workModeOf({ remote: null, work_mode: "flexible" }).kind, "unknown");
+  for (const value of ["constructor", "__proto__", "toString"]) assert.equal(workModeOf({ remote: false, work_mode: value }).kind, "on-site", `inherited key ${value} falls back to the flag`);
 });

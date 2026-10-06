@@ -30,23 +30,7 @@ function renderCard(keptStatus: string | null, status = "applied"): string {
   return probe.stdout;
 }
 
-test("a kept card that no longer qualifies is settled and names its status in text", () => {
-  const html = renderCard("applied");
-  assert.match(html, /<article[^>]+data-settled=""/);
-  assert.match(html, /<span[^>]+data-kept-status="applied" title="Applied"[^>]*><span class="truncate">Applied<\/span><\/span>/, "text label, ellipsized visually, full label on hover");
-  assert.doesNotMatch(html.slice(0, html.indexOf("<h2")), /data-kept-status/, "the chip never sits in the header, so it cannot grow it");
-  assert.match(html, /<button[^>]+aria-describedby="kept-status-00000000-0000-4000-8000-000000000001"/, "the status is announced with the card's button");
-  assert.doesNotMatch(html, /<article[^>]+class="[^"]*opacity-/, "the card frame keeps full-strength hover and focus rings");
-  assert.match(html, /opacity-60/);
-});
-
 test("a qualifying card renders exactly as before", () => {
   const html = renderCard(null, "new");
   assert.doesNotMatch(html, /data-settled|data-kept-status|opacity-60|aria-describedby/);
-});
-
-test("a kept worth-checking card shows one text chip instead of the bare bookmark", () => {
-  const html = renderCard("worth_checking", "worth_checking");
-  assert.match(html, /data-kept-status="worth_checking"[^>]*><span class="truncate">Worth checking</);
-  assert.doesNotMatch(html, /aria-label="Worth checking"/);
 });

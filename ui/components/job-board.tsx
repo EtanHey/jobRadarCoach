@@ -23,7 +23,7 @@ import { JobToolbar } from "./job-toolbar";
 import { ProfileDrawer } from "./profile-drawer";
 import { BoardHeader, JobsPanel, JobDrawer, type Filter } from "./job-views";
 import { StatusSelect } from "./status-select";
-import { isStatusPatchNoop, statusMutationRemovesCard } from "@/lib/job-status";
+import { isStatusPatchNoop, statusMutationRemovesCard, type StatusChangeResult } from "@/lib/job-status";
 import { buttonVariants } from "./ui/button";
 
 // The board is the host that may touch the network; logo tiles only confirm a Logo.dev 404 through this.
@@ -393,9 +393,9 @@ export function JobBoard() {
     return () => clearTimeout(timer);
   }, [detailCoordinator, selected, detail, detailError, detailRevision]);
 
-  async function changeStatus(patch: StatusPatch) {
-    if (!detail || saving || detailCoordinator.current().id !== detail.id) return false;
-    if (isStatusPatchNoop(detail, patch)) return true;
+  async function changeStatus(patch: StatusPatch): Promise<StatusChangeResult> {
+    if (!detail || saving || detailCoordinator.current().id !== detail.id) return { ok: false };
+    if (isStatusPatchNoop(detail, patch)) return { ok: true };
     const id = detail.id;
     const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
@@ -416,10 +416,10 @@ export function JobBoard() {
         setJobs((current) => current.filter((job) => job.id !== id));
       }
       requestRefresh();
-      return true;
+      return { ok: true };
     } catch (cause) {
-      if (detailCoordinator.current().id === id) setDetailError(cause instanceof Error ? cause.message : "Could not update status.");
-      return false;
+      // The status select reports this inline; the drawer banner stays for detail-loading errors.
+      return { ok: false, error: cause instanceof Error ? cause.message : "Could not update status." };
     } finally { setSaving(false); }
   }
   if (!preferencesReady) return <div className="min-h-screen bg-background text-foreground">

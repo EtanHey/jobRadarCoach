@@ -2,7 +2,6 @@
 
 import type { ReactNode, RefObject } from "react";
 import type { JobDetail, JobSummary } from "@/lib/contracts";
-import { workMode } from "@/lib/job-display";
 import { shortListingId } from "@/lib/job-dedup";
 import { statusLabels } from "@/lib/job-status";
 import { AssessmentSheet } from "./assessment-sheet";
@@ -12,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { JobDescription } from "./job-description";
 import { PostingDates } from "./posting-dates";
 import { TechnologyChips } from "./technology-chips";
+import { WorkModeIcon } from "./work-mode-icon";
 
 type Opener = RefObject<HTMLButtonElement | null>;
 
@@ -41,7 +41,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {heading && <div className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} lastPublishedAt={heading.last_published_at} firstSeenAt={heading.first_seen_at} /></div>}
         {detail && <>
-          <p className="mt-2 text-sm text-muted-foreground">{detail.location ?? "Location unspecified"} · {workMode(detail.remote)}</p>
+          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground"><span>{detail.location ?? "Location unspecified"}</span><span aria-hidden="true">·</span><WorkModeIcon job={detail} showLabel /></p>
           <p className="mt-1 text-sm text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
           <div className="mt-3"><TechnologyChips key={detail.id} names={detail.stack} /></div>
         </>}
