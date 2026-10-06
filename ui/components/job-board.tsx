@@ -10,7 +10,7 @@ import { countGlobeRoles } from "@/lib/globe-viewport";
 import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
-import { JobListResponseSchema, StatusResponseSchema, type JobDetail, type JobSummary, type StatusPatch, type StatusResult } from "@/lib/contracts";
+import { JobListResponseSchema, StatusResultSchema, type JobDetail, type JobSummary, type StatusPatch, type StatusResult } from "@/lib/contracts";
 import { createBoundedJobListCache, createDetailCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, reconcileStatusMutations, refreshVisitCohort, uniqueJobsById, updateJobStatus, type StatusMutation } from "@/lib/job-board-state";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { DETAIL_LOAD_TIMEOUT_MESSAGE, DETAIL_LOAD_TIMEOUT_MS, loadJobDetail } from "@/lib/job-detail-request";
@@ -351,7 +351,7 @@ export function JobBoard() {
         if (detailCoordinator.acceptRead(read)) setDetail(job);
         if (!markSeenOnOpen) return;
         patchStarted = true;
-        const status = StatusResponseSchema.parse(await request(`/api/jobs/${selected}/status`, {
+        const status = StatusResultSchema.parse(await request(`/api/jobs/${selected}/status`, {
           method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal: controller.signal,
         }));
         if (controller.signal.aborted) return;
@@ -386,7 +386,7 @@ export function JobBoard() {
     const identity = detailCoordinator.current();
     setSaving(true); setDetailError("");
     try {
-      const result = StatusResponseSchema.parse(await request(`/api/jobs/${id}/status`, {
+      const result = StatusResultSchema.parse(await request(`/api/jobs/${id}/status`, {
         method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify(patch),
       }));
       if (identity.id === id && detailCoordinator.commitMutation(identity)) {

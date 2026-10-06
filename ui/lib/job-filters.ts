@@ -1,3 +1,4 @@
+import { timestamp } from "./job-time";
 import type { Availability, JobSummary } from "./contracts";
 import { groupDuplicateJobs, type DuplicateJobGroup } from "./job-dedup";
 import { matchesFit } from "./job-fit";
@@ -48,7 +49,6 @@ export function levelGroup(value: string | null): string {
   if (/mid|intermediate/i.test(value)) return "Mid-level";
   return "Unknown";
 }
-function timestamp(value: string | null): number { return value ? Date.parse(value) || 0 : 0; }
 function matchesView(job: JobSummary, options: ViewOptions, needle: string): boolean {
   return (
     (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
@@ -63,11 +63,11 @@ function matchesView(job: JobSummary, options: ViewOptions, needle: string): boo
 }
 function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
     if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1)
-      || timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at)
+      || (timestamp(b.posted_at ?? b.first_seen_at) ?? 0) - (timestamp(a.posted_at ?? a.first_seen_at) ?? 0)
       || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     if (sort === "seniority") return levelOrder.indexOf(levelGroup(a.seniority)) - levelOrder.indexOf(levelGroup(b.seniority)) || a.title.localeCompare(b.title);
-    if (sort === "posted") return timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at);
-    return timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
+    if (sort === "posted") return (timestamp(b.posted_at ?? b.first_seen_at) ?? 0) - (timestamp(a.posted_at ?? a.first_seen_at) ?? 0);
+    return (timestamp(b.first_seen_at) ?? 0) - (timestamp(a.first_seen_at) ?? 0);
 }
 export function filterJobGroups(jobs: JobSummary[], options: ViewOptions): DuplicateJobGroup[] {
   const needle = options.search.trim().toLocaleLowerCase();
