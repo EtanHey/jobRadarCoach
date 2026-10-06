@@ -56,6 +56,22 @@ their last-attempt timestamps so an uncertain result does not starve later
 rows. Unknown fetch results remain unknown, and an accepted description is
 stored completely without replacing an existing complete description.
 
+## SmartRecruiters public postings
+
+Curated SmartRecruiters tenants use the anonymous
+[Posting API](https://developers.smartrecruiters.com/docs/endpoints), initially
+Wix (`Wix2`). Lists request Israel and apply the shared title/location rules
+before fetching descriptions. Board and detail requests have separate budgets.
+Publication dates come only from timezone-qualified `releasedDate` values.
+
+Liveness uses the active list, never the detail endpoint's status. Rechecks
+search the full board across countries; absence closes a job only after complete
+pagination. Failed, changing or incomplete lists stay unknown. Both harvest and
+recheck pagination stop after five pages. Details supply complete description
+sections and support later retries. Observed careers-link validation is wired;
+company-name guessing is unchanged. Hosted published/scored counts require a
+separate authorized scrape after merge.
+
 ## Ashby public boards
 
 The scraper supports curated Ashby tenants through the anonymous

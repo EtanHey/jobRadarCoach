@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from scraper.sources import smartrecruiters
 from scraper.sources import ashby
 
 
@@ -131,6 +132,18 @@ def _error_location(error: HTTPError, requested_url: str) -> str:
     return error_url
 
 
+def _check_smartrecruiters(url, opener, timeout):
+    coordinates = smartrecruiters.coordinates(url)
+    def fetcher(endpoint):
+        request = Request(endpoint, headers={"User-Agent": smartrecruiters.USER_AGENT, "Accept": "application/json"})
+        with opener(request, timeout=timeout) as response:
+            if response.getcode() != 200 or response.geturl() != endpoint:
+                raise ValueError("uncertain SmartRecruiters board")
+            return response.read(2_000_000).decode("utf-8", errors="replace")
+    alive = smartrecruiters.is_active(*coordinates, fetcher=fetcher) if coordinates else None
+    return _result(alive, status=None, reason="smartrecruiters-active-list" if alive is not None else "smartrecruiters-board-uncertain", final_url=url)
+
+
 def _ashby_alive(payload: object, job_id: str) -> bool | None:
     if not isinstance(payload, dict) or not isinstance(payload.get("jobs"), list):
         return None
@@ -175,6 +188,8 @@ def check_url(
     if not urlparse(url).scheme.startswith("http"):
         return _result(None, status=None, reason="invalid-url", final_url=url)
 
+    if urlparse(url).netloc in {"jobs.smartrecruiters.com", "www.smartrecruiters.com"}:
+        return _check_smartrecruiters(url, opener, timeout)
     if urlparse(url).netloc == "jobs.ashbyhq.com" and urlparse(url).scheme == "https":
         return _check_ashby_url(url, opener, timeout)
     headers = {"User-Agent": BROWSER_USER_AGENT, "Accept": "text/html,*/*"}

@@ -43,6 +43,7 @@ IDENTIFIER_FIELDS = {
     "greenhouse": (("board",), ("region",)),
     "lever": (("account",), ()),
     "workable": (("account",), ()),
+    "smartrecruiters": (("account",), ()),
     "ashby": (("account",), ()),
 }
 CAREERS_HOSTS = {
@@ -55,6 +56,7 @@ CAREERS_HOSTS = {
     },
     "lever": {"jobs.lever.co"},
     "workable": {"apply.workable.com"},
+    "smartrecruiters": {"careers.smartrecruiters.com"},
     "ashby": {"jobs.ashbyhq.com"},
 }
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\((https?://[^)\s]+)\)")
@@ -231,6 +233,8 @@ def _expected_careers_url(source: str, identifiers: dict[str, object]) -> str:
         return f"https://{host}/{identifiers.get('board', '')}"
     if source == "lever":
         return f"https://jobs.lever.co/{identifiers.get('account', '')}"
+    if source == "smartrecruiters":
+        return f"https://careers.smartrecruiters.com/{identifiers.get('account', '')}"
     if source == "ashby":
         return f"https://jobs.ashbyhq.com/{identifiers.get('account', '')}"
     return f"https://apply.workable.com/{identifiers.get('account', '')}/"
@@ -543,6 +547,10 @@ def detect_supported_ats(url: str) -> dict[str, object] | None:  # skipcq: PY-R1
             "careers_url": f"https://jobs.lever.co/{lever_account}",
         }
 
+    if host in {"careers.smartrecruiters.com", "jobs.smartrecruiters.com", "www.smartrecruiters.com"} and segments and IDENTIFIER_RE.fullmatch(segments[0]):
+        return {"source": "smartrecruiters", "identifiers": {"account": segments[0]},
+                "careers_url": f"https://careers.smartrecruiters.com/{segments[0]}"}
+
     if host == "jobs.ashbyhq.com" and segments and IDENTIFIER_RE.fullmatch(segments[0]):
         return {"source": "ashby", "identifiers": {"account": segments[0]},
                 "careers_url": f"https://jobs.ashbyhq.com/{segments[0]}"}
@@ -571,6 +579,8 @@ def public_endpoint(candidate: dict[str, object]) -> str:
         )
     if source == "lever":
         return f"https://api.lever.co/v0/postings/{identifiers['account']}?mode=json"
+    if source == "smartrecruiters":
+        return f"https://api.smartrecruiters.com/v1/companies/{identifiers['account']}/postings?limit=100&offset=0&country=il"
     if source == "ashby":
         return f"https://api.ashbyhq.com/posting-api/job-board/{identifiers['account']}"
     return f"https://apply.workable.com/{identifiers['account']}/jobs.md"
@@ -583,12 +593,12 @@ def _endpoint_payload_is_valid(source: str, body: str | None) -> bool:
         return False
     if source == "comeet":
         return re.search(r"COMPANY_POSITIONS_DATA\s*=\s*\[", body) is not None
-    if source in {"greenhouse", "ashby"}:
+    if source in {"greenhouse", "ashby", "smartrecruiters"}:
         try:
             payload = json.loads(body)
         except json.JSONDecodeError:
             return False
-        return isinstance(payload, dict) and isinstance(payload.get("jobs"), list)
+        return isinstance(payload, dict) and isinstance(payload.get("content" if source == "smartrecruiters" else "jobs"), list)
     if source == "lever":
         try:
             return isinstance(json.loads(body), list)

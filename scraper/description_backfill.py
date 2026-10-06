@@ -15,7 +15,7 @@ from urllib.request import Request
 from scraper.jd_fetch import BROWSER_USER_AGENT, MIN_PLAUSIBLE_JD_CHARS, extract_full_jd
 from scraper.public_https import pinned_open
 from scraper.recheck import public_job_url
-from scraper.sources import ashby
+from scraper.sources import ashby, smartrecruiters
 from scraper.source_registry import IDENTIFIER_RE
 
 MAX_ITEMS = 12
@@ -23,7 +23,7 @@ MAX_COMPRESSED_BYTES = 2_000_000
 MAX_BODY_BYTES = 4_000_000
 SELECT = """
 select id, url from public.postings
-where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'ashby')
+where source in ('linkedin', 'comeet', 'greenhouse', 'lever', 'workable', 'ashby', 'smartrecruiters')
 and (raw_jd is null or char_length(btrim(raw_jd)) < %s)
 order by coalesce(liveness->>'description_fetch_attempt_at', ''), first_seen_at, id
 limit %s
@@ -61,7 +61,12 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     opener = opener or pinned_open
     coordinates = _ashby_coordinates(url)
     request_url = f"https://api.ashbyhq.com/posting-api/job-board/{coordinates[0]}" if coordinates else url
-    request = Request(request_url, headers={"User-Agent": ashby.USER_AGENT if coordinates else BROWSER_USER_AGENT,
+    smart_coordinates = smartrecruiters.coordinates(url)
+    user_agent = ashby.USER_AGENT if coordinates else BROWSER_USER_AGENT
+    if smart_coordinates:
+        request_url = smartrecruiters.endpoint(*smart_coordinates)
+        user_agent = smartrecruiters.USER_AGENT
+    request = Request(request_url, headers={"User-Agent": user_agent,
         "Accept": "text/html,application/xhtml+xml", "Accept-Encoding": "gzip"})
     with opener(request, timeout=min(timeout, 20)) as response:
         body = response.read(MAX_COMPRESSED_BYTES + 1)
@@ -73,7 +78,8 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
         if len(body) > MAX_BODY_BYTES:
             raise ValueError("body-too-large")
         charset = response.headers.get_content_charset() or "utf-8"
-        description = _description(body.decode(charset, errors="replace"), coordinates)
+        text = body.decode(charset, errors="replace")
+        description = smartrecruiters.description(text, smart_coordinates[1]) if smart_coordinates else _description(text, coordinates)
     if len(description) < MIN_PLAUSIBLE_JD_CHARS:
         raise ValueError("description-missing-or-short")
     return description
