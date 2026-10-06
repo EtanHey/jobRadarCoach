@@ -94,7 +94,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     const previous = hoverIdRef.current;
     if (previous === rowId) return;
     hoverIdRef.current = rowId;
-    if (container.current) { if (rowId) container.current.dataset.hoverId = rowId; else delete container.current.dataset.hoverId; }
+    if (process.env.NODE_ENV !== "production" && container.current) { if (rowId) container.current.dataset.hoverId = rowId; else delete container.current.dataset.hoverId; }
     if (previous) document.querySelector(`[data-globe-card="${previous}"]`)?.removeAttribute("data-hovered");
     if (rowId) document.querySelector(`[data-globe-card="${rowId}"]`)?.setAttribute("data-hovered", "");
     for (const { button, ids } of markerRegistry.current.values()) button.classList.toggle("globe-cluster-hovered", rowId !== null && ids.includes(rowId));
@@ -113,7 +113,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
     window.addEventListener("job-globe-hover", cardHover);
     return () => window.removeEventListener("job-globe-hover", cardHover);
   }, [setGlobeHover]);
-  useEffect(() => { if (container.current) { if (selected) container.current.dataset.selectedId = selected; else delete container.current.dataset.selectedId; } }, [selected]);
+  useEffect(() => { if (process.env.NODE_ENV !== "production" && container.current) { if (selected) container.current.dataset.selectedId = selected; else delete container.current.dataset.selectedId; } }, [selected]);
   const canInteract = useCallback(() => {
     const element = container.current;
     const canvas = mapRef.current?.getCanvas();
@@ -260,22 +260,20 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         };
         map.on("zoomend", updateZoomBounds);
         updateZoomBounds();
-        const publishCamera = () => { if (container.current && map) {
+        const publishCamera = () => { if (process.env.NODE_ENV !== "production" && container.current && map) {
           container.current.dataset.projection = String(map.getProjection()?.type);
           container.current.dataset.zoom = String(map.getZoom());
           container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
           container.current.dataset.bearing = String(map.getBearing());
           container.current.dataset.pitch = String(map.getPitch());
-          if (process.env.NODE_ENV !== "production") {
-            const bounds = locationCameraBounds(locationRef.current, pointsRef.current);
-            if (bounds) container.current.dataset.locationCorners = JSON.stringify([
-              [bounds[0][0], bounds[0][1]], [bounds[0][0], bounds[1][1]],
-              [bounds[1][0], bounds[0][1]], [bounds[1][0], bounds[1][1]],
-            ].map(([lng, lat]) => { const screen = map!.project([lng, lat]); return [screen.x, screen.y]; }));
-            else delete container.current.dataset.locationCorners;
-          }
+          const bounds = locationCameraBounds(locationRef.current, pointsRef.current);
+          if (bounds) container.current.dataset.locationCorners = JSON.stringify([
+            [bounds[0][0], bounds[0][1]], [bounds[0][0], bounds[1][1]],
+            [bounds[1][0], bounds[0][1]], [bounds[1][0], bounds[1][1]],
+          ].map(([lng, lat]) => { const screen = map!.project([lng, lat]); return [screen.x, screen.y]; }));
+          else delete container.current.dataset.locationCorners;
         } };
-        map.on("moveend", publishCamera);
+        if (process.env.NODE_ENV !== "production") map.on("moveend", publishCamera);
         if (process.env.NODE_ENV !== "production") {
           let flightMinZoom = 0;
           map.on("movestart", () => { flightMinZoom = map!.getZoom(); if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });

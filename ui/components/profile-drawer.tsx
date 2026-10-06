@@ -27,7 +27,6 @@ type Draft = {
   salary: string;
   redFlags: string[];
   preferences: string;
-  brain: "ollama" | "codex";
 };
 
 type ProfileFieldsProps = {
@@ -51,7 +50,6 @@ function draftFrom(profile: Profile): Draft {
     salary: profile["candidate.salary_floor"] === null ? "" : String(profile["candidate.salary_floor"]),
     redFlags: profile["candidate.red_flag_words"],
     preferences: profile["candidate.preferences.free_text"] ?? "",
-    brain: profile["runtime.brain"],
   };
 }
 
@@ -66,7 +64,7 @@ function mergeSavedField(current: Draft, profile: Profile, field: ProfileEntry["
     case "candidate.salary_floor": return { ...current, salary: saved.salary };
     case "candidate.red_flag_words": return { ...current, redFlags: saved.redFlags };
     case "candidate.preferences.free_text": return { ...current, preferences: saved.preferences };
-    case "runtime.brain": return { ...current, brain: saved.brain };
+    case "runtime.brain": return current;
   }
 }
 
@@ -134,7 +132,7 @@ function ProfileFields({ draft, busy, onChange, onSave }: ProfileFieldsProps) {
 
 function DrawerHeader() {
   return <SheetHeader className="border-b p-6 pr-12">
-    <SheetTitle>Profile and extraction</SheetTitle>
+    <SheetTitle>Job preferences</SheetTitle>
     <SheetDescription>Save one field at a time so unrelated profile updates stay intact.</SheetDescription>
   </SheetHeader>;
 }
