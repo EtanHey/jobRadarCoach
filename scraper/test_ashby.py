@@ -136,7 +136,7 @@ def test_ashby_pipeline_preserves_country_title_and_seven_year_admission(tmp_pat
     ({"jobs": [{"id": JOB_ID, "isListed": True}, {"id": JOB_ID, "isListed": False}]}, None),
     ({"jobs": "invalid"}, None),
 ])
-def test_stored_ashby_recheck_uses_active_list_only(payload, alive):
+def test_check_url_ashby_uses_active_list_only(payload, alive):
     from scraper import liveness, recheck
     from scraper.test_liveness import Response
     calls = []

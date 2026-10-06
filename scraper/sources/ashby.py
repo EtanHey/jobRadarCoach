@@ -11,6 +11,27 @@ from urllib.parse import urlparse
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
 
 
+def active_ids(payload):
+    """The nonpaginated public board is complete only if every membership is valid."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("jobs"), list):
+        raise ValueError("invalid Ashby board")
+    jobs = payload["jobs"]
+    if any(payload.get(key) for key in ("hasMore", "next", "nextCursor", "nextPage", "pagination")):
+        raise ValueError("incomplete Ashby board")
+    if "total" in payload and (type(payload["total"]) is not int or payload["total"] != len(jobs)):
+        raise ValueError("incomplete Ashby board")
+    seen, active = set(), set()
+    for job in jobs:
+        if (not isinstance(job, dict) or not isinstance(job.get("id"), str)
+                or not re.fullmatch(r"[A-Za-z0-9._-]{1,200}", job["id"])
+                or type(job.get("isListed")) is not bool or job["id"] in seen):
+            raise ValueError("invalid Ashby membership")
+        seen.add(job["id"])
+        if job["isListed"]:
+            active.add(job["id"])
+    return active
+
+
 def _apply_url(value: object) -> str | None:
     if not isinstance(value, str) or re.search(r"[\s\\]", value):
         return None
