@@ -82,7 +82,7 @@ try {
         const legend = box("[data-globe-legend]"), toolbar = box("[data-job-toolbar]");
         const toggle = [...document.querySelectorAll("button")].find(node => node.getAttribute("aria-label") === "Globe" && node.offsetWidth)?.getBoundingClientRect();
         const reset = [...document.querySelectorAll("button")].find(node => node.textContent?.trim() === "Reset view" && node.offsetWidth)?.getBoundingClientRect();
-        const railElement = document.querySelector(".globe-rail");
+        const railElement = document.querySelector(".globe-rail-list");
         return { viewport: { width: innerWidth, height: innerHeight }, documentHeight: document.documentElement.scrollHeight,
           documentWidth: document.documentElement.scrollWidth, globe: globe && { x: globe.x, y: globe.y, width: globe.width, height: globe.height },
           rail: rail && { x: rail.x, y: rail.y, width: rail.width, height: rail.height }, layout: layout && { y: layout.y, height: layout.height },

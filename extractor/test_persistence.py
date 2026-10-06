@@ -10,6 +10,7 @@ import pytest
 
 from extractor import core, persistence
 from scraper.brain_contract import BrainTransportError
+from scraper.database import persist_postings
 
 psycopg = pytest.importorskip("psycopg")
 from test_support.postgres import DatabaseUnavailable, migrated_database
@@ -31,7 +32,7 @@ MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
 @pytest.fixture(scope="module")
 def migrated_database_url():
     try:
-        with migrated_database(MIGRATIONS, through=6) as url:
+        with migrated_database(MIGRATIONS, through=20) as url:
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
@@ -84,7 +85,7 @@ def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
         (posting_id, posting_id, raw_jd),
     )
     connection.execute(
-        "insert into public.posting_status (posting_id, status) values (%s, 'saved')",
+        "insert into public.posting_status (posting_id, status) values (%s, 'worth_checking')",
         (posting_id,),
     )
     reasons: list[object] = []
@@ -232,3 +233,45 @@ def test_provider_failure_leaves_last_good_untouched(connection) -> None:
             ),
         )
     assert durable_state(connection, posting_id) == before
+
+
+def test_extraction_cannot_flip_structured_hybrid_to_remote(connection):
+    posting_id = insert_posting(connection)
+    connection.execute("update postings set work_mode='hybrid', work_mode_source='structured', remote=null where id=%s", (posting_id,))
+    persistence.persist_extraction(connection, posting_id, RAW_JD, extraction())
+    assert connection.execute("select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,)).fetchone() == ('hybrid', 'structured', None)
+
+
+def test_extracted_hybrid_location_keeps_legacy_boolean_unknown(connection):
+    raw_jd = RAW_JD.replace('Tel Aviv.', 'Tel Aviv (Hybrid).')
+    posting_id = insert_posting(connection, raw_jd)
+    facts = deepcopy(FACTS)
+    facts['location'] = {'value': 'Tel Aviv (Hybrid)', 'evidence_quote': 'Tel Aviv (Hybrid)'}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute("select work_mode,remote from postings where id=%s", (posting_id,)).fetchone() == ('hybrid', None)
+
+
+def test_fresh_extraction_updates_extracted_mode(connection):
+    posting_id = insert_posting(connection)
+    connection.execute("update postings set work_mode='on-site',work_mode_source='extracted' where id=%s", (posting_id,))
+    persistence.persist_extraction(connection, posting_id, RAW_JD, extraction())
+    assert connection.execute('select work_mode,work_mode_source,remote from postings where id=%s',(posting_id,)).fetchone() == ('remote','extracted',True)
+
+
+@pytest.mark.parametrize('remote', [True, False])
+def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
+    raw_jd = RAW_JD if remote else RAW_JD.replace('Remote work is available', 'Office-based work is required')
+    facts = deepcopy(FACTS)
+    facts['remote'] = {'value': remote, 'evidence_quote': 'Remote work is available' if remote else 'Office-based work is required'}
+    row = dict(source='mode-order', id='hybrid', url='https://example.test/job',
+               title='Engineer', company='Example', location='Tel Aviv, Israel (Hybrid)', jd_text=raw_jd)
+    posting_id = persist_postings(connection, [row], '2026-10-05T03:00:00Z')[0]
+    expected = ('hybrid', 'location', None)
+    query = 'select work_mode,work_mode_source,remote from postings where id=%s'
+    assert connection.execute(query, (posting_id,)).fetchone() == expected
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(query, (posting_id,)).fetchone() == expected
+    persist_postings(connection, [row], '2026-10-05T03:01:00Z')
+    assert connection.execute(query, (posting_id,)).fetchone() == expected
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts, version='1.2'))
+    assert connection.execute(query, (posting_id,)).fetchone() == expected

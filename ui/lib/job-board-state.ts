@@ -35,40 +35,27 @@ export function updateJobStatus<T extends { id: string; status: string; status_r
   return jobs.map((job) => job.id === id ? { ...job, status, status_reason: statusReason } : job);
 }
 
+export type StatusMutation<S extends string = string> = { status: S; reason: string | null; remove: boolean };
+
+// Applies PATCH replies that landed while this snapshot was being read, so a read that
+// started before them cannot undo them (and nothing needs to be read again).
+export function reconcileStatusMutations<T extends { id: string; status: string; status_reason: string | null }>(
+  jobs: T[], mutations: ReadonlyMap<string, StatusMutation<T["status"]>>,
+): T[] {
+  if (mutations.size === 0) return jobs;
+  return jobs.flatMap((job) => {
+    const mutation = mutations.get(job.id);
+    if (!mutation) return [job];
+    return mutation.remove ? [] : [{ ...job, status: mutation.status, status_reason: mutation.reason }];
+  });
+}
+
 export function createRequestFence() {
   let generation = 0;
   return {
     capture: () => generation,
     invalidate: () => { generation += 1; },
     isCurrent: (candidate: number) => candidate === generation,
-  };
-}
-
-export function createListRefreshCoordinator() {
-  let requestPending = false;
-  let refreshQueued = false;
-  let reconnectPending = false;
-  return {
-    isRequestPending: () => requestPending,
-    beginRequest: () => { requestPending = true; },
-    cancelRequest: () => { requestPending = false; refreshQueued = false; },
-    requestRefresh: () => {
-      if (!requestPending) return true;
-      refreshQueued = true;
-      return false;
-    },
-    finishRequest: () => {
-      requestPending = false;
-      const shouldRefresh = refreshQueued;
-      refreshQueued = false;
-      return shouldRefresh;
-    },
-    markDisconnected: () => { reconnectPending = true; },
-    markReady: () => {
-      const shouldRefresh = reconnectPending;
-      reconnectPending = false;
-      return shouldRefresh;
-    },
   };
 }
 
@@ -112,13 +99,27 @@ export function uniqueJobsById<T extends { id: string }>(jobs: T[]): T[] {
   return unique.length === jobs.length ? jobs : unique;
 }
 
-export function retainVisitCohort<T extends { id: string }>(current: T[] | null, incoming: T[]): T[] {
+export function retainVisitCohort<T extends { id: string }>(current: T[] | null, incoming: T[], latest: T[] = []): T[] {
   const uniqueIncoming = uniqueJobsById(incoming);
   if (current === null) return uniqueIncoming;
   const uniqueCurrent = uniqueJobsById(current);
-  const incomingById = new Map(uniqueIncoming.map((job) => [job.id, job]));
+  const incomingById = new Map([...uniqueIncoming, ...latest].map((job) => [job.id, job]));
   const retainedIds = new Set(uniqueCurrent.map((job) => job.id));
   return uniqueCurrent
     .map((job) => incomingById.get(job.id) ?? job)
     .concat(uniqueIncoming.filter((job) => !retainedIds.has(job.id)));
+}
+
+// Hydrate excluded retained IDs independently of status/availability and list limits.
+// Errors propagate so the UI reports previous results rather than caching stale truth.
+export async function refreshVisitCohort<T extends { id: string }>(
+  current: T[] | null, incoming: T[], readByIds: (ids: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const incomingIds = new Set(incoming.map(job => job.id));
+  const missing = [...new Set(current?.filter(job => !incomingIds.has(job.id)).map(job => job.id))];
+  const latest: T[] = [];
+  for (let offset = 0; offset < missing.length; offset += 100) {
+    latest.push(...await readByIds(missing.slice(offset, offset + 100)));
+  }
+  return retainVisitCohort(current, incoming, latest);
 }

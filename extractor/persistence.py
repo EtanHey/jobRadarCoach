@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from scraper.annotate import location_mode, posting_mode
+
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
 import hashlib
@@ -85,13 +87,25 @@ def persist_extraction(
         ).fetchone()
         if current == payload.metadata():
             return "unchanged"
+        mode, mode_source = posting_mode({
+            "work_mode": location_mode(payload.facts["location"]["value"]),
+            "location": payload.facts["location"]["value"],
+            "remote": payload.facts["remote"]["value"],
+        })
         updated = connection.execute(
             "update public.postings set location = coalesce(%s, location), "
-            "remote = coalesce(%s, remote), seniority = coalesce(%s, seniority), "
+            "remote = case (case when work_mode_source in ('structured', 'location') then work_mode "
+            "else coalesce(%s, work_mode) end) when 'remote' then true when 'on-site' then false "
+            "when 'hybrid' then null else coalesce(%s, remote) end, "
+            "work_mode = case when work_mode_source in ('structured', 'location') then work_mode "
+            "else coalesce(%s, work_mode) end, "
+            "work_mode_source = case when work_mode_source in ('structured', 'location') then work_mode_source "
+            "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
             "salary = coalesce(%s, salary) where id = %s and raw_jd = %s returning id",
             (
-                payload.facts["location"]["value"], payload.facts["remote"]["value"],
+                payload.facts["location"]["value"], mode, payload.facts["remote"]["value"],
+                mode, "extracted" if mode_source else None,
                 payload.facts["seniority"]["value"],
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],

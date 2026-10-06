@@ -8,6 +8,7 @@ const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL
 
 export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "skipped", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
+export const WorkModeSchema = z.enum(["hybrid", "remote", "on-site"]);
 export const AvailabilitySchema = z.enum(["active", "inactive", "all"]);
 // PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
 // without restricting RFC version or variant bits. Match that database domain.
@@ -47,12 +48,14 @@ export const JobSummarySchema = z.object({
   extraction_state: z.enum(["not-extracted", "extracted"]),
   location: nullableText,
   remote: z.boolean().nullable(),
+  work_mode: WorkModeSchema.nullable().optional(),
   seniority: nullableText,
   stack: z.array(text),
   salary: nullableText,
   url: publicUrl,
   apply_url: publicUrl.nullable(),
   posted_at: nullableText,
+  last_published_at: nullableText.optional(),
   first_seen_at: text,
   status: JobStatusSchema,
   status_reason: nullableText,
@@ -76,7 +79,12 @@ export const JobListQuerySchema = z.object({
   filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),
   limit,
-}).strict();
+  ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
+  // Strictly-newer cursor for the board's new-roles poll.
+  since: z.iso.datetime({ offset: true }).optional(),
+}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since), {
+  message: "ID lookup requires all statuses and availability, without a cursor.",
+});
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);
 const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);

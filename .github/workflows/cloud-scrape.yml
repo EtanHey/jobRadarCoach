@@ -33,7 +33,7 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: python -m scraper.recheck --limit 60 --receipt recheck-receipt.json
+        run: python -m scraper.recheck --scope linkedin --limit 60 --receipt recheck-receipt.json
       - name: Backfill missing stored descriptions
         if: ${{ !cancelled() }}
         env:

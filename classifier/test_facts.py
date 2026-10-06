@@ -149,3 +149,8 @@ def test_hash_is_sha256_of_canonical_normalized_output():
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     assert facts.facts_sha256 == hashlib.sha256(encoded.encode("utf-8")).hexdigest()
     assert isinstance(facts, Facts)
+
+
+def test_structured_mode_beats_location_and_legacy_remote_in_scoring_facts():
+    assert normalize({'location': 'Israel (Remote)', 'remote': True, 'work_mode': 'hybrid'}).work_mode == 'hybrid'
+    assert normalize({'location': 'Israel (Hybrid)', 'remote': False, 'work_mode': 'on-site'}).work_mode == 'onsite'

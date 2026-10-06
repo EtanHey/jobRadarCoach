@@ -95,6 +95,36 @@ test("every sort mode orders duplicate groups by the displayed representative", 
   const ids = (sort: ViewOptions["sort"]) => filterJobGroups(rows, { ...options, location: "israel", sort }).map(({ job: row }) => row.id);
   assert.deepEqual(ids("fit"), [mid.id, junior.id, duplicateNewest.id]);
   assert.deepEqual(ids("found"), [duplicateNewest.id, junior.id, mid.id]);
-  assert.deepEqual(ids("posted"), [duplicateNewest.id, junior.id, mid.id]);
+  assert.deepEqual(ids("posted"), [junior.id, mid.id, duplicateNewest.id]);
   assert.deepEqual(ids("seniority"), [junior.id, mid.id, duplicateNewest.id]);
+});
+
+test("equal Best Fit scores prefer original publication, regardless of repost and discovery", () => {
+  const old = { ...job(50, 80), title: "Old", posted_at: "2026-09-01T00:00:00Z", last_published_at: "2026-10-04T00:00:00Z", first_seen_at: "2026-10-04T00:00:00Z" };
+  const recent = { ...job(51, 80), title: "Recent", posted_at: "2026-10-01T00:00:00Z", first_seen_at: "2026-10-02T00:00:00Z" };
+  for (const rows of [[old, recent], [recent, old]]) {
+    assert.deepEqual(filterJobs(rows, options).map(row => row.id), [recent.id, old.id]);
+    assert.deepEqual(filterJobGroups(rows, options).map(({job: row}) => row.id), [recent.id, old.id]);
+  }
+});
+
+test("Best Fit falls back to discovery only for missing publication and finally sorts by id", () => {
+  const known = { ...job(60, 80), posted_at: "2026-10-02T00:00:00Z", first_seen_at: "2026-10-04T00:00:00Z" };
+  const unknown = { ...job(61, 80), first_seen_at: "2026-10-03T00:00:00Z" };
+  const tie = { ...job(62, 80), posted_at: known.posted_at, first_seen_at: "2026-10-05T00:00:00Z" };
+  assert.deepEqual(filterJobs([tie, known, unknown], options).map(row => row.id), [unknown.id, known.id, tie.id]);
+});
+
+test("hybrid is a distinct contract and filter value, preserving legacy remote fallback", () => {
+  const rows = [JobSummarySchema.parse({...job(51,null), work_mode:"hybrid"}),
+    {...job(52,null),remote:true}, {...job(53,null),remote:false}, job(54,null)];
+  assert.deepEqual(filterJobs(rows,{...options,work_mode:"hybrid"}).map(row=>row.id),[rows[0].id]);
+  assert.deepEqual(filterJobs(rows,{...options,work_mode:"remote"}).map(row=>row.id),[rows[1].id]);
+  assert.deepEqual(filterJobs(rows,{...options,work_mode:"on-site"}).map(row=>row.id),[rows[2].id]);
+  assert.equal(JobSummarySchema.safeParse({...job(55,null),work_mode:"maybe"}).success,false);
+});
+
+test("explicit work mode takes precedence over a restored legacy boolean", () => {
+  const hybrid = JobSummarySchema.parse({...job(56,null),work_mode:"hybrid"});
+  assert.deepEqual(filterJobs([hybrid],{...options,remote:true,work_mode:"hybrid"}),[hybrid]);
 });

@@ -6,7 +6,7 @@ import type { PipelineStatus } from "./job-status";
 export type JobSort = "found" | "posted" | "fit" | "seniority";
 export type LocationFilter = "" | "israel" | "united-states" | "other";
 export type LocationGroup = Exclude<LocationFilter, ""> | "unknown";
-export type ViewOptions = { remote?: boolean; search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
+export type ViewOptions = { work_mode?: "hybrid" | "remote" | "on-site"; remote?: boolean; search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
 export const levelOrder = ["Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"];
 export function sourceFilterValues(jobs: Pick<JobSummary, "source">[], selected: string): string[] {
   return [...new Set([...jobs.map((job) => job.source), ...(selected ? [selected] : [])])].sort();
@@ -53,7 +53,8 @@ function matchesView(job: JobSummary, options: ViewOptions, needle: string): boo
   return (
     (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
     (!options.source || job.source === options.source) &&
-    (options.remote === undefined || job.remote === options.remote) &&
+    (options.work_mode || options.remote === undefined || job.remote === options.remote) &&
+    (!options.work_mode || (job.work_mode ?? (job.remote === true ? "remote" : job.remote === false ? "on-site" : null)) === options.work_mode) &&
     (!options.location || locationGroup(job.location) === options.location) &&
     (!options.seniority || (options.seniority === "non-senior" ? !["Senior", "Lead / Manager", "Staff / Principal"].includes(levelGroup(job.seniority)) : levelGroup(job.seniority) === options.seniority)) &&
     (options.statuses.length === 0 || options.statuses.includes(job.status as PipelineStatus)) &&
@@ -61,7 +62,9 @@ function matchesView(job: JobSummary, options: ViewOptions, needle: string): boo
   );
 }
 function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
-    if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1) || timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
+    if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1)
+      || timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at)
+      || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     if (sort === "seniority") return levelOrder.indexOf(levelGroup(a.seniority)) - levelOrder.indexOf(levelGroup(b.seniority)) || a.title.localeCompare(b.title);
     if (sort === "posted") return timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at);
     return timestamp(b.first_seen_at) - timestamp(a.first_seen_at);

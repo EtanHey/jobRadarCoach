@@ -129,7 +129,7 @@ GUEST_SEARCH_ENDPOINT = (
 )
 GUEST_JOB_ENDPOINT = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting"
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
-SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable")
+SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters", "workday")
 NATIVE_ATS_SOURCES = frozenset(SOURCE_ORDER[1:])
 PostingIdentity = tuple[str, str]
 STAFFING_COMPANIES = frozenset(
@@ -147,11 +147,14 @@ STAFFING_SIGNAL_PATTERN = re.compile(
     re.I,
 )
 SOURCE_LABELS = {
+    "ashby": "Ashby",
+    "smartrecruiters": "SmartRecruiters",
     "linkedin": "LinkedIn",
     "comeet": "Comeet",
     "greenhouse": "Greenhouse",
     "lever": "Lever",
     "workable": "Workable",
+    "workday": "Workday",
 }
 OUTPUT_FIELDS = (
     "id",
@@ -361,8 +364,18 @@ class _LinkedInCardParser(HTMLParser):
 
         for class_name, field in self.FIELD_CLASSES.items():
             if class_name in classes:
-                self.captures.append((tag, field))
+                self._capture_field(tag, field, attributes)
                 break
+
+    def _capture_field(self, tag: str, field: str, attributes: dict[str, str]) -> None:
+        self.captures.append((tag, field))
+        if tag == "time" and field == "posted_ago":
+            try:
+                published = date.fromisoformat(attributes.get("datetime", ""))
+            except ValueError:
+                return  # Relative ages are not invented publication dates.
+            assert self.card is not None
+            self.card["posted_at"] = f"{published.isoformat()}T00:00:00Z"
 
     def handle_data(self, data: str) -> None:
         if self.card is None or not self.captures or not data.strip():
@@ -397,6 +410,8 @@ class _LinkedInCardParser(HTMLParser):
             "url": str(self.card.get("url", "")),
             "posted_ago": fields.get("posted_ago", ""),
         }
+        if self.card.get("posted_at"):
+            posting["posted_at"] = str(self.card["posted_at"])
         visible = [
             posting["title"],
             posting["company"],
@@ -916,10 +931,13 @@ def apply_liveness_checks(
     cache: dict[str, dict[str, object]] = {}
     for posting in postings:
         result = dict(posting)
+        if _posting_source(result) in {"ashby", "smartrecruiters"}:
+            checked.append(result)
+            continue
         url = str(posting.get("url", ""))
         try:
             if url not in cache:
-                cache[url] = checker(posting)
+                cache[url] = posting if posting.get("liveness_reason") == "workday-active-list" else checker(posting)
             evidence = cache[url]
             if not isinstance(evidence, dict) or "alive" not in evidence:
                 raise ValueError("liveness checker returned an invalid result")
@@ -1252,7 +1270,7 @@ def harvest_sources(
                     "fetcher": fetcher,
                     "before_request": before_request,
                 }
-                if name == "workable" and posting_filter is not None:
+                if name in {"workable", "smartrecruiters", "workday"} and posting_filter is not None:
                     def counted_filter(posting):
                         nonlocal prefilter_count
                         prefilter_count += 1
@@ -1496,13 +1514,16 @@ def fetch_html(
     url: str,
     *,
     opener: Callable[..., object] = urlopen,
+    data: bytes | None = None,
     sleep: Callable[[float], None] = time.sleep,
     backoffs: tuple[float, ...] = (1.0, 2.0),
     timeout: int = 20,
 ) -> str | None:
     """Fetch one guest page with a bounded retry budget and no credentials."""
 
-    request = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
+    request = Request(url, data=data, headers={"User-Agent": USER_AGENT,
+        "Accept": "application/json" if data is not None or "/wday/cxs/" in url else "text/html",
+        **({"Content-Type": "application/json"} if data is not None else {})})
     attempts = len(backoffs) + 1
     for attempt in range(attempts):
         try:

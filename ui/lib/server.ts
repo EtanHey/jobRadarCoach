@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -36,18 +36,18 @@ const rawBaseSchema = z.object({
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
   posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
-  remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
+  work_mode: WorkModeSchema.nullable().optional(), remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),
-  posted_at: z.string().nullable(), first_seen_at: z.string(),
+  posted_at: z.string().nullable(), last_published_at: z.string().nullable().default(null), first_seen_at: z.string(),
   posting_status: z.object({ status: z.string(), reason: z.string().nullable() }).nullable(),
 });
 const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSchema.nullable() });
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -101,7 +101,10 @@ export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidR
   return { jobs: rows.map(summary), invalidRowCount: 0 };
 }
 
-async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
+export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
+  if (input.ids) {
+    return parseSummaryRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
+  }
   if (input.filter === "new-for-me") {
     const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
       db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
@@ -115,6 +118,7 @@ async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise
       const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
       fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
     }
+    if (input.since) fresh = fresh.gt("first_seen_at", input.since);
     fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
     return parseSummaryRows(await data(fresh)).jobs;
   }
@@ -123,6 +127,7 @@ async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
+  if (input.since) query = query.gt("first_seen_at", input.since);
   query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   return parseSummaryRows(await data(query)).jobs;
 }

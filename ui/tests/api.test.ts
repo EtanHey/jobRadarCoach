@@ -8,7 +8,7 @@ import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
 import { JobIdSchema, JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
 import { HttpError } from "../lib/http";
 import type { ApiStore } from "../lib/server";
-import { availabilityPredicate, parseSummaryRows } from "../lib/server";
+import { availabilityPredicate, parseSummaryRows, selectSummaries } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
 const summary: JobSummary = {
@@ -128,6 +128,7 @@ test("unknown and malformed liveness remain visible as unknown summary data", ()
     posting_status: null, posting_scores: null,
   };
   assert.equal(parseSummaryRows([raw]).jobs[0].alive, null);
+  assert.equal(parseSummaryRows([{ ...raw, work_mode: "hybrid" }]).jobs[0].work_mode, "hybrid");
   assert.equal(parseSummaryRows([{ ...raw, liveness: { alive: "false" } }]).jobs[0].alive, null);
 });
 
@@ -317,4 +318,79 @@ test("automatic seen intent is distinct from explicit backward edits", async () 
     assert.equal((await handler(mutation(`/api/jobs/${ID}/status`,body),{params:Promise.resolve({id:ID})})).status,200);
   }
   assert.deepEqual(inputs,[{posting_id:ID,status:"seen",automatic:true},{posting_id:ID,status:"seen"}]);
+});
+
+test("summary projection preserves original, latest publication and discovery separately", () => {
+  const raw = { ...summary, raw_jd: null, liveness: {}, posting_extractions: null,
+    posted_at: "2026-09-01T00:00:00Z", last_published_at: "2026-10-01T00:00:00Z",
+    posting_status: null, posting_scores: null };
+  const row = parseSummaryRows([raw]).jobs[0];
+  assert.equal(row.posted_at, raw.posted_at);
+  assert.equal((row as unknown as Record<string, unknown>).last_published_at, raw.last_published_at);
+  assert.equal(row.first_seen_at, raw.first_seen_at);
+});
+
+test("ID lookup validates and bounds IDs and requires an unfiltered availability set", async () => {
+  let received: unknown;
+  const handler = makeGetJobs(store({ listJobs: query => { received = query; return Promise.resolve([{ ...summary, status: "applied", alive: false }]); } }));
+  const response = await handler(new Request(`http://localhost/api/jobs?filter=all&availability=all&limit=100&ids=${ID}`));
+  assert.equal(response.status, 200);
+  assert.deepEqual(received, { filter: "all", availability: "all", limit: 100, ids: [ID] });
+  assert.equal((await response.json()).jobs[0].status, "applied");
+  for (const query of ["ids=bad", "ids=", `ids=${Array(101).fill(ID).join(",")}`, `ids=${ID}&filter=new-for-me&availability=all`, `ids=${ID}&filter=all&availability=active`]) {
+    assert.equal((await handler(new Request(`http://localhost/api/jobs?${query}`))).status, 400);
+  }
+});
+
+
+test("summary ID lookup queries postings by ID without status, availability or visit exclusions", async () => {
+  const calls: unknown[] = [];
+  const query = {
+    select(columns: string) { assert.ok(!columns.includes("!inner")); return this; },
+    in(column: string, ids: string[]) { calls.push([column, ids]); return this; },
+    limit(count: number) { calls.push(count); return Promise.resolve({ data: [], error: null }); },
+  };
+  const db = { from(table: string) { assert.equal(table, "postings"); return query; } };
+  await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter: "all", availability: "all", limit: 100, ids: [ID] });
+  assert.deepEqual(calls, [["id", [ID]], 100]);
+});
+
+
+test("the list accepts a strictly-newer cursor for the new-roles poll", async () => {
+  const received: unknown[] = [];
+  const handler = makeGetJobs(store({ listJobs: (query) => { received.push(query); return Promise.resolve([summary]); } }));
+  const since = "2026-10-05T10:00:00.123456+00:00";
+  const response = await handler(new Request(`http://localhost/api/jobs?${new URLSearchParams({ filter: "new-for-me", availability: "all", limit: "101", since })}`));
+  assert.equal(response.status, 200);
+  assert.deepEqual(received, [{ filter: "new-for-me", availability: "all", limit: 101, since }]);
+  for (const query of ["since=yesterday", `since=${encodeURIComponent(since)}&filter=all&availability=all&ids=${ID}`]) {
+    assert.equal((await handler(new Request(`http://localhost/api/jobs?${query}`))).status, 400, query);
+  }
+  assert.equal(received.length, 1);
+});
+
+test("the cursor narrows the list query with the list's own filters, ordering and limit", async () => {
+  const since = "2026-10-05T10:00:00.123456+00:00";
+  for (const [filter, statusFilter] of [["all", null], ["applied", "applied"]] as const) {
+    const calls: unknown[] = [];
+    const query = {
+      select(selected: string) { calls.push(["select", selected.includes("posting_status!inner(") ? "inner" : "left"]); return this; },
+      eq(column: string, value: unknown) { calls.push(["eq", column, value]); return this; },
+      or(value: string) { calls.push(["or", value]); return this; },
+      gt(column: string, value: string) { calls.push(["gt", column, value]); return this; },
+      order(column: string, options?: unknown) { calls.push(["order", column, options ?? null]); return this; },
+      limit(count: number) { calls.push(["limit", count]); return Promise.resolve({ data: [], error: null }); },
+    };
+    const db = { from(table: string) { assert.equal(table, "postings"); return query; } };
+    await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter, availability: "active", limit: 101, since });
+    assert.deepEqual(calls, [
+      ["select", statusFilter ? "inner" : "left"],
+      ...(statusFilter ? [["eq", "posting_status.status", statusFilter]] : []),
+      ["or", "liveness->alive.neq.false,liveness->alive.is.null"],
+      ["gt", "first_seen_at", since],
+      ["order", "first_seen_at", { ascending: false }],
+      ["order", "id", null],
+      ["limit", 101],
+    ]);
+  }
 });

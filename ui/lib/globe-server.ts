@@ -22,7 +22,6 @@ export function getGlobeStore(db: SupabaseClient = client()): GlobeStore {
 export async function globeResponse(store: GlobeStore, input: GlobeQuery): Promise<GlobeResponse> {
   const snapshot = await store.snapshot(input);
   const jobs = filterJobs(snapshot.jobs, input).filter((job) =>
-    (input.remote === undefined || job.remote === input.remote) &&
     (input.min_score === undefined || (job.score !== null && job.score >= input.min_score)));
   const ids = new Set(jobs.map((job) => job.id));
   if (ids.size !== jobs.length) throw new HttpError(503, "Invalid geographic snapshot.");
