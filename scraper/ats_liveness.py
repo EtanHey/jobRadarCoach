@@ -279,15 +279,36 @@ def greenhouse_canonical_url(posting):
     return f"https://{host}/{tenant}/jobs/{job}"
 
 
+def _greenhouse_error_redirect(posting, url, final_url):
+    original, final = urlparse(url), urlparse(final_url)
+    return (final.scheme == "https"
+            and final.netloc.lower() == original.netloc.lower()
+            and final.path.rstrip("/") == "/" + _stored_identity(posting)[1]
+            and parse_qs(final.query, keep_blank_values=True) == {"error": ["true"]})
+
+
+def _posting_request(url):
+    parsed = urlparse(url)
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+            or parsed.password or parsed.port not in (None, 443)):
+        raise ValueError("invalid posting URL")
+    return Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+
+
+def _posting_redirect_gone(posting, url, status, final_url, canonical):
+    try:
+        if canonical:
+            return status == 302 and _greenhouse_error_redirect(posting, url, final_url)
+        return _generic_careers_redirect(posting, final_url)
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
 def _check_posting_url(posting, url, *, canonical=False):
     """One pinned request; canonical Greenhouse responses have a stricter gate."""
     status, alive, reason, final_url = None, None, "posting-url-unknown", url
     try:
-        parsed = urlparse(url)
-        if (parsed.scheme != "https" or not parsed.hostname or parsed.username
-                or parsed.password or parsed.port not in (None, 443)):
-            raise ValueError("invalid posting URL")
-        request = Request(url, headers={"User-Agent": USER_AGENT}, method="GET")
+        request = _posting_request(url)
         with pinned_open(request, timeout=10) as response:
             status = response.getcode()
     except HTTPError as error:
@@ -296,19 +317,8 @@ def _check_posting_url(posting, url, *, canonical=False):
             alive, reason = False, f"http-{status}"
         elif status in REDIRECT_CODES:
             final_url = urljoin(url, error.headers.get("Location", ""))
-            try:
-                if canonical:
-                    original, final = urlparse(url), urlparse(final_url)
-                    gone = (status == 302 and final.scheme == "https"
-                            and final.netloc.lower() == original.netloc.lower()
-                            and final.path.rstrip("/") == "/" + _stored_identity(posting)[1]
-                            and parse_qs(final.query, keep_blank_values=True) == {"error": ["true"]})
-                else:
-                    gone = _generic_careers_redirect(posting, final_url)
-                if gone:
-                    alive, reason = False, "ats-generic-careers-redirect"
-            except (ValueError, KeyError, TypeError):
-                pass
+            if _posting_redirect_gone(posting, url, status, final_url, canonical):
+                alive, reason = False, "ats-generic-careers-redirect"
     except (OSError, ValueError, KeyError, TypeError):
         pass
     return {"alive": alive, "liveness_status": status, "liveness_reason": reason,
@@ -322,10 +332,8 @@ def check_posting_url(posting):
     canonical_url = None
     if posting["source"] == "greenhouse":
         try:
+            _posting_request(url)
             parsed = urlparse(url)
-            if (parsed.scheme != "https" or not parsed.hostname or parsed.username
-                    or parsed.password or parsed.port not in (None, 443)):
-                raise ValueError("invalid posting URL")
             try:
                 address = ipaddress.ip_address(parsed.hostname)
             except ValueError:

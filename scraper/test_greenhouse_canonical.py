@@ -8,9 +8,10 @@ from scraper import ats_liveness as module
 
 
 class Response:
+    def __init__(self): self.status = 200
     def __enter__(self): return self
-    def __exit__(self, *_): pass
-    def getcode(self): return 200
+    def __exit__(self, *_): return False
+    def getcode(self): return self.status
 
 
 def row(url='https://careers.acme.example/jobs/1', **fields):
