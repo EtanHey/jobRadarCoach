@@ -64,7 +64,7 @@ test("HQ source must carry HTTPS evidence and a provider object", async () => {
 
 
 test("one RPC fixes deletion/reordering and new-for-me cutoff for the entire request", async () => {
-  const raw = jobs.slice(0, 4).map(j => ({ ...j, raw_jd: null, liveness: null,
+  const raw = jobs.slice(0, 4).map(j => ({ ...j, list_metadata: {stack: [], experience: null, description_available: false}, liveness: null,
     posting_status: {status: "new", reason: null}, posting_scores: null, posting_extractions: null }));
   let calls = 0;
   const db = { rpc: async (name: string, args: unknown) => {

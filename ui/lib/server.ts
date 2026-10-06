@@ -8,7 +8,7 @@ import {
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
-import { postingUrl, titleSeniority, experiencePhrase, technologyMentions } from "./job-metadata";
+import { postingUrl, titleSeniority } from "./job-metadata";
 import { HttpError } from "./http";
 
 export interface ApiStore {
@@ -32,7 +32,8 @@ const scoreSchema = summaryScoreSchema.extend({
   score_payload: z.unknown().nullable(), scored_at: z.string(),
 });
 const rawBaseSchema = z.object({
-  source: z.string(), last_seen_at: z.string(), raw_jd: z.string().nullable(),
+  source: z.string(), last_seen_at: z.string(),
+  list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
   posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
@@ -42,12 +43,12 @@ const rawBaseSchema = z.object({
   posting_status: z.object({ status: z.string(), reason: z.string().nullable() }).nullable(),
 });
 const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSchema.nullable() });
-const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
+const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "source,last_seen_at,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -71,17 +72,17 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 
 function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const base = checked(rawSummarySchema, row);
-  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, raw_jd, ...posting } = base;
+  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, list_metadata, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   const payload = score?.score_payload;
   const fit = payload && typeof payload === "object" ? payload : null;
   return checked(JobSummarySchema, {
     ...posting, url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
-    stack: posting.stack.length ? posting.stack : technologyMentions(raw_jd),
+    stack: posting.stack.length ? posting.stack : list_metadata.stack,
     seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
-    description_available: Boolean(raw_jd?.trim()),
-    experience: experiencePhrase(raw_jd), extraction_state: extraction ? "extracted" : "not-extracted",
+    description_available: list_metadata.description_available,
+    experience: list_metadata.experience, extraction_state: extraction ? "extracted" : "not-extracted",
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
     score: score?.score ?? null,
     fit_line: fit && "fit_line" in fit ? fit.fit_line : null,

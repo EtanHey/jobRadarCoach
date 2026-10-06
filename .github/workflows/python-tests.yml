@@ -23,6 +23,7 @@ jobs:
       JOBRADAR_REQUIRE_PG17: "1"
       JOBRADAR_RUN_OLLAMA_LIVE: "0"
       JOBRADAR_RUN_EXTRACTION_LIVE: "0"
+      JOBRADAR_REQUIRE_LIST_DB: "1"
     services:
       postgres:
         image: postgres:17-bookworm
@@ -42,6 +43,19 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
+      - name: Set up Node for the DB-backed UI list contract
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+      - name: Install UI test dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix ui
+      - name: Install pinned disposable PostgREST
+        run: |
+          curl --fail --location --retry 3 https://github.com/PostgREST/postgrest/releases/download/v16.4/postgrest-v16.4-linux-static-x86-64.tar.xz -o "$RUNNER_TEMP/postgrest.tar.xz"
+          echo "b47ecc82fce1dcebbbc4183d839e52f07f7630c9d7ad0f54db753d1939299354  $RUNNER_TEMP/postgrest.tar.xz" | sha256sum --check
+          tar -xf "$RUNNER_TEMP/postgrest.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/postgrest" --version
+          echo "JOBRADAR_POSTGREST_BIN=$RUNNER_TEMP/postgrest" >> "$GITHUB_ENV"
       - name: Set up uv and Python
         uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
