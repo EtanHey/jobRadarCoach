@@ -177,14 +177,10 @@ def test_remote_url_skips_embedding_but_preserves_scoring(monkeypatch, tmp_path,
                for record in records) == 1
 
 
-def test_launcher_uses_native_credential_boundary_without_secret_in_argv() -> None:
-    launcher = (Path(__file__).parent / "run_local_analysis.sh").read_text()
+def test_supervisor_uses_native_credential_boundary_without_env_file() -> None:
     supervisor = (Path(__file__).parent / "local_analysis_supervisor.py").read_text()
-    assert "scripts.local_analysis_supervisor" in launcher
     assert '"run"' in supervisor
     assert '"--env-file"' not in supervisor
-    assert "DATABASE_URL" not in launcher
-    assert "PGPASSWORD" not in launcher
 
 
 @pytest.fixture(scope="module")

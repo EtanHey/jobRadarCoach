@@ -195,11 +195,13 @@ BRAIN=codex python3 -m classifier.job --limit 10 --timeout-seconds 120
 `BRAIN=ollama` is also implemented. Both jobs validate structured model output
 before persistence and return nonzero on failed work.
 
-For unattended pickup, `scripts/run_local_analysis.sh` uses the 1Password env
-and launchd templates under `docs/`. It pins Luna extraction and Terra scoring,
-uses expiring leases and bounded backoff, and appends redacted JSONL receipts.
-After wake it resumes rows lacking validated results; loading the plist is a
-separate operator action.
+For unattended pickup, the installed `jrc-analysis-supervisor` entry point uses
+the [launchd template](com.jobradarcoach.local-analysis.plist.example). The
+supervisor acquires credentials through `JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER`
+before starting the worker. It pins Luna extraction and Terra scoring, uses
+expiring leases and bounded backoff, and appends redacted JSONL receipts.
+After wake it resumes rows lacking validated results; installing the package
+and loading the plist are separate operator actions.
 
 Only the explicitly selected safe professional projection may enter a model
 request. People, connectors, prohibited-claim lists, private paths, and nested
