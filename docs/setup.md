@@ -165,12 +165,6 @@ Configure the GitHub Actions secret `DATABASE_URL` for the hosted database.
 The default schedule does not require a Supabase-to-GitHub personal access
 token.
 
-The Supabase Cron package in
-[`supabase/scheduling/cloud_scrape`](../supabase/scheduling/cloud_scrape/README.md)
-is retained only as an optional alternative dispatcher. Never enable it while
-the native GitHub schedule is active, because both schedulers would request the
-same workflow.
-
 Scheduled GitHub runs are best effort: high load can delay them and queued jobs
 can be dropped. GitHub automatically disables scheduled workflows in a public
 repository after 60 days without repository activity. The off-hour `:17` start
@@ -211,12 +205,10 @@ Run the affected suites before proposing a change:
 
 ```zsh
 python3 -m pytest -q scraper extractor classifier \
-  supabase/scheduling/cloud_scrape/test_schedule.py \
   scripts/test_check_private_files.py scripts/test_local_analysis.py
 python3 -m ruff check \
   --per-file-ignores 'extractor/test_persistence.py:E402' \
   scraper extractor classifier \
-  supabase/scheduling/cloud_scrape/test_schedule.py \
   scripts/check_private_files.py scripts/test_check_private_files.py \
   scripts/local_analysis.py scripts/test_local_analysis.py
 npm --prefix ui run test
