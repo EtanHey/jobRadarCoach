@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import { focusManager, QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flushSync } from "react-dom";
 import dynamic from "next/dynamic";
 import { GlobeBoundary } from "./globe-boundary";
@@ -43,6 +43,14 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
   }
   return response.json();
 }
+
+// TanStack v5 defaults to visibilitychange; preserve the board's window-focus contract too.
+if (typeof window !== "undefined") focusManager.setEventListener(handleFocus => {
+  const focus = () => handleFocus();
+  window.addEventListener("focus", focus);
+  document.addEventListener("visibilitychange", focus);
+  return () => { window.removeEventListener("focus", focus); document.removeEventListener("visibilitychange", focus); };
+});
 
 const JobGlobe = dynamic(() => import("./job-globe"), { ssr: false });
 
@@ -168,8 +176,13 @@ function Board() {
   const newRoles = useNewRoles(preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff);
   const newRoleCount = useMemo(() => countNewRoleCards(jobs, newRoles.jobs, view), [jobs, newRoles.jobs, view]);
   const refetchList = listQuery.refetch;
-  const invalidateListCache = useCallback(() => { statusMutationsRef.current.clear(); client.removeQueries({ queryKey: ["board-list"], type: "inactive" }); }, [client]);
-  const requestRefresh = useCallback(() => { invalidateListCache(); void refetchList(); setRevision(value => value + 1); }, [invalidateListCache, refetchList]);
+  const requestRefresh = useCallback(() => {
+    statusMutationsRef.current.clear();
+    client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
+    void client.invalidateQueries({ queryKey: ["board-list"], type: "active", refetchType: "none" });
+    void refetchList();
+    setRevision(value => value + 1);
+  }, [client, refetchList]);
   const settleListAfterStatus = useCallback((id: string, result: StatusResult, remove: boolean) => {
     client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
     if (client.isFetching({ queryKey: ["board-list"] })) statusMutationsRef.current.set(id, { status: result.status, reason: result.reason, remove });

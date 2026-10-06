@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { JobSummary } from "../lib/contracts";
 import { reconcileStatusMutations } from "../lib/job-board-state";
 import { defaultBoardPreferences } from "../lib/job-board-preferences";
-import { countNewRoleCards, createNewRolesPollGate, NEW_ROLES_LIMIT, NEW_ROLES_MIN_GAP_MS, NEW_ROLES_POLL_MS, newRolesNotice, newRolesRequestPath, newRolesSince } from "../lib/new-roles";
+import { countNewRoleCards, NEW_ROLES_LIMIT, newRolesNotice, newRolesRequestPath, newRolesSince } from "../lib/new-roles";
 
 test("the cutoff is the newest loaded first_seen_at, verbatim, so the newest loaded role is never counted as new", () => {
   const jobs = [
@@ -25,17 +25,6 @@ test("the poll asks the list endpoint for a bounded page of roles newer than the
   const url = new URL(path, "http://localhost");
   assert.equal(url.pathname, "/api/jobs");
   assert.deepEqual(Object.fromEntries(url.searchParams), { filter: "new-for-me", availability: "active", limit: String(NEW_ROLES_LIMIT + 1), since: "2026-10-05T10:00:00.123456+00:00" });
-});
-
-test("the poll is cheap: every 90s, and focus or visibility polls only after a quiet gap", () => {
-  assert.equal(NEW_ROLES_POLL_MS, 90_000);
-  const gate = createNewRolesPollGate();
-  gate.reset(1_000);
-  assert.equal(gate.shouldPoll(1_000 + NEW_ROLES_MIN_GAP_MS - 1, false), false, "a list that just loaded is fresh");
-  assert.equal(gate.shouldPoll(1_000 + NEW_ROLES_MIN_GAP_MS, false), true);
-  assert.equal(gate.shouldPoll(1_000 + NEW_ROLES_MIN_GAP_MS + 1, false), false, "focus right after a poll does not poll again");
-  assert.equal(gate.shouldPoll(1_000 + NEW_ROLES_POLL_MS, true), false, "a hidden tab never polls");
-  assert.equal(gate.shouldPoll(1_000 + NEW_ROLES_POLL_MS, false), true);
 });
 
 test("the notice is singular for one role, marks a truncated page, and is absent when nothing is new", () => {

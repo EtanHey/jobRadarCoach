@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
+    "test": "node --conditions=react-server --import tsx --test tests/*.test.ts && node --import tsx --test tests/client/*.test.ts",
     "test:auth-browser": "node --import tsx --test browser-tests/*.test.ts",
     "predev": "node scripts/build-map-worker.mjs",
     "prebuild": "node scripts/build-map-worker.mjs",

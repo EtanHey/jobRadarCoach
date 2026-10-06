@@ -34,18 +34,6 @@ export function countNewRoleCards(current: JobSummary[], incoming: JobSummary[],
     .filter(group => ![group.job, ...group.alternates].some(job => visible.has(job.id))).length;
 }
 
-export function createNewRolesPollGate(minGapMs = NEW_ROLES_MIN_GAP_MS) {
-  let last = 0;
-  return {
-    reset(now: number) { last = now; },
-    shouldPoll(now: number, hidden: boolean) {
-      if (hidden || now - last < minGapMs) return false;
-      last = now;
-      return true;
-    },
-  };
-}
-
 // A truncated page only samples the newest postings, so zero visible matches there is not
 // zero arrivals: offer Show without claiming a number.
 export function newRolesNotice(count: number, truncated: boolean): string | null {

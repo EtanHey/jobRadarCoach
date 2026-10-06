@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { QueryClient } from "@tanstack/query-core";
-import { boardListKey } from "../lib/job-board-query";
+import { QueryClient } from "@tanstack/react-query";
+import { boardListKey } from "../../lib/job-board-query";
 
 test("list queries isolate filter and availability and reuse their cached response", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
