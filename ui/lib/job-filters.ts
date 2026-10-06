@@ -61,7 +61,9 @@ function matchesView(job: JobSummary, options: ViewOptions, needle: string): boo
   );
 }
 function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
-    if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1) || timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
+    if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1)
+      || timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at)
+      || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     if (sort === "seniority") return levelOrder.indexOf(levelGroup(a.seniority)) - levelOrder.indexOf(levelGroup(b.seniority)) || a.title.localeCompare(b.title);
     if (sort === "posted") return timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at);
     return timestamp(b.first_seen_at) - timestamp(a.first_seen_at);

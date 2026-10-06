@@ -251,6 +251,11 @@
             "name": "pipeline_status",
             "type": "text",
             "order": 31
+          },
+          {
+            "name": "last_published_at",
+            "type": "timestamp with time zone",
+            "order": 32
           }
         ]
       }
@@ -516,6 +521,11 @@
             "name": "scored_at",
             "type": "timestamp with time zone",
             "order": 36
+          },
+          {
+            "name": "last_published_at",
+            "type": "timestamp with time zone",
+            "order": 37
           }
         ]
       }
