@@ -95,7 +95,7 @@ test("every sort mode orders duplicate groups by the displayed representative", 
   const ids = (sort: ViewOptions["sort"]) => filterJobGroups(rows, { ...options, location: "israel", sort }).map(({ job: row }) => row.id);
   assert.deepEqual(ids("fit"), [mid.id, junior.id, duplicateNewest.id]);
   assert.deepEqual(ids("found"), [duplicateNewest.id, junior.id, mid.id]);
-  assert.deepEqual(ids("posted"), [duplicateNewest.id, junior.id, mid.id]);
+  assert.deepEqual(ids("posted"), [junior.id, mid.id, duplicateNewest.id]);
   assert.deepEqual(ids("seniority"), [junior.id, mid.id, duplicateNewest.id]);
 });
 

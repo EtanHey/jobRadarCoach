@@ -81,6 +81,8 @@ export function JobBoard() {
   const patchGlobeStatus = globe.patchStatus;
   const globeActive = globeOpen && !globe.failure;
   const displayJobs = globeActive && globe.data ? globe.data.jobs : jobs;
+  const relatedId = selected ?? detail?.id;
+  const relatedJobs = useMemo(() => relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [], [displayJobs, relatedId, detail]);
   const groups = useMemo(() => filterJobGroups(displayJobs, view), [displayJobs, view]);
   const points = useMemo(() => globePoints(groups, globe.data?.points ?? []), [groups, globe.data]);
   const positionKey = useMemo(() => globe.data?.points.map(point => `${point.posting_id}:${point.lng}:${point.lat}`).sort().join("|") ?? "", [globe.data]);
@@ -410,8 +412,6 @@ export function JobBoard() {
     <main className="grid min-h-[35rem] place-items-center px-4 py-16"><p role="status" className="text-sm text-muted-foreground">Restoring saved view…</p></main>
   </div>;
 
-  const relatedId = selected ?? detail?.id;
-  const relatedJobs = relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [];
   const sortLabel = {found: "Recently found", posted: "Posted date · found when unknown", fit: "Best fit first", seniority: "Junior first · unknown last"}[view.sort];
 
   const globeToggle = <Button variant={globeActive ? "default" : "outline"} className={`size-10 p-0 ${globeActive ? "shadow-[inset_0_0_0_2px_color-mix(in_oklch,var(--primary-foreground)_35%,transparent)]" : ""}`} aria-label="Globe" title="Globe" aria-pressed={globeActive} onClick={toggleGlobe}><Globe aria-hidden="true" /></Button>;

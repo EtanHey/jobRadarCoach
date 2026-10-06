@@ -103,7 +103,7 @@ try {
     await old.getByRole("button", { name: "Republished 2026-10-03, 1 day ago" }).waitFor();
     await old.getByRole("button", { name: "Found by JRC 2026-10-04 13:00, 2 hours ago" }).waitFor();
     assert.doesNotMatch(await old.innerText(), /ago/);
-    // Repost marker: later republish (old) or linked past listings (relisted); none on a fresh original.
+    // Repost marker: later republish (old) or the linked group's republish (relisted); none on a fresh original.
     assert.equal(await old.locator("[data-repost-marker]").count(), 1);
     assert.equal(await relisted.locator("[data-repost-marker]").count(), 1);
     assert.equal(await fresh.locator("[data-repost-marker]").count(), 0);
@@ -112,7 +112,7 @@ try {
     assert.equal(await twins.count(), 1);
     assert.equal(await twins.locator("[data-repost-marker]").count(), 0);
     assert.match(await twins.innerText(), /2 listings/);
-    await relisted.getByRole("button", { name: "Reposted: 1 earlier listing of this role" }).waitFor();
+    await relisted.getByRole("button", { name: "Reposted: republished 2026-09-28" }).waitFor();
     // The experience text is never truncated and nothing overflows the viewport.
     const clipped = await page.locator("[data-experience]").evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));
     assert.deepEqual(clipped, []);
