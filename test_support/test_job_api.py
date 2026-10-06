@@ -70,8 +70,7 @@ def test_job_api_search_count_detail_and_security_contract() -> None:
             assert connection.execute("select array[public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s),public.score_band(%s)] bands", (None, 0, 39, 40, 69, 70, 100)).fetchone()["bands"] == [None, "below", "below", "more", "more", "strong", "strong"]
             search_args = (False, 0, None, None, "engineer", None, [], False, 20)
             search_rows = _rows(connection, "search_jobs", search_args)
-            list_rows = connection.execute("select * from public.list_jobs(false,20,0,null,null,'engineer')").fetchall()
-            assert [row["id"] for row in search_rows] == [row["posting_id"] for row in list_rows]
+            assert _ids(search_rows) == [IDS[2]]
             cards = _rows(connection, "search_jobs", (None, None, None, None, None, None, [], False, 20))
             assert _ids(cards) == IDS
             cards_by_id = {str(row["id"]): row for row in cards}

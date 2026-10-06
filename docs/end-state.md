@@ -59,7 +59,7 @@ Hosted Supabase is runtime truth:
   transition.
 - `application_history` stores the owner's professional application context.
 - `profile` stores search preferences and the safe professional projection.
-- `visits` and `heartbeat` support product recency and hosted health contracts.
+- `visits` stores the legacy visit timestamp; the unwired heartbeat table was retired in migration 0022.
 
 The status pipeline is:
 
