@@ -351,8 +351,8 @@ def _check_posting_url(posting, url, *, canonical=False):
             "liveness_checked_at": datetime.now(timezone.utc).isoformat()}
 
 
-def check_posting_url(posting, *, board_checker=None):
-    """Try stored evidence, then a Greenhouse canonical page if inconclusive."""
+def _greenhouse_posting_context(posting):
+    """Validate stored URL provenance before selecting canonical confirmation."""
     url = posting["url"]
     canonical_url = None
     greenhouse_hosted = False
@@ -370,15 +370,22 @@ def check_posting_url(posting, *, board_checker=None):
             canonical_url = greenhouse_canonical_url(posting)
         except (ValueError, KeyError, TypeError):
             pass
+    return canonical_url, greenhouse_hosted
+
+
+def check_posting_url(posting, *, board_checker=None):
+    """Try stored evidence, then a Greenhouse canonical page if inconclusive."""
+    url = posting["url"]
+    canonical_url, greenhouse_hosted = _greenhouse_posting_context(posting)
     result = _check_posting_url(posting, url, canonical=greenhouse_hosted)
     if greenhouse_hosted and url != canonical_url and result["alive"] is False:
         # A control on the canonical host cannot authenticate a different URL.
         result = {**result, "alive": None}
-    if ((greenhouse_hosted and result["alive"] is False)
-            or (result["alive"] is None and canonical_url and canonical_url != url)):
-        if not (canonical_url and isinstance(board_checker, BoardChecker)
-                and board_checker.greenhouse_control(posting, canonical_url)):
-            return {**result, "alive": None, "liveness_reason": "greenhouse-control-unknown"}
+    if (((greenhouse_hosted and result["alive"] is False)
+            or (result["alive"] is None and canonical_url and canonical_url != url))
+            and not (canonical_url and isinstance(board_checker, BoardChecker)
+                     and board_checker.greenhouse_control(posting, canonical_url))):
+        return {**result, "alive": None, "liveness_reason": "greenhouse-control-unknown"}
     if result["alive"] is None and canonical_url and canonical_url != url:
         time.sleep(1)  # Pace the additional exceptional confirmation too.
         return _check_posting_url(posting, canonical_url, canonical=True)
