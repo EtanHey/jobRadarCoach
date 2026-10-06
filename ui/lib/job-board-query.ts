@@ -41,6 +41,15 @@ export const jobDetailQueryOptions = (client: QueryClient, id: string | null) =>
   gcTime: 60_000,
 });
 
+// A status reply is not a detail read: keep the read's timestamp, so score and body still
+// refresh 30 s after the last GET however often the role is reopened or re-saved.
+export function patchCachedDetailStatus(client: QueryClient, id: string, result: StatusResult) {
+  for (const query of client.getQueryCache().findAll({ queryKey: ["board-detail", id] })) {
+    client.setQueryData<JobDetail>(query.queryKey, job => job ? { ...job, status: result.status, status_reason: result.reason } : job,
+      { updatedAt: query.state.dataUpdatedAt });
+  }
+}
+
 export function applyConfirmedStatus(client: QueryClient, id: string, result: StatusResult, automatic: boolean) {
   // Confirmations belong to this board client. GC must not reset their ordering
   // while a read is running; list/detail queries keep their own GC settings.

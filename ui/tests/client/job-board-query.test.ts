@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobDetail, JobSummary } from "../../lib/contracts";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead, jobDetailQueryOptions } from "../../lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
 
 test("list queries isolate filter and availability and reuse their cached response", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
@@ -168,4 +168,21 @@ test("hover prefetch and the drawer share one detail query: open reads from cach
     globalThis.fetch = original;
     client.clear();
   }
+});
+
+test("a status-only cache write keeps the detail read's age, so score and body still refresh after staleTime", () => {
+  const client = new QueryClient();
+  const key = jobDetailQueryOptions(client, row.id).queryKey;
+  const readAt = Date.now() - DETAIL_STALE_MS - 1_000;
+  client.setQueryData(key, { ...row, raw_jd: "Synthetic description" } as JobDetail, { updatedAt: readAt });
+  for (const result of [{ status: "seen", reason: null }, { status: "applied", reason: null }] as const) {
+    patchCachedDetailStatus(client, row.id, result);
+    const state = client.getQueryState(key);
+    assert.equal(client.getQueryData<JobDetail>(key)?.status, result.status);
+    assert.equal(state?.dataUpdatedAt, readAt, "a status write is not a detail read");
+  }
+  assert.equal(client.getQueryCache().find({ queryKey: key })?.isStaleByTime(DETAIL_STALE_MS), true, "the next opening refetches score and body");
+  patchCachedDetailStatus(client, "never-read", { status: "seen", reason: null });
+  assert.equal(client.getQueryCache().find({ queryKey: ["board-detail", "never-read"] }), undefined, "no entry is created for an unread role");
+  client.clear();
 });

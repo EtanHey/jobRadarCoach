@@ -15,7 +15,7 @@ const job = n => ({ id: id(n), title: `Prefetch engineer ${n}`, company: `Fixtur
   location: "Rehovot, Israel", remote: true, seniority: "Junior", stack: ["React"], salary: null,
   url: "https://example.test", apply_url: null, posted_at: null, status: "new", status_reason: null,
   score: 90 - n, fit_line: null, recommendation: "apply", alive: true });
-const jobs = Array.from({ length: 13 }, (_, n) => job(n));
+const jobs = Array.from({ length: 15 }, (_, n) => job(n));
 const receipts = [];
 const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 try {
@@ -23,15 +23,17 @@ try {
   const page = await context.newPage();
   const requests = [];
   const errors = [];
+  const failures = [];
   try {
     page.setDefaultTimeout(15000);
     page.on("pageerror", error => errors.push(error.message));
+    page.on("requestfailed", request => failures.push({ path: new URL(request.url()).pathname, error: request.failure()?.errorText }));
     await page.addInitScript(() => {
       localStorage.setItem("job-radar.board-preferences", JSON.stringify({ version: 3, filter: "all", view: { search: "", source: "", location: "", seniority: "", fit: "", statuses: [], availability: "all", sort: "fit" } }));
     });
     await page.route("**/api/**", route => {
       const request = route.request(), url = new URL(request.url());
-      requests.push({ method: request.method(), path: url.pathname });
+      requests.push({ method: request.method(), path: url.pathname, poll: url.searchParams.has("since") });
       if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs: url.searchParams.has("since") ? [] : structuredClone(jobs) } });
       const row = jobs.find(candidate => url.pathname.startsWith(`/api/jobs/${candidate.id}`));
       if (!row) return route.fulfill({ status: 404, json: { error: "fixture only" } });
@@ -45,7 +47,9 @@ try {
     const detailReads = n => requests.filter(r => r.method === "GET" && r.path === `/api/jobs/${id(n)}`).length;
     const allDetailReads = () => requests.filter(r => r.method === "GET" && /^\/api\/jobs\/[0-9a-f-]{36}$/.test(r.path)).length;
     const patches = () => requests.filter(r => r.method === "PATCH").length;
-    const listReads = () => requests.filter(r => r.method === "GET" && r.path === "/api/jobs").length;
+    // The fake clock can reach the 90 s New-roles poll (`since`); that is not a list refetch.
+    const listReads = () => requests.filter(r => r.method === "GET" && r.path === "/api/jobs" && !r.poll).length;
+    const statusOf = dialog => dialog.getByRole("combobox", { name: "Application status" });
     const card = n => page.locator(`article[data-posting-id="${id(n)}"]`);
     const opener = n => page.getByRole("button", { name: `Open Prefetch engineer ${n} at Fixture ${n}`, exact: true });
     const dialog = page.getByRole("dialog");
@@ -56,6 +60,8 @@ try {
       await expect(dialog).toBeHidden();
     }
 
+    // Fake timers that still tick in real time; cases 7-8 jump past the 30 s staleTime.
+    await page.clock.install();
     await page.goto(base);
     await expect(card(12)).toBeVisible();
     await parkPointer();
@@ -134,6 +140,71 @@ try {
     assert.equal(detailReads(12), 1, "keyboard open adds zero detail requests");
     await closeWithOneEscape();
     receipts.push({ case: "keyboard focus warms, Enter opens from cache", detail12: detailReads(12) });
+
+    // 7. A status write is not a detail read: open, reopen at +20 s, reopen at +40 s must GET again
+    //    (30 s from the last GET). The +20 s opening also saves a manual status, so both writers are covered.
+    await card(13).hover();
+    await expect.poll(() => detailReads(13), { timeout: 3000 }).toBe(1);
+    const patchesBeforeAge = patches();
+    await opener(13).click();
+    await expect(statusOf(dialog)).toHaveText("Seen");
+    await closeWithOneEscape();
+    await parkPointer();
+    await page.clock.fastForward(20_000);
+    await opener(13).click();
+    await expect.poll(patches).toBe(patchesBeforeAge + 2);
+    await statusOf(dialog).click();
+    await page.getByRole("option", { name: "New", exact: true }).click();
+    await expect(statusOf(dialog)).toHaveText("New");
+    await expect.poll(patches).toBe(patchesBeforeAge + 3);
+    await settle();
+    assert.equal(detailReads(13), 1, "reopening inside 30 s is served from cache");
+    await closeWithOneEscape();
+    await parkPointer();
+    await page.clock.fastForward(20_000);
+    await opener(13).click();
+    await expect.poll(() => detailReads(13), { timeout: 3000 }).toBe(2);
+    await expect(statusOf(dialog)).toHaveText("Seen");
+    await settle();
+    assert.equal(detailReads(13), 2, "one refresh, 30 s after the last GET despite status writes at +20 s");
+    await closeWithOneEscape();
+    await parkPointer();
+    receipts.push({ case: "open, +20 s auto+manual status, +40 s refetches", detail13: detailReads(13), patches: patches() - patchesBeforeAge });
+
+    // 8. A stale prefetched New role: its refresh lands with a changed body while the automatic Seen
+    //    PATCH is held. The refresh must not abort this opening's Seen, and the role must leave New.
+    await card(14).hover();
+    await expect.poll(() => detailReads(14), { timeout: 3000 }).toBe(1);
+    await parkPointer();
+    await page.clock.fastForward(31_000);
+    let heldPatch;
+    await page.route(`**/api/jobs/${id(14)}/status`, route => {
+      requests.push({ method: route.request().method(), path: new URL(route.request().url()).pathname });
+      heldPatch = route;
+    });
+    jobs[14].raw_jd = "Fresh description changed after cached open";
+    jobs[14].score = 10;
+    await page.route(`**/api/jobs/${id(14)}`, async route => {
+      requests.push({ method: "GET", path: new URL(route.request().url()).pathname });
+      await page.waitForTimeout(300);
+      return route.fulfill({ json: { job: { ...jobs[14], reasons: [], score_payload: null, brain: null, scored_at: null } } });
+    });
+    await opener(14).click();
+    await expect.poll(() => Boolean(heldPatch)).toBe(true);
+    await expect(dialog.getByText(jobs[14].raw_jd, { exact: true })).toBeVisible();
+    await settle();
+    jobs[14].status = "seen";
+    await heldPatch.fulfill({ json: { status: "seen", reason: null } });
+    await expect(statusOf(dialog)).toHaveText("Seen");
+    await settle();
+    const seenFailures = failures.filter(failure => failure.path === `/api/jobs/${id(14)}/status`);
+    assert.deepEqual(seenFailures, [], "a stale detail refresh must not abort this opening's automatic Seen");
+    assert.equal(requests.filter(r => r.method === "PATCH" && r.path === `/api/jobs/${id(14)}/status`).length, 1, "one auto-Seen for this opening");
+    assert.equal(detailReads(14), 2, "one refresh of the stale prefetch");
+    await closeWithOneEscape();
+    await page.unroute(`**/api/jobs/${id(14)}/status`);
+    await page.unroute(`**/api/jobs/${id(14)}`);
+    receipts.push({ case: "stale prefetched New role: refresh overlaps held auto-Seen", detail14: detailReads(14), seenFailures: seenFailures.length });
 
     assert.equal(listReads(), baselineLists, "prefetch and auto-Seen never refetch the list");
     assert.deepEqual(errors, []);

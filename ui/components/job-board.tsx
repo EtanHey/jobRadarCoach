@@ -13,7 +13,7 @@ import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
 import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, type CachedList } from "@/lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus, type CachedList } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { relativeAge } from "@/lib/job-display";
 import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
@@ -186,7 +186,7 @@ function Board() {
     onSuccess: (result, { id, patch }) => {
       const automatic = "automatic" in patch && Boolean(patch.automatic);
       applyConfirmedStatus(client, id, result, automatic);
-      client.setQueriesData<JobDetail>({ queryKey: ["board-detail", id] }, job => job ? { ...job, status: result.status, status_reason: result.reason } : job);
+      patchCachedDetailStatus(client, id, result);
       patchGlobeStatus(id, result, !automatic && statusMutationRemovesCard(filterRef.current, result.status));
     },
   });
@@ -200,8 +200,11 @@ function Board() {
   const saving = statusMutation.isPending;
   const mutateStatus = statusMutation.mutateAsync;
   const automaticSelection = useRef<string | null>(null);
+  // Readiness is the loaded role, not the body object: a stale-cache refresh replaces the body
+  // mid-PATCH and must not abort this opening's Seen. Close and switch still cancel it.
+  const loadedDetailId = detailQuery.data?.id ?? null;
   useEffect(() => {
-    if (!selected || !detailQuery.data || !markSeenOnOpen) return;
+    if (!selected || !loadedDetailId || !markSeenOnOpen) return;
     const selection = `${selected}/${detailRevision}`;
     if (automaticSelection.current === selection) return;
     automaticSelection.current = selection;
@@ -209,13 +212,13 @@ function Board() {
     void markSeen({ id: selected, signal: controller.signal }).then(result => {
       if (controller.signal.aborted) return;
       applyConfirmedStatus(client, selected, result, true);
-      client.setQueriesData<JobDetail>({ queryKey: ["board-detail", selected] }, job => job ? { ...job, status: result.status, status_reason: result.reason } : job);
+      patchCachedDetailStatus(client, selected, result);
       patchGlobeStatus(selected, result, false);
     }).catch(cause => {
       if (!controller.signal.aborted) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
     });
     return () => controller.abort();
-  }, [client, selected, detailRevision, detailQuery.data, markSeenOnOpen, markSeen, patchGlobeStatus]);
+  }, [client, selected, detailRevision, loadedDetailId, markSeenOnOpen, markSeen, patchGlobeStatus]);
   function showNewRoles() {
     newRoles.dismiss();
     // The pill unmounts on click; keep focus and the reader at the top of the refreshed list.
