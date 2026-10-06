@@ -31,7 +31,7 @@ HQ = {
 
 @pytest.fixture
 def database():
-    with migrated_database(MIGRATIONS, through=18) as url:
+    with migrated_database(MIGRATIONS, through=19) as url:
         with psycopg.connect(url, row_factory=dict_row) as db:
             _seed(db)
             db.execute("select set_status(%s,'interview_technical',null)", (IDS[0],))
@@ -167,6 +167,7 @@ def test_same_values_and_unrelated_scraper_upsert_preserve_geo(
             None,
             None,
             None,
+            None,
             "2026-09-22Z",
             "2026-09-22Z",
             "{}",
@@ -194,6 +195,7 @@ def test_real_scraper_upsert_and_current_hq_fallback(database, tmp_path):
             True,
             None,
             [],
+            None,
             None,
             None,
             None,

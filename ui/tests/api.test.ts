@@ -319,6 +319,15 @@ test("automatic seen intent is distinct from explicit backward edits", async () 
   assert.deepEqual(inputs,[{posting_id:ID,status:"seen",automatic:true},{posting_id:ID,status:"seen"}]);
 });
 
+test("summary projection preserves original, latest publication and discovery separately", () => {
+  const raw = { ...summary, raw_jd: null, liveness: {}, posting_extractions: null,
+    posted_at: "2026-09-01T00:00:00Z", last_published_at: "2026-10-01T00:00:00Z",
+    posting_status: null, posting_scores: null };
+  const row = parseSummaryRows([raw]).jobs[0];
+  assert.equal(row.posted_at, raw.posted_at);
+  assert.equal((row as unknown as Record<string, unknown>).last_published_at, raw.last_published_at);
+  assert.equal(row.first_seen_at, raw.first_seen_at);
+});
 
 test("ID lookup validates and bounds IDs and requires an unfiltered availability set", async () => {
   let received: unknown;

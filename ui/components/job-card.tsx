@@ -1,18 +1,21 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Recycle } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
 import { scoreCss } from "@/lib/globe-model";
-import { workMode } from "@/lib/job-display";
+import { repostNote, workMode } from "@/lib/job-display";
 import { statusLabels, type JobStatus } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
 import { CompanyLogo } from "./company-logo";
+import { InfoTip } from "./info-tip";
 import { PostingDates } from "./posting-dates";
 
 type Props = {
   job: JobSummary;
   alternateCount?: number;
+  /** Alternates demonstrably listed before this one; drives the repost marker. */
+  earlierListings?: number;
   selected?: boolean;
   /** Set in "New for me" when this kept card's status no longer qualifies: dims the content and names the status. */
   keptStatus?: JobStatus | null;
@@ -23,8 +26,9 @@ type Props = {
   children: ReactNode;
 };
 
-export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, openerRef, selectJob, children }: Props) {
+export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, earlierListings = 0, openerRef, selectJob, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
+  const repost = repostNote(job.posted_at, job.last_published_at, earlierListings);
   const place = `${job.location ?? "Location unspecified"} · ${workMode(job.remote)}`;
   // Dim the content, never the frame: hover border and focus ring stay full strength on settled cards.
   const dim = keptStatus ? "opacity-60" : "";
@@ -34,7 +38,10 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
-        <p className="truncate text-sm text-muted-foreground">{job.company}</p>
+        <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+          <p className="truncate">{job.company}</p>
+          {repost && <InfoTip data-repost-marker label={repost} tip={repost} className="shrink-0"><Recycle aria-hidden="true" size={13} /></InfoTip>}
+        </div>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
@@ -51,10 +58,10 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
     </div>
       : <p className="pointer-events-none truncate text-sm text-muted-foreground" title={place}>{place}</p>}
     <div className={cn("pointer-events-none relative min-h-[3.625rem] text-muted-foreground [&_button]:pointer-events-auto", dim)}>{job.stack.length ? children : <span className="text-xs">Stack unspecified</span>}</div>
-    <div className={cn("pointer-events-none mt-auto grid min-w-0 gap-1 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-2", dim)}>
-      <span className="min-w-0 flex-1 truncate" title={experience}>{experience}</span>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
-        <PostingDates postedAt={job.posted_at} firstSeenAt={job.first_seen_at} className="shrink-0" />
+    <div className={cn("pointer-events-none mt-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground", dim)}>
+      <span data-experience className="min-w-0 break-words">{experience}</span>
+      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
+        <PostingDates postedAt={job.posted_at} lastPublishedAt={job.last_published_at} firstSeenAt={job.first_seen_at} className="shrink-0" />
         <span className="shrink-0 capitalize">{job.source}</span>
         {alternateCount > 0 && <span className="shrink-0" title="Open to choose another listing">{alternateCount + 1} listings</span>}
       </div>
