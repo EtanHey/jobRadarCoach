@@ -1,3 +1,4 @@
+import { timestamp } from "./job-time";
 import type { JobSummary } from "./contracts";
 import { createRepostLocationMatcher } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
@@ -43,12 +44,6 @@ function sameRole(a: PreparedJob, b: PreparedJob, locationsMatch: ReturnType<typ
   if (!a.company || a.company !== b.company) return false;
   if (!locationsMatch(a.job.location, b.job.location)) return false;
   return a.keys.some(key => b.keys.includes(key)) || Boolean(a.title && a.title === b.title);
-}
-
-function timestamp(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? null : parsed;
 }
 
 function newestFirst(a: JobSummary, b: JobSummary): number {

@@ -126,7 +126,6 @@ export const StatusResultSchema = z.object({
   status: JobStatusSchema,
   reason: nullableText,
 }).strict();
-export const StatusResponseSchema = z.object({ status: JobStatusSchema, reason: nullableText }).strict();
 export const ProfileResponseSchema = z.object({ profile: ProfileSchema }).strict();
 
 export type JobSummary = z.infer<typeof JobSummarySchema>;
