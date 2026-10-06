@@ -2,7 +2,7 @@
 // S2: a stalled automatic-Seen PATCH, drawer closed, then a manual status change on another card.
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
-const base = process.env.GLOBE_QA_URL; assert.equal(new URL(base).hostname, "127.0.0.1");
+const base = process.env.GLOBE_QA_URL ?? "http://127.0.0.1:4390"; assert.equal(new URL(base).hostname, "127.0.0.1");
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const job = (n, status = "new") => ({ id: id(n), title: `Cache engineer ${n}`, company: `Fixture ${n}`, source: "fixture",
   last_seen_at: "2026-10-05T08:00:00Z", first_seen_at: "2026-10-05T08:00:00Z", experience: null, description_available: false,
@@ -94,4 +94,4 @@ try {
   }
 } finally { await browser.close(); }
 console.log(results.join("\n"));
-process.exit(results.some(l => l.startsWith("FAIL")) ? 1 : 0);
+process.exitCode = results.some(l => l.startsWith("FAIL")) ? 1 : 0;
