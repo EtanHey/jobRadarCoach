@@ -14,6 +14,7 @@ declare
   position integer := 1;
   branch_pattern text;
   candidate_start integer;
+  experience_branch boolean;
   start_at integer;
   end_at integer;
   quoted text;
@@ -81,10 +82,18 @@ begin
       candidate_start := regexp_instr(coalesce(description,'') collate "C", branch_pattern, position, 1, 0, 'i');
       if candidate_start > 0 and (start_at = 0 or candidate_start < start_at) then
         start_at := candidate_start;
+        experience_branch := branch_pattern = phrase_patterns[1];
         end_at := regexp_instr(description collate "C", branch_pattern, position, 1, 1, 'i');
       end if;
     end loop;
     exit when start_at = 0;
+    if experience_branch then
+      -- PostgreSQL's leading greedy quantifier overrides the lazy word count.
+      -- Stop at the first experience word, as JS does, before deriving the
+      -- sentence-bounded suffix and advancing to the next candidate.
+      end_at := regexp_instr(description collate "C",
+        '(?<![A-Za-z0-9_])experience(?![A-Za-z0-9_])', start_at, 1, 1, 'i');
+    end if;
     matched := substr(description,start_at,end_at-start_at);
     position := end_at;
     quoted := regexp_replace(matched collate "C",'^minimum(?:[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+of)?[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+','','i');
