@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobSummary } from "../../lib/contracts";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead } from "../../lib/job-board-query";
 
 test("list queries isolate filter and availability and reuse their cached response", async () => {
@@ -29,11 +29,16 @@ test("an abandoned list read cannot publish into the next view", async () => {
   client.clear();
 });
 
+function observeList(client: QueryClient, key: ReturnType<typeof boardListKey>) {
+  return new QueryObserver(client, { queryKey: key, staleTime: Infinity, queryFn: () => Promise.reject(new Error("Unexpected list read")) }).subscribe(() => {});
+}
+
 const row = { id: "fixture", status: "new", status_reason: null } as JobSummary;
 test("a confirmed PATCH survives an older Show read without losing arrivals or a replacement GET", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const key = boardListKey("new-for-me", "active");
   client.setQueryData(key, { jobs: [row], loadedUpdatedAt: null });
+  const stop = observeList(client, key);
   let release!: (value: { jobs: JobSummary[]; loadedUpdatedAt: null }) => void;
   let reads = 0;
   const started = confirmedStatusRevision(client);
@@ -48,15 +53,17 @@ test("a confirmed PATCH survives an older Show read without losing arrivals or a
   await oldRead;
   assert.deepEqual(client.getQueryData(key), { jobs: [arrival], loadedUpdatedAt: null });
   assert.equal(reads, 1);
-  client.clear();
+  stop(); client.clear();
 });
-test("automatic Seen retains New-for-me cards and patches other cached views", async () => {
+test("automatic Seen retains the active New-for-me cohort and drops inactive views", () => {
   const client = new QueryClient();
   const fresh = boardListKey("new-for-me", "active"), all = boardListKey("all", "active");
   for (const key of [fresh, all]) client.setQueryData(key, { jobs: [row], loadedUpdatedAt: null });
-  await applyConfirmedStatus(client, row.id, { status: "seen", reason: null }, true);
-  for (const key of [fresh, all]) assert.equal(client.getQueryData<{ jobs: JobSummary[] }>(key)?.jobs[0].status, "seen");
-  client.clear();
+  const stop = observeList(client, fresh);
+  applyConfirmedStatus(client, row.id, { status: "seen", reason: null }, true);
+  assert.equal(client.getQueryData<{ jobs: JobSummary[] }>(fresh)?.jobs[0].status, "seen");
+  assert.equal(client.getQueryData(all), undefined);
+  stop(); client.clear();
 });
 test("an uncached read applies only overlapping confirmations and later reads use server truth", async () => {
   const client = new QueryClient();
@@ -75,4 +82,18 @@ test("confirmation ordering survives inactive-query GC without overriding subseq
   assert.equal(started, 1);
   assert.equal(confirmListRead(client, [row], "all", started)[0].status, "new");
   client.clear();
+});
+
+test("a status confirmation drops inactive Seen results without refetching the active list", () => {
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+  const all = boardListKey("all", "active"), seen = boardListKey("seen", "active");
+  client.setQueryData(all, { jobs: [row], loadedUpdatedAt: null });
+  client.setQueryData(seen, { jobs: [], loadedUpdatedAt: null });
+  let reads = 0;
+  const stop = new QueryObserver(client, { queryKey: all, queryFn: () => { reads++; return Promise.resolve({ jobs: [row], loadedUpdatedAt: null }); } }).subscribe(() => {});
+  applyConfirmedStatus(client, row.id, { status: "seen", reason: null }, true);
+  assert.equal(client.getQueryData(seen), undefined);
+  assert.equal(client.getQueryData<{ jobs: JobSummary[] }>(all)?.jobs[0].status, "seen");
+  assert.equal(reads, 0);
+  stop(); client.clear();
 });

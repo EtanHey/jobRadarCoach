@@ -187,6 +187,13 @@ function Board() {
       patchGlobeStatus(id, result, !automatic && statusMutationRemovesCard(filterRef.current, result.status));
     },
   });
+  // Opening a role must not queue behind, or disable, a manual save.
+  const automaticSeen = useMutation({
+    mutationFn: async ({ id, signal }: { id: string; signal: AbortSignal }) => StatusResultSchema.parse(await request(`/api/jobs/${id}/status`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal,
+    })),
+  });
+  const markSeen = automaticSeen.mutateAsync;
   const saving = statusMutation.isPending;
   const mutateStatus = statusMutation.mutateAsync;
   function showNewRoles() {
@@ -319,21 +326,24 @@ function Board() {
 
   useEffect(() => {
     if (!selected) return undefined;
+    const id = selected;
     const identity = detailCoordinator.current();
-    if (identity.id !== selected) return undefined;
+    if (identity.id !== id) return undefined;
     const read = detailCoordinator.beginRead();
     const controller = new AbortController();
     let patchStarted = false;
     async function open() {
       try {
-        const job = await loadJobDetail(selected!, controller.signal);
+        const job = await loadJobDetail(id, controller.signal);
         if (controller.signal.aborted) return;
         if (detailCoordinator.acceptRead(read)) setDetail(job);
         if (!markSeenOnOpen) return;
         patchStarted = true;
-        const status = await mutateStatus({ id: selected!, patch: { status: "seen", automatic: true } });
+        const status = await markSeen({ id, signal: controller.signal });
         if (controller.signal.aborted) return;
         if (detailCoordinator.commitMutation(identity)) {
+          applyConfirmedStatus(client, id, status, true);
+          patchGlobeStatus(id, status, false);
           setDetail({ ...job, status: status.status, status_reason: status.reason });
         }
       } catch (cause) {
@@ -342,7 +352,7 @@ function Board() {
     }
     open();
     return () => controller.abort();
-  }, [detailCoordinator, selected, detailRevision, markSeenOnOpen, mutateStatus]);
+  }, [client, detailCoordinator, selected, detailRevision, markSeenOnOpen, markSeen, patchGlobeStatus]);
 
   useEffect(() => {
     // Retried reads cannot extend this selection's loading budget.

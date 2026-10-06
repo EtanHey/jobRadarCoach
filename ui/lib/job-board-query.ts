@@ -29,7 +29,8 @@ export function applyConfirmedStatus(client: QueryClient, id: string, result: St
   const revision = confirmedStatusRevision(client) + 1;
   client.setQueryData(["board-status-revision"], revision);
   client.setQueryData<Confirmation>(["board-status", id], { id, result, automatic, revision });
-  for (const [key] of client.getQueriesData<CachedList>({ queryKey: ["board-list"] })) {
+  client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
+  for (const [key] of client.getQueriesData<CachedList>({ queryKey: ["board-list"], type: "active" })) {
     client.setQueryData<CachedList>(key, current => {
       if (!current) return current;
       const jobs = updateJobStatus(current.jobs, id, result.status, result.reason);
