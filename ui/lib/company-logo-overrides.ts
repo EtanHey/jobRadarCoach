@@ -14,8 +14,8 @@ export const companyLogoOverrides: Readonly<Record<string, CompanyLogoOverride>>
   "stealth mode startup": { kind: "initials" },
   "stealth mode": { kind: "initials" },
   "undisclosed": { kind: "initials" },
-  // Wrong Logo.dev name-lookup images found in the 2026-10-04 eyeball review of the top companies
-  // (docs.local/qa/2026-10-04-logo-eyeball). Pin a curated file or a domain instead once a correct mark is verified.
+  // These employer names resolve to unrelated Logo.dev brands. Keep initials until a correct mark
+  // is verified, then pin a curated file or the employer domain.
   // Yael Adventures is an unrelated popular name match for these employers.
   "yael korentec technologies": { kind: "initials" },
   "yael group": { kind: "initials" },

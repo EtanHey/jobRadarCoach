@@ -6,4 +6,6 @@ The authenticated list API accepts `GET /api/jobs?filter=all&availability=all&li
 
 Run the synthetic two-context regression with `GLOBE_QA_URL=http://127.0.0.1:<fixture-port> GLOBE_QA_OUTPUT=<evidence-dir> <run-suite-capped.sh> browser-tests/retained-card-status.mjs 3072 120` using the shared `docs.local/tools/run-suite-capped.sh` wrapper, one headless-shell suite at a time, against the isolated app created by `scripts/prepare-globe-fixture.mjs`. It intercepts API requests (the board has no live sync; refreshes go through the "N new roles · Show" pill) and does not verify the hosted database.
 
+Globe debug datasets require the build-time opt-in `NEXT_PUBLIC_QA_DATASETS=1`; `scripts/prepare-globe-fixture.mjs` enables it for both dev and production fixtures, while real production builds leave it unset.
+
 Company logos resolve in one order (`lib/company-logos.ts`): override map (`lib/company-logo-overrides.ts`), curated catalog (`public/companies`), Logo.dev when `NEXT_PUBLIC_LOGO_DEV_KEY` holds a publishable `pk_` key (Vercel env, or a gitignored `ui/.env.local` locally), then initials. Pin a wrong Logo.dev match in the override map.
