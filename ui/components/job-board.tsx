@@ -13,9 +13,8 @@ import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
 import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead, type CachedList } from "@/lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, type CachedList } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
-import { loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
 import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
 import { useNewRoles } from "./use-new-roles";
@@ -110,15 +109,9 @@ function Board() {
   const listError = listQuery.error?.message ?? "";
   const error = listQuery.data ? "" : listError;
   const refreshWarning = listQuery.data && listError ? `${listError} Showing previous results.` : "";
-  const detailQuery = useQuery({
-    queryKey: ["board-detail", selected, detailRevision], enabled: selected !== null,
-    queryFn: async ({ signal }) => {
-      if (selected === null) throw new Error("Select a role to load its details.");
-      const started = confirmedStatusRevision(client);
-      return confirmDetailRead(client, await loadJobDetail(selected, signal), started);
-    },
-    gcTime: 0,
-  });
+  // detailRevision scopes one automatic Seen per opening; the read itself is shared with hover prefetch.
+  const detailQuery = useQuery({ ...jobDetailQueryOptions(client, selected), enabled: selected !== null });
+  const prefetchDetail = useCallback((id: string) => { void client.prefetchQuery(jobDetailQueryOptions(client, id)); }, [client]);
   const detail = selected === null ? closingDetail : detailQuery.data ?? null;
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
   const patchGlobeStatus = globe.patchStatus;
@@ -251,6 +244,7 @@ function Board() {
     if (!selected || saving) return;
     setDetailError("");
     setDetailRevision(value => value + 1);
+    void client.resetQueries({ queryKey: jobDetailQueryOptions(client, selected).queryKey, exact: true });
   }
   function prepareListSource(value: Filter, availability: ViewOptions["availability"]) {
     filterRef.current = value;
@@ -376,7 +370,7 @@ function Board() {
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 ref={headingRef} tabIndex={-1} className="mr-auto text-lg font-semibold text-foreground outline-none">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} roles</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel notice={<NewRolesPill count={newRoleCount} truncated={newRoles.truncated} onShow={showNewRoles} />} {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={Boolean(globe.data)} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
+      <JobsPanel prefetchDetail={prefetchDetail} notice={<NewRolesPill count={newRoleCount} truncated={newRoles.truncated} onShow={showNewRoles} />} {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={Boolean(globe.data)} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar globeOpen={globeActive} jobs={displayJobs} options={view} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
       {refreshWarning && <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning}</p>}
       {!globeActive && <LogoDevAttribution />}
     </main>

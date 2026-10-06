@@ -1,8 +1,9 @@
-import type { QueryClient } from "@tanstack/react-query";
+import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import type { Availability, JobDetail, JobSummary, StatusResult } from "./contracts";
 import { statusMutationRemovesCard } from "./job-status";
 import { updateJobStatus } from "./job-board-state";
 import type { BoardFilter } from "./job-board-preferences";
+import { loadJobDetail } from "./job-detail-request";
 
 export type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
 export const boardListKey = (filter: BoardFilter, availability: Availability) => ["board-list", filter, availability] as const;
@@ -25,6 +26,20 @@ export function confirmDetailRead(client: QueryClient, job: JobDetail, started: 
   const confirmation = client.getQueryData<Confirmation>(["board-status", job.id]);
   return confirmation && confirmation.revision > started ? { ...job, status: confirmation.result.status, status_reason: confirmation.result.reason } : job;
 }
+
+// Hover prefetch and the drawer share this query, so opening a warmed card renders from cache.
+// Fresh for 30 s: re-hovering never refetches; an older entry still renders while one read refreshes it.
+export const DETAIL_STALE_MS = 30_000;
+export const jobDetailQueryOptions = (client: QueryClient, id: string | null) => queryOptions({
+  queryKey: ["board-detail", id] as const,
+  queryFn: async ({ signal }) => {
+    if (id === null) throw new Error("Select a role to load its details.");
+    const started = confirmedStatusRevision(client);
+    return confirmDetailRead(client, await loadJobDetail(id, signal), started);
+  },
+  staleTime: DETAIL_STALE_MS,
+  gcTime: 60_000,
+});
 
 export function applyConfirmedStatus(client: QueryClient, id: string, result: StatusResult, automatic: boolean) {
   // Confirmations belong to this board client. GC must not reset their ordering
