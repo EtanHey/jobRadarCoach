@@ -3,7 +3,6 @@ import { test } from "node:test";
 import { makeGetGlobe } from "../app/api/jobs/globe/route";
 import { GlobeQuerySchema } from "../lib/globe-contract";
 import { getGlobeStore, globeResponse, type GlobeStore } from "../lib/globe-server";
-import { filterJobs } from "../lib/job-filters";
 import { classifyAuthPath } from "../lib/auth/boundary";
 import type { JobSummary } from "../lib/contracts";
 
@@ -19,18 +18,20 @@ const jobs: JobSummary[] = Array.from({ length: 1007 }, (_, n) => ({
 }));
 const point = (id: string) => ({ posting_id: id, lat: 32, lng: 34, precision: "hq", source: "https://example.test/hq | nominatim:osm:relation:1", resolved_at: "2026-09-22T00:00:00Z" });
 const store: GlobeStore = {
-  snapshot: async () => ({ jobs, geo: jobs.filter((j) => Number(j.id.slice(-12)) % 3).map(j => point(j.id)) }),
+  snapshot: () => Promise.resolve({ jobs, geo: jobs.filter((j) => Number(j.id.slice(-12)) % 3).map(j => point(j.id)) }),
 };
-test("complete snapshot counts exceed provider row caps; exact dashboard predicates", async () => {
-  for (const raw of [{}, {location:"israel"}, { search:"react", fit:"good", seniority:"Senior" }, { location:"other" }, { remote:"false", min_score:"70" }]) {
-    const query = GlobeQuerySchema.parse(raw);
-    const response = await globeResponse(store, query);
-    const expected = filterJobs(jobs, query).filter(j => (query.remote === undefined || j.remote === query.remote) && (query.min_score === undefined || (j.score !== null && j.score >= query.min_score)));
-    assert.deepEqual(response.jobs, expected);
-    assert.equal(response.total_count, expected.length);
-    assert.equal(response.resolved_count, expected.filter(j => Number(j.id.slice(-12)) % 3).length);
-    assert.equal(response.unresolved_count + response.resolved_count, expected.length);
-    assert.ok(response.points.every(p => p.precision === "hq"));
+test("complete snapshot keeps all jobs and counts beyond provider row caps", async () => {
+  const response = await globeResponse(store, GlobeQuerySchema.parse({}));
+  assert.deepEqual(response.jobs, jobs);
+  assert.equal(response.total_count, 1007);
+  assert.equal(response.resolved_count, jobs.filter(j => Number(j.id.slice(-12)) % 3).length);
+  assert.equal(response.unresolved_count + response.resolved_count, jobs.length);
+  assert.ok(response.points.every(p => p.precision === "hq"));
+});
+test("globe accepts only filter and availability", () => {
+  assert.deepEqual(GlobeQuerySchema.parse({}), { filter: "all", availability: "active" });
+  for (const key of ["search", "source", "location", "seniority", "fit", "statuses", "sort", "work_mode", "remote", "min_score"]) {
+    assert.equal(GlobeQuerySchema.safeParse({ [key]: "" }).success, false, key);
   }
 });
 test("invalid, unrelated and duplicate geo rows do not create dots or negative counts", async () => {
@@ -42,12 +43,12 @@ test("invalid, unrelated and duplicate geo rows do not create dots or negative c
 test("route is private, rejects pagination/invalid filters, preserves no-store, rejects duplicate snapshot rows", async () => {
   assert.equal(classifyAuthPath("/api/jobs/globe"), "private");
   const get = makeGetGlobe(store);
-  for (const query of ["limit=10", "remote=maybe", "min_score=101", "statuses=new"]) {
+  for (const query of ["limit=10", "search=react", "source=fixture", "location=israel", "seniority=Senior", "fit=good", "statuses=seen", "sort=fit", "work_mode=hybrid", "remote=true", "min_score=70", "filter=unknown", "availability=unknown"]) {
     assert.equal((await get(new Request(`https://example.test/api/jobs/globe?${query}`))).status, 400);
   }
-  const response = await get(new Request("https://example.test/api/jobs/globe?location=israel"));
-  assert.equal(response.status, 200); assert.match(response.headers.get("cache-control")!, /no-store/);
-  const bad = makeGetGlobe({ ...store, snapshot: async () => ({ jobs: [jobs[0], jobs[0]], geo: [] }) });
+  const response = await get(new Request("https://example.test/api/jobs/globe?filter=all&availability=active"));
+  assert.equal(response.status, 200); assert.match(response.headers.get("cache-control") ?? "", /no-store/);
+  const bad = makeGetGlobe({ ...store, snapshot: () => Promise.resolve({ jobs: [jobs[0], jobs[0]], geo: [] }) });
   assert.equal((await bad(new Request("https://example.test/api/jobs/globe"))).status, 503);
 });
 
