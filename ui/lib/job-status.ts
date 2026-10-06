@@ -25,7 +25,7 @@ export function keptCardStatus(filter: string, status: JobStatus): JobStatus | n
   return filter === "new-for-me" && status !== "new" ? status : null;
 }
 
-/** Terminal statuses dim a card's content in every view; Seen and the live pipeline stay at full strength. */
+/** Terminal statuses dim a card's content in every view; Seen dims only when kept in New for me; the live pipeline stays at full strength. */
 const dimmingStatuses = new Set<JobStatus>(["skipped", "applied", "contract", "rejected", "archived", "not_relevant"]);
 export const statusDimsCard = (status: JobStatus) => dimmingStatuses.has(status);
 

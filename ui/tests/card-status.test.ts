@@ -9,7 +9,7 @@ import { statusDimsCard } from "../lib/job-status";
 const uiRoot = resolve(import.meta.dirname, "..");
 const id = "00000000-0000-4000-8000-000000000001";
 
-test("only terminal statuses dim a card; Seen and the live pipeline stay at full strength", () => {
+test("only terminal statuses dim a card in every view; Seen and the live pipeline stay at full strength", () => {
   const dimmed = JobStatusSchema.options.filter(statusDimsCard);
   assert.deepEqual(dimmed, ["skipped", "applied", "contract", "rejected", "archived", "not_relevant"]);
 });
@@ -47,7 +47,7 @@ test("a new card has no chip and no dim", () => {
   assert.doesNotMatch(html, /data-card-status|opacity-60|aria-describedby/);
 });
 
-test("Seen gets a quiet chip without dimming; terminal statuses dim the content, never the frame", () => {
+test("outside New for me Seen gets a quiet chip without dimming; terminal statuses dim the content, never the frame", () => {
   assert.doesNotMatch(renderCard({ status: "seen" }), /opacity-60/);
   assert.doesNotMatch(renderCard({ status: "interview_technical" }), /opacity-60/);
   for (const status of ["applied", "rejected", "not_relevant"]) {
@@ -64,12 +64,19 @@ test("worth checking is a text chip, not a bare bookmark", () => {
   assert.doesNotMatch(html, /lucide-bookmark/);
 });
 
-test("New for me keeps its settled marker on kept cards and follows the same dim rule", () => {
+test("New for me keeps its settled marker on kept cards and dims a kept Seen card like a terminal one", () => {
   const seen = renderCard({ status: "seen" }, "seen");
   assert.match(seen, /<article[^>]+data-settled=""/);
-  assert.doesNotMatch(seen, /opacity-60/);
+  assert.doesNotMatch(seen, /<article[^>]+class="[^"]*opacity-/, "the frame keeps full-strength hover and focus rings");
+  assert.match(seen, /<div class="[^"]*opacity-60[^"]*"><div[^>]*><p class="truncate">Fixture<\/p>/, "the title block is dimmed");
+  assert.match(seen, /data-card-status="seen" title="Seen" class="[^"]*opacity-60/, "the Seen chip is dimmed with the content");
+  assert.match(seen, new RegExp(`<button[^>]+aria-describedby="card-status-${id}"`), "the status is still announced with the card's button");
   assert.match(renderCard({ status: "applied" }, "applied"), /opacity-60/);
-  assert.doesNotMatch(renderCard({ status: "seen" }), /data-settled/);
+  // Only Seen joins the terminal statuses in New for me; the live pipeline stays at full strength there too.
+  assert.doesNotMatch(renderCard({ status: "worth_checking" }, "worth_checking"), /opacity-60/);
+  assert.doesNotMatch(renderCard({ status: "interview_technical" }, "interview_technical"), /opacity-60/);
+  // All roles and the Seen view pass no kept status: Seen stays undimmed there.
+  assert.doesNotMatch(renderCard({ status: "seen" }), /data-settled|opacity-60/);
 });
 
 test("work mode renders as an icon with its text as the accessible name, not as location text", () => {

@@ -1,6 +1,6 @@
 // Synthetic loopback proof for the card status chip and work-mode icon, and the drawer's status save feedback.
 // Cards: every non-new card names its status under the score box in All roles, New for me and the globe rail;
-// only terminal statuses dim; the work mode is an icon with an accessible name; the location row is never
+// terminal statuses dim everywhere and Seen dims only in New for me; the work mode is an icon with an accessible name; the location row is never
 // truncated by the chip at 390 px. Drawer: a failed status save shows a spinner while waiting, then an inline
 // error under the select with the select back on the server value, and no drawer banner.
 // All API calls are answered in-browser. Run only through run-suite-capped.sh, one suite at a time.
@@ -80,7 +80,7 @@ function measure(page, scope) {
 // Master's title widths for these fixtures (review R1 of #401): the chip must never take width from the title.
 const minimumTitleWidth = { "390": 190, desktop: 272 };
 
-function checkCards(cards, where, minTitle) {
+function checkCards(cards, where, minTitle, dimSeen = false) {
   assert.equal(cards.length, statuses.length, `${where}: every card rendered`);
   const baseline = cards.find(card => card.id === id(0));
   for (const card of cards) {
@@ -89,7 +89,7 @@ function checkCards(cards, where, minTitle) {
     assert.deepEqual([card.mode.role, card.mode.label, card.mode.svg], ["img", modeLabel(remotes[n]), true], `${at}: icon named by its work mode`);
     assert.equal(card.locationText, locations[n], `${at}: the location row carries only the location`);
     assert.ok(card.locationOverflow <= 0, `${at}: location not truncated (${card.locationOverflow}px over)`);
-    assert.equal(card.titleOpacity, dimmed.has(status) ? "0.6" : "1", `${at}: dim only terminal statuses`);
+    assert.equal(card.titleOpacity, dimmed.has(status) || (dimSeen && status === "seen") ? "0.6" : "1", `${at}: dim terminal statuses (and Seen in New for me)`);
     assert.equal(Math.round(card.header.height), Math.round(baseline.header.height), `${at}: header height unchanged by the chip`);
     assert.equal(Math.round(card.title), Math.round(baseline.title), `${at}: title width unchanged by the chip`);
     assert.ok(card.scoreColumn.width <= card.score.width + 0.5, `${at}: the score column stays score-sized (${card.scoreColumn.width} > ${card.score.width})`);
@@ -114,7 +114,7 @@ for (const [vp, viewport] of [["390", { width: 390, height: 844 }], ["desktop", 
       const { context, page, errors } = await openBoard({ viewport, colorScheme, filter, jobs: freshJobs() });
       try {
         try {
-          checkCards(await measure(page, "main"), `${where} list`, minimumTitleWidth[vp]);
+          checkCards(await measure(page, "main"), `${where} list`, minimumTitleWidth[vp], filter === "new-for-me");
           assert.ok(await page.evaluate(() => document.scrollingElement.scrollWidth <= window.innerWidth), `${where} list: no horizontal overflow`);
           await shot(page, `${vp}-${colorScheme}-${filter}-list`, { fullPage: vp === "390" });
           passed.push(`${where} list`);
