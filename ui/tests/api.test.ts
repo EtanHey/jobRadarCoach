@@ -121,7 +121,7 @@ test("availability predicates classify only boolean false as inactive", () => {
 
 test("unknown and malformed liveness remain visible as unknown summary data", () => {
   const raw = {
-    source: "fixture", last_seen_at: summary.last_seen_at, raw_jd: null, liveness: null,
+    source: "fixture", last_seen_at: summary.last_seen_at, list_metadata: {stack: [], experience: null, description_available: false}, liveness: null,
     posting_extractions: null, id: summary.id, title: summary.title, company: summary.company,
     location: null, remote: null, seniority: null, stack: [], salary: null,
     url: summary.url, apply_url: null, posted_at: null, first_seen_at: summary.first_seen_at,
@@ -137,7 +137,7 @@ test("PostgreSQL UUID forms are not rejected by stricter RFC version and variant
   assert.equal(JobIdSchema.safeParse(postgresUuid).success, true);
 
   const raw = {
-    source: "fixture", last_seen_at: summary.last_seen_at, raw_jd: null, liveness: {},
+    source: "fixture", last_seen_at: summary.last_seen_at, list_metadata: {stack: [], experience: null, description_available: false}, liveness: {},
     posting_extractions: null, id: postgresUuid, title: "Engineer", company: "Acme",
     location: null, remote: null, seniority: null, stack: [], salary: null,
     url: "https://example.com/job", apply_url: null, posted_at: null, first_seen_at: summary.first_seen_at,
@@ -150,7 +150,7 @@ test("PostgreSQL UUID forms are not rejected by stricter RFC version and variant
 
 test("a non-GUID row fails visibly instead of being silently omitted", () => {
   const raw = {
-    source: summary.source, last_seen_at: summary.last_seen_at, raw_jd: "3+ years of backend engineering experience",
+    source: summary.source, last_seen_at: summary.last_seen_at, list_metadata: {stack: [], experience: "3+ years of backend engineering experience", description_available: true},
     posting_extractions: null, liveness: { alive: false }, id: summary.id, title: summary.title, company: summary.company,
     location: summary.location, remote: summary.remote, seniority: summary.seniority, stack: summary.stack,
     salary: summary.salary, url: summary.url, apply_url: summary.apply_url, posted_at: summary.posted_at,
@@ -321,7 +321,7 @@ test("automatic seen intent is distinct from explicit backward edits", async () 
 });
 
 test("summary projection preserves original, latest publication and discovery separately", () => {
-  const raw = { ...summary, raw_jd: null, liveness: {}, posting_extractions: null,
+  const raw = { ...summary, list_metadata: {stack: [], experience: null, description_available: false}, liveness: {}, posting_extractions: null,
     posted_at: "2026-09-01T00:00:00Z", last_published_at: "2026-10-01T00:00:00Z",
     posting_status: null, posting_scores: null };
   const row = parseSummaryRows([raw]).jobs[0];

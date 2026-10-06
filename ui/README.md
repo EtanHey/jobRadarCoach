@@ -9,3 +9,7 @@ Run the synthetic two-context regression with `GLOBE_QA_URL=http://127.0.0.1:<fi
 Globe debug datasets require the build-time opt-in `NEXT_PUBLIC_QA_DATASETS=1`; `scripts/prepare-globe-fixture.mjs` enables it for both dev and production fixtures, while real production builds leave it unset.
 
 Company logos resolve in one order (`lib/company-logos.ts`): override map (`lib/company-logo-overrides.ts`), curated catalog (`public/companies`), Logo.dev when `NEXT_PUBLIC_LOGO_DEV_KEY` holds a publishable `pk_` key (Vercel env, or a gitignored `ui/.env.local` locally), then initials. Pin a wrong Logo.dev match in the override map.
+
+The Python suite includes a real DB-backed list/detail contract through disposable PostgREST. After `npm ci` here, set `DATABASE_URL` to a disposable local PostgreSQL server and `JOBRADAR_POSTGREST_BIN` to the PostgREST executable, then run `uv run --group test pytest test_support/test_ui_list_database.py` from the repository root. CI installs a pinned binary and requires this contract without skips.
+
+Migration 0024 generates compact list metadata for existing and new descriptions. The lead must apply it before deploying the UI that selects `list_metadata`; it rewrites the postings table while backfilling. Full descriptions remain on detail reads.
