@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createDetailCoordinator, jobListCacheKey, jobListRequestPath, retainVisitCohort, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+import { jobListCacheKey, jobListRequestPath, retainVisitCohort, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
 
 test("list requests key the complete server query", () => {
   assert.equal(jobListCacheKey({ filter: "all", availability: "active", limit: 1000 }), "filter=all&availability=active&limit=1000");
@@ -16,27 +16,6 @@ test("a status mutation updates the active list without resetting unrelated rows
 
   assert.deepEqual(updated[0], { id: "job-1", status: "worth_checking", status_reason: null });
   assert.equal(updated[1], current[1]);
-});
-
-test("a successful mutation invalidates an older detail read", () => {
-  const coordinator = createDetailCoordinator();
-  const selected = coordinator.select("job-a");
-  const staleRead = coordinator.beginRead();
-
-  assert.equal(coordinator.acceptRead(staleRead), true);
-  assert.equal(coordinator.commitMutation(selected), true);
-  assert.equal(coordinator.acceptRead(staleRead), false);
-});
-
-test("selection generations reject detail work from a previously opened job", () => {
-  const coordinator = createDetailCoordinator();
-  const firstSelection = coordinator.select("job-a");
-  const firstRead = coordinator.beginRead();
-  const secondSelection = coordinator.select("job-b");
-
-  assert.equal(coordinator.acceptRead(firstRead), false);
-  assert.equal(coordinator.commitMutation(firstSelection), false);
-  assert.equal(coordinator.commitMutation(secondSelection), true);
 });
 
 test("new-for-me visit cohort keeps existing order while updating and appending jobs", () => {

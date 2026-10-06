@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { Availability, JobSummary, StatusResult } from "./contracts";
+import type { Availability, JobDetail, JobSummary, StatusResult } from "./contracts";
 import { statusMutationRemovesCard } from "./job-status";
 import { updateJobStatus } from "./job-board-state";
 import type { BoardFilter } from "./job-board-preferences";
@@ -19,6 +19,11 @@ export function confirmListRead(client: QueryClient, jobs: JobSummary[], filter:
     if (!automatic && statusMutationRemovesCard(filter, result.status)) jobs = jobs.filter(job => job.id !== id);
   }
   return jobs;
+}
+
+export function confirmDetailRead(client: QueryClient, job: JobDetail, started: number) {
+  const confirmation = client.getQueryData<Confirmation>(["board-status", job.id]);
+  return confirmation && confirmation.revision > started ? { ...job, status: confirmation.result.status, status_reason: confirmation.result.reason } : job;
 }
 
 export function applyConfirmedStatus(client: QueryClient, id: string, result: StatusResult, automatic: boolean) {
