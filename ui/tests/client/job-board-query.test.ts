@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { JobSummary } from "../../lib/contracts";
+import type { JobDetail, JobSummary } from "../../lib/contracts";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead } from "../../lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead } from "../../lib/job-board-query";
 
 test("list queries isolate filter and availability and reuse their cached response", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
@@ -96,4 +96,40 @@ test("a status confirmation drops inactive Seen results without refetching the a
   assert.equal(client.getQueryData<{ jobs: JobSummary[] }>(all)?.jobs[0].status, "seen");
   assert.equal(reads, 0);
   stop(); client.clear();
+});
+
+test("a held detail read keeps an overlapping confirmed status; a later opening uses server truth", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const job = { ...row, raw_jd: "Synthetic description" } as JobDetail;
+  const started = confirmedStatusRevision(client);
+  let release!: (job: JobDetail) => void;
+  const read = client.fetchQuery({ queryKey: ["board-detail", row.id, 1], queryFn: async () => {
+    const read = await new Promise<JobDetail>(resolve => { release = resolve; });
+    return confirmDetailRead(client, read, started);
+  } });
+  applyConfirmedStatus(client, row.id, { status: "applied", reason: null }, false);
+  release(job);
+  assert.equal((await read).status, "applied");
+  assert.equal(confirmDetailRead(client, job, confirmedStatusRevision(client)), job);
+  client.clear();
+});
+
+test("closing a detail observer aborts its read and cannot publish into the next selected role", async () => {
+  const client = new QueryClient();
+  let signal!: AbortSignal, release!: (value: string) => void;
+  const oldKey = ["board-detail", "old-role", 1];
+  const old = new QueryObserver(client, { queryKey: oldKey, gcTime: 0, queryFn: ({ signal: current }) => {
+    signal = current;
+    return new Promise<string>(resolve => { release = resolve; });
+  } });
+  const close = old.subscribe(() => {});
+  close();
+  assert.equal(signal.aborted, true);
+  const nextKey = ["board-detail", "next-role", 2];
+  await client.fetchQuery({ queryKey: nextKey, queryFn: () => Promise.resolve("next role body") });
+  release("old role body");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(client.getQueryData(oldKey), undefined);
+  assert.equal(client.getQueryData(nextKey), "next role body");
+  client.clear();
 });

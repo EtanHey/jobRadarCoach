@@ -32,6 +32,14 @@ await open(0);await body(0).waitFor();receipts.push({case:'ten-role bubble repre
 await page.getByRole('dialog').getByText('Other listings for this role (1)',{exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:`Open Engineer 0 at Synthetic Ten Roles, listing ${id(10)}`,exact:true}).click();await body(10).waitFor();receipts.push({case:'alternate exact ID',requests:[...requests]});await close();
 holdList=true;await showNewRoles();await page.waitForTimeout(400);assert.ok(pendingLists.length);await open(1);await body(1).waitFor();receipts.push({case:'globe-only role during held list refresh',requests:[...requests]});await close();
 holdList=false;for(const route of pendingLists.splice(0))await route.fulfill({json:{jobs:[jobs[0]]}}).catch(()=>undefined);
+holdDetail=true;await open(2);
+await page.getByRole('dialog').getByText('Loading job…',{exact:true}).waitFor();
+const abandoned=page.waitForEvent('requestfailed',{timeout:2000,predicate:req=>new URL(req.url()).pathname===`/api/jobs/${id(2)}`});
+await close();await abandoned;
+for(const route of pendingDetails.splice(0))await route.fulfill({json:{job:{...jobs[2],raw_jd:`Fixture body ${id(2)}`,reasons:[],score_payload:null,brain:null,scored_at:null}}}).catch(()=>undefined);
+holdDetail=false;await open(3);await body(3).waitFor();assert.equal(await body(2).count(),0);
+assert.equal(requests.filter(req=>req.method==='PATCH'&&req.path===`/api/jobs/${id(2)}/status`).length,0);
+receipts.push({case:'closing a held detail aborts it; next role stays exact with no stale Seen',requests:[...requests]});await close();
 holdDetail=true;await open(4);
 await page.getByRole('dialog').getByText('Loading job…',{exact:true}).waitFor();
 await page.screenshot({path:`${output}/stalled-loading.png`});

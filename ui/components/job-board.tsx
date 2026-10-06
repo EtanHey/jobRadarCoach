@@ -12,10 +12,10 @@ import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
-import { createDetailCoordinator, jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead, type CachedList } from "@/lib/job-board-query";
+import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
+import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead, type CachedList } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
-import { DETAIL_LOAD_TIMEOUT_MESSAGE, DETAIL_LOAD_TIMEOUT_MS, loadJobDetail } from "@/lib/job-detail-request";
+import { loadJobDetail } from "@/lib/job-detail-request";
 import { relativeAge } from "@/lib/job-display";
 import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
 import { useNewRoles } from "./use-new-roles";
@@ -70,7 +70,7 @@ function Board() {
   const { filter, view } = preferences;
   const [selected, setSelected] = useState<string | null>(null);
   const [markSeenOnOpen, setMarkSeenOnOpen] = useState(true);
-  const [detail, setDetail] = useState<JobDetail | null>(null);
+  const [closingDetail, setClosingDetail] = useState<JobDetail | null>(null);
   const [detailError, setDetailError] = useState("");
   const [detailRevision, setDetailRevision] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -110,6 +110,16 @@ function Board() {
   const listError = listQuery.error?.message ?? "";
   const error = listQuery.data ? "" : listError;
   const refreshWarning = listQuery.data && listError ? `${listError} Showing previous results.` : "";
+  const detailQuery = useQuery({
+    queryKey: ["board-detail", selected, detailRevision], enabled: selected !== null,
+    queryFn: async ({ signal }) => {
+      if (selected === null) throw new Error("Select a role to load its details.");
+      const started = confirmedStatusRevision(client);
+      return confirmDetailRead(client, await loadJobDetail(selected, signal), started);
+    },
+    gcTime: 0,
+  });
+  const detail = selected === null ? closingDetail : detailQuery.data ?? null;
   const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
   const patchGlobeStatus = globe.patchStatus;
   const globeActive = globeOpen && !globe.failure;
@@ -160,7 +170,6 @@ function Board() {
       if (delta) rail.scrollTo({ top: rail.scrollTop + delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
     });
   }
-  const [detailCoordinator] = useState(createDetailCoordinator);
   const preferenceStorageRef = useRef<Storage | null>(null);
   const filterRef = useRef<Filter>(filter);
   const openerRef = useRef<HTMLButtonElement | null>(null);
@@ -184,6 +193,7 @@ function Board() {
     onSuccess: (result, { id, patch }) => {
       const automatic = "automatic" in patch && Boolean(patch.automatic);
       applyConfirmedStatus(client, id, result, automatic);
+      client.setQueriesData<JobDetail>({ queryKey: ["board-detail", id] }, job => job ? { ...job, status: result.status, status_reason: result.reason } : job);
       patchGlobeStatus(id, result, !automatic && statusMutationRemovesCard(filterRef.current, result.status));
     },
   });
@@ -196,6 +206,23 @@ function Board() {
   const markSeen = automaticSeen.mutateAsync;
   const saving = statusMutation.isPending;
   const mutateStatus = statusMutation.mutateAsync;
+  const automaticSelection = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selected || !detailQuery.data || !markSeenOnOpen) return;
+    const selection = `${selected}/${detailRevision}`;
+    if (automaticSelection.current === selection) return;
+    automaticSelection.current = selection;
+    const controller = new AbortController();
+    void markSeen({ id: selected, signal: controller.signal }).then(result => {
+      if (controller.signal.aborted) return;
+      applyConfirmedStatus(client, selected, result, true);
+      client.setQueriesData<JobDetail>({ queryKey: ["board-detail", selected] }, job => job ? { ...job, status: result.status, status_reason: result.reason } : job);
+      patchGlobeStatus(selected, result, false);
+    }).catch(cause => {
+      if (!controller.signal.aborted) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
+    });
+    return () => controller.abort();
+  }, [client, selected, detailRevision, detailQuery.data, markSeenOnOpen, markSeen, patchGlobeStatus]);
   function showNewRoles() {
     newRoles.dismiss();
     // The pill unmounts on click; keep focus and the reader at the top of the refreshed list.
@@ -207,10 +234,11 @@ function Board() {
   }
   function selectJob(id: string | null, markSeen = true) {
     setMarkSeenOnOpen(markSeen);
-    detailCoordinator.select(id);
+    if (id === null) setClosingDetail(detail);
+    else setDetailRevision(value => value + 1);
     setSelected(id);
     // Keep the previous body intact during the sheet closing transition.
-    if (id !== null) { setDetail(null); setDetailError(""); }
+    if (id !== null) setDetailError("");
   }
   function openGlobeJob(id: string) {
     focusGlobeRow(id, "point");
@@ -221,9 +249,8 @@ function Board() {
   }
   function retryDetail() {
     if (!selected || saving) return;
-    detailCoordinator.select(selected);
     setDetailError("");
-    setDetailRevision((value) => value + 1);
+    setDetailRevision(value => value + 1);
   }
   function prepareListSource(value: Filter, availability: ViewOptions["availability"]) {
     filterRef.current = value;
@@ -324,56 +351,12 @@ function Board() {
     if (preferencesReady && storage) writeBoardPreferences(storage, preferences);
   }, [preferences, preferencesReady]);
 
-  useEffect(() => {
-    if (!selected) return undefined;
-    const id = selected;
-    const identity = detailCoordinator.current();
-    if (identity.id !== id) return undefined;
-    const read = detailCoordinator.beginRead();
-    const controller = new AbortController();
-    let patchStarted = false;
-    async function open() {
-      try {
-        const job = await loadJobDetail(id, controller.signal);
-        if (controller.signal.aborted) return;
-        if (detailCoordinator.acceptRead(read)) setDetail(job);
-        if (!markSeenOnOpen) return;
-        patchStarted = true;
-        const status = await markSeen({ id, signal: controller.signal });
-        if (controller.signal.aborted) return;
-        if (detailCoordinator.commitMutation(identity)) {
-          applyConfirmedStatus(client, id, status, true);
-          patchGlobeStatus(id, status, false);
-          setDetail({ ...job, status: status.status, status_reason: status.reason });
-        }
-      } catch (cause) {
-        if (!controller.signal.aborted && detailCoordinator.isCurrent(identity) && (patchStarted || detailCoordinator.acceptRead(read))) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
-      }
-    }
-    open();
-    return () => controller.abort();
-  }, [client, detailCoordinator, selected, detailRevision, markSeenOnOpen, markSeen, patchGlobeStatus]);
-
-  useEffect(() => {
-    // Retried reads cannot extend this selection's loading budget.
-    const timer = selected && !detail && !detailError ? setTimeout(() => {
-      if (detailCoordinator.current().id !== selected) return;
-      setDetailError(DETAIL_LOAD_TIMEOUT_MESSAGE);
-    }, DETAIL_LOAD_TIMEOUT_MS) : undefined;
-    return () => clearTimeout(timer);
-  }, [detailCoordinator, selected, detail, detailError, detailRevision]);
-
   async function changeStatus(patch: StatusPatch): Promise<StatusChangeResult> {
-    if (!detail || saving || detailCoordinator.current().id !== detail.id) return { ok: false };
+    if (!detail || saving || selected !== detail.id) return { ok: false };
     if (isStatusPatchNoop(detail, patch)) return { ok: true };
-    const id = detail.id;
-    const identity = detailCoordinator.current();
     setDetailError("");
     try {
-      const result = await mutateStatus({ id, patch });
-      if (identity.id === id && detailCoordinator.commitMutation(identity)) {
-        setDetail((current) => current?.id === id ? { ...current, status: result.status, status_reason: result.reason } : current);
-      }
+      await mutateStatus({ id: detail.id, patch });
       return { ok: true };
     } catch (cause) {
       // The status select reports this inline; the drawer banner stays for detail-loading errors.
@@ -401,7 +384,8 @@ function Board() {
       retryDetail={retryDetail}
       retryDisabled={saving || selected === null}
       selectedJob={displayJobs.find((job) => job.id === selected)}
-      {...{selected, relatedJobs, openerRef, detail, detailError}}
+      {...{selected, relatedJobs, openerRef, detail}}
+      detailError={detailError || detailQuery.error?.message || ""}
       selectJob={id => selectJob(id, markSeenOnOpen)}
       actions={detail ? <>
         <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
