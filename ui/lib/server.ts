@@ -96,9 +96,9 @@ export function availabilityPredicate(availability: Availability) {
   return null;
 }
 
-export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidRowCount: 0 } {
+export function parseSummaryRows(value: unknown): { jobs: JobSummary[] } {
   const rows = checked(z.array(rawSummarySchema), value);
-  return { jobs: rows.map(summary), invalidRowCount: 0 };
+  return { jobs: rows.map(summary) };
 }
 
 export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
