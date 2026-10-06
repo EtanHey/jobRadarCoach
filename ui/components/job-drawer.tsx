@@ -33,8 +33,9 @@ const experienceStatus = (job: JobDetail) => job.experience
 
 export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs = [], retryDetail, retryDisabled = false, selected, selectedJob, selectJob }: JobDrawerProps) {
   const heading = detail ?? selectedJob;
+  // Open on the description, never the first tabbable: header date icons would pop a tooltip and swallow the first Escape.
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
-    <SheetContent finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
+    <SheetContent initialFocus={() => document.querySelector<HTMLElement>("[data-job-description]")} finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
         <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
@@ -53,7 +54,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
           {heading && <a className="underline" href={heading.url} target="_blank" rel="noopener noreferrer">Open original posting</a>}
         </div>
       </div>}
-      <section aria-label="Job description" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-offset-[-2px]">
+      <section data-job-description aria-label="Job description" tabIndex={0} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-offset-[-2px]">
         {detail ? <JobDescription text={detail.raw_jd} /> : !detailError && <p role="status">Loading job…</p>}
       </section>
       {relatedJobs.length > 0 && <details className="shrink-0 border-t bg-background px-4 py-2" aria-label="Other listings for this role">
