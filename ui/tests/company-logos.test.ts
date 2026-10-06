@@ -130,3 +130,90 @@ test("every initials pin in the shipped override map beats Logo.dev and the cata
     assert.equal(resolveCompanyLogo({ company: name.toUpperCase() }, { logoDevKey: KEY }), null, name);
   }
 });
+
+test("confident domain map wins over name lookup and shares canonical matching", () => {
+  const domainMap = { "acme robotics": "acmerobotics.ai" };
+  const resolved = resolveCompanyLogo({ company: "  ＡＣＭＥ\t Robotics " }, { logoDevKey: KEY, domainMap });
+  const url = logoDev(resolved?.src);
+  assert.equal(url.pathname, "/acmerobotics.ai");
+  assert.equal(url.searchParams.get("size"), "128");
+  assert.equal(url.searchParams.get("format"), "png");
+  assert.equal(url.searchParams.get("theme"), "light");
+  assert.equal(url.searchParams.get("fallback"), "404");
+});
+
+test("mapped null means initials; absent companies alone can use name lookup", () => {
+  const options = { logoDevKey: KEY, domainMap: { "acme robotics": null } };
+  assert.equal(resolveCompanyLogo({ company: "ACME Robotics" }, options), null);
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Unseen Widgets" }, options)?.src).pathname, "/name/Unseen%20Widgets");
+});
+
+test("override, catalog and trusted apply domain precede the domain map", () => {
+  const domainMap = { wix: null, "acme robotics": "acmerobotics.ai", saic: "saic.com" };
+  assert.equal(resolveCompanyLogo({ company: "SAIC" }, { logoDevKey: KEY, domainMap }), null);
+  assert.equal(resolveCompanyLogo({ company: "Wix" }, { logoDevKey: KEY, domainMap })?.kind, "catalog");
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Acme Robotics", applyUrl: "https://acmerobotics.com/jobs" }, { logoDevKey: KEY, domainMap })?.src).pathname, "/acmerobotics.com");
+  assert.equal(resolveCompanyLogo({ company: "Acme Robotics" }, { domainMap }), null);
+});
+
+test("both Yael employers stay initials even with a mapped or apply domain", () => {
+  for (const company of ["Yael Korentec Technologies", "Yael Group"]) {
+    assert.equal(resolveCompanyLogo({ company, applyUrl: "https://yael.com/jobs" }, {
+      logoDevKey: KEY, domainMap: { [canonicalCompanyName(company)]: "yaeladventures.com" },
+    }), null, company);
+  }
+});
+
+test("the committed domain map contains canonical keys and only safe domains or explicit null", async () => {
+  const { validLogoDomain } = await import("../../scripts/refresh-logo-domains");
+  const map = JSON.parse(readFileSync(new URL("../lib/company-logo-domains.json", import.meta.url), "utf8"));
+  assert.ok(map && !Array.isArray(map) && typeof map === "object");
+  for (const [name, domain] of Object.entries(map)) {
+    assert.equal(name, canonicalCompanyName(name));
+    assert.ok(name.length > 0);
+    assert.ok(domain === null || validLogoDomain(domain), name);
+  }
+});
+
+test("the shipped map resolves Jeen.ai by domain and TalentHop to initials", () => {
+  assert.equal(logoDev(resolveCompanyLogo({ company: "JEEN.AI" }, { logoDevKey: KEY })?.src).pathname, "/jeen.ai");
+  assert.equal(resolveCompanyLogo({ company: "TalentHop" }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Alice (Formerly ActiveFence)" }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Yael Group" }, { logoDevKey: KEY }), null);
+});
+
+test("AWS never uses the supplied event-specific domain without verified artwork", () => {
+  assert.equal(resolveCompanyLogo({ company: "Amazon Web Services (AWS)" }, { logoDevKey: KEY }), null);
+});
+
+test("Unavailable is an unknown employer, not the supplied ice-cream brand", () => {
+  assert.equal(resolveCompanyLogo({ company: "Unavailable" }, { logoDevKey: KEY }), null);
+});
+
+
+test("lead ownership ruling drops two unrelated brands from the shipped map", () => {
+  for (const company of ["Johnson & Johnson MedTech", "Xpend"]) {
+    assert.equal(resolveCompanyLogo({ company }, { logoDevKey: KEY }), null, company);
+  }
+});
+
+test("Opus-reviewed homonyms and suspect brands resolve to initials", () => {
+  const companies = [
+    "Siemens EDA (Siemens Digital Industries Software)", "Roark (YC W25)", "DRW",
+    "Minute", "DT", "Dialog", "Medulla", "Venn", "Nimble",
+    "ACT", "OP", "Neo", "ELTA Systems Ltd", "Mylo AI", "Yara AI", "Ocho",
+  ];
+  assert.deepEqual(
+    companies.map((company) => resolveCompanyLogo({ company }, { logoDevKey: KEY })),
+    companies.map(() => null),
+  );
+});
+
+test("UTF-8 company names match the shipped map instead of falling through to name lookup", () => {
+  const map = JSON.parse(readFileSync(new URL("../lib/company-logo-domains.json", import.meta.url), "utf8"));
+  for (const company of ["Bank of Jerusalem בנק ירושלים", "Discount Bank בנק דיסקונט", "Goldjobs מבינים באנשים", "Ness Technologies | נס טכנולוגיות", "Plus500™", "SWAKIO™"]) {
+    assert.ok(Object.hasOwn(map, canonicalCompanyName(company)), company);
+    const resolved = resolveCompanyLogo({ company }, { logoDevKey: KEY });
+    if (resolved?.kind === "logo-dev") assert.ok(!logoDev(resolved.src).pathname.startsWith("/name/"), company);
+  }
+});

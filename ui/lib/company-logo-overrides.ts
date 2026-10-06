@@ -16,6 +16,9 @@ export const companyLogoOverrides: Readonly<Record<string, CompanyLogoOverride>>
   "undisclosed": { kind: "initials" },
   // Wrong Logo.dev name-lookup images found in the 2026-10-04 eyeball review of the top companies
   // (docs.local/qa/2026-10-04-logo-eyeball). Pin a curated file or a domain instead once a correct mark is verified.
+  // Yael Adventures is an unrelated popular name match for these employers.
+  "yael korentec technologies": { kind: "initials" },
+  "yael group": { kind: "initials" },
   "travelfactory lab": { kind: "initials" },
   "saic": { kind: "initials" },
   "ashley digital": { kind: "initials" },
