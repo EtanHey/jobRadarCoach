@@ -2,6 +2,7 @@ import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import sharp from "sharp";
+import { globeDiameterRatio, routeFixtureExternal, isFixtureLogo404 } from "./globe-fixture.mjs";
 
 const base = process.env.GLOBE_QA_URL ?? "http://127.0.0.1:4327";
 const output = process.env.GLOBE_QA_OUTPUT;
@@ -37,6 +38,7 @@ try {
         if (path === "/api/events") return route.fulfill({ contentType: "text/event-stream", body: "event: ready\ndata: {}\n\n" });
         return route.fulfill({ status: 404, json: { error: "fixture only" } });
       });
+      await page.route("https://img.logo.dev/**", route => routeFixtureExternal(route, new URL(route.request().url())));
       await page.goto(base);
       await page.getByRole("combobox", { name: "Work mode" }).waitFor();
       const values = await page.locator("[data-job-toolbar] > div:first-child .truncate").evaluateAll(nodes => nodes.map(node => ({ value: node.textContent?.trim(), width: node.clientWidth, content: node.scrollWidth })));
@@ -51,12 +53,12 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("console", message => { if (message.type() === "error" && !isFixtureLogo404(message)) errors.push(message.text()); });
     page.on("requestfailed", request => { if (request.failure()?.errorText !== "net::ERR_ABORTED") errors.push(`${request.url()}: ${request.failure()?.errorText}`); });
     await page.addInitScript(() => { window.EventSource = class { addEventListener() {} close() {} }; });
     await page.route("**/*", route => {
       const url = new URL(route.request().url());
-      if (url.hostname !== "127.0.0.1") return url.hostname.endsWith("cartocdn.com") ? route.continue() : route.abort();
+      if (url.hostname !== "127.0.0.1") return routeFixtureExternal(route, url);
       if (url.pathname === "/api/jobs/globe") return route.fulfill({ json: payload });
       if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs } });
       if (url.pathname === "/api/events") return route.fulfill({ contentType: "text/event-stream", body: "event: ready\ndata: {}\n\n" });
@@ -64,6 +66,8 @@ try {
     });
     try {
       await page.goto(base);
+      // Exercise future Logo.dev wiring even without a configured public key (#378).
+      assert.equal(await page.evaluate(async () => (await fetch('https://img.logo.dev/example.test?token=pk_synthetic')).status), 404);
       if (name === "short-desktop" && phase === "after") {
         await page.getByRole("combobox", { name: "Work mode" }).waitFor();
         assert.ok(await page.getByRole("combobox", { name: "Work mode" }).isVisible(), "list view keeps inline filters at 1024px");
@@ -90,18 +94,14 @@ try {
           zoom: Number(document.querySelector("[data-projection]")?.getAttribute("data-zoom")),
         };
       });
-      const globePng = await page.locator(".job-globe").screenshot();
-      const { data, info } = await sharp(globePng).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-      const row = Math.floor(info.height / 2), hits = [];
-      for (let x = 12; x < info.width - 12; x++) {
-        const offset = (row * info.width + x) * info.channels;
-        if (Math.abs(data[offset] - 8) + Math.abs(data[offset + 1] - 15) + Math.abs(data[offset + 2] - 28) > 10) hits.push(x);
-      }
-      metrics.globeDiameterRatio = hits.length ? (hits.at(-1) - hits[0]) / Math.min(info.width, info.height) : 0;
+      // Measure controls in the same scroll frame as the map; locator screenshots scroll short pages.
       metrics.zoomButtons = await Promise.all(["Zoom in", "Zoom out"].map(async name => {
         const box = await page.getByRole("button", { name, exact: true }).boundingBox();
         return box && { top: box.y, bottom: box.y + box.height };
       }));
+      const globePng = await page.locator(".job-globe").screenshot();
+      const { data, info } = await sharp(globePng).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      metrics.globeDiameterRatio = globeDiameterRatio(data, info);
       await page.screenshot({ path: `${output}/${name}-${phase}.png`, fullPage: true });
       await page.screenshot({ path: `${output}/${name}-${phase}-viewport.png` });
       if (name === "mobile" && phase === "after") {
