@@ -102,6 +102,10 @@ try {
         await openCard(3);
         await page.clock.runFor(1_000);
         assert.equal(listReads(), reads, "automatic Seen does not GET the list");
+        // The opened card stays in New for me as Seen, dimmed like a terminal status; the frame keeps full strength.
+        await expect(card(3).locator("[data-card-status]")).toHaveText("Seen");
+        await expect(card(3).locator("h2").locator("..")).toHaveCSS("opacity", "0.6");
+        await expect(card(3)).toHaveCSS("opacity", "1");
         const status = dialog.getByRole("combobox", { name: "Application status" });
         await status.click();
         await page.getByRole("option", { name: "Applied", exact: true }).click();

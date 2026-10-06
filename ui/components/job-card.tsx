@@ -31,10 +31,10 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   const repost = repostNote(job.posted_at, job.last_published_at, earlierListings);
   const location = job.location ?? "Location unspecified";
-  // Every view names a non-new status under the score; only terminal statuses dim the content, never the frame,
-  // so hover border and focus ring stay full strength.
+  // Every view names a non-new status under the score; terminal statuses (and Seen, kept in New for me) dim the
+  // content, never the frame, so hover border and focus ring stay full strength.
   const chip = job.status === "new" ? null : statusLabels[job.status];
-  const dim = statusDimsCard(job.status) ? "opacity-60" : "";
+  const dim = statusDimsCard(job.status) || keptStatus === "seen" ? "opacity-60" : "";
   const chipId = `card-status-${job.id}`;
   return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }} />
