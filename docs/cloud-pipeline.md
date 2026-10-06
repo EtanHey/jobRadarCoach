@@ -64,9 +64,9 @@ Wix (`Wix2`). Lists request Israel and apply the shared title/location rules
 before fetching descriptions. Board and detail requests have separate budgets.
 Publication dates come only from timezone-qualified `releasedDate` values.
 
-Liveness uses the active list, never the detail endpoint's status. Rechecks
-search the full board across countries; absence closes a job only after complete
-pagination. Failed, changing or incomplete lists stay unknown. Both harvest and
+Liveness uses the active list, never the detail endpoint's status. Hourly rechecks
+cache the full board across countries; absence needs two spaced complete-list
+misses plus own-URL closure evidence. Failed, changing or incomplete lists stay unknown. Both harvest and
 recheck pagination stop after five pages. Details supply complete description
 sections and support later retries. Observed careers-link validation is wired;
 company-name guessing is unchanged. Hosted published/scored counts require a
@@ -120,4 +120,4 @@ The optional
 for installations that deliberately choose database-driven dispatch. It must
 never run alongside the native GitHub schedule.
 
-Workday uses anonymous CXS JSON POST lists, dynamically selects the Israel country facet, and fetches details after shared title/location admission. Lists have a 26-request allowance (discovery plus 25 pages of 20); details have a separate 8-request allowance. Rechecks search the active list by requisition ID and match the exact job path; failed or incomplete lists stay unknown. NVIDIA's absolute detail `startDate` matches public JSON-LD `datePosted`; provider date-only values normalize to UTC midnight so the persistence layer accepts them; relative `postedOn` stays display text and never becomes a clock-derived publication date. Missing absolute dates remain unknown.
+Workday uses anonymous CXS JSON POST lists, dynamically selects the Israel country facet, and fetches details after shared title/location admission. Lists have a 26-request allowance (discovery plus 25 pages of 20); details have a separate 8-request allowance. Hourly rechecks cache an entire unfiltered site traversal, with no requisition search or Israel facet; failed or incomplete lists stay unknown. The standalone `check_url` helper still searches by requisition ID and matches the exact job path. NVIDIA's absolute detail `startDate` matches public JSON-LD `datePosted`; provider date-only values normalize to UTC midnight so the persistence layer accepts them; relative `postedOn` stays display text and never becomes a clock-derived publication date. Missing absolute dates remain unknown.

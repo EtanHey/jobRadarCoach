@@ -104,7 +104,7 @@ def test_source_registry_budget_and_public_endpoint(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize(('payload', 'alive'), [(page([job()]), True), (page([]), False),
     (page([job(id='999')]), False), (page([], total=1), None), ({'content': 'bad'}, None)])
-def test_stored_recheck_never_uses_single_posting_details(payload, alive):
+def test_check_url_never_uses_single_posting_details(payload, alive):
     from scraper import liveness, recheck
     from scraper.test_liveness import Response
     calls = []
