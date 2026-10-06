@@ -18,7 +18,7 @@ const jobs: JobSummary[] = Array.from({ length: 1007 }, (_, n) => ({
 }));
 const point = (id: string) => ({ posting_id: id, lat: 32, lng: 34, precision: "hq", source: "https://example.test/hq | nominatim:osm:relation:1", resolved_at: "2026-09-22T00:00:00Z" });
 const store: GlobeStore = {
-  snapshot: async () => ({ jobs, geo: jobs.filter((j) => Number(j.id.slice(-12)) % 3).map(j => point(j.id)) }),
+  snapshot: () => Promise.resolve({ jobs, geo: jobs.filter((j) => Number(j.id.slice(-12)) % 3).map(j => point(j.id)) }),
 };
 test("complete snapshot keeps all jobs and counts beyond provider row caps", async () => {
   const response = await globeResponse(store, GlobeQuerySchema.parse({}));
@@ -47,8 +47,8 @@ test("route is private, rejects pagination/invalid filters, preserves no-store, 
     assert.equal((await get(new Request(`https://example.test/api/jobs/globe?${query}`))).status, 400);
   }
   const response = await get(new Request("https://example.test/api/jobs/globe?filter=all&availability=active"));
-  assert.equal(response.status, 200); assert.match(response.headers.get("cache-control")!, /no-store/);
-  const bad = makeGetGlobe({ ...store, snapshot: async () => ({ jobs: [jobs[0], jobs[0]], geo: [] }) });
+  assert.equal(response.status, 200); assert.match(response.headers.get("cache-control") ?? "", /no-store/);
+  const bad = makeGetGlobe({ ...store, snapshot: () => Promise.resolve({ jobs: [jobs[0], jobs[0]], geo: [] }) });
   assert.equal((await bad(new Request("https://example.test/api/jobs/globe"))).status, 503);
 });
 
