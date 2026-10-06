@@ -261,6 +261,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
         map.on("zoomend", updateZoomBounds);
         updateZoomBounds();
         const publishCamera = () => { if (process.env.NODE_ENV !== "production" && container.current && map) {
+          const cameraMap = map;
           container.current.dataset.projection = String(map.getProjection()?.type);
           container.current.dataset.zoom = String(map.getZoom());
           container.current.dataset.center = `${map.getCenter().lng},${map.getCenter().lat}`;
@@ -270,14 +271,15 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
           if (bounds) container.current.dataset.locationCorners = JSON.stringify([
             [bounds[0][0], bounds[0][1]], [bounds[0][0], bounds[1][1]],
             [bounds[1][0], bounds[0][1]], [bounds[1][0], bounds[1][1]],
-          ].map(([lng, lat]) => { const screen = map!.project([lng, lat]); return [screen.x, screen.y]; }));
+          ].map(([lng, lat]) => { const screen = cameraMap.project([lng, lat]); return [screen.x, screen.y]; }));
           else delete container.current.dataset.locationCorners;
         } };
         if (process.env.NODE_ENV !== "production") map.on("moveend", publishCamera);
         if (process.env.NODE_ENV !== "production") {
+          const debugMap = map;
           let flightMinZoom = 0;
-          map.on("movestart", () => { flightMinZoom = map!.getZoom(); if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
-          map.on("move", () => { flightMinZoom = Math.min(flightMinZoom, map!.getZoom()); });
+          map.on("movestart", () => { flightMinZoom = debugMap.getZoom(); if (container.current) container.current.dataset.cameraStarts = String(++cameraStarts); });
+          map.on("move", () => { flightMinZoom = Math.min(flightMinZoom, debugMap.getZoom()); });
           map.on("moveend", () => { if (container.current) container.current.dataset.flightMinZoom = String(flightMinZoom); });
         }
         map.on("moveend", () => {
