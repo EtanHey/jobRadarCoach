@@ -9,26 +9,6 @@ export function jobListRequestPath(input: { filter: string; availability: string
   return `/api/jobs?${jobListCacheKey(input)}`;
 }
 
-export function createBoundedJobListCache<T>(maxEntries = 3) {
-  if (!Number.isInteger(maxEntries) || maxEntries < 1) throw new RangeError("maxEntries must be a positive integer");
-  const entries = new Map<string, T>();
-  return {
-    get(key: string): T | undefined {
-      const value = entries.get(key);
-      if (value === undefined) return undefined;
-      entries.delete(key);
-      entries.set(key, value);
-      return value;
-    },
-    set(key: string, value: T) {
-      entries.delete(key);
-      entries.set(key, value);
-      while (entries.size > maxEntries) entries.delete(entries.keys().next().value!);
-    },
-    clear() { entries.clear(); },
-  };
-}
-
 export function updateJobStatus<T extends { id: string; status: string; status_reason: string | null }>(
   jobs: T[], id: string, status: T["status"], statusReason: string | null,
 ): T[] {
@@ -48,15 +28,6 @@ export function reconcileStatusMutations<T extends { id: string; status: string;
     if (!mutation) return [job];
     return mutation.remove ? [] : [{ ...job, status: mutation.status, status_reason: mutation.reason }];
   });
-}
-
-export function createRequestFence() {
-  let generation = 0;
-  return {
-    capture: () => generation,
-    invalidate: () => { generation += 1; },
-    isCurrent: (candidate: number) => candidate === generation,
-  };
 }
 
 export function createDetailCoordinator() {
