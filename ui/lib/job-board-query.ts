@@ -7,13 +7,13 @@ import { loadJobDetail } from "./job-detail-request";
 import type { ViewOptions } from "./job-filters";
 
 export type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
-export const boardListKey = (filter: BoardFilter, availability: Availability, view?: Pick<ViewOptions, "fit" | "statuses" | "sort">) =>
-  ["board-list", filter, availability, view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit"] as const;
+export const boardListKey = (filter: BoardFilter, availability: Availability, view?: Pick<ViewOptions, "fit" | "statuses" | "sort" | "found_within">) =>
+  ["board-list", filter, availability, view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit", view?.found_within ?? ""] as const;
 // Facet-specific snapshots still belong to one New-for-me visit. Keep settled
 // cards when a sort/fit change creates a new query, and hydrate them by ID.
-export function cachedVisitCohort(client: QueryClient, availability: Availability): JobSummary[] | null {
+export function cachedVisitCohort(client: QueryClient, availability: Availability, foundWithin: ViewOptions["found_within"] = ""): JobSummary[] | null {
   const snapshots = client.getQueriesData<CachedList>({ queryKey: ["board-list", "new-for-me", availability] })
-    .flatMap(([, data]) => data ? [data.jobs] : []);
+    .flatMap(([key, data]) => data && (key[6] ?? "") === (foundWithin ?? "") ? [data.jobs] : []);
   return snapshots.length ? uniqueJobsById(snapshots.flat()) : null;
 }
 type Confirmation = { id: string; result: StatusResult; automatic: boolean; revision: number };

@@ -74,6 +74,9 @@ export const JobDetailSchema = JobSummarySchema.extend({
   scored_at: nullableText,
 }).strict();
 
+export const FoundWithinSchema = z.enum(["", "24h", "3d", "7d", "30d"]);
+export type FoundWithin = z.infer<typeof FoundWithinSchema>;
+
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 const filterStatus = JobStatusSchema.exclude(["skipped"]);
 export const JobListQuerySchema = z.object({
@@ -82,12 +85,13 @@ export const JobListQuerySchema = z.object({
   limit,
   ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
   // Strictly-newer cursor for the board's new-roles poll.
+  found_within: FoundWithinSchema.optional(),
   since: z.iso.datetime({ offset: true }).optional(),
   fit: z.enum(["", "recommended", "skip", "good", "scored", "unscored"]).optional(),
   statuses: z.string().transform(value => value === "" ? [] : value.split(","))
     .pipe(z.array(z.enum(pipelineStatusValues)).max(pipelineStatusValues.length)).optional(),
   sort: z.enum(["found", "posted", "fit", "seniority"]).optional(),
-}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since), {
+}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since && !query.found_within), {
   message: "ID lookup requires all statuses and availability, without a cursor.",
 }).refine(query => !(query.ids || query.since) || (query.fit === undefined && query.statuses === undefined && query.sort === undefined), {
   message: "ID and poll reads do not accept board facets.",

@@ -14,7 +14,7 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
 }) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement | null>(null);
-  const active = [options.work_mode !== undefined || options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit"].filter(Boolean).length;
+  const active = [options.work_mode !== undefined || options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit", options.found_within].filter(Boolean).length;
   const fields: { key: "work_mode" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
     { key: "work_mode", label: "Work mode", choices: [{ value: "", label: "Any work mode" }, { value: "remote", label: "Remote" }, { value: "hybrid", label: "Hybrid" }, { value: "on-site", label: "On-site" }] },
     { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(jobs, options.source).map((source) => ({value: source, label: source}))] },
@@ -29,6 +29,10 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
     <div key={key} className="min-w-0"><AppSelect compact label={label} value={key === "work_mode" ? options.work_mode ?? (options.remote === true ? "remote" : options.remote === false ? "on-site" : "") : String(options[key] ?? "")} options={choices} onValueChange={(value) => onChange(key === "work_mode" ? { ...options, remote: undefined, work_mode: value === "" ? undefined : value as ViewOptions["work_mode"] } : { ...options, [key]: value })} /></div>,
   ]);
   return <div data-job-toolbar>
+    <div role="group" aria-label="Found in the past" className="mb-2 flex flex-wrap items-center gap-1">
+      <span className="mr-1 text-xs text-muted-foreground">Found in the past</span>
+      {([ ["", "Any time"], ["24h", "24 h"], ["3d", "3 d"], ["7d", "7 d"], ["30d", "30 d"] ] as const).map(([value, label]) => <Button key={value} type="button" size="sm" variant={(options.found_within ?? "") === value ? "secondary" : "ghost"} aria-pressed={(options.found_within ?? "") === value} onClick={() => onChange({ ...options, found_within: value || undefined })}>{label}</Button>)}
+    </div>
     <div className={`hidden items-end gap-3 pb-2 ${globeOpen ? "xl:flex" : "md:flex"}`}><div className="grid min-w-0 flex-1 grid-cols-3 items-end gap-3 xl:grid-cols-8">{controls}</div><div className="flex h-10 shrink-0 items-center gap-1"><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div></div>
     <div className={`flex flex-wrap items-center gap-2 pb-2 ${globeOpen ? "xl:hidden" : "md:hidden"}`}><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>}</Button><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
     <Sheet open={open} onOpenChange={setOpen}><SheetContent finalFocus={opener} className="overflow-y-auto data-[side=right]:w-full">
