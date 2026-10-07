@@ -14,6 +14,8 @@ while kill -0 "$root" 2>/dev/null; do
   [ "$mb" -le "$peak" ] || peak=$mb
   if [ "$mb" -gt "$cap" ] || [ "$((now-start))" -gt "$limit" ]; then
     echo "CAP-KILL suite=$suite rss=${mb}MB cap=${cap}MB elapsed=$((now-start))s"
+    # Names/RSS only: arguments could contain local auth tokens or credentials.
+    for p in $pids; do ps -o pid=,ppid=,rss=,comm= -p "$p" 2>/dev/null || :; done
     stop; sleep 2
     for p in $pids; do kill -9 "$p" 2>/dev/null || :; done
     exit 137
