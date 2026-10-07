@@ -44,6 +44,8 @@ class Connection:
             if params and params[0] != "runtime.brain":
                 return Result()
             return Result(one=(self.brain,))
+        if "select p.id::text,p.title,p.raw_jd" in query:
+            return Result()
         assert "not exists" in query.casefold()
         assert "regexp_replace" in query
         requested = params[2]
