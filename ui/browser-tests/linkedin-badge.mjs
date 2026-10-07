@@ -19,6 +19,7 @@ const jobs = ["new", "seen"].map((status, n) => ({
 const browser = await chromium.launch({ headless: true });
 try {
   for (const width of [1440, 390]) for (const filter of ["all", "new-for-me", "seen"]) {
+    for (const job of jobs) job.linkedin_closed_signal = signal;
     const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" });
     try {
       await context.addInitScript(filter => {
@@ -63,7 +64,18 @@ try {
       assert.equal(await drawer.getByRole("alert").count(), 0);
       // Automatic status changes are fulfilled entirely in the synthetic fixture.
       assert.ok(writes.every(method => method === "PATCH"));
-      console.log(`${width}/${filter}: active cards retained; linked badge on card and drawer; no clipping`);
+      // A later validated open observation projects null through the same API.
+      for (const job of jobs) job.linkedin_closed_signal = null;
+      await page.reload();
+      await cards.first().waitFor();
+      assert.equal(await cards.count(), filter === "all" ? 2 : 1);
+      assert.equal(await cards.locator("[data-linkedin-closed-signal]").count(), 0);
+      await cards.first().getByRole("button", { name: /^Open Synthetic/ }).click();
+      await drawer.waitFor();
+      assert.equal(await drawer.locator("[data-linkedin-closed-signal]").count(), 0);
+      if (output) await page.screenshot({ path: `${output}/${width}-${filter}-cleared.png` });
+      assert.deepEqual(errors, []);
+      console.log(`${width}/${filter}: active cards retained; badge shown then cleared on card and drawer; no clipping`);
     } finally { await context.close(); }
   }
 } finally { await browser.close(); }

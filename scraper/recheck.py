@@ -96,9 +96,7 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
             # This path may inspect an ATS URL discovered by LinkedIn. Only the
             # dedicated ATS gate owns hiding; LinkedIn rows keep advisory evidence.
             if source == "linkedin":
-                signal = result.get("linkedin_closed_signal")
-                if signal:
-                    update.update(database_evidence({"source": source, "url": url, **result}))
+                update.update(database_evidence({**result, "source": source, "url": url}))
             elif result.get("alive") is False:
                 update.update(result)
         written = connection.execute(UPDATE_RESULT, (json.dumps(update), posting_id, url, source,

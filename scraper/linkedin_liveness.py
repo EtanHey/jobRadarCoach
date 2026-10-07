@@ -97,6 +97,7 @@ class _Fragment(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.identity, self.stack, self.statuses = identity, [], []
         self.uncertain, self.topcards, self.roots = False, 0, 0
+        self.closed_figures, self.open_controls = 0, []
 
     def handle_decl(self, _decl):
         self.uncertain = True  # Full documents are not per-job guest fragments.
@@ -148,6 +149,14 @@ class _Fragment(HTMLParser):
             self.uncertain = True
         own_topcard = topcard or bool(parent and parent['topcard'])
         figure = tag == 'figure' and 'closed-job' in classes and own_topcard
+        if 'closed-job' in classes:
+            self.closed_figures += 1
+        open_control = (own_topcard and not hidden and not excluded and (
+            (tag == 'h2' and 'top-card-layout__title' in classes) or
+            (tag in {'a', 'button'} and 'apply-button' in classes)))
+        if open_control:
+            self.open_controls.append([])
+        open_text = self.open_controls[-1] if open_control else (parent['open_text'] if parent else None)
         caption = tag == 'figcaption' and 'closed-job__flavor--closed' in classes
         if caption:
             if not (parent and parent['figure'] and own_topcard):
@@ -156,6 +165,7 @@ class _Fragment(HTMLParser):
         status = self.statuses[-1] if caption else (parent['status'] if parent else None)
         frame = dict(tag=tag, excluded=excluded, hidden=hidden, topcard=own_topcard,
                      figure=figure, status=status, summary_seen=False,
+                     open_text=open_text,
                      closed_details=tag == 'details' and 'open' not in attrs)
         if tag not in VOID:
             self.stack.append(frame)
@@ -181,19 +191,32 @@ class _Fragment(HTMLParser):
                 self.uncertain = True
             return
         frame = self.stack[-1]
+        if frame['open_text'] is not None and not frame['hidden'] and not frame['excluded']:
+            frame['open_text'].append(data)
         if (frame['status'] is not None and not frame['hidden'] and not frame['excluded']
                 and not frame['closed_details']):
             frame['status'].append(data)
 
 
-def closure_phrase(body, identity):
+def guest_observation(body, identity):
+    """Return (closure phrase, validated open shape); neither changes alive."""
     parser = _Fragment(identity)
     parser.feed(body)
     if parser.rawdata:
-        return None  # HTMLParser versions differ in how close() flushes unfinished tokens.
+        return None, False  # close() can flush unfinished tokens differently.
     parser.close()
-    if parser.uncertain or parser.stack or parser.topcards != 1 or len(parser.statuses) != 1:
-        return None
+    if parser.uncertain or parser.stack or parser.topcards != 1:
+        return None, False
+    if not parser.statuses:
+        # Adopt the captured title/no-closed-figure shape for advisory clearing.
+        opened = not parser.closed_figures and any(''.join(text).strip() for text in parser.open_controls)
+        return None, opened
+    if len(parser.statuses) != 1:
+        return None, False
     text = ' '.join(''.join(parser.statuses[0]).split())
     match = PHRASE.fullmatch(text)
-    return match.group(1).lower() if match else None
+    return (match.group(1).lower() if match else None), False
+
+
+def closure_phrase(body, identity):
+    return guest_observation(body, identity)[0]

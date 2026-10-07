@@ -8,7 +8,9 @@ tracking links, images, descriptions, company details and all other markup are r
 No personal data is included. The closure figure and figcaption are copied verbatim.
 
 - 4469662667 and 4476383841: visible “No longer accepting applications”.
-- 4462954347 and 4461128829: no closed status (UNKNOWN, not proof of application availability).
+- 4462954347 and 4461128829: visible title and no closed status. Fix #450 adopts
+  this complete top-card shape as advisory open evidence to clear an older badge;
+  it is not proof that an application can be submitted.
 
 A current guest response with “Not currently accepting applications” was not obtained.
 That phrase has explicitly synthetic nested-text controls in `test_linkedin_guest.py`;

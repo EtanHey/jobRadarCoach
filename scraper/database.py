@@ -13,9 +13,11 @@ from typing import Protocol, cast
 try:
     from scraper.ats_sources import ATS_SOURCES
     from scraper.annotate import _load_safe_profile_contract, posting_mode
+    from scraper import linkedin_liveness
 except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
     from ats_sources import ATS_SOURCES
     from annotate import _load_safe_profile_contract, posting_mode
+    import linkedin_liveness
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
 UNKNOWN_TEXT_VALUES = frozenset(
@@ -292,6 +294,16 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
                 and isinstance(signal.get("url"), str)
                 and signal["url"] == posting.get("url")):
             return {"linkedin_closed_signal": signal, "liveness_checked_at": signal["checked_at"]}
+        cleared_at = posting.get("linkedin_closed_signal_cleared_at")
+        if ("linkedin_closed_signal" in posting and signal is None
+                and posting.get("liveness_reason") == "linkedin-open-signal"
+                and posting.get("liveness_status") == 200
+                and linkedin_liveness.guest_url(posting.get("url", "")) is not None
+                and posting.get("liveness_final_url") == linkedin_liveness.guest_url(posting.get("url", ""))
+                and _timestamp(cleared_at) is not None
+                and cleared_at == posting.get("liveness_checked_at")):
+            return {"linkedin_closed_signal": None, "linkedin_closed_signal_cleared_at": cleared_at,
+                    "liveness_checked_at": cleared_at}
         return {}
     alive = posting.get("alive")
     status = posting.get("liveness_status")

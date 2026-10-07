@@ -39,6 +39,17 @@ failures supply no new signal. UNKNOWN updates attempt metadata only; it retains
 prior advisory evidence. Newer harvest evidence replaces older evidence; stale
 observations do not overwrite it. Scores and application state remain unchanged.
 
+A complete HTTP 200 at the exact guest endpoint clears the advisory signal when
+the validated top card has a visible, nonempty title or apply control and no
+closed-job figure or status caption. This adopts the captured-open shape from
+4462954347 and 4461128829 as advisory reverse evidence; it is not a guarantee that
+an application can be submitted. The clear writes `linkedin_closed_signal: null`,
+`linkedin_closed_signal_cleared_at` and `liveness_checked_at`, leaving `alive`
+untouched. Empty, hidden, malformed, foreign-job, redirected or failed responses
+remain UNKNOWN. Harvest without validated evidence preserves the signal; older
+closure evidence cannot overwrite a newer clear. A later closure sets a fresh
+signal with its own `checked_at`.
+
 Known false positives are deliberately advisory: non-void self-closing hidden
 HTML elements and foreign job links containing dot segments/backslashes can
 produce a badge. All thirteen r2 examples are retained as real SQL regressions
