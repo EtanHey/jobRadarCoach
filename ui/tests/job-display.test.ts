@@ -47,13 +47,12 @@ test("a later publication is a Republished date; equal or invalid instants are n
   ]);
 });
 
-test("repost note covers a later republish and linked past listings, and nothing else", () => {
-  const original = "2026-09-01T12:00:00Z", latest = "2026-09-07T12:00:00Z";
-  assert.equal(repostNote(original, latest, 0, "UTC"), "Reposted: republished 2026-09-07");
-  assert.equal(repostNote(original, original, 0, "UTC"), null);
-  assert.equal(repostNote(original, null, 0, "UTC"), null);
-  assert.equal(repostNote(original, null, 1, "UTC"), "Reposted: 1 earlier listing of this role");
-  assert.equal(repostNote(original, latest, 2, "UTC"), "Reposted: republished 2026-09-07 · 2 earlier listings of this role");
+test("ATS marker keeps source publication evidence, without discovery guesses", () => {
+  const job = {source:"greenhouse",url:"https://example.test/jobs/1",posted_at:"2026-09-01T12:00:00Z",last_published_at:"2026-09-07T12:00:00Z"};
+  assert.equal(repostNote(job, "UTC"), "Reposted: republished 2026-09-07");
+  assert.equal(repostNote({...job,last_published_at:job.posted_at}), null);
+  assert.equal(repostNote({...job,posted_at:null}), null);
+  assert.equal(repostNote(job, "UTC", true), null, "aggregate date ranges are not ATS evidence");
 });
 
 test("work mode reads a structured mode first and falls back to the remote flag", () => {

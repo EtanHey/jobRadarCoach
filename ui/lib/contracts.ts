@@ -47,6 +47,10 @@ export const LinkedInClosedSignalSchema = z.object({
   }),
 }).strict();
 
+export const LinkedInRepostedSignalSchema = LinkedInClosedSignalSchema.omit({ phrase: true }).extend({
+  label: z.string().regex(/^Reposted [1-9][0-9]* (?:minute|hour|day|week|month|year)s? ago$/i),
+}).strict();
+
 export const JobSummarySchema = z.object({
   id: JobIdSchema,
   title: text,
@@ -76,6 +80,7 @@ export const JobSummarySchema = z.object({
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
   alive: z.boolean().nullable().default(null),
+  linkedin_reposted_signal: LinkedInRepostedSignalSchema.nullable().optional(),
   linkedin_closed_signal: LinkedInClosedSignalSchema.nullable().optional(),
 }).strict();
 

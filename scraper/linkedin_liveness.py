@@ -4,6 +4,8 @@ import http.client
 import re
 from urllib.parse import unquote, urlparse
 
+REPOST = re.compile(r"^Reposted [1-9][0-9]* (?:minute|hour|day|week|month|year)s? ago$", re.I)
+
 BODY_LIMIT = 512_000
 REQUEST_INTERVAL = 2.0
 PHRASE = re.compile(r'^(no longer accepting applications|not currently accepting applications)$', re.I)
@@ -97,7 +99,7 @@ class _Fragment(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.identity, self.stack, self.statuses = identity, [], []
         self.uncertain, self.topcards, self.roots = False, 0, 0
-        self.closed_figures, self.open_controls = 0, []
+        self.closed_figures, self.open_controls, self.reposts = 0, [], []
 
     def handle_decl(self, _decl):
         self.uncertain = True  # Full documents are not per-job guest fragments.
@@ -163,7 +165,11 @@ class _Fragment(HTMLParser):
                 self.uncertain = True
             self.statuses.append([])
         status = self.statuses[-1] if caption else (parent['status'] if parent else None)
-        frame = dict(tag=tag, excluded=excluded, hidden=hidden, topcard=own_topcard,
+        repost_age = tag == 'span' and 'posted-time-ago__text' in classes and own_topcard
+        if repost_age:
+            self.reposts.append([])
+        repost = self.reposts[-1] if repost_age else (parent['repost'] if parent else None)
+        frame = dict(repost=repost, tag=tag, excluded=excluded, hidden=hidden, topcard=own_topcard,
                      figure=figure, status=status, summary_seen=False,
                      open_text=open_text,
                      closed_details=tag == 'details' and 'open' not in attrs)
@@ -191,6 +197,8 @@ class _Fragment(HTMLParser):
                 self.uncertain = True
             return
         frame = self.stack[-1]
+        if frame['repost'] is not None and not frame['hidden'] and not frame['excluded']:
+            frame['repost'].append(data)
         if frame['open_text'] is not None and not frame['hidden'] and not frame['excluded']:
             frame['open_text'].append(data)
         if (frame['status'] is not None and not frame['hidden'] and not frame['excluded']
@@ -198,14 +206,28 @@ class _Fragment(HTMLParser):
             frame['status'].append(data)
 
 
-def guest_observation(body, identity):
-    """Return (closure phrase, validated open shape); neither changes alive."""
+def _validated_fragment(body, identity):
     parser = _Fragment(identity)
     parser.feed(body)
     if parser.rawdata:
-        return None, False  # close() can flush unfinished tokens differently.
+        return None
     parser.close()
-    if parser.uncertain or parser.stack or parser.topcards != 1:
+    return None if parser.uncertain or parser.stack or parser.topcards != 1 else parser
+
+
+def repost_label(body, identity):
+    """Only the visible top-card age label from a complete same-job fragment."""
+    parser = _validated_fragment(body, identity)
+    if parser is None or len(parser.reposts) != 1:
+        return None
+    label = ' '.join(''.join(parser.reposts[0]).split())
+    return label if REPOST.fullmatch(label) else None
+
+
+def guest_observation(body, identity):
+    """Return (closure phrase, validated open shape); neither changes alive."""
+    parser = _validated_fragment(body, identity)
+    if parser is None:
         return None, False
     if not parser.statuses:
         # Adopt the captured title/no-closed-figure shape for advisory clearing.

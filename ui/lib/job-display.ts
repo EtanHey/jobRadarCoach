@@ -55,12 +55,16 @@ export function postingDates(postedAt: string | null, firstSeenAt: string | null
   return dates;
 }
 
-export function repostNote(postedAt: string | null, lastPublishedAt: string | null | undefined, earlierListings: number, timeZone?: string): string | null {
-  const latest = parsedTime(lastPublishedAt);
-  const notes = [];
-  if (latest !== null && isRepublished(parsedTime(postedAt), latest)) notes.push(`republished ${calendarStamp(latest, timeZone, false)}`);
-  if (earlierListings > 0) notes.push(`${earlierListings} earlier listing${earlierListings === 1 ? "" : "s"} of this role`);
-  return notes.length ? `Reposted: ${notes.join(" · ")}` : null;
+export function repostNote(job: { source: string; url: string; posted_at: string | null; last_published_at?: string | null;
+  linkedin_reposted_signal?: { label: string; url: string } | null }, timeZone?: string, linked = false): string | null {
+  if (job.source === "linkedin") {
+    const signal = job.linkedin_reposted_signal;
+    return signal?.url === job.url ? signal.label : null;
+  }
+  if (linked) return null; // Group date ranges do not prove an ATS repost.
+  const latest = parsedTime(job.last_published_at);
+  return latest !== null && isRepublished(parsedTime(job.posted_at), latest)
+    ? `Reposted: republished ${calendarStamp(latest, timeZone, false)}` : null;
 }
 
 export type WorkModeKind = "remote" | "on-site" | "hybrid" | "unknown";

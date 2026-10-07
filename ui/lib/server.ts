@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -92,6 +92,7 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
     fit_line: !base.relevance_filtered && fit && "fit_line" in fit ? fit.fit_line : null,
     recommendation: !base.relevance_filtered && fit && "recommendation" in fit ? fit.recommendation : null,
     alive: typeof liveness?.alive === "boolean" ? liveness.alive : null,
+    linkedin_reposted_signal: LinkedInRepostedSignalSchema.safeParse(liveness?.linkedin_reposted_signal).data ?? null,
     linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(liveness?.linkedin_closed_signal).data ?? null,
   });
 }

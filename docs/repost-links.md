@@ -4,8 +4,8 @@ UI grouping uses the loaded, filtered cohort after resolving unique IDs. It
 requires the same normalized company and compatible location, plus either the
 same normalized title or a shared canonical role-specific URL. Matching titles
 link within and across sources, including different external/requisition IDs.
-Description similarity, fingerprints and embeddings are not required. There is
-no new database schema, summary field, migration or hosted write.
+Description similarity, fingerprints and embeddings are not required. Grouping adds no database schema, migration or hosted write.
+The repost marker adds an optional summary evidence field from existing liveness JSON.
 
 Identity text uses NFKC, collapsed whitespace and lowercase. A small tested table
 recognizes Israeli city aliases and their district/country containment, selected
@@ -44,3 +44,19 @@ dates/evidence, so filters/pagination can hide earlier listings. Historic dates
 lost before L5 cannot be recovered. L5's migration must apply in one transaction
 before its merge. Real hosted measurements/example pairs remain private under
 `docs.local/l6`; committed tests use synthetic listings only.
+
+## Repost marker evidence
+
+LinkedIn cards and drawer headers show `Reposted <age>` only from a visible
+`posted-time-ago__text` label beginning with `Reposted` on a complete same-job
+guest fragment. Harvest and recheck store the label, observation time and original
+posting URL in `liveness.linkedin_reposted_signal`. The age is LinkedIn's wording
+at the observation time; it is not recalculated from JRC discovery. A later
+unknown, ordinary age label or failed fetch retains the previously seen evidence.
+The marker is hidden if the stored URL differs from the current posting.
+
+Removed: discovery-time earlier-listing counts, their card prop and both
+LinkedIn publication-range and alternate-count repost guesses. Grouping,
+alternate selection and publication-date icons remain. ATS single-listing
+markers still require a latest source publication after its original publication;
+aggregate group date ranges do not qualify as evidence for the marker.
