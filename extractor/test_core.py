@@ -101,7 +101,7 @@ def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     assert json.dumps(RAW_JD, ensure_ascii=True) in captured["prompt"]
     assert first == second
     assert first["facts"] == facts()
-    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.4"
+    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.5"
     assert first["schema_sha256"] == core.EXTRACTION_SCHEMA_SHA256
     assert first["brain"] == "ollama"
     assert first["model"] == "qwen2.5:7b-instruct"

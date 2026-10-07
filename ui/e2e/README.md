@@ -1,5 +1,7 @@
 # e2e pilot
 
+For real auth/API/Postgres coverage, use the [local database suite](db/README.md).
+
 Run from `ui/` with Node >=22.12 and `npm ci`. Browser/app data is synthetic;
 no `.env` is loaded. Chromium uses headless shell, one worker, no retries or
 video. App startup copies `prepare-globe-fixture.mjs` output, removes API
