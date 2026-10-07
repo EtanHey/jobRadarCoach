@@ -7,10 +7,11 @@ import type { JobSummary } from "@/lib/contracts";
 import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filters";
 import { AppSelect, type SelectOption } from "@/components/ui/select";
 import { statusLabels } from "@/lib/job-status";
+import { DEFAULT_BOARD_PREFERENCES, preferencesForBoardFilter, viewForBoardQuery, type BoardFilter } from "@/lib/job-board-preferences";
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
-export function JobToolbar({ jobs, options, effectiveOptions = options, archive = false, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
-  jobs: JobSummary[]; options: ViewOptions; effectiveOptions?: ViewOptions; archive?: boolean; onChange: (next: ViewOptions) => void;
+export function JobToolbar({ jobs, options, effectiveOptions = options, filter = DEFAULT_BOARD_PREFERENCES.filter, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
+  jobs: JobSummary[]; options: ViewOptions; effectiveOptions?: ViewOptions; filter?: BoardFilter; onChange: (next: ViewOptions) => void;
   onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
   filtersCollapsed?: boolean; onFiltersCollapsedChange?: (collapsed: boolean) => void;
 }) {
@@ -32,20 +33,21 @@ export function JobToolbar({ jobs, options, effectiveOptions = options, archive 
   const windows = [["", "Any time"], ["24h", "24 h"], ["3d", "3 d"], ["7d", "7 d"], ["30d", "30 d"]] as const;
   // Summaries describe the query; clear actions edit saved options so archive
   // overrides never overwrite the ordinary view preferences.
+  const defaults = viewForBoardQuery(preferencesForBoardFilter(DEFAULT_BOARD_PREFERENCES, filter));
   const selections = fields.flatMap(({ key, label, choices }) => {
-    if (archive && key === "availability") return []; // The archive includes every availability.
+    if (key === "sort") return [];
     const value = valueFor(key, effectiveOptions);
-    const defaultValue = key === "availability" ? "active" : key === "sort" ? "fit" : "";
+    const defaultValue = valueFor(key, defaults);
     if (value === defaultValue) return [];
     const selectedLabel = (choices.find(choice => choice.value === value) ?? choices[0]).label;
     return [{ key, label: `${label}: ${selectedLabel}`, clear: () => onChange(key === "work_mode"
-      ? { ...options, remote: undefined, work_mode: undefined }
+      ? { ...options, remote: defaults.remote, work_mode: defaults.work_mode }
       : { ...options, [key]: defaultValue }) }];
   });
   const activeSelections = [
     ...selections,
     ...(effectiveOptions.statuses.length ? [{ key: "statuses", label: `Pipeline status: ${effectiveOptions.statuses.map(status => statusLabels[status]).join(", ")}`, clear: () => onChange({ ...options, statuses: [] }) }] : []),
-    ...(effectiveOptions.found_within ? [{ key: "found_within", label: `Found in the past: ${windows.find(([value]) => value === effectiveOptions.found_within)?.[1]}`, clear: () => onChange({ ...options, found_within: undefined }) }] : []),
+    ...(effectiveOptions.found_within ? [{ key: "found_within", label: `Found: past ${effectiveOptions.found_within === "24h" ? "24 hours" : `${effectiveOptions.found_within.replace("d", "")} days`}`, clear: () => onChange({ ...options, found_within: undefined }) }] : []),
   ];
   const chips = <div aria-label="Active filters" className="flex min-w-0 flex-wrap items-center gap-1">
     {activeSelections.map(selection => <button key={selection.key} type="button" aria-label={`Clear ${selection.label}`} title={`Clear ${selection.label}`} onClick={selection.clear} className="inline-flex min-h-10 max-w-full items-center gap-1 rounded-full border bg-muted px-2 py-1 text-left text-xs focus-visible:outline-2 focus-visible:outline-offset-2">
