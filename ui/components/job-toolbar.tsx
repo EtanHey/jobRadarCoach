@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
@@ -8,11 +8,13 @@ import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filt
 import { AppSelect, type SelectOption } from "@/components/ui/select";
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
-export function JobToolbar({ jobs, options, onChange, onReset, canReset = false, actions, globeOpen = false }: {
+export function JobToolbar({ jobs, options, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
   jobs: JobSummary[]; options: ViewOptions; onChange: (next: ViewOptions) => void;
   onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
+  filtersCollapsed?: boolean; onFiltersCollapsedChange?: (collapsed: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const filtersId = useId();
   const opener = useRef<HTMLButtonElement | null>(null);
   const active = [options.work_mode !== undefined || options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit"].filter(Boolean).length;
   const fields: { key: "work_mode" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
@@ -24,16 +26,28 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
     { key: "availability", label: "Availability", choices: [{value: "active", label: "Active"}, {value: "inactive", label: "Inactive"}, {value: "all", label: "All"}] },
     { key: "sort", label: "Sort", choices: [{value: "found", label: "Recently found"}, {value: "posted", label: "Recently posted"}, {value: "fit", label: "Best fit first"}, {value: "seniority", label: "Seniority: junior first"}] },
   ] as const;
-  const controls = fields.flatMap(({key, label, choices}) => [
-    ...(key === "sort" ? [<PipelineStatusFilter key="statuses" value={options.statuses} onChange={(statuses) => onChange({ ...options, statuses })} />] : []),
-    <div key={key} className="min-w-0"><AppSelect compact label={label} value={key === "work_mode" ? options.work_mode ?? (options.remote === true ? "remote" : options.remote === false ? "on-site" : "") : String(options[key] ?? "")} options={choices} onValueChange={(value) => onChange(key === "work_mode" ? { ...options, remote: undefined, work_mode: value === "" ? undefined : value as ViewOptions["work_mode"] } : { ...options, [key]: value })} /></div>,
-  ]);
+  const valueFor = (key: typeof fields[number]["key"]) => key === "work_mode"
+    ? options.work_mode ?? (options.remote === true ? "remote" : options.remote === false ? "on-site" : "")
+    : String(options[key] ?? "");
+  const controls = (compact: boolean) => fields.flatMap(({key, label, choices}) => {
+    const value = valueFor(key);
+    const selectedLabel = (choices.find(choice => choice.value === value) ?? choices[0]).label;
+    return [
+      ...(key === "sort" ? [<div key="statuses" className={compact ? "w-[8rem] shrink-0" : ""}><PipelineStatusFilter value={options.statuses} onChange={(statuses) => onChange({ ...options, statuses })} /></div>] : []),
+      <div key={key} className="min-w-0 shrink-0" style={compact ? { width: `clamp(6rem, ${(selectedLabel.length + 5) * 0.44}rem, 10rem)` } : undefined}><AppSelect compact label={label} value={value} options={choices} onValueChange={(next) => onChange(key === "work_mode" ? { ...options, remote: undefined, work_mode: next === "" ? undefined : next as ViewOptions["work_mode"] } : { ...options, [key]: next })} /></div>,
+    ];
+  });
+  const badge = active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>;
   return <div data-job-toolbar>
-    <div className={`hidden items-end gap-3 pb-2 ${globeOpen ? "xl:flex" : "md:flex"}`}><div className="grid min-w-0 flex-1 grid-cols-3 items-end gap-3 xl:grid-cols-8">{controls}</div><div className="flex h-10 shrink-0 items-center gap-1"><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div></div>
-    <div className={`flex flex-wrap items-center gap-2 pb-2 ${globeOpen ? "xl:hidden" : "md:hidden"}`}><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>}</Button><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
+    <div className={`hidden flex-wrap items-end gap-2 pb-2 ${globeOpen ? "xl:flex" : "md:flex"}`}>
+      <Button type="button" variant="outline" className="h-10" aria-expanded={!filtersCollapsed} aria-controls={filtersId} onClick={() => onFiltersCollapsedChange?.(!filtersCollapsed)}><SlidersHorizontal aria-hidden="true" />Filters{badge}</Button>
+      <div id={filtersId} hidden={filtersCollapsed} className={filtersCollapsed ? "hidden" : "contents"}>{!filtersCollapsed && controls(true)}</div>
+      <div className="flex h-10 shrink-0 items-center gap-1"><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
+    </div>
+    <div className={`flex flex-wrap items-center gap-2 pb-2 ${globeOpen ? "xl:hidden" : "md:hidden"}`}><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{badge}</Button><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
     <Sheet open={open} onOpenChange={setOpen}><SheetContent finalFocus={opener} className="overflow-y-auto data-[side=right]:w-full">
       <SheetHeader><SheetTitle>Filters</SheetTitle><SheetDescription>Narrow the roles and choose their order.</SheetDescription></SheetHeader>
-      <div className="grid gap-5 px-4">{controls}<Button onClick={() => setOpen(false)}>Show roles</Button></div>
+      <div className="grid gap-5 px-4">{controls(false)}<Button onClick={() => setOpen(false)}>Show roles</Button></div>
     </SheetContent></Sheet>
   </div>;
 }
