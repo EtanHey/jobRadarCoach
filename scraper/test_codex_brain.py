@@ -118,7 +118,7 @@ def test_codex_dispatch_preserves_isolation_and_configured_provenance(
     assert options["cwd"] == Path(command[command.index("-C") + 1])
     assert options["cwd"] != Path.cwd()
     assert options["stdout"] is subprocess.DEVNULL
-    assert options["stderr"] is subprocess.DEVNULL
+    assert options["stderr"] is subprocess.PIPE
     assert "capture_output" not in options
     assert "JOB_RADAR_PRIVATE_SENTINEL" not in options["env"]
     assert captured["auth_target"] == auth_path.resolve()
