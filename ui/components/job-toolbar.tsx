@@ -9,8 +9,8 @@ import { AppSelect, type SelectOption } from "@/components/ui/select";
 import { statusLabels } from "@/lib/job-status";
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
-export function JobToolbar({ jobs, options, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
-  jobs: JobSummary[]; options: ViewOptions; onChange: (next: ViewOptions) => void;
+export function JobToolbar({ jobs, options, effectiveOptions = options, archive = false, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
+  jobs: JobSummary[]; options: ViewOptions; effectiveOptions?: ViewOptions; archive?: boolean; onChange: (next: ViewOptions) => void;
   onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
   filtersCollapsed?: boolean; onFiltersCollapsedChange?: (collapsed: boolean) => void;
 }) {
@@ -26,13 +26,15 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
     { key: "availability", label: "Availability", choices: [{value: "active", label: "Active"}, {value: "inactive", label: "Inactive"}, {value: "all", label: "All"}] },
     { key: "sort", label: "Sort", choices: [{value: "found", label: "Recently found"}, {value: "posted", label: "Recently posted"}, {value: "fit", label: "Best fit first"}, {value: "seniority", label: "Seniority: junior first"}] },
   ] as const;
-  const valueFor = (key: typeof fields[number]["key"]) => key === "work_mode"
-    ? options.work_mode ?? (options.remote === true ? "remote" : options.remote === false ? "on-site" : "")
-    : String(options[key] ?? "");
+  const valueFor = (key: typeof fields[number]["key"], view = options) => key === "work_mode"
+    ? view.work_mode ?? (view.remote === true ? "remote" : view.remote === false ? "on-site" : "")
+    : String(view[key] ?? "");
   const windows = [["", "Any time"], ["24h", "24 h"], ["3d", "3 d"], ["7d", "7 d"], ["30d", "30 d"]] as const;
-  // One selection list drives both badges and chips, using the sheet's labels and defaults.
+  // Summaries describe the query; clear actions edit saved options so archive
+  // overrides never overwrite the ordinary view preferences.
   const selections = fields.flatMap(({ key, label, choices }) => {
-    const value = valueFor(key);
+    if (archive && key === "availability") return []; // The archive includes every availability.
+    const value = valueFor(key, effectiveOptions);
     const defaultValue = key === "availability" ? "active" : key === "sort" ? "fit" : "";
     if (value === defaultValue) return [];
     const selectedLabel = (choices.find(choice => choice.value === value) ?? choices[0]).label;
@@ -42,8 +44,8 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
   });
   const activeSelections = [
     ...selections,
-    ...(options.statuses.length ? [{ key: "statuses", label: `Pipeline status: ${options.statuses.map(status => statusLabels[status]).join(", ")}`, clear: () => onChange({ ...options, statuses: [] }) }] : []),
-    ...(options.found_within ? [{ key: "found_within", label: `Found in the past: ${windows.find(([value]) => value === options.found_within)?.[1]}`, clear: () => onChange({ ...options, found_within: undefined }) }] : []),
+    ...(effectiveOptions.statuses.length ? [{ key: "statuses", label: `Pipeline status: ${effectiveOptions.statuses.map(status => statusLabels[status]).join(", ")}`, clear: () => onChange({ ...options, statuses: [] }) }] : []),
+    ...(effectiveOptions.found_within ? [{ key: "found_within", label: `Found in the past: ${windows.find(([value]) => value === effectiveOptions.found_within)?.[1]}`, clear: () => onChange({ ...options, found_within: undefined }) }] : []),
   ];
   const chips = <div aria-label="Active filters" className="flex min-w-0 flex-wrap items-center gap-1">
     {activeSelections.map(selection => <button key={selection.key} type="button" aria-label={`Clear ${selection.label}`} title={`Clear ${selection.label}`} onClick={selection.clear} className="inline-flex min-h-10 max-w-full items-center gap-1 rounded-full border bg-muted px-2 py-1 text-left text-xs focus-visible:outline-2 focus-visible:outline-offset-2">

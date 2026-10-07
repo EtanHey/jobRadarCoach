@@ -34,3 +34,15 @@ Run from `ui/`: `npm ci`, `npx playwright install chromium --only-shell`, then `
 - Reverse states: expand/collapse, clear each filter independently, clear to zero, reset view and persistence checked.
 - Connection modes: credential-free isolated fixture; hosted/logged-in behavior and deployment remain lead-owned.
 - Docs: committed screenshots and these reproduction instructions.
+
+## PR #455 fix round 1
+
+Status: locally verified; independent re-review and deployment pending.
+
+Collapsed chips, the desktop/mobile Filters badge and the sheet count now use `viewForBoardQuery`. Not scored suspends Found in the past and Availability, so neither appears as an active archive constraint. Clearing a remaining archive chip edits the saved view without persisting archive overrides; All roles restores the suspended selections.
+
+- RED at `2d16b87`: the reviewer's assertion failed at 1440/1280/1100/900/390, solely because the ignored time window appeared as an archive chip (1788 MB peak, 37 seconds).
+- GREEN: all existing UI-polish assertions plus archive badge/chip, non-default availability, archive clear, persisted preference preservation and return-to-All-roles checks passed at all five widths; zero page/console errors (1886 MB peak, 25 seconds). Expanded desktop filters stayed within two rows at 1280/1100/900.
+- Preference/accessibility tests: 12 passed. TypeScript and targeted ESLint passed.
+- Visual inspection: [mobile archive with one effective chip](archive-390.png) and [desktop archive after clearing Location](archive-cleared-1440.png).
+- Surface check: desktop/mobile toolbar and sheet count share effective selections; saved controls remain the edit source. Browser tests cover entry, exit and clear-to-zero. API/schema/provider contracts are unchanged. Real local Chromium uses synthetic jobs and offline map fixtures; hosted/logged-in verification and production service operations remain lead-owned.

@@ -35,7 +35,7 @@ try {
     await new Promise(ok => setTimeout(ok, 300));
   }
   browser = await chromium.launch({ headless: true, channel: 'chromium-headless-shell', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  for (const width of [1440, 1100, 900, 390]) {
+  for (const width of [1440, 1280, 1100, 900, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
     const errors = [];
@@ -86,17 +86,68 @@ try {
         await page.screenshot({ path: `${output}/filters-${width}.png` });
         await controls.getByRole('button', { name: 'Show roles', exact: true }).click();
       }
-      else await toggle.click();
+      else {
+        if (width <= 1280) {
+          const rows = await toolbar.locator('[role=combobox], summary, button').evaluateAll(nodes => [...new Set(nodes.filter(n => n.checkVisibility()).map(n => Math.round(n.getBoundingClientRect().bottom)))].length);
+          assert.ok(rows <= 2, `${width}px expanded filters: ${rows} rows`);
+          console.log(`REVIEW_LAYOUT ${width}: ${rows} rows`);
+        }
+        await toggle.click();
+      }
       await check(`${width} active chips`, async () => {
         await expect(toggle).toContainText('2');
         await expect(toolbar.getByRole('button', { name: 'Clear Location: Israel', exact: true }).filter({ visible: true })).toBeVisible();
         await expect(toolbar.getByRole('button', { name: 'Clear Found in the past: 7 d', exact: true }).filter({ visible: true })).toBeVisible();
       });
       await page.screenshot({ path: `${output}/polish-${width}.png`, fullPage: true });
+      await check(`${width} Not scored archive chips`, async () => {
+        let archiveUrl;
+        page.on('request', req => { if (req.url().includes('/api/jobs?') && new URL(req.url()).searchParams.get('filter') === 'not-scored') archiveUrl = req.url(); });
+        await page.getByRole('button', { name: 'Not scored', exact: true }).click();
+        await expect(page.getByRole('button', { name: 'Not scored', exact: true })).toHaveAttribute('aria-pressed', 'true');
+        await expect.poll(() => archiveUrl).toBeTruthy();
+        const chips = await toolbar.getByRole('button', { name: /^Clear / }).filter({ visible: true }).allTextContents();
+        console.log(JSON.stringify({reviewArchive: width, archiveUrl, chips}));
+        await page.screenshot({ path: `${output}/review-archive-${width}.png`, fullPage: true });
+        assert.ok(!chips.some(label => label.includes('Found in the past')), 'archive ignores found_within but displays it as an active filter');
+        await expect(toggle).toHaveText('Filters1 active');
+        assert.deepEqual(chips, ['Location: Israel']);
+      });
+      await page.getByRole('button', { name: 'All roles', exact: true }).click();
       await check(`${width} independent clear`, async () => {
         await toolbar.getByRole('button', { name: 'Clear Location: Israel', exact: true }).filter({ visible: true }).click({ timeout: 1500 });
         await expect(toggle).toContainText('1');
         await expect(toolbar.getByRole('button', { name: 'Clear Found in the past: 7 d', exact: true }).filter({ visible: true })).toBeVisible();
+        await toolbar.getByRole('button', { name: 'Clear Found in the past: 7 d', exact: true }).filter({ visible: true }).click();
+        await expect(toggle).toHaveText('Filters');
+      });
+      await check(`${width} archive availability, clear and restore`, async () => {
+        await toggle.click();
+        await controls.getByRole('combobox', { name: 'Availability', exact: true }).click();
+        await page.getByRole('option', { name: 'Inactive', exact: true }).click();
+        await controls.getByRole('combobox', { name: 'Location', exact: true }).click();
+        await page.getByRole('option', { name: 'Israel', exact: true }).click();
+        await controls.getByRole('group', { name: 'Found in the past' }).getByRole('button', { name: '7 d', exact: true }).click();
+        if (width < 768) await controls.getByRole('button', { name: 'Show roles', exact: true }).click();
+        else await toggle.click();
+        await expect(toggle).toHaveText('Filters3 active');
+        await page.getByRole('button', { name: 'Not scored', exact: true }).click();
+        await expect(toggle).toHaveText('Filters1 active');
+        const activeChips = toolbar.getByRole('button', { name: /^Clear / }).filter({ visible: true });
+        await expect(activeChips).toHaveCount(1);
+        await expect(activeChips).toHaveText('Location: Israel');
+        await activeChips.click();
+        await expect(toggle).toHaveText('Filters');
+        const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('job-radar.board-preferences')));
+        assert.equal(saved.view.availability, 'inactive');
+        assert.equal(saved.view.found_within, '7d');
+        assert.equal(saved.view.location, '');
+        await page.screenshot({ path: `${output}/archive-cleared-${width}.png`, fullPage: true });
+        await page.getByRole('button', { name: 'All roles', exact: true }).click();
+        await expect(toggle).toHaveText('Filters2 active');
+        await expect(toolbar.getByRole('button', { name: 'Clear Availability: Inactive', exact: true }).filter({ visible: true })).toBeVisible();
+        await expect(toolbar.getByRole('button', { name: 'Clear Found in the past: 7 d', exact: true }).filter({ visible: true })).toBeVisible();
+        await toolbar.getByRole('button', { name: 'Clear Availability: Inactive', exact: true }).filter({ visible: true }).click();
         await toolbar.getByRole('button', { name: 'Clear Found in the past: 7 d', exact: true }).filter({ visible: true }).click();
         await expect(toggle).toHaveText('Filters');
       });
