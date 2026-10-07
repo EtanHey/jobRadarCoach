@@ -1540,6 +1540,39 @@ def test_year_hard_gate_requires_unambiguous_candidate_minimum(text, blocking):
     assert harvest._has_blocking_years_requirement(text) is blocking
 
 
+@pytest.mark.parametrize(
+    ("text", "blocking"),
+    [
+        ("Preferred qualifications:\n• Minimum 8 years of experience", False),
+        ("Requirements:\nNice to have:\n• At least 8 years of experience", False),
+        ("Bonus:\nYou have 10+ years of experience", False),
+        ("Plus\nMinimum 8 years of experience", False),
+        ("Preferred\nYou have 10+ years of experience", False),
+        ("Nice to have\n• Python\n• At least 8 years of experience", False),
+        ("Preferred qualifications:\n• Minimum 8 years of experience\n"
+         "• 10+ years of experience required for this role", False),
+        ("Requirements:\nAbout the company\n25+ years of experience serving customers", False),
+        ("Requirements:\nCompany Overview\n25+ years of experience serving customers", False),
+        ("Requirements:\n### Our Story\n25+ years of experience serving customers", False),
+        ("Requirements:\nOur Story\n25+ years of experience serving customers", False),
+        ("Preferred skills\nMinimum 8 years of experience", False),
+        ("Requirements:\n• 8+ years of experience or a relevant degree", False),
+        ("Must have 8 years of experience or a relevant degree", False),
+        ("Minimum 8 years of experience, or a relevant degree", False),
+        ("Preferred qualifications:\n• Minimum 8 years of experience\n"
+         "Requirements:\n• Minimum 8 years of experience", True),
+        ("Bonus:\nYou have 10+ years of experience\n"
+         "Qualifications\n• At least 8 years of experience", True),
+        ("Requirements:\n• Minimum 8 years of experience", True),
+        ("Requirements:\n• 8 or more years of experience", True),
+        ("Requirements:\n• 8+ years of experience\n• A relevant degree", True),
+    ],
+)
+def test_year_hard_gate_preserves_section_context_and_alternatives(text, blocking):
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(text) is blocking
+
+
 def test_us_only_onsite_posting_survives_source_scope() -> None:
     harvest = load_harvest_module()
     searches = [{"keywords": "Software Engineer", "location": "United States", "recency": "r10800"}]
@@ -1714,6 +1747,15 @@ def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
         ("Build React products. 6+ years of experience required.", "6+ years (stretch)"),
         ("Build React products. Earnix brings 25 years of experience delivering software.", "10+ years"),
         ("Build React products. Our engineers have 8 years of experience in Python.", "8-9+ years"),
+        ("Build React products.\nPreferred qualifications:\n• Minimum 8 years of experience",
+         "8-9+ years"),
+        ("Build React products.\nRequirements:\nNice to have:\n• At least 8 years of experience",
+         "8-9+ years"),
+        ("Build React products.\nBonus:\nYou have 10+ years of experience", "10+ years"),
+        ("Build React products.\nRequirements:\nAbout the company\n"
+         "25+ years of experience serving customers", "10+ years"),
+        ("Build React products.\nRequirements:\n• 8+ years of experience or a relevant degree",
+         "8-9+ years"),
     ],
 )
 def test_db_pipeline_penalizes_six_and_hard_blocks_seven_before_persistence(

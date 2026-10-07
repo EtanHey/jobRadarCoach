@@ -108,13 +108,17 @@ YEAR_CANDIDATE_PREFIX_PATTERN = re.compile(
     r"(?:(?:at\s+least|minimum(?:\s+of)?)\s+)?\s*$", re.I,
 )
 YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
-    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
+    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|(?:a\s+)?plus|preferred|optional)\b",
     re.I,
 )
 YEAR_SECTION_HEADING_PATTERN = re.compile(
-    r"^\s*(?:\#{1,6}\s*)?(?:([\w /'’–-]{2,60}):|"
-    r"(requirements?|qualifications?|about us|responsibilities|benefits|"
-    r"what we offer|what you'll do|preferred qualifications|nice to have|bonus)\s*$)", re.I,
+    r"^\s*(?:\#{1,6}\s+([\w /'’–-]{2,60})\s*$|([\w /'’–-]{2,60}):|"
+    r"(requirements?|qualifications?|about (?:us|the company|our company)|"
+    r"company overview|responsibilities|benefits|what we offer|what you'll do|"
+    r"(?:preferred|nice[\s-]+to[\s-]+have|bonus|plus|optional)"
+    r"(?:\s+[\w /'’–-]{2,40})?)\s*$|"
+    r"((?-i:[A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|and|of|the|we|are)){0,7}|"
+    r"[A-Z][A-Z /]{2,60}))\s*$)", re.I,
 )
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
@@ -668,13 +672,30 @@ def _has_blocking_years_requirement(text: str) -> bool:
         suffix = item[offset + len(match.group(0)):]
         experience = YEAR_EXPERIENCE_PATTERN.match(suffix)
         section = False
+        optional_section = False
         for line in text[:match.start()].splitlines():
             heading = YEAR_SECTION_HEADING_PATTERN.match(line)
             if heading:
-                title = (heading.group(1) or heading.group(2)).strip().casefold()
+                title = next(group for group in heading.groups() if group).strip().casefold()
                 section = title in {
                     "requirement", "requirements", "qualification", "qualifications"
                 }
+                optional_section = bool(YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(title))
+        if optional_section:
+            continue
+        # Keep comma-separated alternatives together, while independent sentences
+        # and list items still have their own requirement evidence.
+        clause_boundaries = [
+            boundary.start()
+            for boundary in re.finditer(r"[;\n•]|[.!?](?=\s|$)", text)
+        ]
+        left = max((index for index in clause_boundaries if index < match.start()), default=-1)
+        right = min(
+            (index for index in clause_boundaries if index >= match.end()), default=len(text)
+        )
+        clause = text[left + 1:right]
+        if re.search(r"\bor\b(?!\s+(?:more|higher|greater)\b)", clause, re.I):
+            continue
         inline = re.fullmatch(r"(?:requirements?|qualifications?):\s*", prefix, re.I)
         bare = not prefix or bool(inline)
         # An explicit section list can name the skill without the word experience.
