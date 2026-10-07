@@ -206,6 +206,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 limit=args.limit,
                 timeout_seconds=args.timeout_seconds,
                 posting_ids=args.posting_id,
+                allow_legacy_settings=False,
             )
     except Exception as error:
         _log(selected=0, scored=0, failed=1, failure=type(error).__name__)

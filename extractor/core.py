@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections.abc import Callable, Mapping
+from copy import deepcopy
 
-from extractor.evidence import derive_remote_fact, validate_facts
+from extractor.evidence import ExtractionValidationError, derive_remote_fact, validate_facts
 from scraper.brain import (
     BrainConfigurationError,
     BrainRequest,
@@ -15,7 +17,7 @@ from scraper.brain import (
     run_brain,
 )
 
-EXTRACTOR_VERSION = "1.4"
+EXTRACTOR_VERSION = "1.5"
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
 MAX_REQUEST_TIMEOUT_SECONDS = 120
@@ -143,11 +145,21 @@ def extract_posting(
     result = runner(request, selection, timeout_seconds=timeout_seconds)
     if not isinstance(result, BrainResult):
         raise BrainResponseError("brain runner must return BrainResult")
-    facts = result.data
+    facts = deepcopy(result.data)
     remote = facts.get("remote")
     if isinstance(remote, dict):
         facts["remote"] = derive_remote_fact(remote.get("evidence_quote"), raw_jd)
-    validate_facts(facts, raw_jd)
+    try:
+        validate_facts(facts, raw_jd)
+    except ExtractionValidationError as error:
+        if (error.category, error.field) != ("location_context", "location"):
+            raise
+        facts["location"] = {"value": None, "evidence_quote": None}
+        # A later field may also fail; only accept after all remaining facts validate.
+        validate_facts(facts, raw_jd)
+        logging.getLogger(__name__).warning(
+            "extraction_fact_dropped field=location category=location_context"
+        )
     jd_sha256 = hashlib.sha256(raw_bytes).hexdigest()
     return {
         "facts": facts,

@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "ui/**"
+      - "supabase/migrations/**"
       - ".github/workflows/ui-tests.yml"
   push:
     branches:
       - master
     paths:
       - "ui/**"
+      - "supabase/migrations/**"
       - ".github/workflows/ui-tests.yml"
 
 permissions:
@@ -69,3 +71,31 @@ jobs:
       - run: npm ci
       - run: npx playwright install chromium --only-shell --with-deps
       - run: npm run test:e2e
+
+  logged-in-db:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: npx --yes supabase@2.116.0 --version
+      - run: npx playwright install chromium --only-shell --with-deps
+      - name: Logged-in smoke with local Supabase
+        run: |
+          mkdir -p .e2e/bin
+          printf '#!/bin/sh\nexec npx --yes supabase@2.116.0 "$@"\n' > .e2e/bin/supabase
+          chmod +x .e2e/bin/supabase
+          PATH="$PWD/.e2e/bin:$PATH" npm run test:db
+      - name: Remove only the disposable stack
+        if: always()
+        run: npx --yes supabase@2.116.0 stop --workdir .e2e/db-stack --project-id jrc-p12-test-db --no-backup
