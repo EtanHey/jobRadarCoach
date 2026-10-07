@@ -121,6 +121,14 @@ def _labels(annotation: Mapping[str, object]) -> dict[str, object]:
     }
 
 
+def _ack_score_request(connection: Connection, posting_id: object) -> None:
+    connection.execute(
+        "update public.postings set relevance_gate=relevance_gate-'score_requested' "
+        "where id=%s and relevance_gate->>'score_requested'='true'",
+        (posting_id,),
+    )
+
+
 def _store(
     connection: Connection, captured: _Inputs, result: core.ScoringResult
 ) -> PersistOutcome:
@@ -140,6 +148,7 @@ def _store(
             "where posting_id = %s", (captured.posting["id"],),
         ).fetchone()
         if current == desired:
+            _ack_score_request(connection, captured.posting["id"])
             return "unchanged"
         stored = connection.execute(
             "insert into public.posting_scores (posting_id, score, reasons, labels, brain, "
@@ -159,6 +168,7 @@ def _store(
         ).fetchone()
         if stored is None:
             raise RuntimeError("score persistence returned no posting identity")
+        _ack_score_request(connection, captured.posting["id"])
         return "stored"
 
 
@@ -206,7 +216,8 @@ def list_scoring_candidates(
         "and p.raw_jd is not null and char_length(regexp_replace(p.raw_jd, "
         "'(^[[:space:]]+|[[:space:]]+$)', '', 'g')) >= %s "
         "and (s.posting_id is null "
-        "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s)) "
+        "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s) "
+        "or p.relevance_gate->>'score_requested'='true') "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
         + SELECTION_GUARD + lease_filter
         + "order by (s.posting_id is null) desc, "

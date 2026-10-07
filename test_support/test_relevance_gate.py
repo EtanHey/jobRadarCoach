@@ -33,3 +33,20 @@ def test_gate_persists_before_selection_and_override_and_jd_reset(stage):
         assert db.execute('select relevance_gate from postings where id=%s',(ids[0],)).fetchone()==({},)
         selected()
         assert db.execute('select relevance_filtered from postings where id=%s',(ids[0],)).fetchone()==(False,)
+
+
+def test_explicit_us_rule_overrides_prior_score_but_preserves_other_history():
+    from scraper.relevance import refresh_gate
+    migrations=Path(__file__).parents[1]/'supabase/migrations'
+    with migrated_database(migrations, through=27) as url, psycopg.connect(url) as db:
+        ids=[str(uuid4()) for _ in range(3)]
+        for id,title,status in zip(ids,['Full Stack Engineer','Principal Engineer','Full Stack Engineer'],['new','new','applied']):
+            jd=('Applicants should already be based in United States. ' if title=='Full Stack Engineer' else '')+'Build React products. '*20
+            db.execute("insert into postings(id,source,external_id,url,title,company,raw_jd) values(%s,'synthetic',%s,'https://example.test/job',%s,'Synthetic',%s)",(id,id,title,jd))
+            db.execute('insert into posting_status(posting_id,status) values(%s,%s)',(id,status))
+            payload=dict(employer_type="direct",seniority_real=None,fit_score=72,fit_tier="good",recommendation="apply",reasons=[],fit_line="",fit_line_evidence_ids=[],luna_status="ok")
+            labels=dict(role_type=None,seniority_match="unknown",remote_ok="unknown",red_flag_count=0)
+            db.execute("insert into posting_scores(posting_id,score,brain,model,scorer_version,posting_sha256,profile_sha256,history_sha256,score_payload,labels) values(%s,72,'synthetic','synthetic','1',%s,%s,%s,%s::jsonb,%s::jsonb)",(id,*(['a'*64]*3),json.dumps(payload),json.dumps(labels)))
+        refresh_gate(db,posting_ids=ids)
+        assert [db.execute('select relevance_filtered from postings where id=%s',(id,)).fetchone()[0] for id in ids]==[True,False,False]
+        assert db.execute('select score from posting_scores where posting_id=%s',(ids[0],)).fetchone()==(72,)

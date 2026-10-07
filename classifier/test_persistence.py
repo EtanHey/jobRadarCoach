@@ -447,3 +447,12 @@ def test_unusable_description_is_not_selected(connection, raw_jd) -> None:
     posting_id = seed(connection, status="new")
     connection.execute("update public.postings set raw_jd=%s where id=%s", (raw_jd, posting_id))
     assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []
+
+
+def test_explicit_score_request_runs_once_even_with_current_profile(connection):
+    posting_id = seed(connection, status='new')
+    assert persistence.score_and_persist(connection, posting_id, brain_runner=runner) == 'stored'
+    connection.execute("update postings set relevance_gate='{\"override\":true,\"score_requested\":true}'::jsonb where id=%s", (posting_id,))
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == [posting_id]
+    assert persistence.score_and_persist(connection, posting_id, brain_runner=runner) == 'unchanged'
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []

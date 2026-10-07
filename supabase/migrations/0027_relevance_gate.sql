@@ -3,6 +3,7 @@ alter table public.postings add column relevance_gate jsonb not null default '{}
   check (jsonb_typeof(relevance_gate)='object'
     and (not relevance_gate ? 'version' or jsonb_typeof(relevance_gate->'version')='string')
     and (not relevance_gate ? 'rule' or jsonb_typeof(relevance_gate->'rule') in ('string','null'))
+    and (not relevance_gate ? 'score_requested' or jsonb_typeof(relevance_gate->'score_requested')='boolean')
     and (not relevance_gate ? 'override' or jsonb_typeof(relevance_gate->'override')='boolean'));
 alter table public.postings add column relevance_filtered boolean generated always as
   (relevance_gate->>'rule' is not null and not coalesce((relevance_gate->>'override')::boolean,false)) stored;
