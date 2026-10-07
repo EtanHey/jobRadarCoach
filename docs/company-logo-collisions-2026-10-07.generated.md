@@ -6,543 +6,535 @@ SELECT-only hosted snapshot: 1514 postings. Catalog: 148 entries; domain map: 36
 
 Query: `select id,company,url,apply_url,raw_jd from public.postings order by id` via the Supabase management API with `read_only: true`. Existing environment credential; no secret-manager prompts, hosted writes, homepage guesses, or Logo.dev calls.
 
-Detected 9 posting/domain mismatches against bound identities. Missing identity bindings are reported as unbound, not as proven collisions. Employer-like domain references are candidates; references to third-party tools are not proof of ownership.
+Detected 1 structured posting identity conflicts. Domains come only from posting/apply URLs; source-company IDs come from ATS tenants and verified employer headings bound to posting IDs. JD text grants and vetoes nothing.
 
-The reported Doit/DoiT collision (listing suffix aae3e321) is confirmed by the task brief. The stored row has LinkedIn-only posting/apply URLs and no employer-like domain in its JD, so this snapshot cannot independently prove doit.app ownership. Doit now requires doit.com evidence for the DoiT catalog asset; that row renders initials. DoiT rows without domain evidence also render initials.
+The Doit/DoiT collision is independently corroborated by the source-page employer heading: the incident posting suffix aae3e321 links linkedin:doit-official, while all six DoiT rows link linkedin:doitintl. The catalog manifest's source page also links doitintl. Only doit.com, verified doitintl source-company identifiers or asset source posting IDs can select the DoiT image; a bare name cannot.
 
-Only Wix and Jeen.ai are explicitly marked unambiguous; competing employer-like domains veto their name-only exception. The six official-site catalog pins use domains recorded in the asset manifest; the Doit pin comes from the incident brief. Other catalog entries have no asset identity binding and cannot be selected by name. Existing map domains remain identity candidates and require posting evidence.
+Ordinary catalog and audited domain-map names remain usable without conflicting structured evidence. Known collision names require positive identity. Initials overrides continue to block the earlier wrong-brand and placeholder names. Structured source-company bindings are generated offline by scripts/build-logo-source-bindings.ts; raw JD/contact data is never emitted.
 
-## Posting/domain mismatches
+## Structured identity conflicts
 
-| Name | Posting id | Expected | Different domain |
+| Name | Posting id | Expected domain or company identifier | Conflicting identity |
 | --- | --- | --- | --- |
-| duckduckgo | bd1561e0-09e1-4dbe-9a3b-e7283d06aadc | duckduckgo.com | duck.ai |
-| genesys | df9fb31e-27fb-4a95-991a-573f2cf1daaa | genesys.com | genesys.ai |
-| mckesson | 40179197-3536-4397-a30a-6ea1604213ae | mckesson.com | mckesson.ca |
-| outschool | 5500fa99-eb8d-444e-92c8-60d40697c387 | outschool.com | outschool.org |
-| outschool | 74fbe27d-7db5-4684-8a74-d89b9437c02c | outschool.com | outschool.org |
-| seed health | 1db0301c-6b32-49e0-b697-38645bb323b4 | seed.com | seedhealth.com |
-| wayve | 5ecde07f-2cee-43b0-aec4-6ff6e38f1322 | wayve.ai | firststage.co |
-| wayve | 83857305-0576-4ab4-b462-1fb3a62e4afb | wayve.ai | firststage.co |
-| wayve | cfd1cc0e-6222-4453-bb37-e92f5e78125a | wayve.ai | firststage.co |
+| doit | f0dc6b0d-5897-4e50-9946-5e91aae3e321 | doit.com, greenhouse:doitintl, linkedin:doitintl | linkedin:doit-official |
 
 ## Complete entry inventory
 
-Every catalog/domain key is listed below. Hosted references include all matching postings; raw job copy and contact details are omitted. A dash means no candidate domain in posting URLs/JD. Null or unbound entries cannot infer an employer from its name.
+Every catalog/domain key is listed below. Raw job copy and contact details are omitted. A dash means no structured domain or employer identifier is available. Ordinary catalog names retain their existing mark absent a conflict; known collisions require positive identity.
 
 | Name | Source | Bound domains | Hosted posting ids and domain evidence |
 | --- | --- | --- | --- |
-| 180 engineering | catalog | unbound/null | 7371b16a-b041-4db4-8770-c4da5370e18e: — |
-| 1password | domain map | unbound/null | ec8775dd-3e89-4ee1-b5e4-636688b734f2: — |
-| 83/creative | domain map | unbound/null | ee72b83b-4e31-47cd-8fde-95f4d2d70370: — |
-| acceler8 talent | catalog | unbound/null | 233f3895-3ae0-4e60-8895-91cbb696c636: — |
-| act | domain map | unbound/null | 610d891b-ae58-4f08-86af-2e11cb1a6e44: —; 73c49e49-e11c-46e9-af13-6599e4c02198: —; 797de314-03fe-47c2-a482-98234aa166f6: — |
-| actai | domain map | unbound/null | 44f415b5-317f-414d-81d2-d0a39c85ebab: —; ba05819b-b536-448b-a20e-fec2427350bc: —; f7d8bfa4-2c6d-4994-990d-a04868330784: — |
-| adaptive6 | domain map | unbound/null | 81722afb-24b2-4a37-9784-b4a3be749331: — |
-| adsx | domain map | unbound/null | 1269f50d-d205-4450-a5e6-71f239377ddc: — |
-| agilegrid solutions | domain map | unbound/null | 012c4a66-e0c4-4533-a29b-5b10fb457b5c: —; 11718841-8304-4093-b057-cd82d29b8e70: —; 1d5de7f3-ca0c-4086-9b0d-8d6fd7116085: —; 250ad7f3-0fb2-47aa-b433-08e18a6b5b82: —; 31cf4dd5-863b-481c-9d5e-8fc208f6fa38: —; 621fa31a-dd9f-45b7-9dec-c4ab36da4541: —; 7b7ec798-3f54-44c7-abad-5a04e6d535b5: —; 89fefe95-ef05-4ef1-867c-e2a41fbfb3d8: —; 8cc7c0f1-d3ba-4e9b-83b8-672c1d177b4b: —; a6efc811-9470-4bf7-87fe-63f99f07c5ef: —; ad914ee4-a9bb-4db7-bd9e-8e2c8d9e1556: —; b4743165-d969-4900-9d32-e04041855d2c: —; bcd831e7-74dc-4432-b786-58a1822836be: —; c483e3df-bbed-466c-b342-0161d538d1b3: — |
-| agoda | domain map | unbound/null | 9d4a29b8-02d1-444a-be84-8aa62b2a99f8: — |
-| aidoc | domain map | unbound/null | 759d8506-5aad-4f0c-80fb-509955efc293: —; ac1768d4-7cf4-4b74-b2e4-230b39468549: — |
-| air apps | catalog | unbound/null | 2c79e5a0-6e07-4606-adea-144dc83b627e: —; 52358737-d1b9-46d7-80e2-a3edf2c9dab9: —; 8cadabc4-55b6-4263-8f15-f934692eb751: — |
-| airbnb | domain map | airbnb.com | e984d74d-89f6-483d-b871-a8b97c5ab9ad: airbnb.com |
-| akamai technologies | domain map | unbound/null | 247464a7-2efe-4575-806d-67e27da9c0cb: —; 5c055604-2ff2-4d9d-9339-47240c157fd4: —; b16854a0-0ff4-4f34-bdd1-91e118e8fd44: —; f6a9c502-9e3a-4f52-ae4a-3b974f034707: — |
-| alice (formerly activefence) | domain map | unbound/null | 3a5fd5e3-33e2-4100-8c22-1d9409a373cd: — |
-| alicorn jobs | domain map | unbound/null | b12ab396-d835-47d2-9678-2242e21d5efd: — |
-| allcloud | domain map | allcloud.io | 6ee25369-b2ed-43ef-b7cc-a708ceffe8c7: allcloud.io |
-| alteryx | domain map | unbound/null | 404cb11b-3bc4-494b-b863-2192d070fce8: —; 903cd691-1ddd-4544-912a-aa6f09669517: — |
-| amawaterways river cruises | catalog | unbound/null | c6cfa38d-ff19-4aa4-9c3d-97aaa1260705: — |
-| amazon web services (aws) | domain map | unbound/null | 0f48a6df-e6a9-4d34-b055-15df5f21c212: amazon.jobs; 11af729b-0575-44e0-a956-c36a8b0f38f4: amazon.jobs; 282946fb-c6d4-449d-aa72-588ebfd34708: amazon.jobs; 2fc7f206-7a63-4c27-b9f6-0215f3af839f: amazon.jobs; 57d76394-0bf0-4b43-8976-00553feb18aa: amazon.jobs; 6b1718ef-1133-49b7-afa1-60e54821bec7: amazon.jobs; 7b7ee9b4-735e-4282-98c1-5a9e536b14a1: amazon.jobs; 8a06697f-95a5-4b0d-a923-0f0ba38bb5b3: amazon.jobs; 97681b94-e92c-4b89-abc1-dba50dac8578: amazon.jobs; ab6b0b29-001d-4a02-a1ba-4a9f71d65932: amazon.jobs; bf1285b7-a962-4654-afa5-a0c13b95e852: amazon.jobs; c6c98797-5613-4baa-aac3-6917232bc6e5: amazon.jobs; c95f5ee3-bf7e-46fa-aaf6-71782eda904b: amazon.jobs; d46384fb-d948-40b1-8d7c-9cc19947f6c7: amazon.jobs; e95b00bc-3ac4-4277-be31-27e5ba6d6ba8: amazon.jobs; f740a0da-63cc-433a-96b6-884cf2b78f56: amazon.jobs; fa3989f3-c023-4b75-ad86-d1711eb6b537: amazon.jobs |
-| amentum | domain map | unbound/null | d8654611-03ed-40aa-bed6-c4d72ea0b1a0: — |
-| anchor | domain map | unbound/null | 36a82046-ae94-4a6f-9042-577e54564905: —; 63cd1109-97c6-43a8-bd5f-0a64002f4d2b: —; b3d30283-3c9c-4912-ad1c-72a08cbc3b71: —; eb996e47-15e6-4e5f-90dd-0106c109446e: — |
-| anthropic | catalog | unbound/null | 05a9658d-b747-4f1d-a0a7-60b226e221a0: anthropic.com; 69ae4415-95c2-4227-96cf-7ad1bc5bc314: anthropic.com; f847861e-613c-44e8-ba2f-175c75fc2810: anthropic.com; fb0b66fa-a606-49d5-ad25-99b350f2e3db: anthropic.com |
-| apiiro | catalog | unbound/null | 4bd2ce5e-e913-49c8-b4ab-c768ca7e5b26: —; adcef630-dc11-4ac8-85a5-08871228dc64: —; e2597ef0-3121-4ede-bdcd-1ed37a812a5b: — |
-| apollo.io | domain map | apollo.io | 3b40bf2e-cfd4-40d3-abf5-b6fff7a531d9: apollo.io |
-| appdome | domain map | unbound/null | dd220c43-6125-4dcb-9ac0-a89e0b5759b6: —; f7fc6f56-d15c-4aed-822b-def4a0ba24ef: — |
-| applied materials - israel | domain map | unbound/null | 03b97e34-589b-4c23-b5c8-877c84f38d82: —; 57f2b267-bfed-4bdd-be4e-ea50045ec729: —; d6535f07-8b36-445f-9506-51898eb10019: — |
-| april | domain map | unbound/null | 0f70510d-ff1b-489a-8477-222b4f4f0289: —; 2febcd88-2b59-4ec2-94cb-e1a873d70039: —; 5d53126c-ca20-4b89-8d81-3337cf646c8d: — |
-| arad technologies | domain map | unbound/null | adc9d278-31b4-4f05-8179-55664d4c7ba9: — |
-| armis | domain map | unbound/null | 4685afde-d49d-4890-aa71-fb5125662c75: — |
-| armis security | catalog | unbound/null | 577149f2-1c81-4c68-9b81-e8cb86ad7570: — |
-| armstrong international – intelligent solutions in steam, air and hot water | catalog | unbound/null | 3d19118f-cea0-4f58-af2c-dff8cdeca947: — |
-| arrows | catalog | unbound/null | ddc79f96-afb3-467f-90ca-5fb5a4b9d97c: — |
-| ascertain | domain map | unbound/null | 2c1c44b3-f1a8-4169-8e95-21cb374f4223: — |
-| ashby | catalog | unbound/null | 3d0af7d2-8a3e-4bcb-8342-ae9ff85907d6: —; 52210e03-1332-456c-b6a8-5b4865154daa: — |
-| associated bank | domain map | associatedbank.com | 45ca9c56-bb7f-4bee-a26e-91361299b450: associatedbank.com; fc3365db-eb98-40a3-a340-00a06230c957: associatedbank.com |
-| astera labs | catalog | unbound/null | a163c7ac-0b30-4674-a000-7e4b923455c5: asteralabs.com; b505fc4c-0a12-41de-91d1-adec648acf35: asteralabs.com; cd0260fc-bca7-49df-881a-c2c7e513d351: asteralabs.com; eb3551c4-810b-4678-9411-65c04286875d: asteralabs.com; ef53ddc6-0d5d-467f-b9cd-1e0162a9bbb4: asteralabs.com |
-| at-bay | domain map | unbound/null | 4a45007c-6de2-47a5-b339-9a279f69d3bf: —; ef00cf33-4737-45da-ba17-accd64661c1a: at-bay.com; fe9157a7-1e05-44ba-91a0-84f2cbd94c38: at-bay.com |
-| atc | domain map | unbound/null | 22a4ed30-3056-4945-9ff7-8305ae276750: —; 922e1d46-847f-4a5d-b0d4-95e847b747e2: — |
-| atera | domain map | unbound/null | 83ec7c6b-8287-4cb8-8a03-93b1d36c8074: — |
-| augury | domain map | unbound/null | 12d07b95-b9f2-4f91-9d31-a9102117498d: —; a43a5d17-2da8-4412-972f-8963c69d2061: — |
-| autofleet | catalog | unbound/null | 164bb256-4992-44fc-b491-454b06b1f873: —; 4d8bdc70-0fda-448d-9480-2c569001ce52: —; 9b155cbb-8b28-4029-87ee-d4479b4e0b93: — |
-| axon pulse | domain map | unbound/null | fb1988d6-d83a-4f50-8efe-fe5f654f6947: — |
+| 180 engineering | catalog | linkedin:180engineering | 7371b16a-b041-4db4-8770-c4da5370e18e: linkedin:180engineering |
+| 1password | domain map | no bound identity | ec8775dd-3e89-4ee1-b5e4-636688b734f2: — |
+| 83/creative | domain map | no bound identity | ee72b83b-4e31-47cd-8fde-95f4d2d70370: — |
+| acceler8 talent | catalog | linkedin:acceler8-talent | 233f3895-3ae0-4e60-8895-91cbb696c636: linkedin:acceler8-talent |
+| act | domain map | no bound identity | 610d891b-ae58-4f08-86af-2e11cb1a6e44: —; 73c49e49-e11c-46e9-af13-6599e4c02198: —; 797de314-03fe-47c2-a482-98234aa166f6: — |
+| actai | domain map | no bound identity | 44f415b5-317f-414d-81d2-d0a39c85ebab: —; ba05819b-b536-448b-a20e-fec2427350bc: —; f7d8bfa4-2c6d-4994-990d-a04868330784: — |
+| adaptive6 | domain map | no bound identity | 81722afb-24b2-4a37-9784-b4a3be749331: — |
+| adsx | domain map | no bound identity | 1269f50d-d205-4450-a5e6-71f239377ddc: — |
+| agilegrid solutions | domain map | no bound identity | 012c4a66-e0c4-4533-a29b-5b10fb457b5c: —; 11718841-8304-4093-b057-cd82d29b8e70: —; 1d5de7f3-ca0c-4086-9b0d-8d6fd7116085: —; 250ad7f3-0fb2-47aa-b433-08e18a6b5b82: —; 31cf4dd5-863b-481c-9d5e-8fc208f6fa38: —; 621fa31a-dd9f-45b7-9dec-c4ab36da4541: —; 7b7ec798-3f54-44c7-abad-5a04e6d535b5: —; 89fefe95-ef05-4ef1-867c-e2a41fbfb3d8: —; 8cc7c0f1-d3ba-4e9b-83b8-672c1d177b4b: —; a6efc811-9470-4bf7-87fe-63f99f07c5ef: —; ad914ee4-a9bb-4db7-bd9e-8e2c8d9e1556: —; b4743165-d969-4900-9d32-e04041855d2c: —; bcd831e7-74dc-4432-b786-58a1822836be: —; c483e3df-bbed-466c-b342-0161d538d1b3: — |
+| agoda | domain map | no bound identity | 9d4a29b8-02d1-444a-be84-8aa62b2a99f8: — |
+| aidoc | domain map | no bound identity | 759d8506-5aad-4f0c-80fb-509955efc293: —; ac1768d4-7cf4-4b74-b2e4-230b39468549: — |
+| air apps | catalog | linkedin:airapps | 2c79e5a0-6e07-4606-adea-144dc83b627e: linkedin:airapps; 52358737-d1b9-46d7-80e2-a3edf2c9dab9: linkedin:airapps; 8cadabc4-55b6-4263-8f15-f934692eb751: linkedin:airapps |
+| airbnb | domain map | airbnb.com | e984d74d-89f6-483d-b871-a8b97c5ab9ad: — |
+| akamai technologies | domain map | no bound identity | 247464a7-2efe-4575-806d-67e27da9c0cb: —; 5c055604-2ff2-4d9d-9339-47240c157fd4: —; b16854a0-0ff4-4f34-bdd1-91e118e8fd44: —; f6a9c502-9e3a-4f52-ae4a-3b974f034707: — |
+| alice (formerly activefence) | domain map | no bound identity | 3a5fd5e3-33e2-4100-8c22-1d9409a373cd: — |
+| alicorn jobs | domain map | no bound identity | b12ab396-d835-47d2-9678-2242e21d5efd: — |
+| allcloud | domain map | allcloud.io | 6ee25369-b2ed-43ef-b7cc-a708ceffe8c7: — |
+| alteryx | domain map | no bound identity | 404cb11b-3bc4-494b-b863-2192d070fce8: —; 903cd691-1ddd-4544-912a-aa6f09669517: — |
+| amawaterways river cruises | catalog | linkedin:amawaterways | c6cfa38d-ff19-4aa4-9c3d-97aaa1260705: linkedin:amawaterways |
+| amazon web services (aws) | domain map | no bound identity | 0f48a6df-e6a9-4d34-b055-15df5f21c212: —; 11af729b-0575-44e0-a956-c36a8b0f38f4: —; 282946fb-c6d4-449d-aa72-588ebfd34708: —; 2fc7f206-7a63-4c27-b9f6-0215f3af839f: —; 57d76394-0bf0-4b43-8976-00553feb18aa: —; 6b1718ef-1133-49b7-afa1-60e54821bec7: —; 7b7ee9b4-735e-4282-98c1-5a9e536b14a1: —; 8a06697f-95a5-4b0d-a923-0f0ba38bb5b3: —; 97681b94-e92c-4b89-abc1-dba50dac8578: —; ab6b0b29-001d-4a02-a1ba-4a9f71d65932: —; bf1285b7-a962-4654-afa5-a0c13b95e852: —; c6c98797-5613-4baa-aac3-6917232bc6e5: —; c95f5ee3-bf7e-46fa-aaf6-71782eda904b: —; d46384fb-d948-40b1-8d7c-9cc19947f6c7: —; e95b00bc-3ac4-4277-be31-27e5ba6d6ba8: —; f740a0da-63cc-433a-96b6-884cf2b78f56: —; fa3989f3-c023-4b75-ad86-d1711eb6b537: — |
+| amentum | domain map | no bound identity | d8654611-03ed-40aa-bed6-c4d72ea0b1a0: — |
+| anchor | domain map | no bound identity | 36a82046-ae94-4a6f-9042-577e54564905: —; 63cd1109-97c6-43a8-bd5f-0a64002f4d2b: —; b3d30283-3c9c-4912-ad1c-72a08cbc3b71: —; eb996e47-15e6-4e5f-90dd-0106c109446e: — |
+| anthropic | catalog | greenhouse:anthropic, linkedin:anthropicresearch | 05a9658d-b747-4f1d-a0a7-60b226e221a0: greenhouse:anthropic; 69ae4415-95c2-4227-96cf-7ad1bc5bc314: linkedin:anthropicresearch; f847861e-613c-44e8-ba2f-175c75fc2810: greenhouse:anthropic; fb0b66fa-a606-49d5-ad25-99b350f2e3db: linkedin:anthropicresearch |
+| apiiro | catalog | greenhouse:apiiro | 4bd2ce5e-e913-49c8-b4ab-c768ca7e5b26: greenhouse:apiiro; adcef630-dc11-4ac8-85a5-08871228dc64: greenhouse:apiiro; e2597ef0-3121-4ede-bdcd-1ed37a812a5b: greenhouse:apiiro |
+| apollo.io | domain map | apollo.io | 3b40bf2e-cfd4-40d3-abf5-b6fff7a531d9: — |
+| appdome | domain map | no bound identity | dd220c43-6125-4dcb-9ac0-a89e0b5759b6: —; f7fc6f56-d15c-4aed-822b-def4a0ba24ef: — |
+| applied materials - israel | domain map | no bound identity | 03b97e34-589b-4c23-b5c8-877c84f38d82: —; 57f2b267-bfed-4bdd-be4e-ea50045ec729: —; d6535f07-8b36-445f-9506-51898eb10019: — |
+| april | domain map | no bound identity | 0f70510d-ff1b-489a-8477-222b4f4f0289: —; 2febcd88-2b59-4ec2-94cb-e1a873d70039: —; 5d53126c-ca20-4b89-8d81-3337cf646c8d: — |
+| arad technologies | domain map | no bound identity | adc9d278-31b4-4f05-8179-55664d4c7ba9: — |
+| armis | domain map | no bound identity | 4685afde-d49d-4890-aa71-fb5125662c75: — |
+| armis security | catalog | greenhouse:armissecurity | 577149f2-1c81-4c68-9b81-e8cb86ad7570: greenhouse:armissecurity |
+| armstrong international – intelligent solutions in steam, air and hot water | catalog | linkedin:armstrong-international-steam-air-hot-water | 3d19118f-cea0-4f58-af2c-dff8cdeca947: linkedin:armstrong-international-steam-air-hot-water |
+| arrows | catalog | linkedin:arrows-group | ddc79f96-afb3-467f-90ca-5fb5a4b9d97c: linkedin:arrows-group |
+| ascertain | domain map | no bound identity | 2c1c44b3-f1a8-4169-8e95-21cb374f4223: — |
+| ashby | catalog | linkedin:ashbyhq | 3d0af7d2-8a3e-4bcb-8342-ae9ff85907d6: linkedin:ashbyhq; 52210e03-1332-456c-b6a8-5b4865154daa: linkedin:ashbyhq |
+| associated bank | domain map | associatedbank.com | 45ca9c56-bb7f-4bee-a26e-91361299b450: —; fc3365db-eb98-40a3-a340-00a06230c957: — |
+| astera labs | catalog | greenhouse:asteralabs, linkedin:astera-labs | a163c7ac-0b30-4674-a000-7e4b923455c5: greenhouse:asteralabs; b505fc4c-0a12-41de-91d1-adec648acf35: linkedin:astera-labs; cd0260fc-bca7-49df-881a-c2c7e513d351: greenhouse:asteralabs; eb3551c4-810b-4678-9411-65c04286875d: greenhouse:asteralabs; ef53ddc6-0d5d-467f-b9cd-1e0162a9bbb4: linkedin:astera-labs |
+| at-bay | domain map | no bound identity | 4a45007c-6de2-47a5-b339-9a279f69d3bf: —; ef00cf33-4737-45da-ba17-accd64661c1a: —; fe9157a7-1e05-44ba-91a0-84f2cbd94c38: — |
+| atc | domain map | no bound identity | 22a4ed30-3056-4945-9ff7-8305ae276750: —; 922e1d46-847f-4a5d-b0d4-95e847b747e2: — |
+| atera | domain map | no bound identity | 83ec7c6b-8287-4cb8-8a03-93b1d36c8074: — |
+| augury | domain map | no bound identity | 12d07b95-b9f2-4f91-9d31-a9102117498d: —; a43a5d17-2da8-4412-972f-8963c69d2061: — |
+| autofleet | catalog | workable:autofleet | 164bb256-4992-44fc-b491-454b06b1f873: workable:autofleet; 4d8bdc70-0fda-448d-9480-2c569001ce52: —; 9b155cbb-8b28-4029-87ee-d4479b4e0b93: workable:autofleet |
+| axon pulse | domain map | no bound identity | fb1988d6-d83a-4f50-8efe-fe5f654f6947: — |
 | axonius | domain map | axonius.com | 6ec01aea-327f-42c0-8b19-6fdec13d5eed: axonius.com; 883cb6e9-7072-49fb-b92d-7f823a2a9149: —; b79f1d03-7563-4896-96c1-8cf31c21e931: — |
-| back market | domain map | unbound/null | 397fa3f7-c717-489f-a001-76aad46b5e64: — |
-| bagira | domain map | unbound/null | 51638d66-6054-4bf8-8730-fdc1f9faff1c: —; 935cf662-f08e-4244-9496-be671d7a6f45: — |
-| balance | domain map | unbound/null | b936479b-147a-4a96-91eb-d8d2423aa608: — |
-| bank of jerusalem בנק ירושלים | domain map | bankjerusalem.co.il | 4805d109-dcbe-4a25-8975-3846d6a966c8: bankjerusalem.co.il |
-| beaconfire inc. | catalog | unbound/null | a6103dbb-6f3e-45a6-b940-86707c10b787: beaconfireinc.com |
-| beamup | domain map | beamup.ai | a07003bb-953e-4216-86f2-ba2c6ed3010e: beamup.ai |
-| biocatch | domain map | biocatch.com | 2a0c0188-43e4-4397-9094-8c6e4557cbfb: biocatch.com; 3cdb6ae0-9b01-4610-af15-dba0fd6627ca: biocatch.com |
-| bitwarden | domain map | bitwarden.com | 0cfd516b-8162-4e7c-b298-f8910af64758: bitwarden.com |
-| bjak | domain map | unbound/null | 9a9b583a-a57c-4d5c-be10-1f69e82b5496: — |
-| bluebird aero systems ltd. | domain map | unbound/null | 12d6f0c2-4e3a-4e6d-a913-7bf2c77d065c: — |
-| bluevine | catalog | unbound/null | 03ab791e-162c-44d3-9016-b183e69b4196: —; 050fd80b-92d5-4752-bce9-881b1ca96620: — |
-| bluevine - israel | catalog | unbound/null | 28034637-ae64-466c-b8ce-876ed6bbf92e: —; c5926553-63b0-4aaa-b5ae-f2ee79a7da57: —; ec848396-419b-4a0d-a1f9-3349b22d8f39: —; fc19006c-4775-4278-a266-d1c1f89811a2: — |
-| booking.com | domain map | booking.com | 7bb5ddcf-1e61-46cf-b189-f68c233a17b9: booking.com |
-| brandlight | domain map | unbound/null | 453ed5e9-1025-46cd-ae58-6168a9d722fd: —; c9ec0d14-44b8-4d06-b4ca-e45a540b15c3: — |
-| brg | catalog | unbound/null | 0096b589-d9b1-4e52-b0e4-11c4c41d2a67: — |
-| bright data | domain map | unbound/null | cbbc9793-9f0a-495a-a87c-21eea47a362d: — |
-| buildots | domain map | unbound/null | c245c660-237d-4c43-885d-944ab6b5c8f1: — |
-| calialfa (previously alfabet) | domain map | unbound/null | 13c59f7f-8fdc-46de-81b9-ca4424c346d5: — |
-| camunda | catalog | unbound/null | 8e8191f9-c848-4b63-9a80-484c7a50ed99: camunda.com; b64f0476-c5e5-4620-8587-2b407fa556e1: camunda.com |
-| cape | catalog | unbound/null | 15577537-0a7d-4b03-93ab-30081e40c3f5: — |
-| capgemini | domain map | capgemini.com | 756850fb-8fa2-4a0d-9cb4-6a89c16b463c: capgemini.com |
-| capital one | catalog | unbound/null | 23592400-52a6-45df-abc1-d5dfc6996f8b: capitalone.com; 63e7f9e6-2b25-4d03-b893-de66708948da: capitalone.com; 6fc64fee-f3fb-4e5f-af5f-2c00e09798e2: capitalone.com |
-| carrum health | domain map | carrumhealth.com | 6b400cf9-f251-4d33-9cc9-83db3e717eef: carrumhealth.com |
-| catapult | domain map | unbound/null | ad55fab0-52a7-4447-aeab-6520f5d392c9: — |
+| back market | domain map | no bound identity | 397fa3f7-c717-489f-a001-76aad46b5e64: — |
+| bagira | domain map | no bound identity | 51638d66-6054-4bf8-8730-fdc1f9faff1c: —; 935cf662-f08e-4244-9496-be671d7a6f45: — |
+| balance | domain map | no bound identity | b936479b-147a-4a96-91eb-d8d2423aa608: — |
+| bank of jerusalem בנק ירושלים | domain map | bankjerusalem.co.il | 4805d109-dcbe-4a25-8975-3846d6a966c8: — |
+| beaconfire inc. | catalog | linkedin:beaconfireinc | a6103dbb-6f3e-45a6-b940-86707c10b787: linkedin:beaconfireinc |
+| beamup | domain map | beamup.ai | a07003bb-953e-4216-86f2-ba2c6ed3010e: greenhouse:beamup |
+| biocatch | domain map | biocatch.com | 2a0c0188-43e4-4397-9094-8c6e4557cbfb: —; 3cdb6ae0-9b01-4610-af15-dba0fd6627ca: — |
+| bitwarden | domain map | bitwarden.com | 0cfd516b-8162-4e7c-b298-f8910af64758: — |
+| bjak | domain map | no bound identity | 9a9b583a-a57c-4d5c-be10-1f69e82b5496: — |
+| bluebird aero systems ltd. | domain map | no bound identity | 12d6f0c2-4e3a-4e6d-a913-7bf2c77d065c: — |
+| bluevine | catalog | linkedin:bluevine | 03ab791e-162c-44d3-9016-b183e69b4196: —; 050fd80b-92d5-4752-bce9-881b1ca96620: linkedin:bluevine |
+| bluevine - israel | catalog | greenhouse:bluevineisrael | 28034637-ae64-466c-b8ce-876ed6bbf92e: greenhouse:bluevineisrael; c5926553-63b0-4aaa-b5ae-f2ee79a7da57: greenhouse:bluevineisrael; ec848396-419b-4a0d-a1f9-3349b22d8f39: greenhouse:bluevineisrael; fc19006c-4775-4278-a266-d1c1f89811a2: greenhouse:bluevineisrael |
+| booking.com | domain map | booking.com | 7bb5ddcf-1e61-46cf-b189-f68c233a17b9: — |
+| brandlight | domain map | no bound identity | 453ed5e9-1025-46cd-ae58-6168a9d722fd: —; c9ec0d14-44b8-4d06-b4ca-e45a540b15c3: — |
+| brg | catalog | linkedin:berkeley-research-group-llc | 0096b589-d9b1-4e52-b0e4-11c4c41d2a67: linkedin:berkeley-research-group-llc |
+| bright data | domain map | no bound identity | cbbc9793-9f0a-495a-a87c-21eea47a362d: — |
+| buildots | domain map | no bound identity | c245c660-237d-4c43-885d-944ab6b5c8f1: — |
+| calialfa (previously alfabet) | domain map | no bound identity | 13c59f7f-8fdc-46de-81b9-ca4424c346d5: — |
+| camunda | catalog | linkedin:camunda | 8e8191f9-c848-4b63-9a80-484c7a50ed99: linkedin:camunda; b64f0476-c5e5-4620-8587-2b407fa556e1: linkedin:camunda |
+| cape | catalog | linkedin:capecellular | 15577537-0a7d-4b03-93ab-30081e40c3f5: linkedin:capecellular |
+| capgemini | domain map | capgemini.com | 756850fb-8fa2-4a0d-9cb4-6a89c16b463c: — |
+| capital one | catalog | linkedin:capital-one | 23592400-52a6-45df-abc1-d5dfc6996f8b: linkedin:capital-one; 63e7f9e6-2b25-4d03-b893-de66708948da: linkedin:capital-one; 6fc64fee-f3fb-4e5f-af5f-2c00e09798e2: linkedin:capital-one |
+| carrum health | domain map | carrumhealth.com | 6b400cf9-f251-4d33-9cc9-83db3e717eef: — |
+| catapult | domain map | no bound identity | ad55fab0-52a7-4447-aeab-6520f5d392c9: — |
 | cato networks | domain map | catonetworks.com | 25ada917-de51-47ed-9bba-e99b28f67efe: catonetworks.com; 41f3df80-7fd7-49e7-a091-f1f2d1eb35bc: —; 44862642-1b44-44ba-9ee4-dacb5bd095cf: catonetworks.com; 4f1407ba-3522-4a10-906e-bab7558d5a9e: catonetworks.com; 515e471c-8932-46ec-9ca3-1bb311158013: catonetworks.com; 5601aa3a-4e18-47b4-91bb-f3e7a772f885: catonetworks.com; 666b7a96-77e0-444d-9de9-ab85095b3355: catonetworks.com; 68e24331-69df-4d71-bf22-5012a0dde06f: catonetworks.com; 74a11a66-ed9d-48a6-8410-f1e5910a5ae8: —; 8bebe5fd-6bfc-4f57-93fe-2b51dc631aab: —; 9bcb4f62-dacb-41ca-9d9f-319ad65e81d0: catonetworks.com; a20ab71a-a14f-45b1-9f17-baa8c2d2e101: catonetworks.com; a41db6f3-c5b5-4069-bba5-ac8e1a7a263a: —; b01a9f12-62c8-4433-8617-a45b66ec8c51: catonetworks.com; bb3539c1-18e8-4bfa-b202-da9a65a612a9: catonetworks.com; bdc64e89-4178-4c5b-b2fe-cb8085b8e708: catonetworks.com; c9d8f809-21f0-4e4c-8c7c-0cc2f11ec58f: —; d4a07318-a681-4366-8455-7abe2592b062: catonetworks.com |
-| cellebrite | catalog | unbound/null | aa2c8d0c-9558-4a1c-b59c-047dd676735a: cellebrite.com |
-| centrical | domain map | centrical.com | 525c5e7a-2137-4cc4-9c8d-53218794b6a1: centrical.com |
-| cerberus capital management | catalog | unbound/null | ee9e1cd2-c855-4005-a86b-be63b7e3a028: cerberus.com |
-| cerby | domain map | unbound/null | a659bc14-a712-4f29-8382-96c91e3d97b2: — |
-| chainalysis | domain map | unbound/null | e115ffef-7796-4e94-b167-b4405e41e7bf: — |
-| chainguard | domain map | chainguard.dev | 0384fced-645c-4983-bcd5-aa169033bf8a: chainguard.dev; 10fd1c5a-9fb7-4085-84a7-61af81c0fbf3: chainguard.dev; 12a329ae-06ec-4a61-bb93-2725e5b8876b: —; 5efea62a-f9b1-4a14-bdd1-136ee6258ff0: —; 5fb29e31-64e9-4706-b528-8697744a0406: chainguard.dev; 650f4319-b077-4677-b49d-e279ad703835: —; 6e573c09-4f43-44b4-a4c0-bf98f39265a9: —; 922ebaac-63b3-4e0d-b7dc-1f215fc5b8b7: —; a465a0cb-2915-4472-a7ce-3ad441e3be3e: —; ac16a114-68c5-4314-aead-b125ce0950c0: —; b7c87506-6a1f-4ee9-81eb-f6e5af9f405a: —; cac9b262-f021-4aaf-9f6c-11bf0e29d07a: — |
-| check point software | domain map | unbound/null | 152e5528-0f7e-4fa6-81f7-b1cd0580739a: —; 8f2ab3c1-2037-4c84-a19a-1604b04e9ec5: —; 982c8ab4-62db-4eb3-96ac-723b65b2b647: —; 9cf9f5ad-fe4a-43fe-b20f-0fe8e1bbd56c: —; be894394-7e50-4731-a353-5e15dc19968f: —; c9c256cd-4cb7-4401-a9b0-1b2afaadf953: —; d6d3dfc6-c521-4623-ad95-e2fa4fb644c9: —; fd11390f-428f-4021-ba7e-a99b35ec7299: — |
-| chen shwartz | domain map | unbound/null | 3a7e072e-6166-4eb3-9034-d4ca25442df9: — |
-| cheq | domain map | unbound/null | 25a54939-54cd-482d-8387-7f5d8783bf34: — |
-| cisco | domain map | unbound/null | 0c4d9e79-3a4f-409a-9ea9-5d2703b0b8d8: —; 646418ed-267c-42a0-b1de-5d4cccc349c4: —; fafa93ec-35a3-4e69-bf06-49fea7caef76: — |
-| clear street | domain map | unbound/null | 6541b77f-25a6-4eb1-b05e-b97b18d813dd: — |
-| clearstory | catalog | unbound/null | 02fa3a8b-8195-4505-a2d1-e49a8749e43f: — |
-| clickhouse | domain map | unbound/null | 2c15fd94-2cba-4fa4-b43b-07fae3145b38: —; 6aca91da-8bc8-484c-b3ba-d9dd94cdc05d: — |
-| close | domain map | unbound/null | 3f520174-8229-49d4-9d9c-7876fa53a1c0: —; e1c826e6-8144-4fa6-a345-bb60f378db80: — |
-| cloudinary | domain map | unbound/null | 4c4f2022-7080-4ae9-a663-cd202461859a: —; 81cec19d-2c43-42c1-a421-589a99392810: —; 98385e55-873c-4fcc-84d1-c68b6daa5dc4: —; e1ac7115-a418-4ce1-b59e-f0f5a5c40ac0: — |
-| clover security | domain map | unbound/null | e11ff608-6b3a-4ed1-a024-b6695405370b: — |
-| coalition, inc. | domain map | coalitioninc.com | 121c51f7-dfc4-43ee-8164-4967d960ab2a: coalitioninc.com; 46c50a62-75ea-4a17-8c54-7c13215f72df: coalitioninc.com; 9e7f019d-1280-4748-9263-a30e85a165f1: coalitioninc.com; bb49deb4-e9f4-4723-8363-28b12ff89797: coalitioninc.com; bbd079c3-3a85-4e62-8700-ea6b85663b4f: coalitioninc.com; d7910f18-3e92-4296-9069-b047a4911056: coalitioninc.com |
-| coapp | domain map | unbound/null | feda63ae-458d-4790-8baf-4b751dd38c2b: — |
-| codeoasis ltd. | domain map | unbound/null | 5cbf1b78-829b-41af-8e40-b30d224146ea: — |
-| cohere | catalog | unbound/null | e06f66c3-cdce-410d-a0ee-c915f6d915e9: cohere.com; fb32e44d-fe41-4444-b215-849e1833c4a0: cohere.com |
-| coinbase | catalog | unbound/null | 6453836d-669a-4190-8e54-c72eea1d3e67: coinbase.com; b9bf6b4d-ce6a-4f90-a9d5-de3cc96db5c8: coinbase.com; e10b4029-3a59-4500-b513-3cbc0e7ea29a: coinbase.com |
-| comblack | domain map | unbound/null | 1864d954-18ea-429c-bfe0-2ab29b7d4320: —; 2497d53b-7f8c-40d4-8d35-fdc79d07f3f9: —; 76a7ae57-2423-4e58-a332-181239f6aaa9: —; a94cdb79-98ed-4c0b-a10c-cf08b04c50c6: —; dd73f056-9a28-4144-b6aa-825c85cfae47: — |
-| commit | catalog | unbound/null | def13307-4ec8-4c70-81ea-5c222daaa163: — |
-| companytech | domain map | unbound/null | 5e62fa1f-60d1-4f04-96c6-946b17ce881e: — |
-| compsych | domain map | compsych.com | eb1a76ed-8263-45d6-80c1-3083d6f63a06: compsych.com |
-| confidential careers | domain map | unbound/null | 09c3c51f-17bb-40fc-b431-5725ac2885af: —; 4e4741cf-1d14-49a7-bfd3-e3c858c6d0ec: — |
-| conifers.ai | domain map | conifers.ai | 423945d0-7829-47af-8a5a-0c7a06b2fa56: conifers.ai |
+| cellebrite | catalog | linkedin:cellebrite | aa2c8d0c-9558-4a1c-b59c-047dd676735a: linkedin:cellebrite |
+| centrical | domain map | centrical.com | 525c5e7a-2137-4cc4-9c8d-53218794b6a1: — |
+| cerberus capital management | catalog | linkedin:cerberus-capital-management | ee9e1cd2-c855-4005-a86b-be63b7e3a028: linkedin:cerberus-capital-management |
+| cerby | domain map | no bound identity | a659bc14-a712-4f29-8382-96c91e3d97b2: — |
+| chainalysis | domain map | no bound identity | e115ffef-7796-4e94-b167-b4405e41e7bf: — |
+| chainguard | domain map | chainguard.dev | 0384fced-645c-4983-bcd5-aa169033bf8a: greenhouse:chainguard; 10fd1c5a-9fb7-4085-84a7-61af81c0fbf3: greenhouse:chainguard; 12a329ae-06ec-4a61-bb93-2725e5b8876b: greenhouse:chainguard; 5efea62a-f9b1-4a14-bdd1-136ee6258ff0: greenhouse:chainguard; 5fb29e31-64e9-4706-b528-8697744a0406: greenhouse:chainguard; 650f4319-b077-4677-b49d-e279ad703835: —; 6e573c09-4f43-44b4-a4c0-bf98f39265a9: greenhouse:chainguard; 922ebaac-63b3-4e0d-b7dc-1f215fc5b8b7: greenhouse:chainguard; a465a0cb-2915-4472-a7ce-3ad441e3be3e: greenhouse:chainguard; ac16a114-68c5-4314-aead-b125ce0950c0: greenhouse:chainguard; b7c87506-6a1f-4ee9-81eb-f6e5af9f405a: greenhouse:chainguard; cac9b262-f021-4aaf-9f6c-11bf0e29d07a: greenhouse:chainguard |
+| check point software | domain map | no bound identity | 152e5528-0f7e-4fa6-81f7-b1cd0580739a: —; 8f2ab3c1-2037-4c84-a19a-1604b04e9ec5: —; 982c8ab4-62db-4eb3-96ac-723b65b2b647: —; 9cf9f5ad-fe4a-43fe-b20f-0fe8e1bbd56c: —; be894394-7e50-4731-a353-5e15dc19968f: —; c9c256cd-4cb7-4401-a9b0-1b2afaadf953: —; d6d3dfc6-c521-4623-ad95-e2fa4fb644c9: —; fd11390f-428f-4021-ba7e-a99b35ec7299: — |
+| chen shwartz | domain map | no bound identity | 3a7e072e-6166-4eb3-9034-d4ca25442df9: — |
+| cheq | domain map | no bound identity | 25a54939-54cd-482d-8387-7f5d8783bf34: — |
+| cisco | domain map | no bound identity | 0c4d9e79-3a4f-409a-9ea9-5d2703b0b8d8: —; 646418ed-267c-42a0-b1de-5d4cccc349c4: —; fafa93ec-35a3-4e69-bf06-49fea7caef76: — |
+| clear street | domain map | no bound identity | 6541b77f-25a6-4eb1-b05e-b97b18d813dd: — |
+| clearstory | catalog | linkedin:clearstory-build | 02fa3a8b-8195-4505-a2d1-e49a8749e43f: linkedin:clearstory-build |
+| clickhouse | domain map | no bound identity | 2c15fd94-2cba-4fa4-b43b-07fae3145b38: —; 6aca91da-8bc8-484c-b3ba-d9dd94cdc05d: — |
+| close | domain map | no bound identity | 3f520174-8229-49d4-9d9c-7876fa53a1c0: —; e1c826e6-8144-4fa6-a345-bb60f378db80: — |
+| cloudinary | domain map | no bound identity | 4c4f2022-7080-4ae9-a663-cd202461859a: —; 81cec19d-2c43-42c1-a421-589a99392810: —; 98385e55-873c-4fcc-84d1-c68b6daa5dc4: —; e1ac7115-a418-4ce1-b59e-f0f5a5c40ac0: — |
+| clover security | domain map | no bound identity | e11ff608-6b3a-4ed1-a024-b6695405370b: — |
+| coalition, inc. | domain map | coalitioninc.com | 121c51f7-dfc4-43ee-8164-4967d960ab2a: —; 46c50a62-75ea-4a17-8c54-7c13215f72df: coalitioninc.com; 9e7f019d-1280-4748-9263-a30e85a165f1: coalitioninc.com; bb49deb4-e9f4-4723-8363-28b12ff89797: coalitioninc.com; bbd079c3-3a85-4e62-8700-ea6b85663b4f: coalitioninc.com; d7910f18-3e92-4296-9069-b047a4911056: coalitioninc.com |
+| coapp | domain map | no bound identity | feda63ae-458d-4790-8baf-4b751dd38c2b: — |
+| codeoasis ltd. | domain map | no bound identity | 5cbf1b78-829b-41af-8e40-b30d224146ea: — |
+| cohere | catalog | linkedin:cohere-ai | e06f66c3-cdce-410d-a0ee-c915f6d915e9: linkedin:cohere-ai; fb32e44d-fe41-4444-b215-849e1833c4a0: linkedin:cohere-ai |
+| coinbase | catalog | linkedin:coinbase | 6453836d-669a-4190-8e54-c72eea1d3e67: linkedin:coinbase; b9bf6b4d-ce6a-4f90-a9d5-de3cc96db5c8: linkedin:coinbase; e10b4029-3a59-4500-b513-3cbc0e7ea29a: — |
+| comblack | domain map | no bound identity | 1864d954-18ea-429c-bfe0-2ab29b7d4320: —; 2497d53b-7f8c-40d4-8d35-fdc79d07f3f9: —; 76a7ae57-2423-4e58-a332-181239f6aaa9: —; a94cdb79-98ed-4c0b-a10c-cf08b04c50c6: —; dd73f056-9a28-4144-b6aa-825c85cfae47: — |
+| commit | catalog | linkedin:comm-it | def13307-4ec8-4c70-81ea-5c222daaa163: linkedin:comm-it |
+| companytech | domain map | no bound identity | 5e62fa1f-60d1-4f04-96c6-946b17ce881e: — |
+| compsych | domain map | compsych.com | eb1a76ed-8263-45d6-80c1-3083d6f63a06: — |
+| confidential careers | domain map | no bound identity | 09c3c51f-17bb-40fc-b431-5725ac2885af: —; 4e4741cf-1d14-49a7-bfd3-e3c858c6d0ec: — |
+| conifers.ai | domain map | conifers.ai | 423945d0-7829-47af-8a5a-0c7a06b2fa56: — |
 | connecteam | domain map | connecteam.com | 02574661-9a11-437d-870f-f722ced20479: —; 2dbf8b2f-0422-4614-97f4-539b3b5d4326: —; 31e3a18c-041e-4f18-bcda-ad09e004f57d: connecteam.com; 51e04b49-a519-446a-8c13-d3258412397e: —; 99a180c6-3bed-4aa6-806c-b58a3f04f10e: connecteam.com; c93b83b1-c193-4b00-a01d-b28f433284fa: —; db98f7bf-ae21-4daa-813c-1a91a33fdd27: — |
-| conveyor | domain map | unbound/null | c7393368-f276-4abe-9fa9-86e76671349d: — |
-| coralogix | catalog | unbound/null | 207beb53-6152-4034-936d-7bbfadf2540a: —; 6b6e8944-a704-45a6-b739-e056df1280db: —; 870a9ef6-f169-4ff2-85c6-0e3c065f78f5: —; aa3e86d7-9551-430a-b28c-1253ff693082: —; e5d3268c-734e-448f-8305-8a5b74651461: —; eb9e2852-eb38-4ed3-9f05-4ed71a72ba4e: — |
-| corefix | domain map | unbound/null | 68ca4ab8-4f33-4c11-8d3c-4472c7d6f85b: — |
-| corephotonics ltd | domain map | corephotonics.com | aeaeafec-75d3-4f5b-8686-1fb96be1d836: corephotonics.com |
-| cribl | domain map | cribl.io | 93e6cfd2-d95d-46f3-a655-e43c5cbaaebe: cribl.io |
-| cross river | domain map | crossriver.com | 60b0db1f-369e-428a-a709-c422e6863bc6: crossriver.com; 8a017fca-cd8a-44e4-a9a9-ffb6c82f3bb4: —; ce258d84-d570-4bd1-a86f-cef055aba518: crossriver.com; ff9a698a-46b9-4c16-8a3e-bb1d0af34185: crossriver.com |
-| crossing hurdles | domain map | unbound/null | 6cae068a-ae8d-4ff1-bf8b-e25b5d205a61: —; 79ffa626-d3f5-4d1a-b5f5-d393979d7af0: —; 944ff13d-733a-420b-9846-f43b46318e6a: — |
-| crowdstrike | domain map | crowdstrike.com | 2a7af402-40c3-4f08-ae14-4beb64047bc3: crowdstrike.com; 4d867f9d-bf4e-4ffb-8293-43fe9dbf7a1d: crowdstrike.com; 606d680b-b68c-4f5f-8082-a43cc29ecc77: crowdstrike.com; a332d3c8-8f85-4c58-bf1c-8005c05e1ac0: crowdstrike.com; a38d89a2-4357-4353-8bc0-44f0d81e385e: crowdstrike.com |
-| crown equipment corporation | catalog | unbound/null | 106dccf1-56a2-4f91-b91e-d4b83ed8c879: — |
-| cyabra | catalog | unbound/null | 3ee3e11e-ef83-49fb-a7ec-f3539d6f93b7: — |
-| cybercoders | domain map | cybercoders.com | 29f0a778-a341-45ed-9733-2dd9e6508248: cybercoders.com; 49494208-08f1-40f6-9b4a-470de37a01fd: cybercoders.com |
-| cyera identity | domain map | unbound/null | ba866d70-ff18-463b-a3cd-4166ea9aab9f: — |
-| cymulate | domain map | unbound/null | 83660d27-2143-46bc-b68b-de2cfb0131bd: — |
-| dappas | domain map | unbound/null | d7b78d5f-473c-477f-b478-85f551424fd7: — |
-| darrow ai | domain map | unbound/null | 5f41af89-3e74-477a-a794-090501d046d3: — |
-| data nexus ai | domain map | unbound/null | d982a80f-cc23-41e1-adf5-33ae1473c387: — |
-| datarails | domain map | datarails.com | 22b882c2-c9b3-4284-90ef-0764bb06a24f: datarails.com; 4ce556e7-32bd-43d1-b996-e3414a60a47e: datarails.com; d08d5f2e-b8a7-421c-af2d-e8140df759d6: — |
-| deel | domain map | deel.com | 5bd345d6-2715-4ac4-8829-6eef612fd6fa: deel.com |
-| deloitte | domain map | unbound/null | 1b4c809d-aea6-4031-aee2-dd36dba4f6a4: —; 609ec34d-be9a-46dd-9512-3f4acdf3f3e5: —; a1ff388b-5708-4b90-a28c-ade655017289: — |
-| deweb | domain map | unbound/null | 220a5445-23ed-48c1-a68a-93fca05692de: — |
-| dialog | domain map | unbound/null | 0b33ac89-1434-4d26-a944-f8b7edf1a243: — |
-| directeam | domain map | unbound/null | 9086b8a6-c4b9-409d-9f32-022f5029184f: — |
-| discern | domain map | unbound/null | 54f18c32-b7fb-4286-938c-70aab3540c1f: — |
-| discount bank בנק דיסקונט | domain map | unbound/null | 88012cfb-eaa2-4660-8792-9d4ba81a67c5: —; ed8d322c-94a8-4e28-90ab-c617f3b84df6: — |
-| doit | catalog | doit.com | 0ac718b9-5d1e-4d5f-9c39-838d2e1e82e1: —; 2ebbd26c-878d-4b3a-9851-27bfe90d3681: —; 51a645df-07b8-4b85-a7d7-a96689ff5e9e: —; 799dfdd2-e6a0-43b0-9fbe-b30debbfde81: —; 7ca2bf2a-b2d8-4d79-95b6-67774c4c5580: —; f0dc6b0d-5897-4e50-9946-5e91aae3e321: —; fe38a6ae-8df4-4f4a-acb2-8c5d93d8518d: — |
-| dot compliance | domain map | unbound/null | 71381fc1-fd90-4942-a69a-8a2bc771f151: — |
-| doubleverify | domain map | unbound/null | 4fd4dbda-7bf6-4dae-884a-37c308d7c36c: — |
-| dpr construction | domain map | dpr.com | dfbc78f1-61c3-4370-bfe2-8010669340d9: dpr.com |
-| dream | domain map | unbound/null | 097e557b-e26d-4338-b05d-9c1f15e3ea0f: —; 64f0f378-f44d-48c4-be6b-ffd62a44fe95: — |
-| drw | domain map | unbound/null | 491dbf24-e471-4be7-9afb-8c9115ef8646: drw.com; d2082a97-fd62-4875-8159-79cc4bd21e6c: drw.com |
-| dt | domain map | unbound/null | e6b34ce0-8e15-4707-9a53-7b08f184b937: — |
-| duckduckgo | domain map | duckduckgo.com | bd1561e0-09e1-4dbe-9a3b-e7283d06aadc: duck.ai, duckduckgo.com |
-| duve | domain map | unbound/null | 75752107-4564-4096-8dfd-a2c7891ac31c: — |
-| earnix | domain map | unbound/null | 47e460be-b120-4993-a881-aa32000a403c: —; bfe26624-68ac-4689-b523-0ae07d606ba7: — |
-| ecoplant | domain map | unbound/null | 5255c6ef-f76c-49a3-a069-0e2455e49754: — |
-| effectivbiz | catalog | unbound/null | 7d55d8bc-a195-467e-b93f-33270164e24d: effectivbiz.co.il |
-| elbit systems israel | catalog | unbound/null | 4431294e-1ed3-4795-b693-b098e9f660d1: —; 6e49eb79-88e3-4839-8ff7-8c2c1ec0654c: —; 7dab63e0-1f66-442f-9d84-0dc6a11f4ce6: —; a44f44c4-4e9f-4e1b-a754-1a1954e300c4: —; a9a39f63-3855-4de4-9170-01f41384189b: —; bdad68ea-3139-44e4-8b6f-925ec63c76c0: —; eb2a2f46-a8d3-4cfd-9d0b-85b4f8c4e7de: —; fb75b368-ca11-44f7-9c45-337e67999369: — |
-| eleos health | domain map | unbound/null | 06c0e6b4-10b2-4239-a0a1-9d3fa4d93ce8: —; 9c3ca0cf-67c3-43ef-9091-69bb35275f9e: — |
-| elta systems ltd | domain map | unbound/null | e181b1f5-3762-4f04-bd5a-90264700f6ba: — |
-| empathy | catalog | unbound/null | 3e74801c-039b-4adc-bf26-d6458a6f149c: —; c68db1a2-d1b2-41c7-bcd0-14e63c0ba161: — |
-| engradar | domain map | unbound/null | 1d767c94-87fb-45c2-8900-64c87bba05b0: —; 4cd79bf5-4ac9-464e-a833-10c833363f37: —; 6cb8f10a-a7df-485a-9e8d-92d9bf3b24e8: —; f29c339d-1a9f-41a4-ad70-9ccabb50ec27: — |
-| eni-one ltd | catalog | unbound/null | 1402c8ff-7ef1-4435-80b7-96ee50b90f11: — |
-| enlighten | catalog | unbound/null | d2fa82b3-5f94-4551-b511-060eef714ead: — |
-| equalweb | domain map | unbound/null | 4a41a353-5abd-4188-8ed6-b818e950c556: — |
-| erp logic israel, sap partner | catalog | unbound/null | c60d9564-1aa2-47b0-a820-b29341e171b7: — |
-| esentire | catalog | unbound/null | e04a4213-c7db-451c-85fe-26344055fe0b: esentire.com |
-| ethosia | domain map | unbound/null | 040105ef-d9b6-44c4-ac3e-a031cced9b5d: —; 9ec2950e-8471-4740-a781-a14833b4e97a: —; a1a02996-1021-4d13-a555-e2d805180471: —; e60b9747-581a-4537-8919-4902e81441b8: — |
-| evlo ai | catalog | unbound/null | 4db16b2c-8fee-44a3-8480-5544d8c4c577: — |
-| experis | domain map | unbound/null | 8b31d1a6-94f5-4db6-a179-773894fc6465: — |
-| expertvoice | domain map | unbound/null | 5ae9f0d5-a8f2-4315-9081-ccc0e6f69e7d: — |
-| eyeviation | domain map | unbound/null | 2607353f-ed18-404d-88b6-94fe793c5d30: — |
-| faye | domain map | unbound/null | 11f5f6b7-2bd4-4949-aad5-2a20dde5baa7: — |
-| fayrix | domain map | unbound/null | 21273849-2462-4313-9a2b-55439b208ad8: — |
-| figma | domain map | figma.com | 09f3b38a-f006-464a-a148-2e6234520034: figma.com; 104b1518-2022-4e52-9d57-1a5e8992ea2f: figma.com; 12500ba9-b248-4103-b235-b84be013fc81: figma.com; 1cd5cfad-def7-46e2-8578-6ab864fb1952: figma.com; 27719f0c-3451-4c90-8f14-788d13bf8e46: figma.com; 2bdbb0ca-4c3f-4b45-bc07-362afb0835fa: figma.com; 32bf3b6a-e4a3-4b8c-9248-d3d1c79db5e2: figma.com; 3d81a151-272d-4895-9471-d7b97f16f1ca: figma.com; 5c9faa6c-7dd3-4ce1-8c03-08504beab57a: figma.com; 668aae12-b1f5-4bb2-a36a-7dfb6c99676c: figma.com; 6a3d89fe-4798-4f05-bc4f-c85621c1dbf4: figma.com; 6fe1b411-b924-44a8-908e-55a29edc3a54: figma.com; 751ab673-6881-44ec-a0e2-297bed5006df: figma.com; 753f7076-07d3-43d4-8587-a027caeafb85: figma.com; 9973db18-55ba-449f-abaf-2d58cd99ee20: figma.com; a3b58527-48a9-4229-9c66-472cf4f4d247: figma.com; a6f54cfe-10ab-4e18-9307-7d92d86c51d5: figma.com; ba78e841-517c-4d2e-b019-a059390f43ac: figma.com; cf9e4db4-0e06-48e7-bc47-768862371eed: figma.com; e6241dc7-7561-49f3-b1a1-45d0d536c488: figma.com; edaeb422-8528-4be9-b288-b3de88c919fd: figma.com; f0f5d4ca-c98c-4860-a39f-4ffb0a67579b: figma.com; f2ec9895-b466-4a45-bd36-7e928c3ae4cf: figma.com; ff5512c9-9d75-4dd6-a760-30142e3f872e: figma.com |
-| final | domain map | unbound/null | 6b0013c8-3214-4d5b-869f-5a65739ea28f: — |
-| finch | catalog | unbound/null | 3542f6d5-8402-41f2-b619-d39e345bba2e: — |
-| finq israel | domain map | unbound/null | 4e458684-b204-4ca5-8092-b7b5fc86983c: — |
+| conveyor | domain map | no bound identity | c7393368-f276-4abe-9fa9-86e76671349d: — |
+| coralogix | catalog | linkedin:coralogix | 207beb53-6152-4034-936d-7bbfadf2540a: —; 6b6e8944-a704-45a6-b739-e056df1280db: linkedin:coralogix; 870a9ef6-f169-4ff2-85c6-0e3c065f78f5: —; aa3e86d7-9551-430a-b28c-1253ff693082: linkedin:coralogix; e5d3268c-734e-448f-8305-8a5b74651461: —; eb9e2852-eb38-4ed3-9f05-4ed71a72ba4e: — |
+| corefix | domain map | no bound identity | 68ca4ab8-4f33-4c11-8d3c-4472c7d6f85b: — |
+| corephotonics ltd | domain map | corephotonics.com | aeaeafec-75d3-4f5b-8686-1fb96be1d836: — |
+| cribl | domain map | cribl.io | 93e6cfd2-d95d-46f3-a655-e43c5cbaaebe: — |
+| cross river | domain map | crossriver.com | 60b0db1f-369e-428a-a709-c422e6863bc6: —; 8a017fca-cd8a-44e4-a9a9-ffb6c82f3bb4: —; ce258d84-d570-4bd1-a86f-cef055aba518: —; ff9a698a-46b9-4c16-8a3e-bb1d0af34185: — |
+| crossing hurdles | domain map | no bound identity | 6cae068a-ae8d-4ff1-bf8b-e25b5d205a61: —; 79ffa626-d3f5-4d1a-b5f5-d393979d7af0: —; 944ff13d-733a-420b-9846-f43b46318e6a: — |
+| crowdstrike | domain map | crowdstrike.com | 2a7af402-40c3-4f08-ae14-4beb64047bc3: —; 4d867f9d-bf4e-4ffb-8293-43fe9dbf7a1d: —; 606d680b-b68c-4f5f-8082-a43cc29ecc77: —; a332d3c8-8f85-4c58-bf1c-8005c05e1ac0: —; a38d89a2-4357-4353-8bc0-44f0d81e385e: — |
+| crown equipment corporation | catalog | linkedin:crownequipment | 106dccf1-56a2-4f91-b91e-d4b83ed8c879: linkedin:crownequipment |
+| cyabra | catalog | linkedin:cyabra | 3ee3e11e-ef83-49fb-a7ec-f3539d6f93b7: linkedin:cyabra |
+| cybercoders | domain map | cybercoders.com | 29f0a778-a341-45ed-9733-2dd9e6508248: —; 49494208-08f1-40f6-9b4a-470de37a01fd: — |
+| cyera identity | domain map | no bound identity | ba866d70-ff18-463b-a3cd-4166ea9aab9f: — |
+| cymulate | domain map | no bound identity | 83660d27-2143-46bc-b68b-de2cfb0131bd: greenhouse:cymulate |
+| dappas | domain map | no bound identity | d7b78d5f-473c-477f-b478-85f551424fd7: — |
+| darrow ai | domain map | no bound identity | 5f41af89-3e74-477a-a794-090501d046d3: — |
+| data nexus ai | domain map | no bound identity | d982a80f-cc23-41e1-adf5-33ae1473c387: — |
+| datarails | domain map | datarails.com | 22b882c2-c9b3-4284-90ef-0764bb06a24f: greenhouse:datarails; 4ce556e7-32bd-43d1-b996-e3414a60a47e: greenhouse:datarails; d08d5f2e-b8a7-421c-af2d-e8140df759d6: — |
+| deel | domain map | deel.com | 5bd345d6-2715-4ac4-8829-6eef612fd6fa: — |
+| deloitte | domain map | no bound identity | 1b4c809d-aea6-4031-aee2-dd36dba4f6a4: —; 609ec34d-be9a-46dd-9512-3f4acdf3f3e5: —; a1ff388b-5708-4b90-a28c-ade655017289: — |
+| deweb | domain map | no bound identity | 220a5445-23ed-48c1-a68a-93fca05692de: — |
+| dialog | domain map | no bound identity | 0b33ac89-1434-4d26-a944-f8b7edf1a243: — |
+| directeam | domain map | no bound identity | 9086b8a6-c4b9-409d-9f32-022f5029184f: — |
+| discern | domain map | no bound identity | 54f18c32-b7fb-4286-938c-70aab3540c1f: — |
+| discount bank בנק דיסקונט | domain map | no bound identity | 88012cfb-eaa2-4660-8792-9d4ba81a67c5: —; ed8d322c-94a8-4e28-90ab-c617f3b84df6: — |
+| doit | catalog | doit.com, greenhouse:doitintl, linkedin:doitintl | 0ac718b9-5d1e-4d5f-9c39-838d2e1e82e1: linkedin:doitintl; 2ebbd26c-878d-4b3a-9851-27bfe90d3681: linkedin:doitintl; 51a645df-07b8-4b85-a7d7-a96689ff5e9e: linkedin:doitintl; 799dfdd2-e6a0-43b0-9fbe-b30debbfde81: linkedin:doitintl; 7ca2bf2a-b2d8-4d79-95b6-67774c4c5580: linkedin:doitintl; f0dc6b0d-5897-4e50-9946-5e91aae3e321: linkedin:doit-official; fe38a6ae-8df4-4f4a-acb2-8c5d93d8518d: linkedin:doitintl |
+| dot compliance | domain map | no bound identity | 71381fc1-fd90-4942-a69a-8a2bc771f151: — |
+| doubleverify | domain map | no bound identity | 4fd4dbda-7bf6-4dae-884a-37c308d7c36c: — |
+| dpr construction | domain map | dpr.com | dfbc78f1-61c3-4370-bfe2-8010669340d9: — |
+| dream | domain map | no bound identity | 097e557b-e26d-4338-b05d-9c1f15e3ea0f: —; 64f0f378-f44d-48c4-be6b-ffd62a44fe95: — |
+| drw | domain map | no bound identity | 491dbf24-e471-4be7-9afb-8c9115ef8646: —; d2082a97-fd62-4875-8159-79cc4bd21e6c: — |
+| dt | domain map | no bound identity | e6b34ce0-8e15-4707-9a53-7b08f184b937: — |
+| duckduckgo | domain map | duckduckgo.com | bd1561e0-09e1-4dbe-9a3b-e7283d06aadc: — |
+| duve | domain map | no bound identity | 75752107-4564-4096-8dfd-a2c7891ac31c: — |
+| earnix | domain map | no bound identity | 47e460be-b120-4993-a881-aa32000a403c: —; bfe26624-68ac-4689-b523-0ae07d606ba7: — |
+| ecoplant | domain map | no bound identity | 5255c6ef-f76c-49a3-a069-0e2455e49754: — |
+| effectivbiz | catalog | linkedin:effectivbiz | 7d55d8bc-a195-467e-b93f-33270164e24d: linkedin:effectivbiz |
+| elbit systems israel | catalog | linkedin:elbit-systems-ltd | 4431294e-1ed3-4795-b693-b098e9f660d1: —; 6e49eb79-88e3-4839-8ff7-8c2c1ec0654c: linkedin:elbit-systems-ltd; 7dab63e0-1f66-442f-9d84-0dc6a11f4ce6: —; a44f44c4-4e9f-4e1b-a754-1a1954e300c4: —; a9a39f63-3855-4de4-9170-01f41384189b: —; bdad68ea-3139-44e4-8b6f-925ec63c76c0: —; eb2a2f46-a8d3-4cfd-9d0b-85b4f8c4e7de: —; fb75b368-ca11-44f7-9c45-337e67999369: — |
+| eleos health | domain map | no bound identity | 06c0e6b4-10b2-4239-a0a1-9d3fa4d93ce8: —; 9c3ca0cf-67c3-43ef-9091-69bb35275f9e: greenhouse:eleoshealth |
+| elta systems ltd | domain map | no bound identity | e181b1f5-3762-4f04-bd5a-90264700f6ba: — |
+| empathy | catalog | no bound identity | 3e74801c-039b-4adc-bf26-d6458a6f149c: —; c68db1a2-d1b2-41c7-bcd0-14e63c0ba161: — |
+| engradar | domain map | no bound identity | 1d767c94-87fb-45c2-8900-64c87bba05b0: —; 4cd79bf5-4ac9-464e-a833-10c833363f37: —; 6cb8f10a-a7df-485a-9e8d-92d9bf3b24e8: —; f29c339d-1a9f-41a4-ad70-9ccabb50ec27: — |
+| eni-one ltd | catalog | linkedin:eni-one-ltd | 1402c8ff-7ef1-4435-80b7-96ee50b90f11: linkedin:eni-one-ltd |
+| enlighten | catalog | linkedin:we-are-enlighten | d2fa82b3-5f94-4551-b511-060eef714ead: linkedin:we-are-enlighten |
+| equalweb | domain map | no bound identity | 4a41a353-5abd-4188-8ed6-b818e950c556: — |
+| erp logic israel, sap partner | catalog | linkedin:erp-logic-israel | c60d9564-1aa2-47b0-a820-b29341e171b7: linkedin:erp-logic-israel |
+| esentire | catalog | linkedin:esentire | e04a4213-c7db-451c-85fe-26344055fe0b: linkedin:esentire |
+| ethosia | domain map | no bound identity | 040105ef-d9b6-44c4-ac3e-a031cced9b5d: —; 9ec2950e-8471-4740-a781-a14833b4e97a: —; a1a02996-1021-4d13-a555-e2d805180471: —; e60b9747-581a-4537-8919-4902e81441b8: — |
+| evlo ai | catalog | linkedin:evlo-ai | 4db16b2c-8fee-44a3-8480-5544d8c4c577: linkedin:evlo-ai |
+| experis | domain map | no bound identity | 8b31d1a6-94f5-4db6-a179-773894fc6465: — |
+| expertvoice | domain map | no bound identity | 5ae9f0d5-a8f2-4315-9081-ccc0e6f69e7d: — |
+| eyeviation | domain map | no bound identity | 2607353f-ed18-404d-88b6-94fe793c5d30: — |
+| faye | domain map | no bound identity | 11f5f6b7-2bd4-4949-aad5-2a20dde5baa7: — |
+| fayrix | domain map | no bound identity | 21273849-2462-4313-9a2b-55439b208ad8: — |
+| figma | domain map | figma.com | 09f3b38a-f006-464a-a148-2e6234520034: greenhouse:figma; 104b1518-2022-4e52-9d57-1a5e8992ea2f: greenhouse:figma; 12500ba9-b248-4103-b235-b84be013fc81: greenhouse:figma; 1cd5cfad-def7-46e2-8578-6ab864fb1952: greenhouse:figma; 27719f0c-3451-4c90-8f14-788d13bf8e46: greenhouse:figma; 2bdbb0ca-4c3f-4b45-bc07-362afb0835fa: greenhouse:figma; 32bf3b6a-e4a3-4b8c-9248-d3d1c79db5e2: greenhouse:figma; 3d81a151-272d-4895-9471-d7b97f16f1ca: greenhouse:figma; 5c9faa6c-7dd3-4ce1-8c03-08504beab57a: greenhouse:figma; 668aae12-b1f5-4bb2-a36a-7dfb6c99676c: greenhouse:figma; 6a3d89fe-4798-4f05-bc4f-c85621c1dbf4: —; 6fe1b411-b924-44a8-908e-55a29edc3a54: greenhouse:figma; 751ab673-6881-44ec-a0e2-297bed5006df: greenhouse:figma; 753f7076-07d3-43d4-8587-a027caeafb85: greenhouse:figma; 9973db18-55ba-449f-abaf-2d58cd99ee20: greenhouse:figma; a3b58527-48a9-4229-9c66-472cf4f4d247: —; a6f54cfe-10ab-4e18-9307-7d92d86c51d5: greenhouse:figma; ba78e841-517c-4d2e-b019-a059390f43ac: greenhouse:figma; cf9e4db4-0e06-48e7-bc47-768862371eed: greenhouse:figma; e6241dc7-7561-49f3-b1a1-45d0d536c488: greenhouse:figma; edaeb422-8528-4be9-b288-b3de88c919fd: greenhouse:figma; f0f5d4ca-c98c-4860-a39f-4ffb0a67579b: greenhouse:figma; f2ec9895-b466-4a45-bd36-7e928c3ae4cf: greenhouse:figma; ff5512c9-9d75-4dd6-a760-30142e3f872e: greenhouse:figma |
+| final | domain map | no bound identity | 6b0013c8-3214-4d5b-869f-5a65739ea28f: — |
+| finch | catalog | linkedin:finchapi | 3542f6d5-8402-41f2-b619-d39e345bba2e: linkedin:finchapi |
+| finq israel | domain map | no bound identity | 4e458684-b204-4ca5-8092-b7b5fc86983c: — |
 | fireblocks | domain map | fireblocks.com | 07b2e21b-d62f-4977-8d6a-2a5a7cb4ca15: fireblocks.com; f98283d3-bf9b-4bf2-8855-6c488153bfcc: — |
-| fiverr | domain map | unbound/null | 7b026976-1200-46d4-9b57-810698ff50fc: — |
-| fleetio | domain map | fleetio.com | 0a2f2efc-d3e1-4b25-9604-2d766f109bbe: fleetio.com |
-| forter | catalog | unbound/null | 700500e7-059d-474d-9c45-04be2af244db: forter.com; 85e22d17-a54d-43b3-8720-444f58efca27: forter.com; b11cc0e6-5217-440f-a6ef-5e3dd33413b1: forter.com; c2ba7419-39ed-4fba-a76f-235fd1a15065: forter.com; c61d2888-2558-42bb-8e7a-3e6ed6a02af5: forter.com; dc93fd54-d366-4ea4-bda0-f98deb8c5870: forter.com; e73fec2e-48c9-4683-85f4-bf76002e5567: forter.com; ee2ec68f-1ec0-48d1-a518-841ee5ce605e: forter.com; f7e6ba1d-a166-4acc-a995-ab4f1381c592: forter.com |
-| frame security | domain map | unbound/null | e5f7e045-cfc6-4abc-b8bf-32dd3c80fde4: — |
-| franklin fitch | catalog | unbound/null | c5fde036-384f-46b8-832f-f17bf61bf8b3: — |
-| fullstack | catalog | unbound/null | 45ef4745-03af-4452-a77b-3427729e35a5: —; 7280c5ae-4e7d-421b-af5d-aaaf05e0d906: — |
-| g-stat | domain map | unbound/null | f2711b62-f8ef-4e84-b6d1-c5f95b435b5e: — |
-| gac solutions | domain map | unbound/null | 8290f0ad-863e-457d-9721-8c5706c63193: — |
-| galitechonline | domain map | unbound/null | 3ae6550f-0f66-4a88-a8b0-390c76b41ec1: —; ec507583-806b-4dba-a291-1977a044b49c: — |
-| gambit security | catalog | unbound/null | 375437ff-30e9-419e-accc-df56bd09cd97: — |
-| garantiemax gmbh | domain map | unbound/null | 1beda487-7ae4-4491-9f08-98ea23be3a8e: —; 4f88ef5a-c72d-4422-9d34-7a5a5513df65: —; 8bbcb373-9f13-4f1b-945c-34e85457c5b7: —; ba1b0c02-91bd-4be4-8820-654218e124b4: — |
-| ge healthcare | catalog | unbound/null | 55af757f-1896-4b23-afaa-ffeb395683e9: —; 712b26e7-812a-4a2b-b777-57e4319fba9e: —; c43e497f-dcc0-4e54-ad87-51326a5c4b00: — |
-| general dynamics information technology | domain map | gdit.com | beea21e6-4b5d-4315-8973-c08f96f742c3: gdit.com; c5fbd01b-f291-4870-884f-7edec308b97a: gdit.com |
-| general motors | domain map | unbound/null | 2cc0c828-a2d2-41af-9c59-711ea1275edc: — |
-| genesys | domain map | genesys.com | df9fb31e-27fb-4a95-991a-573f2cf1daaa: genesys.ai, genesys.com |
-| gifthealth | domain map | unbound/null | cbddefe4-b586-4c59-996e-2fcf83a557f4: — |
-| gigfinder.ai | domain map | unbound/null | 18d16e1f-1052-4d26-a0f2-632ab0efbb06: —; dc0f2bbb-1c16-4f48-ad5e-10bef7904231: — |
-| gitkraken | catalog | unbound/null | 85963639-6bca-4646-8f67-cd5c5e08e3a2: — |
-| glassix | domain map | unbound/null | 5fa97af3-87f2-4915-a8c2-d4bafdcea3cc: — |
-| gloat | domain map | unbound/null | 2e055c54-4675-4ad6-8ed1-f38fbb45c677: — |
-| glowpal | domain map | unbound/null | fe6d83e5-6a8b-4f93-9693-cb9c5870e925: — |
-| goarc | catalog | unbound/null | 448b291c-e7fc-4bab-a80b-56bc7c36e20b: — |
-| goldjobs מבינים באנשים | domain map | unbound/null | c92d5e6e-bd6e-4ab8-80e3-1521e4854a3e: — |
-| gong | domain map | gong.io | 595520bd-8bad-4cbf-a845-6f7aa7a9a42c: gong.io |
-| google | catalog | unbound/null | 0d8be757-3e92-4c54-80d4-2f0e641bb827: —; 2c03255e-af3a-4ab7-97d6-e66e49e220ca: —; 2f0d7256-eb7e-4b81-a700-7ade1be97a28: —; 3f152f16-d00e-46f3-a202-94ffb9530bde: —; 54127ffe-59ce-45ec-934c-459c029b6c60: —; 5669cb04-c106-407c-85e7-9d909351a92b: —; 70b971f8-aeea-4e7a-aee4-cbcc60ca6bf6: —; 75e81c27-a499-4026-a3f8-9aeabb18ded3: —; 7dc5fef7-6669-499c-b98d-f1f59c477129: —; 7f51583f-8308-4f1d-ac5f-f6b18ae09bd1: —; 93d052ee-d70c-43af-8bae-1ff6bb246aad: —; 93f43508-67ce-40f0-986a-d1f869c28132: —; 977e035e-9a4e-48ba-895b-9e2cc39e1a4c: —; a114be30-5a18-46f6-8bf3-27ea146965fb: —; b01045d2-00c8-4ed0-a6aa-916330aac928: —; b31ac8c9-1670-47b7-a88d-763964aace6b: —; b3fd87f5-ad46-4069-b73e-3610b39c33e5: —; bb3c36a4-d50a-44ed-b26b-2dfa1a17cfec: —; d6cb1437-e69d-4e3c-bb3c-1919ad961860: —; e7969fb2-7710-48ca-a9df-36d45807ed95: —; f945f6be-d1ba-490b-8a8b-82adab9acc2f: — |
-| gotfriends | domain map | unbound/null | 04318519-0cbf-441c-a1fc-68ab24c36b05: —; 2617a4d2-44bf-4b53-a91b-4d9623175723: —; 63420fe9-8616-4fcc-8d2d-3644824be86f: —; 7529e75d-d8c6-46b4-9135-1ca24a3a99c8: —; 89658b48-14dd-4000-9a98-fdda733e7a86: —; a4e58bd9-5f94-42ed-8c7c-6f1952e1cc54: —; bf2e3f51-73ee-4fa2-9199-b569bd73bd41: —; c6408f02-1c0a-47b2-8fb1-e28138cd6afb: —; e72ea661-243c-4806-aeab-cb005f037ad9: —; ef47d386-58f1-42b1-8981-6bc755fe2ac6: — |
-| grove collaborative | catalog | unbound/null | d9057820-01cc-41fc-be68-2f4286b341bf: grove.com, grove.co |
-| gsd search, llc | domain map | unbound/null | db516fb7-77c7-4373-bb31-9ef3efdbd62c: — |
-| guidde | catalog | unbound/null | 3074815e-49c9-4f70-af72-ba69a418379a: —; 8970eb6a-3ab6-4451-acf0-a6974176747f: — |
-| h&r block | domain map | unbound/null | bb381789-3d6b-4796-acf7-2405b30e7e6d: — |
-| harrison clarke | catalog | unbound/null | 8909650a-0051-4c00-9d24-13e76b709c11: —; 9fe907fa-61e3-4051-9ed0-13de14f50f4b: —; ebd3376b-1a82-4644-90ea-363c6a71d0e2: — |
-| haystack | catalog | unbound/null | 002528e6-61e8-453c-b9df-4f0300419d28: —; 09511c76-39be-447d-ab2f-0004e39587f8: —; 1dcf57ba-dd11-4b1b-a114-ea7e8f326b3d: —; 29400359-db74-45e0-8ee4-a9f66fc4498c: —; 2cd6cab4-9aa2-404b-ac3c-7961cd276936: —; 5b6d900c-0f85-48e8-a5ec-a2b4ec59a95b: —; 6346eed8-59ef-494f-8455-beed26df86cc: —; 7bf0eb32-45fd-4a57-82b8-133292321144: —; 88fbb9fe-6f00-486c-bd2e-702dc706dd58: —; 983e4d45-50d8-4ae0-8a0d-517b99ebeecb: —; b6367979-e24f-4882-86a3-5ef993ab93ce: —; e0670b92-d90e-4217-aea6-4ef7e059a649: —; e2c7f2ea-3f21-4597-89f4-f701ee72cb0c: — |
-| hello heart | domain map | unbound/null | 0f8334a5-167c-4262-bda1-8cd65a9fc35a: — |
-| hendrickson | catalog | unbound/null | eb38ed1e-d955-4acd-b2f3-751c6f661f01: — |
-| hibob | domain map | unbound/null | 00d6ea65-c77d-49a0-851e-b6e7c36dd4ce: — |
-| hightouch | catalog | unbound/null | 5ad8a2e8-85e8-4d5a-ba5b-bcd59a795300: — |
-| hillcrest labs, acquired by ceva | domain map | unbound/null | eaee1af8-98d2-4343-b404-e43e6503d6dc: — |
-| hiredbuddy | domain map | unbound/null | 25480f71-5e41-4f3f-988d-3db82c967f32: —; 8822d814-0949-4c2a-8779-b534495a316e: — |
-| honeycomb insurance | domain map | unbound/null | a21c7d5a-b97d-4a3d-9f62-fbbff32615de: — |
-| howmet aerospace | catalog | unbound/null | 2c80dab0-f471-4d56-8878-74f017cc71a1: howmet.com |
-| human | domain map | unbound/null | 393f1f38-fd63-444e-9331-37446e503e9a: —; bd218592-9ede-4ac5-9eb2-9d2604056fbd: — |
-| humana | domain map | humana.com | 785ff00b-c682-4f42-8f15-fd187bc33ddb: humana.com; 9baacb88-b659-4b7d-8831-758a06446d62: humana.com; d18c6e94-4531-4454-9e23-02f0547a99ee: humana.com |
-| hunter bond | catalog | unbound/null | a5219ec2-8a61-4f49-ab41-94e3ada1f711: hunterbond.com |
-| iai - israel aerospace industries | catalog | unbound/null | 049b8995-4b44-42b6-8135-04f45cb88e12: —; 291842f6-ef09-4d26-adfa-5de7bd7e61a9: —; 307c8424-cc97-49ce-a0c0-725e654c2813: —; 45d93526-c1b1-401d-9e10-91c6ac8b226e: —; 750261f5-0f6c-48e1-b326-319553b7673b: —; bff2eb88-c94d-4928-b5e9-0d3a49fc9870: —; e1a28e13-81f3-4907-b2c3-2c26f74acfc2: — |
-| ice | catalog | unbound/null | 16d31aa6-954d-4fbf-bfbd-eb7cd2b520f8: — |
-| ignitetech | domain map | unbound/null | 5d029cf6-fad3-4b13-8ead-cb0eeaa4d8be: — |
-| infinidat | domain map | unbound/null | 5bf975c4-e00f-4ea6-80f7-22409a3c3978: —; 895a050d-ee87-43f2-b8de-9a98fcc3e1e6: — |
-| ingima | domain map | unbound/null | 3ebaf527-4744-4306-a2f2-7a1a9a9da79b: — |
-| innovid | domain map | unbound/null | 94cc91d9-36f8-4bee-a673-fbaae9f50102: innovid.equal |
-| instawork | catalog | unbound/null | 349fbae7-dccd-4dbf-bd30-805874d1d4f8: instawork.com; 835786a6-6022-4592-8f57-390e59217da0: instawork.com; d801c6f8-ca9b-4a32-beaf-e18ca3f2ef89: instawork.com |
-| integra lifesciences | domain map | unbound/null | 8c743757-270a-4520-b81d-d03305fb3026: — |
-| intel | domain map | unbound/null | 1f53b6eb-0329-4d9f-beab-46b4d4ab439d: —; 32992ea7-9780-4ee5-8ae3-42372e496d74: —; 4d8ee16b-aa8e-4284-b236-b48640b4b1f8: —; 78ec8f6a-29d6-4759-b223-ef4709c04fe6: — |
-| interex group | domain map | unbound/null | e5d56bf9-0977-4b6b-bdc9-c66fdcb3dbc4: — |
-| intuit | domain map | unbound/null | 7c65a237-dcf7-4b90-b911-128a4d1f549a: — |
-| ironscales | domain map | unbound/null | 85f776b4-a877-48cf-86ba-eb491270003f: — |
-| jack & jill | domain map | unbound/null | 8fe12bf3-9862-4d1c-91a3-c43c73c3b8f6: — |
-| javelin venture partners | domain map | unbound/null | 2f32ef82-928d-4920-a462-1895b034a0b8: — |
+| fiverr | domain map | no bound identity | 7b026976-1200-46d4-9b57-810698ff50fc: — |
+| fleetio | domain map | fleetio.com | 0a2f2efc-d3e1-4b25-9604-2d766f109bbe: — |
+| forter | catalog | greenhouse:forter | 700500e7-059d-474d-9c45-04be2af244db: greenhouse:forter; 85e22d17-a54d-43b3-8720-444f58efca27: greenhouse:forter; b11cc0e6-5217-440f-a6ef-5e3dd33413b1: greenhouse:forter; c2ba7419-39ed-4fba-a76f-235fd1a15065: —; c61d2888-2558-42bb-8e7a-3e6ed6a02af5: greenhouse:forter; dc93fd54-d366-4ea4-bda0-f98deb8c5870: greenhouse:forter; e73fec2e-48c9-4683-85f4-bf76002e5567: —; ee2ec68f-1ec0-48d1-a518-841ee5ce605e: greenhouse:forter; f7e6ba1d-a166-4acc-a995-ab4f1381c592: greenhouse:forter |
+| frame security | domain map | no bound identity | e5f7e045-cfc6-4abc-b8bf-32dd3c80fde4: — |
+| franklin fitch | catalog | linkedin:franklin-fitch | c5fde036-384f-46b8-832f-f17bf61bf8b3: linkedin:franklin-fitch |
+| fullstack | catalog | linkedin:fullstack-labs | 45ef4745-03af-4452-a77b-3427729e35a5: linkedin:fullstack-labs; 7280c5ae-4e7d-421b-af5d-aaaf05e0d906: linkedin:fullstack-labs |
+| g-stat | domain map | no bound identity | f2711b62-f8ef-4e84-b6d1-c5f95b435b5e: — |
+| gac solutions | domain map | no bound identity | 8290f0ad-863e-457d-9721-8c5706c63193: — |
+| galitechonline | domain map | no bound identity | 3ae6550f-0f66-4a88-a8b0-390c76b41ec1: —; ec507583-806b-4dba-a291-1977a044b49c: — |
+| gambit security | catalog | no bound identity | 375437ff-30e9-419e-accc-df56bd09cd97: — |
+| garantiemax gmbh | domain map | no bound identity | 1beda487-7ae4-4491-9f08-98ea23be3a8e: —; 4f88ef5a-c72d-4422-9d34-7a5a5513df65: —; 8bbcb373-9f13-4f1b-945c-34e85457c5b7: —; ba1b0c02-91bd-4be4-8820-654218e124b4: — |
+| ge healthcare | catalog | linkedin:gehealthcare | 55af757f-1896-4b23-afaa-ffeb395683e9: —; 712b26e7-812a-4a2b-b777-57e4319fba9e: —; c43e497f-dcc0-4e54-ad87-51326a5c4b00: linkedin:gehealthcare |
+| general dynamics information technology | domain map | gdit.com | beea21e6-4b5d-4315-8973-c08f96f742c3: —; c5fbd01b-f291-4870-884f-7edec308b97a: — |
+| general motors | domain map | no bound identity | 2cc0c828-a2d2-41af-9c59-711ea1275edc: — |
+| genesys | domain map | genesys.com | df9fb31e-27fb-4a95-991a-573f2cf1daaa: — |
+| gifthealth | domain map | no bound identity | cbddefe4-b586-4c59-996e-2fcf83a557f4: — |
+| gigfinder.ai | domain map | no bound identity | 18d16e1f-1052-4d26-a0f2-632ab0efbb06: —; dc0f2bbb-1c16-4f48-ad5e-10bef7904231: — |
+| gitkraken | catalog | linkedin:gitkraken | 85963639-6bca-4646-8f67-cd5c5e08e3a2: linkedin:gitkraken |
+| glassix | domain map | no bound identity | 5fa97af3-87f2-4915-a8c2-d4bafdcea3cc: — |
+| gloat | domain map | no bound identity | 2e055c54-4675-4ad6-8ed1-f38fbb45c677: — |
+| glowpal | domain map | no bound identity | fe6d83e5-6a8b-4f93-9693-cb9c5870e925: — |
+| goarc | catalog | workable:goarc | 448b291c-e7fc-4bab-a80b-56bc7c36e20b: workable:goarc |
+| goldjobs מבינים באנשים | domain map | no bound identity | c92d5e6e-bd6e-4ab8-80e3-1521e4854a3e: — |
+| gong | domain map | gong.io | 595520bd-8bad-4cbf-a845-6f7aa7a9a42c: — |
+| google | catalog | linkedin:google | 0d8be757-3e92-4c54-80d4-2f0e641bb827: —; 2c03255e-af3a-4ab7-97d6-e66e49e220ca: —; 2f0d7256-eb7e-4b81-a700-7ade1be97a28: —; 3f152f16-d00e-46f3-a202-94ffb9530bde: —; 54127ffe-59ce-45ec-934c-459c029b6c60: —; 5669cb04-c106-407c-85e7-9d909351a92b: linkedin:google; 70b971f8-aeea-4e7a-aee4-cbcc60ca6bf6: —; 75e81c27-a499-4026-a3f8-9aeabb18ded3: —; 7dc5fef7-6669-499c-b98d-f1f59c477129: —; 7f51583f-8308-4f1d-ac5f-f6b18ae09bd1: —; 93d052ee-d70c-43af-8bae-1ff6bb246aad: —; 93f43508-67ce-40f0-986a-d1f869c28132: —; 977e035e-9a4e-48ba-895b-9e2cc39e1a4c: linkedin:google; a114be30-5a18-46f6-8bf3-27ea146965fb: linkedin:google; b01045d2-00c8-4ed0-a6aa-916330aac928: —; b31ac8c9-1670-47b7-a88d-763964aace6b: —; b3fd87f5-ad46-4069-b73e-3610b39c33e5: —; bb3c36a4-d50a-44ed-b26b-2dfa1a17cfec: —; d6cb1437-e69d-4e3c-bb3c-1919ad961860: linkedin:google; e7969fb2-7710-48ca-a9df-36d45807ed95: —; f945f6be-d1ba-490b-8a8b-82adab9acc2f: — |
+| gotfriends | domain map | no bound identity | 04318519-0cbf-441c-a1fc-68ab24c36b05: —; 2617a4d2-44bf-4b53-a91b-4d9623175723: —; 63420fe9-8616-4fcc-8d2d-3644824be86f: —; 7529e75d-d8c6-46b4-9135-1ca24a3a99c8: —; 89658b48-14dd-4000-9a98-fdda733e7a86: —; a4e58bd9-5f94-42ed-8c7c-6f1952e1cc54: —; bf2e3f51-73ee-4fa2-9199-b569bd73bd41: —; c6408f02-1c0a-47b2-8fb1-e28138cd6afb: —; e72ea661-243c-4806-aeab-cb005f037ad9: —; ef47d386-58f1-42b1-8981-6bc755fe2ac6: — |
+| grove collaborative | catalog | linkedin:grove-collaborative | d9057820-01cc-41fc-be68-2f4286b341bf: linkedin:grove-collaborative |
+| gsd search, llc | domain map | no bound identity | db516fb7-77c7-4373-bb31-9ef3efdbd62c: — |
+| guidde | catalog | greenhouse:guidde, greenhouse:guiddelinkedin | 3074815e-49c9-4f70-af72-ba69a418379a: greenhouse:guidde; 8970eb6a-3ab6-4451-acf0-a6974176747f: greenhouse:guiddelinkedin |
+| h&r block | domain map | no bound identity | bb381789-3d6b-4796-acf7-2405b30e7e6d: — |
+| harrison clarke | catalog | linkedin:harrisonclarke | 8909650a-0051-4c00-9d24-13e76b709c11: linkedin:harrisonclarke; 9fe907fa-61e3-4051-9ed0-13de14f50f4b: linkedin:harrisonclarke; ebd3376b-1a82-4644-90ea-363c6a71d0e2: linkedin:harrisonclarke |
+| haystack | catalog | linkedin:wearehaystack | 002528e6-61e8-453c-b9df-4f0300419d28: linkedin:wearehaystack; 09511c76-39be-447d-ab2f-0004e39587f8: —; 1dcf57ba-dd11-4b1b-a114-ea7e8f326b3d: —; 29400359-db74-45e0-8ee4-a9f66fc4498c: —; 2cd6cab4-9aa2-404b-ac3c-7961cd276936: —; 5b6d900c-0f85-48e8-a5ec-a2b4ec59a95b: —; 6346eed8-59ef-494f-8455-beed26df86cc: —; 7bf0eb32-45fd-4a57-82b8-133292321144: —; 88fbb9fe-6f00-486c-bd2e-702dc706dd58: linkedin:wearehaystack; 983e4d45-50d8-4ae0-8a0d-517b99ebeecb: —; b6367979-e24f-4882-86a3-5ef993ab93ce: —; e0670b92-d90e-4217-aea6-4ef7e059a649: —; e2c7f2ea-3f21-4597-89f4-f701ee72cb0c: — |
+| hello heart | domain map | no bound identity | 0f8334a5-167c-4262-bda1-8cd65a9fc35a: — |
+| hendrickson | catalog | linkedin:hendrickson | eb38ed1e-d955-4acd-b2f3-751c6f661f01: linkedin:hendrickson |
+| hibob | domain map | no bound identity | 00d6ea65-c77d-49a0-851e-b6e7c36dd4ce: — |
+| hightouch | catalog | linkedin:hightouchio | 5ad8a2e8-85e8-4d5a-ba5b-bcd59a795300: linkedin:hightouchio |
+| hillcrest labs, acquired by ceva | domain map | no bound identity | eaee1af8-98d2-4343-b404-e43e6503d6dc: — |
+| hiredbuddy | domain map | no bound identity | 25480f71-5e41-4f3f-988d-3db82c967f32: —; 8822d814-0949-4c2a-8779-b534495a316e: — |
+| honeycomb insurance | domain map | no bound identity | a21c7d5a-b97d-4a3d-9f62-fbbff32615de: — |
+| howmet aerospace | catalog | linkedin:howmet-aerospace | 2c80dab0-f471-4d56-8878-74f017cc71a1: linkedin:howmet-aerospace |
+| human | domain map | no bound identity | 393f1f38-fd63-444e-9331-37446e503e9a: —; bd218592-9ede-4ac5-9eb2-9d2604056fbd: — |
+| humana | domain map | humana.com | 785ff00b-c682-4f42-8f15-fd187bc33ddb: —; 9baacb88-b659-4b7d-8831-758a06446d62: —; d18c6e94-4531-4454-9e23-02f0547a99ee: — |
+| hunter bond | catalog | linkedin:hunter-bond | a5219ec2-8a61-4f49-ab41-94e3ada1f711: linkedin:hunter-bond |
+| iai - israel aerospace industries | catalog | linkedin:iai | 049b8995-4b44-42b6-8135-04f45cb88e12: —; 291842f6-ef09-4d26-adfa-5de7bd7e61a9: —; 307c8424-cc97-49ce-a0c0-725e654c2813: —; 45d93526-c1b1-401d-9e10-91c6ac8b226e: —; 750261f5-0f6c-48e1-b326-319553b7673b: linkedin:iai; bff2eb88-c94d-4928-b5e9-0d3a49fc9870: linkedin:iai; e1a28e13-81f3-4907-b2c3-2c26f74acfc2: linkedin:iai |
+| ice | catalog | linkedin:icemarkets | 16d31aa6-954d-4fbf-bfbd-eb7cd2b520f8: linkedin:icemarkets |
+| ignitetech | domain map | no bound identity | 5d029cf6-fad3-4b13-8ead-cb0eeaa4d8be: — |
+| infinidat | domain map | no bound identity | 5bf975c4-e00f-4ea6-80f7-22409a3c3978: —; 895a050d-ee87-43f2-b8de-9a98fcc3e1e6: — |
+| ingima | domain map | no bound identity | 3ebaf527-4744-4306-a2f2-7a1a9a9da79b: — |
+| innovid | domain map | no bound identity | 94cc91d9-36f8-4bee-a673-fbaae9f50102: — |
+| instawork | catalog | greenhouse:instawork, linkedin:instawork | 349fbae7-dccd-4dbf-bd30-805874d1d4f8: greenhouse:instawork; 835786a6-6022-4592-8f57-390e59217da0: linkedin:instawork; d801c6f8-ca9b-4a32-beaf-e18ca3f2ef89: greenhouse:instawork |
+| integra lifesciences | domain map | no bound identity | 8c743757-270a-4520-b81d-d03305fb3026: — |
+| intel | domain map | no bound identity | 1f53b6eb-0329-4d9f-beab-46b4d4ab439d: —; 32992ea7-9780-4ee5-8ae3-42372e496d74: —; 4d8ee16b-aa8e-4284-b236-b48640b4b1f8: —; 78ec8f6a-29d6-4759-b223-ef4709c04fe6: — |
+| interex group | domain map | no bound identity | e5d56bf9-0977-4b6b-bdc9-c66fdcb3dbc4: — |
+| intuit | domain map | no bound identity | 7c65a237-dcf7-4b90-b911-128a4d1f549a: — |
+| ironscales | domain map | no bound identity | 85f776b4-a877-48cf-86ba-eb491270003f: — |
+| jack & jill | domain map | no bound identity | 8fe12bf3-9862-4d1c-91a3-c43c73c3b8f6: — |
+| javelin venture partners | domain map | no bound identity | 2f32ef82-928d-4920-a462-1895b034a0b8: — |
 | jeen.ai | domain map | jeen.ai | 103a768e-2a4f-49f9-a526-c38e5ef70499: —; 4f1d55cf-634c-45ec-9ba9-ff42584baa9b: —; 6ac10e99-4a1d-44ad-b6f2-4f1f39ad5ad0: —; 7178ccde-37da-4ef6-8489-9100d7be9a13: —; 949e5ba1-fa34-40de-929d-9cd029532bd3: —; ac04a8e5-a532-4308-b895-1daac43f917c: —; d588e610-b8b7-47fa-aca1-f26d5c5dd61e: — |
 | jfrog | domain map | jfrog.com | 2b72e592-7b4d-4fc2-9388-d0aaed43e0b2: jfrog.com; 3d91557a-7f11-4364-8cd3-0f6b1e3ca587: — |
-| jll | catalog | unbound/null | c7f3e1f0-8ab4-427f-be72-64c20d8e6fe0: — |
-| job goals | domain map | unbound/null | 3562a4b0-3c6c-450c-af37-e45e09a3a698: — |
-| jobgether | domain map | unbound/null | 06ab62ca-3d31-4eaf-91b8-557edaef9556: —; 08fef647-9a0a-4230-bcbe-7c77c4ccb099: —; 18fd077b-2e71-4d2a-a840-511133faac53: —; 20d8ce18-5e8d-4f02-bb2c-079fd2381ad7: —; 2fa3a1fd-21fe-4af6-a3a1-cb948822ab92: —; 65eef62c-fea1-4dff-8958-5ba64e82a5a4: —; 714efb9c-14d8-420a-ac29-1ebf30aa3ebe: —; 9ba9683e-6144-4d68-94df-0b8bc2b63f0c: —; ac757483-f24b-4d5f-8cd3-e79db31c68c1: —; b16681ac-a9cb-4001-8784-1594746f01f9: —; c7734088-7dfe-4d71-9144-6b19e523b098: —; cadee7a1-0758-438f-be5a-6734ef357785: —; de6b01d2-353b-4e03-804d-aa4febbee68e: —; f8ccbe5a-d1fb-457c-82ac-42b40396b8ff: — |
-| jobright.ai | catalog | unbound/null | 160266f2-080e-4f58-af5b-2abb2905a5e1: —; 1ef47182-1b39-4399-94d4-5d133c251b29: —; 37f7c3fa-ecd6-4779-b8ad-804df60a9768: —; 4fbad3b4-dd65-42d8-b4a1-f95474cc92bf: —; 5bf01fce-9ca5-4bbf-abf3-8c2683c10606: —; 8777649a-10e0-4953-9b86-b87d7fb374ea: —; a8319722-5919-4fa0-a7fd-12671f03fbc1: —; c0a68f18-b490-4c12-a6f2-02f27e8126f3: —; c33cf879-820f-49c8-a993-12c2f87f2639: —; d9560607-da3d-4f55-af6e-3e7f6e4a6438: —; ec9b519c-d83e-4748-a29c-a3bec18a0229: —; ecbd5b99-8545-4abc-bcd0-d1347f16ac91: — |
-| jobsseek | catalog | unbound/null | 5e5ad3cc-1374-4225-a995-037310cd5cff: jobsseek.info |
-| johnson & johnson medtech | domain map | unbound/null | 2b2abbe3-7a5a-49f3-ac54-19598ef3ecba: — |
-| k health | domain map | khealth.com | 76c69f6b-3af7-4f1f-bdc4-24904d6afd92: khealth.com |
-| kindred tutors | domain map | unbound/null | 2d49f0aa-9ebe-4708-a1fe-cbedfd2d0e6d: — |
-| kla | domain map | kla.com | d81464b4-c9e5-492e-ad40-c9d3cbb05741: kla.com; dc283963-dd56-450b-bbd1-0300abb0d862: — |
-| kobotoolbox | domain map | unbound/null | d77b3f4c-fc9e-4cc5-8ff6-f904b4a3c213: — |
-| ladders | domain map | unbound/null | 07c1fdde-4959-4ae1-877e-6a78d047882b: —; 24c50c69-9b93-4ae9-a831-2c4b9250efa4: —; 261c849e-0a74-4958-9e63-06c2544a91ea: —; 8a51506d-c39d-4244-9112-e47ce46f1431: —; 92bc510f-481b-40a6-aa9a-e2e48c3dd1f2: —; cdcd63a6-55bb-431b-bd88-c19f46bb11dc: —; d614e471-ced2-40ad-864e-93da92e279d5: —; f4e789d6-af8d-4cb6-892b-086506498846: — |
-| larson design group | catalog | unbound/null | 3f78c331-c1ea-4680-826e-035a311a4d2e: — |
-| launchdarkly | domain map | launchdarkly.com | 587a2beb-8263-4996-982d-c8f407d85ae8: launchdarkly.com; 9eea271f-3a86-4805-b93f-8c3ca00d7993: launchdarkly.com |
-| lean techniques | domain map | unbound/null | b2d2a0c3-8136-42e3-9fbd-0976c6fe47f6: — |
-| lemonade | catalog | unbound/null | 3ca9de45-3849-45a4-a911-04a9690b8e0c: —; 53e50e42-761d-4657-9533-8fb2eb141f8f: —; b3849b86-85af-4b52-b89d-3aeb6390cb3d: —; c0e95879-55af-42ff-8022-bfae70b23f08: —; d24d1dcb-5400-486c-b954-b187ed61eb01: —; d405956c-ac15-4901-b7c6-b2d5ba012dfb: —; f304a901-6a6e-4a10-97f2-b958e0ecf15f: — |
-| lendbuzz | domain map | lendbuzz.com | c1d8acdb-9238-4041-82dd-921d45985f32: lendbuzz.com |
-| lendistry | domain map | lendistry.com | 3fb9716e-7891-4479-aac1-121c6e7ff336: lendistry.com |
-| lenovo | domain map | lenovo.com | 978ef8cd-b928-4690-8a04-df822345488d: lenovo.com |
-| linx security | domain map | unbound/null | 070981e5-adb8-46c8-9876-3cbf633ba757: — |
-| liveramp | catalog | unbound/null | a7bdceb9-68ff-4ee5-8c34-8dc883c8f5cb: — |
-| locusview | domain map | unbound/null | 981fae73-151c-4c1c-ab63-116dfeaea1ab: —; a402738b-2bd1-419e-8416-f2e1276e747f: — |
-| loora | domain map | unbound/null | 27b83ac9-0c4d-4057-b476-08bb703be9a0: —; ab2040cd-e74b-4d5f-b6fb-4bfbc140ef88: —; ff9003b9-2f67-4ad6-b306-ebea0cd79c0e: — |
-| lumana | domain map | lumana.ai | 4e772c25-4d7d-4eed-8d6e-8a8f190e6fb0: lumana.ai; ade1ba23-69ad-4253-bddf-dae0e438449e: lumana.ai; b3b8f13c-3ae3-4f33-9b66-6be675a03312: lumana.ai |
-| lumi | domain map | unbound/null | 36ae15f5-1d0b-4446-9cf3-383d95676ee7: — |
-| luxoft | catalog | unbound/null | 6960b413-dd9a-433a-bb4e-b621650fb40c: — |
-| lyra health | domain map | lyrahealth.com | 4cb13f21-b938-4ef1-b9a1-a0e62862dae2: lyrahealth.com |
-| magos systems | domain map | unbound/null | c548639c-b266-46b4-96ed-49bf180419f7: — |
-| mastercard | domain map | unbound/null | ff0f9ec5-1f33-49fb-8072-677e18fb69fb: — |
-| matchpointit | domain map | matchpointit.com | 697b57c4-d98d-402a-93b1-9618d5babb50: matchpointit.com; d91b05bd-f502-49ed-9562-70e64d795bee: matchpointit.com |
-| matia | domain map | unbound/null | 9925006c-1a86-4aa5-aa9f-d3642acda504: —; ae03458b-d925-4e22-ac34-e00b141dbfff: — |
-| mayday.ai gmbh | domain map | unbound/null | 4924bdb5-b126-4077-a2c5-133088a09780: — |
-| mckesson | domain map | mckesson.com | 40179197-3536-4397-a30a-6ea1604213ae: mckesson.com, mckesson.ca |
-| mckinsey & company | domain map | unbound/null | ebeb69f5-59bb-4ebf-9866-04f7d53edb6d: — |
-| medtronic | domain map | medtronic.com | 5e38fb29-4479-4adc-9151-26ae10ebe69a: medtronic.com; 7e90c674-574a-44bb-81c0-910269834274: medtronic.com |
-| medulla | domain map | unbound/null | b4758722-739d-4130-b217-0dfb0d7ad705: —; ef215e50-abcf-4b86-a1b6-f5a49dffdfce: — |
-| meeboss | catalog | unbound/null | 034a3773-92b8-43ce-afdb-052ae4155703: —; 201c0a5e-7be6-49be-95bd-45cd3ff63a0e: —; 73cc0115-c616-458c-b355-cfc31f3b4412: — |
-| melio | domain map | unbound/null | 3558ef23-26c8-4309-8dda-f7d6d2e42429: — |
-| mentee robotics | domain map | unbound/null | 0c8c6e2e-f26c-496d-bc5a-919c6f9dbfeb: — |
-| mentor talent acquisition | domain map | unbound/null | c6e6e32e-9b20-4ba0-ac6e-ce0b6ed882f4: — |
-| merck healthcare | catalog | unbound/null | 93600485-007f-44c9-b6b0-0adbd75f6f0c: —; b4c30b30-f1f5-4c95-be81-0e6d31d7ec7d: —; da95e672-7f35-47e9-a2ad-167e77b262ad: —; ee33410b-817a-43da-a6f6-68a9fe848c9b: — |
-| mercury | domain map | mercury.com | 25a1e036-5652-4232-8237-d0b7ec25f564: mercury.com; 31f5b4b9-990c-47a3-829e-5d84f458a269: mercury.com; 45c66aff-ef46-4510-af9c-4e51a694152e: mercury.com; 4b140878-c006-4c1f-b7fb-6d6553141f67: mercury.com; 5b0b2b3e-35d8-4f34-82b6-0c0c40a4d465: mercury.com; 67039dbc-6241-41f8-a23c-a8f54451bf09: —; c6196966-d7ec-49b5-851c-dede6b5e3e17: mercury.com; ce4a424f-4cd1-4966-8417-cd344d595611: mercury.com; dc4dccee-2546-4afa-a185-b6914a5f4ee1: —; e5c81845-b34b-4302-b969-4bf3f2714f9a: —; ea7111d0-076b-4a77-9270-c577b0f51b57: mercury.com |
-| meta | domain map | unbound/null | c31045de-ca33-4778-91bb-ccd60e95af3e: —; dc76713c-974c-41ea-86f6-de8cda7b427f: — |
-| microai | catalog | unbound/null | 4c5cb2f8-2c62-46f3-8194-62241f3297f9: — |
-| micron technology | domain map | micron.com | a7c1ac63-8ef7-4da9-bf91-58e09b35f139: micron.com |
-| microsoft | catalog | unbound/null | 0192c2e7-e4e0-4360-95db-fac6b2fa48a1: microsoft.com; 15d16295-e3bb-4acf-8474-21ec1531f588: —; 703447b5-7a96-436f-8ae6-bc17783b6699: —; a1317d8d-3679-4f6d-b2fc-a24353022d37: —; a7524a97-5c61-487d-aeb6-b468aec7fe4f: microsoft.com; a88f3a24-ea0c-4d9e-a524-a5c2828cfb86: —; a91d5150-6c8e-4425-9613-06125c2e504a: microsoft.com; b5f670f1-2284-4ec9-87cf-96b027e9fc0b: —; c0f7e67a-389c-45d9-9633-e3c0f7f9b00d: —; c73f9ded-7012-4295-94bb-578750bc8a3b: — |
-| millennium | catalog | unbound/null | 384b4da1-82bd-4ba8-9b6c-6efa5f969af9: —; 49e8d856-0372-46d2-a50c-9f97a28dce37: —; c507df93-b12e-434f-bf16-5b5ac0c9bee7: —; c745f9a9-5835-4446-9042-b9f137fc1c46: — |
-| mindsize | domain map | unbound/null | dbe34a97-b8b5-42a4-b014-15f04f70f198: — |
-| minimus | catalog | unbound/null | da9c88fb-43a0-4773-b647-323e1e585d52: —; e1e3a118-b2c0-4078-9ace-f70166700fba: — |
-| minute | domain map | unbound/null | f05e6051-6841-4a12-b645-a3543353c1c8: — |
-| mobile group ltd. | domain map | unbound/null | 605d4c48-8528-46b7-928f-8564a62ee7d2: —; 75271769-8946-4ab9-b843-643026832d41: —; e16f9dc1-d180-49d3-92ec-e80dec16bba8: — |
-| mobileye | catalog | unbound/null | 31675b6a-eb68-475c-b5e3-c64125d97409: —; 59186daf-e2aa-4e2e-b672-368b7cc4b9a9: —; 62bb9ba8-1db0-46ff-bb00-33eaacdea47b: —; 82ea4688-bce0-4ca2-8d6d-7573daecba29: —; 832821aa-d0ce-40ff-9c33-8db7e3e75024: —; 8f7960cb-6950-43ff-8186-b28503d76876: —; 9a05f57f-6f38-4395-bcc2-84ade1e989f2: —; aba27c25-4331-4886-b8fc-4c9ebe683b34: —; ad9030e5-a571-4153-9c96-556ede474d41: —; b05e1702-8fce-4dbd-8bb4-a2b7e1467d72: —; b605f63c-db93-4f35-b843-8e7a54601695: —; d2de58aa-74db-4ede-ae16-d3a8c318cf8b: —; d2e1211c-de8e-47c6-8604-973267704e9c: —; dc53e3b3-1c22-4b53-93db-b6f473c4cb93: —; e19d4557-2a22-46e4-ac3b-30ab2c4c3c4a: —; f04d8f70-1f28-46cb-b4ec-22fa9c0b3f19: — |
-| molex | catalog | unbound/null | 2dfd11ff-f17d-404c-be8d-5f38b4f5c8bf: —; 6b5c416f-47b1-4057-8a7e-af051650575d: —; 7017085b-451c-4158-ad40-d2520fe952bc: —; 794b1a5a-fc9c-429e-b13b-a67b996ec648: — |
-| monday.com | domain map | unbound/null | 62a127fa-41a4-4211-8864-5c8c78bd3a73: monday.com |
-| mongodb | catalog | unbound/null | 068f2c46-56b0-4c03-9e15-892472e9d044: mongodb.com; 1270f413-582b-4aec-a53f-f565183e0b64: mongodb.com; 2f211d65-61f5-4763-9360-c2fb6c9944ec: mongodb.com; 372c11b0-f968-49b8-93ab-df5ba17c1d76: mongodb.com; 430120d9-d8a2-4894-b2f1-9e13e8f8cc8d: mongodb.com; 4a2aeb3f-9371-42c0-bfe4-030b3807d49d: mongodb.com; 4bf4071f-e167-479d-824e-d49c1a621d9b: mongodb.com; 613fbaeb-ae34-4a0e-ba07-1ce33c27923b: —; 6ad2a7a5-1293-4a8c-935e-31b8a43e3be9: mongodb.com; f1e33cf7-3890-44a8-8f52-dc9a08575e9b: mongodb.com |
-| moon active | domain map | unbound/null | 046291d6-2a35-47a4-96b5-57b63fbf7393: —; d9ca582c-69c7-4094-a81a-f9ac8d834d3b: — |
-| moov | catalog | unbound/null | 9152b807-18bb-4a7a-b3c8-5afc8a6e6130: — |
-| motorola solutions | domain map | unbound/null | 440d0bad-f1a1-428c-8508-c4cb5fb5eca1: — |
+| jll | catalog | linkedin:jll | c7f3e1f0-8ab4-427f-be72-64c20d8e6fe0: linkedin:jll |
+| job goals | domain map | no bound identity | 3562a4b0-3c6c-450c-af37-e45e09a3a698: — |
+| jobgether | domain map | no bound identity | 06ab62ca-3d31-4eaf-91b8-557edaef9556: —; 08fef647-9a0a-4230-bcbe-7c77c4ccb099: —; 18fd077b-2e71-4d2a-a840-511133faac53: —; 20d8ce18-5e8d-4f02-bb2c-079fd2381ad7: —; 2fa3a1fd-21fe-4af6-a3a1-cb948822ab92: —; 65eef62c-fea1-4dff-8958-5ba64e82a5a4: —; 714efb9c-14d8-420a-ac29-1ebf30aa3ebe: —; 9ba9683e-6144-4d68-94df-0b8bc2b63f0c: —; ac757483-f24b-4d5f-8cd3-e79db31c68c1: —; b16681ac-a9cb-4001-8784-1594746f01f9: —; c7734088-7dfe-4d71-9144-6b19e523b098: —; cadee7a1-0758-438f-be5a-6734ef357785: —; de6b01d2-353b-4e03-804d-aa4febbee68e: —; f8ccbe5a-d1fb-457c-82ac-42b40396b8ff: — |
+| jobright.ai | catalog | linkedin:jobright-ai | 160266f2-080e-4f58-af5b-2abb2905a5e1: linkedin:jobright-ai; 1ef47182-1b39-4399-94d4-5d133c251b29: linkedin:jobright-ai; 37f7c3fa-ecd6-4779-b8ad-804df60a9768: linkedin:jobright-ai; 4fbad3b4-dd65-42d8-b4a1-f95474cc92bf: linkedin:jobright-ai; 5bf01fce-9ca5-4bbf-abf3-8c2683c10606: linkedin:jobright-ai; 8777649a-10e0-4953-9b86-b87d7fb374ea: linkedin:jobright-ai; a8319722-5919-4fa0-a7fd-12671f03fbc1: linkedin:jobright-ai; c0a68f18-b490-4c12-a6f2-02f27e8126f3: linkedin:jobright-ai; c33cf879-820f-49c8-a993-12c2f87f2639: —; d9560607-da3d-4f55-af6e-3e7f6e4a6438: linkedin:jobright-ai; ec9b519c-d83e-4748-a29c-a3bec18a0229: —; ecbd5b99-8545-4abc-bcd0-d1347f16ac91: — |
+| jobsseek | catalog | linkedin:jobsseek | 5e5ad3cc-1374-4225-a995-037310cd5cff: linkedin:jobsseek |
+| johnson & johnson medtech | domain map | no bound identity | 2b2abbe3-7a5a-49f3-ac54-19598ef3ecba: — |
+| k health | domain map | khealth.com | 76c69f6b-3af7-4f1f-bdc4-24904d6afd92: — |
+| kindred tutors | domain map | no bound identity | 2d49f0aa-9ebe-4708-a1fe-cbedfd2d0e6d: — |
+| kla | domain map | kla.com | d81464b4-c9e5-492e-ad40-c9d3cbb05741: —; dc283963-dd56-450b-bbd1-0300abb0d862: — |
+| kobotoolbox | domain map | no bound identity | d77b3f4c-fc9e-4cc5-8ff6-f904b4a3c213: — |
+| ladders | domain map | no bound identity | 07c1fdde-4959-4ae1-877e-6a78d047882b: —; 24c50c69-9b93-4ae9-a831-2c4b9250efa4: —; 261c849e-0a74-4958-9e63-06c2544a91ea: —; 8a51506d-c39d-4244-9112-e47ce46f1431: —; 92bc510f-481b-40a6-aa9a-e2e48c3dd1f2: —; cdcd63a6-55bb-431b-bd88-c19f46bb11dc: —; d614e471-ced2-40ad-864e-93da92e279d5: —; f4e789d6-af8d-4cb6-892b-086506498846: — |
+| larson design group | catalog | linkedin:larson-design-group | 3f78c331-c1ea-4680-826e-035a311a4d2e: linkedin:larson-design-group |
+| launchdarkly | domain map | launchdarkly.com | 587a2beb-8263-4996-982d-c8f407d85ae8: greenhouse:launchdarkly; 9eea271f-3a86-4805-b93f-8c3ca00d7993: — |
+| lean techniques | domain map | no bound identity | b2d2a0c3-8136-42e3-9fbd-0976c6fe47f6: — |
+| lemonade | catalog | linkedin:lemonade-inc- | 3ca9de45-3849-45a4-a911-04a9690b8e0c: —; 53e50e42-761d-4657-9533-8fb2eb141f8f: —; b3849b86-85af-4b52-b89d-3aeb6390cb3d: linkedin:lemonade-inc-; c0e95879-55af-42ff-8022-bfae70b23f08: —; d24d1dcb-5400-486c-b954-b187ed61eb01: —; d405956c-ac15-4901-b7c6-b2d5ba012dfb: —; f304a901-6a6e-4a10-97f2-b958e0ecf15f: — |
+| lendbuzz | domain map | lendbuzz.com | c1d8acdb-9238-4041-82dd-921d45985f32: — |
+| lendistry | domain map | lendistry.com | 3fb9716e-7891-4479-aac1-121c6e7ff336: — |
+| lenovo | domain map | lenovo.com | 978ef8cd-b928-4690-8a04-df822345488d: — |
+| linx security | domain map | no bound identity | 070981e5-adb8-46c8-9876-3cbf633ba757: — |
+| liveramp | catalog | linkedin:liveramp | a7bdceb9-68ff-4ee5-8c34-8dc883c8f5cb: linkedin:liveramp |
+| locusview | domain map | no bound identity | 981fae73-151c-4c1c-ab63-116dfeaea1ab: —; a402738b-2bd1-419e-8416-f2e1276e747f: — |
+| loora | domain map | no bound identity | 27b83ac9-0c4d-4057-b476-08bb703be9a0: ashby:loora; ab2040cd-e74b-4d5f-b6fb-4bfbc140ef88: —; ff9003b9-2f67-4ad6-b306-ebea0cd79c0e: ashby:loora |
+| lumana | domain map | lumana.ai | 4e772c25-4d7d-4eed-8d6e-8a8f190e6fb0: —; ade1ba23-69ad-4253-bddf-dae0e438449e: —; b3b8f13c-3ae3-4f33-9b66-6be675a03312: — |
+| lumi | domain map | no bound identity | 36ae15f5-1d0b-4446-9cf3-383d95676ee7: — |
+| luxoft | catalog | linkedin:luxoft | 6960b413-dd9a-433a-bb4e-b621650fb40c: linkedin:luxoft |
+| lyra health | domain map | lyrahealth.com | 4cb13f21-b938-4ef1-b9a1-a0e62862dae2: — |
+| magos systems | domain map | no bound identity | c548639c-b266-46b4-96ed-49bf180419f7: — |
+| mastercard | domain map | no bound identity | ff0f9ec5-1f33-49fb-8072-677e18fb69fb: — |
+| matchpointit | domain map | matchpointit.com | 697b57c4-d98d-402a-93b1-9618d5babb50: —; d91b05bd-f502-49ed-9562-70e64d795bee: — |
+| matia | domain map | no bound identity | 9925006c-1a86-4aa5-aa9f-d3642acda504: —; ae03458b-d925-4e22-ac34-e00b141dbfff: — |
+| mayday.ai gmbh | domain map | no bound identity | 4924bdb5-b126-4077-a2c5-133088a09780: — |
+| mckesson | domain map | mckesson.com | 40179197-3536-4397-a30a-6ea1604213ae: — |
+| mckinsey & company | domain map | no bound identity | ebeb69f5-59bb-4ebf-9866-04f7d53edb6d: — |
+| medtronic | domain map | medtronic.com | 5e38fb29-4479-4adc-9151-26ae10ebe69a: —; 7e90c674-574a-44bb-81c0-910269834274: — |
+| medulla | domain map | no bound identity | b4758722-739d-4130-b217-0dfb0d7ad705: —; ef215e50-abcf-4b86-a1b6-f5a49dffdfce: — |
+| meeboss | catalog | linkedin:meeboss | 034a3773-92b8-43ce-afdb-052ae4155703: —; 201c0a5e-7be6-49be-95bd-45cd3ff63a0e: linkedin:meeboss; 73cc0115-c616-458c-b355-cfc31f3b4412: linkedin:meeboss |
+| melio | domain map | no bound identity | 3558ef23-26c8-4309-8dda-f7d6d2e42429: — |
+| mentee robotics | domain map | no bound identity | 0c8c6e2e-f26c-496d-bc5a-919c6f9dbfeb: — |
+| mentor talent acquisition | domain map | no bound identity | c6e6e32e-9b20-4ba0-ac6e-ce0b6ed882f4: — |
+| merck healthcare | catalog | linkedin:merck-healthcare | 93600485-007f-44c9-b6b0-0adbd75f6f0c: linkedin:merck-healthcare; b4c30b30-f1f5-4c95-be81-0e6d31d7ec7d: linkedin:merck-healthcare; da95e672-7f35-47e9-a2ad-167e77b262ad: linkedin:merck-healthcare; ee33410b-817a-43da-a6f6-68a9fe848c9b: linkedin:merck-healthcare |
+| mercury | domain map | mercury.com | 25a1e036-5652-4232-8237-d0b7ec25f564: greenhouse:mercury; 31f5b4b9-990c-47a3-829e-5d84f458a269: —; 45c66aff-ef46-4510-af9c-4e51a694152e: greenhouse:mercury; 4b140878-c006-4c1f-b7fb-6d6553141f67: greenhouse:mercury; 5b0b2b3e-35d8-4f34-82b6-0c0c40a4d465: greenhouse:mercury; 67039dbc-6241-41f8-a23c-a8f54451bf09: greenhouse:mercury; c6196966-d7ec-49b5-851c-dede6b5e3e17: greenhouse:mercury; ce4a424f-4cd1-4966-8417-cd344d595611: greenhouse:mercury; dc4dccee-2546-4afa-a185-b6914a5f4ee1: greenhouse:mercury; e5c81845-b34b-4302-b969-4bf3f2714f9a: greenhouse:mercury; ea7111d0-076b-4a77-9270-c577b0f51b57: greenhouse:mercury |
+| meta | domain map | no bound identity | c31045de-ca33-4778-91bb-ccd60e95af3e: —; dc76713c-974c-41ea-86f6-de8cda7b427f: — |
+| microai | catalog | linkedin:microai-ai | 4c5cb2f8-2c62-46f3-8194-62241f3297f9: linkedin:microai-ai |
+| micron technology | domain map | micron.com | a7c1ac63-8ef7-4da9-bf91-58e09b35f139: — |
+| microsoft | catalog | linkedin:microsoft | 0192c2e7-e4e0-4360-95db-fac6b2fa48a1: linkedin:microsoft; 15d16295-e3bb-4acf-8474-21ec1531f588: —; 703447b5-7a96-436f-8ae6-bc17783b6699: —; a1317d8d-3679-4f6d-b2fc-a24353022d37: —; a7524a97-5c61-487d-aeb6-b468aec7fe4f: linkedin:microsoft; a88f3a24-ea0c-4d9e-a524-a5c2828cfb86: —; a91d5150-6c8e-4425-9613-06125c2e504a: linkedin:microsoft; b5f670f1-2284-4ec9-87cf-96b027e9fc0b: —; c0f7e67a-389c-45d9-9633-e3c0f7f9b00d: —; c73f9ded-7012-4295-94bb-578750bc8a3b: linkedin:microsoft |
+| millennium | catalog | linkedin:millennium-partners | 384b4da1-82bd-4ba8-9b6c-6efa5f969af9: linkedin:millennium-partners; 49e8d856-0372-46d2-a50c-9f97a28dce37: —; c507df93-b12e-434f-bf16-5b5ac0c9bee7: —; c745f9a9-5835-4446-9042-b9f137fc1c46: — |
+| mindsize | domain map | no bound identity | dbe34a97-b8b5-42a4-b014-15f04f70f198: — |
+| minimus | catalog | no bound identity | da9c88fb-43a0-4773-b647-323e1e585d52: —; e1e3a118-b2c0-4078-9ace-f70166700fba: — |
+| minute | domain map | no bound identity | f05e6051-6841-4a12-b645-a3543353c1c8: — |
+| mobile group ltd. | domain map | no bound identity | 605d4c48-8528-46b7-928f-8564a62ee7d2: —; 75271769-8946-4ab9-b843-643026832d41: —; e16f9dc1-d180-49d3-92ec-e80dec16bba8: — |
+| mobileye | catalog | linkedin:mobileye | 31675b6a-eb68-475c-b5e3-c64125d97409: linkedin:mobileye; 59186daf-e2aa-4e2e-b672-368b7cc4b9a9: linkedin:mobileye; 62bb9ba8-1db0-46ff-bb00-33eaacdea47b: —; 82ea4688-bce0-4ca2-8d6d-7573daecba29: —; 832821aa-d0ce-40ff-9c33-8db7e3e75024: linkedin:mobileye; 8f7960cb-6950-43ff-8186-b28503d76876: —; 9a05f57f-6f38-4395-bcc2-84ade1e989f2: linkedin:mobileye; aba27c25-4331-4886-b8fc-4c9ebe683b34: —; ad9030e5-a571-4153-9c96-556ede474d41: —; b05e1702-8fce-4dbd-8bb4-a2b7e1467d72: —; b605f63c-db93-4f35-b843-8e7a54601695: —; d2de58aa-74db-4ede-ae16-d3a8c318cf8b: —; d2e1211c-de8e-47c6-8604-973267704e9c: —; dc53e3b3-1c22-4b53-93db-b6f473c4cb93: —; e19d4557-2a22-46e4-ac3b-30ab2c4c3c4a: —; f04d8f70-1f28-46cb-b4ec-22fa9c0b3f19: — |
+| molex | catalog | linkedin:molex | 2dfd11ff-f17d-404c-be8d-5f38b4f5c8bf: linkedin:molex; 6b5c416f-47b1-4057-8a7e-af051650575d: linkedin:molex; 7017085b-451c-4158-ad40-d2520fe952bc: linkedin:molex; 794b1a5a-fc9c-429e-b13b-a67b996ec648: linkedin:molex |
+| monday.com | domain map | no bound identity | 62a127fa-41a4-4211-8864-5c8c78bd3a73: — |
+| mongodb | catalog | linkedin:mongodbinc | 068f2c46-56b0-4c03-9e15-892472e9d044: mongodb.com; 1270f413-582b-4aec-a53f-f565183e0b64: mongodb.com; 2f211d65-61f5-4763-9360-c2fb6c9944ec: mongodb.com; 372c11b0-f968-49b8-93ab-df5ba17c1d76: mongodb.com; 430120d9-d8a2-4894-b2f1-9e13e8f8cc8d: mongodb.com; 4a2aeb3f-9371-42c0-bfe4-030b3807d49d: mongodb.com; 4bf4071f-e167-479d-824e-d49c1a621d9b: mongodb.com; 613fbaeb-ae34-4a0e-ba07-1ce33c27923b: linkedin:mongodbinc; 6ad2a7a5-1293-4a8c-935e-31b8a43e3be9: mongodb.com; f1e33cf7-3890-44a8-8f52-dc9a08575e9b: mongodb.com |
+| moon active | domain map | no bound identity | 046291d6-2a35-47a4-96b5-57b63fbf7393: —; d9ca582c-69c7-4094-a81a-f9ac8d834d3b: — |
+| moov | catalog | linkedin:joinmoov | 9152b807-18bb-4a7a-b3c8-5afc8a6e6130: linkedin:joinmoov |
+| motorola solutions | domain map | no bound identity | 440d0bad-f1a1-428c-8508-c4cb5fb5eca1: — |
 | moveo group | catalog | moveo.group | 92da5d39-4103-4956-94ab-e5cea66b68c6: —; 98da784a-2687-4080-8b45-de2e0362184b: — |
-| moveo source | catalog | unbound/null | 5ce33a5c-8320-4f49-be42-52aabb2cdc15: —; 8653cd2c-40d1-4991-980e-80f3a6276caf: —; eb4fd011-d072-472b-be6d-e99fb873d7f5: — |
-| my team | domain map | unbound/null | 68ba0494-8291-47ca-b243-158be79deaa0: — |
-| mylo ai | domain map | unbound/null | 7b95d7c5-d7ae-44ad-9fdb-1520b1e449fa: mylo.dating; ad2b1103-7e68-4001-a8bc-919c5eb785ea: mylo.dating |
-| navan | domain map | unbound/null | 1c7cf269-bba3-4488-a25d-359126e9cb6f: —; 27484e62-7711-4edd-8eec-65a48513d12f: —; a2200fae-b39f-4570-9175-378598208393: —; cf1eb06c-a1aa-4224-a311-78fa042912a8: —; faf99217-5cbf-45e7-8d90-a9aebe9571cc: — |
+| moveo source | catalog | linkedin:moveo-source | 5ce33a5c-8320-4f49-be42-52aabb2cdc15: linkedin:moveo-source; 8653cd2c-40d1-4991-980e-80f3a6276caf: —; eb4fd011-d072-472b-be6d-e99fb873d7f5: — |
+| my team | domain map | no bound identity | 68ba0494-8291-47ca-b243-158be79deaa0: workable:myteam |
+| mylo ai | domain map | no bound identity | 7b95d7c5-d7ae-44ad-9fdb-1520b1e449fa: —; ad2b1103-7e68-4001-a8bc-919c5eb785ea: — |
+| navan | domain map | no bound identity | 1c7cf269-bba3-4488-a25d-359126e9cb6f: —; 27484e62-7711-4edd-8eec-65a48513d12f: —; a2200fae-b39f-4570-9175-378598208393: —; cf1eb06c-a1aa-4224-a311-78fa042912a8: —; faf99217-5cbf-45e7-8d90-a9aebe9571cc: — |
 | nebius | domain map | nebius.com | 05afa4c0-5efd-4eb0-bfa5-5e1304c1a2d5: nebius.com; 097d5a0b-d808-4ea5-bc87-c5edf70a81cd: nebius.com; 2b15d443-5529-477b-be09-0294e9573274: nebius.com; 37b98bbe-074f-4f8d-8db6-4678feb210e9: nebius.com; 3bef1f01-7194-44af-aa0f-309d602ad2f5: nebius.com; 59e7d876-f1ba-4d2d-bbd4-cba5811d1db1: nebius.com; 61f3d462-7791-4af1-a22e-5fe0e40aa302: nebius.com; 68e9fcb6-cc30-458f-beb4-ed2ce04ddf66: nebius.com; 76aa09de-e3e3-4bca-8a83-ea8e2fc986ac: nebius.com; 8a904704-3495-4467-8cbc-55c4bf772f91: nebius.com; 8bc9d900-4e25-41c3-b7f8-6c2e6c5c5e9a: nebius.com; 9e67f265-ca2f-42f9-92fa-3e431da45619: nebius.com; a17827fd-3d8f-4067-865a-1933dcfcafc2: nebius.com; a31c652a-7efd-4319-9584-5626e7500c6e: nebius.com; a716a57a-1909-45d0-8c96-da11ee04d33e: nebius.com; ab6999de-8e2a-4e1f-9739-cdf8a3aadca3: nebius.com; b339763f-c191-4729-93c8-b8c79c9a6e95: nebius.com; b700f2f7-595c-4f6b-9832-34812cfa40c5: nebius.com; c821ffae-88eb-4163-b227-dd2f99fc2f72: nebius.com; cf1315ea-e343-41b0-8ec5-13b449af68bf: nebius.com; d46215d3-a79f-497c-a98a-02ad323dfd80: nebius.com; d4988192-fb6b-4dd5-aca5-41d36b3ecd67: nebius.com; e200219d-c02f-4b58-aca6-48956bd2abe6: nebius.com; e6c11595-7719-4060-8103-ba1ea069793d: nebius.com; f2893b2b-4125-4ab1-acef-51f05f15374a: nebius.com; fe641ce5-4418-4ca7-8233-a13c05ff556c: nebius.com |
-| neo | domain map | unbound/null | 39176d8d-3644-4a20-baea-421f6f4f8313: —; 7da49ef2-1ec9-405f-8b7d-bd8a6490fb1b: —; 92cab8cd-c756-4057-acc5-e5d27e4b16ce: — |
-| nerdwallet | catalog | unbound/null | 3254f3f4-5b24-4571-8ab5-e76c137241ea: — |
-| ness technologies \| נס טכנולוגיות | domain map | unbound/null | f25c0c43-4b1f-40fc-aefe-b886f26038eb: — |
-| netapp | domain map | unbound/null | 5e170ad7-0a49-4372-88f1-4ec3a40e272d: —; 9db14da5-7e89-4a43-bdc1-e5cbfc1e95af: — |
-| netflix | domain map | unbound/null | 87129de4-c476-47ec-a6ac-a0fb33516fbb: —; cbbc7148-e66c-4d40-be02-7c4b215eaf3c: — |
-| netrolynx ai | domain map | unbound/null | 0b6435ad-d459-4c0b-96aa-3298c5c263c1: —; 132846a0-cd41-42eb-bf82-23afa8a2322c: —; 1717d84c-d7b2-4370-b7a5-006ea1d0f696: —; 25e3425a-06c5-42fd-98ed-c8e0cc10d470: —; 309d34e9-dc1f-4891-bd7f-f814b0f22b18: —; 3bcab1ed-8453-4b21-ae6a-fdbb4f659ab8: —; 5bdb15ee-18be-48e9-a2ac-86cba95d2a81: —; a07299b5-8637-42ec-9324-c178b6143cfa: —; a64ebf49-78b2-446a-834c-08d004832638: —; ab8910d0-0385-4a5d-bcdf-051bfa21fe60: —; b37ba2cd-a13f-49dd-b158-8043c8197d91: —; b7261940-9b96-48a6-a86f-f7caebe27597: —; cac68fe6-4db1-4b24-b6a1-80cc8738e686: —; cb733d4d-dbbf-4f15-a84b-e9e491a04ce9: —; df0313cf-a51e-42fc-abcb-fedef8bdfa63: —; e765fb65-f2fd-4be7-9ab8-aa2877bd2451: —; f364c366-de06-4b95-82a2-a3f256472bcc: —; f732fa64-0fc1-47b3-bb14-5db7028572a6: — |
-| netspend | catalog | unbound/null | fd6bae61-3df5-4a18-a403-6bff4e9d968e: — |
-| newfold digital | domain map | unbound/null | 79b628a3-8e49-40e9-9066-154d518aff97: — |
-| newspace technical | domain map | newspacetechnical.com | 03fa3d2d-ba22-4063-915f-f95174de1f26: newspacetechnical.com |
-| nextsilicon | domain map | unbound/null | aaee8b95-cf7b-43ee-a23c-4e08c05aac31: — |
-| nexxen | domain map | nexxen.com | 1f6aa1b9-5e22-4ce1-8db2-63305a77d175: nexxen.com |
-| nice | domain map | nice.com | 686f6059-805f-4d5f-bea7-4ed3531a07c9: —; 8e40f4a1-02bd-46f5-8801-ef58b8e4feb9: nice.com |
-| nielseniq | domain map | nielseniq.com | 12c2e578-5970-4e84-a96b-76d0874b93ef: nielseniq.com |
-| nike | catalog | unbound/null | 510513da-dc69-47a7-af62-e6096008f75d: — |
-| nimble | domain map | unbound/null | f0864d9e-c804-4975-b057-e63a13921eab: — |
-| nisha pro | domain map | unbound/null | 91b168dc-9300-46c6-a336-02bcab20aaf0: —; f69b610d-ddf0-48b2-a031-a9815536ab5d: — |
-| node & vector | domain map | unbound/null | 026bbec9-0a1b-4ee8-a77f-69f60af39505: — |
-| norwood medical | catalog | unbound/null | e9e67abe-ca94-4a20-a144-daa6510264d1: — |
-| nvidia | catalog | unbound/null | 00b48970-cdd3-432d-8ada-2d546616f6e6: —; 064c2430-4663-41f6-9193-ac54d8a3fd68: —; 06fef3f8-d21e-4d24-be64-09954265b201: —; 0731c321-f1cf-4706-a0cc-584632969bb2: —; 09608afd-60fd-40c6-97ce-fcd939dfac60: —; 0a0a0074-c8f2-47df-9c6f-909f1b971ace: —; 0b3ef179-a434-4a44-89c4-a631b9c0e665: —; 0c75a41a-0de0-4c6c-b7c9-f9ddee105f15: —; 0e3a306e-0c20-48a1-94c2-73c11c746291: —; 0e91f5a2-74fc-4db9-8a2f-fd994a6eaa3c: —; 0ee3690f-0162-413b-9123-7180eaff81bc: —; 104219d0-e1a1-430e-86ce-c3f7c0a9f0f4: —; 1159668f-3686-418d-a0c9-ac22501418de: —; 16db6582-4c35-4d7a-b2d5-874ff96d0de7: —; 1815d9a4-facc-4e63-b0c9-9aa62627dacc: —; 188f237c-94ac-450b-b195-18f438a8a7db: —; 1c36faae-1f10-45c1-afb4-7f0cf7e51e09: —; 2188d14c-3509-4e30-a94e-e645a633b9e6: —; 21924a73-07f0-430a-a262-a69dda4beba2: —; 262286ab-d02e-4475-973e-7aaacb6bb97b: —; 2643aa54-8ff7-4487-af6c-e51945173990: —; 2a312436-b88b-4d63-b714-b03b298e3973: —; 2b2950fc-dfb6-483d-9256-80fbc111335a: —; 30accbb8-30b3-47ce-a89f-3ca3867ae8b3: —; 31ac7c8e-61ca-4de6-a922-4cb897d7420a: —; 33658caa-c971-4e62-8efd-0a3146a06b3a: —; 37e74420-2f62-42b7-94ac-7244af1e6038: —; 384381a7-9646-4030-9399-0ae662c025e3: —; 392b04b8-eadb-4f14-9f5b-a3c13cf5988b: —; 39c4ad8c-afb9-4f78-ad59-79ada8426b3a: —; 3c19c508-0c4b-4954-af62-640511644fc9: —; 3c923993-d402-469d-9f0a-9fe85e19bd33: —; 3f2960f3-297a-4d38-8294-e8389070e1d4: —; 3f8a8f10-c953-4dba-9f2b-127fc62ba613: —; 3fe96861-d78a-4b53-b73b-4a776f9ce460: —; 3fedc220-fff1-4b3f-aeb0-2a5729f2778b: —; 4111f026-1bff-4784-a464-20765d5008b1: —; 4763c172-5aec-49af-902c-a0033ee2af39: —; 486d9a4c-78af-44a7-bb53-ba49804cb09c: —; 48e5a86c-bd39-443e-b669-5535657a0eb1: —; 4936f444-038d-43cb-9612-5580e67cba11: —; 4bd3a92f-5882-4f4c-b380-5aa863c2d308: —; 556269a7-d11e-4680-9df9-1e42fc328bf1: —; 588985a2-c007-44e8-b88f-873d17d5698e: —; 5b7fbf3e-c6b5-44f1-9ea7-1fc7e2b06a50: —; 5d328cb4-958f-4f59-abcf-9b864775229a: —; 5e5d7f15-5a96-4603-bf04-fa23b1625dfe: —; 5e9d9355-69fe-4cd6-a319-7534e4b9d7c7: —; 6099aad7-8d09-4558-9a31-634237390ce9: —; 635dbbab-709a-4d32-a688-ca172f76c1dc: —; 637550ff-ab45-4c53-9637-85c2f8288ae8: —; 63c31639-e64c-4211-a6d3-f9aace6f5625: —; 64343e3c-56fe-4f99-b49f-10ce1d550bca: —; 66694225-4755-44f0-9ba4-b2be800ac14f: —; 670e06f5-94b1-4e43-a90f-6183b71b2cc5: —; 6947b6bd-a4cc-4dc8-9893-51d45c446dc6: —; 6a521e44-8143-43e1-be1b-7e7e837a673a: —; 6a8c8cb4-4886-4e9b-859a-d04ecc9c5bb7: —; 6e3ebde0-6a69-4b64-926f-2185600ee4e6: —; 6e47ce54-39b2-452b-b8af-2c7177b6c29b: —; 6ed94550-99ea-468a-93e3-05dddf9c0099: —; 71f5ecd2-38af-4010-a123-76336438c9b5: —; 73b672ce-03dc-4f46-963c-bb2fc4a5ad46: —; 77b56ff9-3132-4b72-a93f-d8ea1f90c705: —; 77b73083-6eb6-4c65-b914-1ffad5b4a3e0: —; 782b3d49-6304-48f3-8bf9-bb5aac2bb282: —; 7a79bc1b-a5a3-4b4c-8dbd-62335d6e4926: —; 7aad8b96-f16d-402a-9c6a-b1cfef69e675: —; 7b28f44a-8230-4b32-ba88-f2965b06c889: —; 7e70e507-90d0-4801-9f3b-ecc0d27233e8: —; 821e16a8-a942-4b74-951d-70ed95a9de89: —; 83b78e72-67e6-47d2-a5ec-4dd48c5be746: —; 844f437f-395e-46da-bb18-c53d750db892: —; 8470a97f-3c37-4b2d-aa99-5068459501a4: —; 848f5762-e57b-48bd-b946-6594f90f132a: —; 871128e4-2a5f-4680-a72f-4786a73d434a: —; 872e7806-b5da-4cb9-bfe4-d61ed719f2f8: —; 87d8e5fe-ac0c-4444-aa0e-8bef91c160f3: —; 88439429-2b9d-4e0f-afdb-7cc7cf333bb1: —; 89338e52-1487-4a81-a460-fbb38f2ec5e3: —; 89a513b2-20fb-4a30-83bf-eb268c9831db: —; 8fce13a5-4352-48b1-8a2e-041278c07a77: —; 923d96e9-d99f-4baf-a2ed-5cd6eedfeaf0: —; 9b14de5b-a72a-435d-bc88-d342ec29b7c6: —; 9b7a309e-e138-4a91-b790-770e68948a00: —; 9bdfd5cf-74e1-4502-9529-937fef4b7968: —; 9d899178-847d-4964-90cf-4090ebe963f7: —; 9e901264-3351-482f-aab6-615989ae1624: —; 9fa58975-874a-4962-8182-1b88601063a1: —; a2541b3c-2edb-4b9e-ac60-a97ff99c5cf4: —; a32b1c5f-3f5e-4038-8e65-f4807ea9683c: —; a74ac810-9d68-4026-bee5-1d5ce44d70bc: —; a84c7218-9370-443e-a557-d8a0cd2c95af: —; a8b69f1d-48bf-4c3e-ac71-8cc5ffade72e: —; aa97b6af-e257-49e1-b10b-b2df2ff0b56e: —; abf7a6e0-0df7-4828-beee-a91905bc9508: —; ad13dc04-545b-47d2-b57c-968b34857acb: —; adf77f74-59e0-4aa9-b7f5-ab1f25bcac72: —; ae2a1952-00d3-4485-b213-2b38ca6fdf11: —; af5d98a7-5d31-4aeb-8483-9cf229330472: —; b0bd4213-70a7-4583-bcad-b4dbef143b75: —; b11dc6e4-208f-45b4-8049-160df7df176d: —; b7af91a5-b7a8-41ca-8704-75f889c02518: —; c0b1c8df-5db8-42e6-a2be-995e5b284321: —; c15bd13d-d6c9-4ded-9ee5-d189cede4916: —; c17d80f6-fc81-48ba-8702-6bb485b7d0f9: —; c46e12a9-fbac-43af-8921-8889a1ed3323: —; c4f4a135-031b-4752-b0f7-f54dfc6b130d: —; c691aac5-2187-40a1-9d27-b114e31afdf5: —; c7562767-1435-484d-a0ac-41e3b097f363: —; cb13670c-6a58-4d5b-b01d-40200bc0713b: —; d03de514-0a79-4a81-b0d6-1b229252a37a: —; d243ecae-de00-443b-bf4c-b32755332957: —; d2745663-a5bd-487a-975d-f7a2dc74c17c: —; d45ef7f7-330e-4d17-a1d8-db840f51f7fc: —; d53317c8-a6a7-43b5-a1d8-aeb353bc7668: —; d5b7265e-216a-464f-9c71-6adadbc6edfb: —; d9f8ddf2-e870-4c90-9b6e-b7d05dc03684: —; dc4195eb-3787-4ba4-ab31-29abd9b738ca: —; dc57aeae-6daf-40dc-bdfc-15cc1134ed69: —; ddfe1ee7-6410-45f7-aa2e-b655c84f4b5c: —; de50fd32-cd5a-4f02-8c6c-6dfdb1729a38: —; e41536f2-1ab6-4336-9265-ba1174da462d: —; e6deba91-65e9-455d-8e3e-4313420bb868: —; e74f141e-93d0-426f-a9b1-f2d073ab638e: —; e946337f-0295-4a2f-bf0c-eae55a4d1f81: —; eb01876e-7df3-4657-b25c-cab8ac1df823: —; eb3e282c-9c06-433c-b002-b791ada96870: —; f00d4692-c8a2-49e9-80df-641ef3184545: —; f0e0d560-bbfa-4d4b-b1b4-b5a0eb6e6c3d: —; f8cd16e0-96ad-4f7d-b64e-6e17427b8fbe: —; fb069ab8-c849-462a-9b69-ce50a7c655bb: —; fc5ba8b2-2284-4d4e-b53d-0eb60bc436ed: — |
-| nvidia ai | domain map | unbound/null | 171b18cc-c1a3-4490-8ff3-619ff89a5189: —; 693ad91d-49ee-4948-a595-bce1754c9955: —; 7a051f83-4c02-4115-8296-79949063cbd6: —; a588b376-f62d-43d9-bf10-609186b5768f: —; af129e33-e5dd-4a5b-acc6-f8a0820b192d: — |
-| oakwell hampton group | catalog | unbound/null | b18caefd-017a-4e9a-a356-fdd5a4355164: — |
-| ocho | domain map | unbound/null | 273dc289-8e23-4f4f-9017-f1a698ea9a77: —; b1862fef-1654-4c7d-9c82-155bd12b24d1: — |
-| okta | domain map | unbound/null | 564be27d-9f55-404c-a05b-e270edbf924b: — |
-| oktopost | domain map | oktopost.com | 28001836-3676-4943-8ecf-6cb8a964e7fa: —; 2ecc1616-8e01-4c00-87a0-fd9859552183: — |
-| oliver bernard | domain map | unbound/null | fe31e226-3d08-4d29-ad81-234abb7ae99f: — |
-| ontarget communications | domain map | unbound/null | de4bb1eb-36d4-4de4-b44d-ea4fcac24071: — |
-| op | domain map | unbound/null | b1724e48-3424-459d-97cf-f0cba3a3d743: — |
-| openai | catalog | unbound/null | c3095141-7a55-4e0a-9e9e-3d00be48fac4: — |
-| optimal dynamics | domain map | optimaldynamics.com | 37e52b22-a742-4fb2-b66c-ac0089e6ce7a: optimaldynamics.com |
-| oracle | domain map | oracle.com | f15015b4-e7ca-4b8b-9e27-824a0bf3c4e2: oracle.com |
-| orca ai | domain map | unbound/null | 2c05665b-275b-4278-8518-6e0039fb61f3: — |
-| orca security | domain map | unbound/null | 9dd683ac-365f-4643-9a01-276e8f00839b: — |
-| ourritual | domain map | unbound/null | 48d728ce-f2cf-4613-9229-8be5e9338cfd: — |
-| outschool | domain map | outschool.com | 5500fa99-eb8d-444e-92c8-60d40697c387: outschool.org, outschool.com; 74fbe27d-7db5-4684-8a74-d89b9437c02c: outschool.org, outschool.com |
-| ovative group | catalog | unbound/null | 5d19f444-affe-41a0-b7a3-461b2ef32e70: ovative.com |
-| pachama | catalog | unbound/null | 817efad4-8b88-4055-9b3d-4a85a82bea62: — |
-| pagaya israel | catalog | pagaya.com | 0d1fe3b2-c576-4eba-9909-b04a268232e8: pagaya.com; ce795814-395f-470b-8039-2785cf247c5e: pagaya.com |
-| palantir | catalog | unbound/null | 28f76922-0ecb-4998-ba0e-52e166151ab1: — |
-| palo alto networks | catalog | unbound/null | 081a4a35-ab9d-48e6-803d-ac089b3c1ed4: paloaltonetworks.com; 096ed800-cdc7-47df-bd35-2faf1229a521: paloaltonetworks.com; 13c2d22a-95e9-4492-abce-a119c362d75c: paloaltonetworks.com; 1450f7f5-5fb1-4476-a68d-24872f61ab60: paloaltonetworks.com; 19aecdda-038a-414a-a5ae-887e4e616b03: paloaltonetworks.com; 1fc1d7ab-9f61-48bd-b244-fd25a856cb84: paloaltonetworks.com; 28e2779c-5b5c-4225-9528-cac3ab10cdee: paloaltonetworks.com; 3337e135-2493-48a8-8463-cf65455f9da5: paloaltonetworks.com; 3ce028c6-ba4e-47fa-b780-fed2d4c295fc: paloaltonetworks.com; 4a29efe4-6002-48a8-bd45-d5a0abb73884: paloaltonetworks.com; 5ba1dbbc-4b61-42d0-91a4-484c77c2b09e: paloaltonetworks.com; 660ea2da-7a9c-4958-8081-a421f69568f8: paloaltonetworks.com; 67e7cc5f-ca4c-40a3-921a-e4dc220e6973: paloaltonetworks.com; 6c819546-246f-4a00-9e15-9d248993822d: paloaltonetworks.com; 717a71fa-66bb-4ecf-b039-db27591a9634: paloaltonetworks.com; 7b5b79ee-ef95-4620-b7b7-9a8af2243e06: paloaltonetworks.com; 8455b43e-ec0e-4277-a389-691e1f32dac6: paloaltonetworks.com; 88207eae-9483-40ca-b446-44fac4ffe143: paloaltonetworks.com; 99036fd8-4f3e-49fd-8629-a9ba945e90c6: paloaltonetworks.com; a1a756d2-d94a-4ad8-8821-2ec21ab80c9e: paloaltonetworks.com; aefbf95c-240f-4194-bcab-05e6b916460c: paloaltonetworks.com; afe86006-35c6-40e1-a375-10402c732db9: paloaltonetworks.com; b0667e8c-a4bc-407b-b099-80c6f83ba6bb: paloaltonetworks.com; b8b1d878-3b16-4dd4-8b41-de3313a01c30: paloaltonetworks.com; c4a8c0d0-506a-41f5-bbe3-8e03d6c08c6b: paloaltonetworks.com; c610f55d-08c4-443f-bcf3-03ad960a089e: paloaltonetworks.com; d203925c-ce13-474a-bd5d-c4813ad5ceff: paloaltonetworks.com; dfe79694-654f-4943-b963-2dcd4f5bc147: paloaltonetworks.com; e21120dc-8daf-4943-a8bd-94250f31d765: paloaltonetworks.com; e8f752e1-2a04-4d76-8f5f-4bd41e835301: paloaltonetworks.com; e99934a0-2a01-4879-8ae9-37d913a83752: paloaltonetworks.com; eb214c12-ebea-4cc0-8701-2bfb4ef82a47: paloaltonetworks.com; f2fa59c6-2118-4db8-95ff-d04e1af247b4: paloaltonetworks.com; f3563cea-2cb8-4eab-89c0-0a175215c771: paloaltonetworks.com |
-| pansophic learning | domain map | unbound/null | d4ddbf48-b450-4a75-9f1a-ce6c924579c3: — |
-| papaya global | domain map | unbound/null | 03fc4316-d9cd-4a1d-9bb0-bbf48781ccbc: — |
-| paperless parts | catalog | unbound/null | 77c0f059-48f3-4a45-a007-2a4b08bb5ade: — |
-| par technology | domain map | partech.com | cc5d051c-7150-47e1-b32d-f9d3a8ce6188: partech.com |
-| paragon | catalog | unbound/null | 36b8ee3e-8ef7-4fda-8784-c34df1623453: —; 3f7f8c94-57b0-470f-b210-bcb25a261b8d: —; 62b0af0d-f976-4d4c-99b9-398dd5a7f5cc: —; 6338b0f8-4832-49f2-9932-3c7ef7d26479: —; 65621805-f39b-42ae-9da0-8bca43262700: —; 6bd6e572-e5ec-4d2c-b63c-f1f88bb46c80: —; 7c3e8dfe-7db7-40a3-914b-ef70bdd8f9fd: —; 84b968fa-6b63-4632-9635-f759db93a381: —; 9c83d3bc-6d69-4f0e-b8f7-5de641550c95: —; a3e735e6-a8f5-4769-8965-8f2211b643ba: —; aad1bdd3-6e27-4c39-ac90-19f8a7818ae2: —; e2e01aa1-83ff-4b08-b4cb-1fce9f14981a: — |
-| parallel wireless | domain map | parallelwireless.com | 049b2fcf-9adc-4407-9b26-a1f42f0a0dd8: —; 27174701-fd54-40d4-9765-9eefc82cc759: —; f1a19132-3dd9-4820-b74c-1db8cc03c2ec: parallelwireless.com; f67978ae-8f7b-473b-bb17-086d58768d2f: parallelwireless.com |
-| parloa | catalog | unbound/null | 50636ab0-4f7a-4b06-8efd-703b0d7407a4: — |
-| patz corporation | catalog | unbound/null | 04b73075-e3d0-4f27-adeb-7c464088c96c: patzcorp.com |
+| neo | domain map | no bound identity | 39176d8d-3644-4a20-baea-421f6f4f8313: —; 7da49ef2-1ec9-405f-8b7d-bd8a6490fb1b: —; 92cab8cd-c756-4057-acc5-e5d27e4b16ce: — |
+| nerdwallet | catalog | linkedin:nerdwallet | 3254f3f4-5b24-4571-8ab5-e76c137241ea: linkedin:nerdwallet |
+| ness technologies \| נס טכנולוגיות | domain map | no bound identity | f25c0c43-4b1f-40fc-aefe-b886f26038eb: — |
+| netapp | domain map | no bound identity | 5e170ad7-0a49-4372-88f1-4ec3a40e272d: —; 9db14da5-7e89-4a43-bdc1-e5cbfc1e95af: — |
+| netflix | domain map | no bound identity | 87129de4-c476-47ec-a6ac-a0fb33516fbb: —; cbbc7148-e66c-4d40-be02-7c4b215eaf3c: — |
+| netrolynx ai | domain map | no bound identity | 0b6435ad-d459-4c0b-96aa-3298c5c263c1: —; 132846a0-cd41-42eb-bf82-23afa8a2322c: —; 1717d84c-d7b2-4370-b7a5-006ea1d0f696: —; 25e3425a-06c5-42fd-98ed-c8e0cc10d470: —; 309d34e9-dc1f-4891-bd7f-f814b0f22b18: —; 3bcab1ed-8453-4b21-ae6a-fdbb4f659ab8: —; 5bdb15ee-18be-48e9-a2ac-86cba95d2a81: —; a07299b5-8637-42ec-9324-c178b6143cfa: —; a64ebf49-78b2-446a-834c-08d004832638: —; ab8910d0-0385-4a5d-bcdf-051bfa21fe60: —; b37ba2cd-a13f-49dd-b158-8043c8197d91: —; b7261940-9b96-48a6-a86f-f7caebe27597: —; cac68fe6-4db1-4b24-b6a1-80cc8738e686: —; cb733d4d-dbbf-4f15-a84b-e9e491a04ce9: —; df0313cf-a51e-42fc-abcb-fedef8bdfa63: —; e765fb65-f2fd-4be7-9ab8-aa2877bd2451: —; f364c366-de06-4b95-82a2-a3f256472bcc: —; f732fa64-0fc1-47b3-bb14-5db7028572a6: — |
+| netspend | catalog | linkedin:netspend | fd6bae61-3df5-4a18-a403-6bff4e9d968e: linkedin:netspend |
+| newfold digital | domain map | no bound identity | 79b628a3-8e49-40e9-9066-154d518aff97: — |
+| newspace technical | domain map | newspacetechnical.com | 03fa3d2d-ba22-4063-915f-f95174de1f26: — |
+| nextsilicon | domain map | no bound identity | aaee8b95-cf7b-43ee-a23c-4e08c05aac31: — |
+| nexxen | domain map | nexxen.com | 1f6aa1b9-5e22-4ce1-8db2-63305a77d175: — |
+| nice | domain map | nice.com | 686f6059-805f-4d5f-bea7-4ed3531a07c9: —; 8e40f4a1-02bd-46f5-8801-ef58b8e4feb9: greenhouse:nice |
+| nielseniq | domain map | nielseniq.com | 12c2e578-5970-4e84-a96b-76d0874b93ef: — |
+| nike | catalog | linkedin:nike | 510513da-dc69-47a7-af62-e6096008f75d: linkedin:nike |
+| nimble | domain map | no bound identity | f0864d9e-c804-4975-b057-e63a13921eab: — |
+| nisha pro | domain map | no bound identity | 91b168dc-9300-46c6-a336-02bcab20aaf0: —; f69b610d-ddf0-48b2-a031-a9815536ab5d: — |
+| node & vector | domain map | no bound identity | 026bbec9-0a1b-4ee8-a77f-69f60af39505: — |
+| norwood medical | catalog | linkedin:norwood-medical | e9e67abe-ca94-4a20-a144-daa6510264d1: linkedin:norwood-medical |
+| nvidia | catalog | linkedin:nvidia | 00b48970-cdd3-432d-8ada-2d546616f6e6: —; 064c2430-4663-41f6-9193-ac54d8a3fd68: —; 06fef3f8-d21e-4d24-be64-09954265b201: —; 0731c321-f1cf-4706-a0cc-584632969bb2: —; 09608afd-60fd-40c6-97ce-fcd939dfac60: —; 0a0a0074-c8f2-47df-9c6f-909f1b971ace: —; 0b3ef179-a434-4a44-89c4-a631b9c0e665: —; 0c75a41a-0de0-4c6c-b7c9-f9ddee105f15: —; 0e3a306e-0c20-48a1-94c2-73c11c746291: —; 0e91f5a2-74fc-4db9-8a2f-fd994a6eaa3c: linkedin:nvidia; 0ee3690f-0162-413b-9123-7180eaff81bc: —; 104219d0-e1a1-430e-86ce-c3f7c0a9f0f4: —; 1159668f-3686-418d-a0c9-ac22501418de: —; 16db6582-4c35-4d7a-b2d5-874ff96d0de7: —; 1815d9a4-facc-4e63-b0c9-9aa62627dacc: —; 188f237c-94ac-450b-b195-18f438a8a7db: —; 1c36faae-1f10-45c1-afb4-7f0cf7e51e09: —; 2188d14c-3509-4e30-a94e-e645a633b9e6: —; 21924a73-07f0-430a-a262-a69dda4beba2: —; 262286ab-d02e-4475-973e-7aaacb6bb97b: —; 2643aa54-8ff7-4487-af6c-e51945173990: —; 2a312436-b88b-4d63-b714-b03b298e3973: —; 2b2950fc-dfb6-483d-9256-80fbc111335a: —; 30accbb8-30b3-47ce-a89f-3ca3867ae8b3: —; 31ac7c8e-61ca-4de6-a922-4cb897d7420a: —; 33658caa-c971-4e62-8efd-0a3146a06b3a: —; 37e74420-2f62-42b7-94ac-7244af1e6038: —; 384381a7-9646-4030-9399-0ae662c025e3: —; 392b04b8-eadb-4f14-9f5b-a3c13cf5988b: —; 39c4ad8c-afb9-4f78-ad59-79ada8426b3a: —; 3c19c508-0c4b-4954-af62-640511644fc9: —; 3c923993-d402-469d-9f0a-9fe85e19bd33: —; 3f2960f3-297a-4d38-8294-e8389070e1d4: —; 3f8a8f10-c953-4dba-9f2b-127fc62ba613: —; 3fe96861-d78a-4b53-b73b-4a776f9ce460: —; 3fedc220-fff1-4b3f-aeb0-2a5729f2778b: —; 4111f026-1bff-4784-a464-20765d5008b1: —; 4763c172-5aec-49af-902c-a0033ee2af39: —; 486d9a4c-78af-44a7-bb53-ba49804cb09c: —; 48e5a86c-bd39-443e-b669-5535657a0eb1: —; 4936f444-038d-43cb-9612-5580e67cba11: —; 4bd3a92f-5882-4f4c-b380-5aa863c2d308: —; 556269a7-d11e-4680-9df9-1e42fc328bf1: —; 588985a2-c007-44e8-b88f-873d17d5698e: —; 5b7fbf3e-c6b5-44f1-9ea7-1fc7e2b06a50: —; 5d328cb4-958f-4f59-abcf-9b864775229a: —; 5e5d7f15-5a96-4603-bf04-fa23b1625dfe: —; 5e9d9355-69fe-4cd6-a319-7534e4b9d7c7: —; 6099aad7-8d09-4558-9a31-634237390ce9: —; 635dbbab-709a-4d32-a688-ca172f76c1dc: —; 637550ff-ab45-4c53-9637-85c2f8288ae8: —; 63c31639-e64c-4211-a6d3-f9aace6f5625: —; 64343e3c-56fe-4f99-b49f-10ce1d550bca: —; 66694225-4755-44f0-9ba4-b2be800ac14f: —; 670e06f5-94b1-4e43-a90f-6183b71b2cc5: —; 6947b6bd-a4cc-4dc8-9893-51d45c446dc6: —; 6a521e44-8143-43e1-be1b-7e7e837a673a: —; 6a8c8cb4-4886-4e9b-859a-d04ecc9c5bb7: —; 6e3ebde0-6a69-4b64-926f-2185600ee4e6: —; 6e47ce54-39b2-452b-b8af-2c7177b6c29b: —; 6ed94550-99ea-468a-93e3-05dddf9c0099: —; 71f5ecd2-38af-4010-a123-76336438c9b5: —; 73b672ce-03dc-4f46-963c-bb2fc4a5ad46: —; 77b56ff9-3132-4b72-a93f-d8ea1f90c705: —; 77b73083-6eb6-4c65-b914-1ffad5b4a3e0: —; 782b3d49-6304-48f3-8bf9-bb5aac2bb282: —; 7a79bc1b-a5a3-4b4c-8dbd-62335d6e4926: —; 7aad8b96-f16d-402a-9c6a-b1cfef69e675: —; 7b28f44a-8230-4b32-ba88-f2965b06c889: —; 7e70e507-90d0-4801-9f3b-ecc0d27233e8: —; 821e16a8-a942-4b74-951d-70ed95a9de89: —; 83b78e72-67e6-47d2-a5ec-4dd48c5be746: —; 844f437f-395e-46da-bb18-c53d750db892: —; 8470a97f-3c37-4b2d-aa99-5068459501a4: —; 848f5762-e57b-48bd-b946-6594f90f132a: —; 871128e4-2a5f-4680-a72f-4786a73d434a: —; 872e7806-b5da-4cb9-bfe4-d61ed719f2f8: —; 87d8e5fe-ac0c-4444-aa0e-8bef91c160f3: —; 88439429-2b9d-4e0f-afdb-7cc7cf333bb1: —; 89338e52-1487-4a81-a460-fbb38f2ec5e3: —; 89a513b2-20fb-4a30-83bf-eb268c9831db: —; 8fce13a5-4352-48b1-8a2e-041278c07a77: —; 923d96e9-d99f-4baf-a2ed-5cd6eedfeaf0: —; 9b14de5b-a72a-435d-bc88-d342ec29b7c6: —; 9b7a309e-e138-4a91-b790-770e68948a00: —; 9bdfd5cf-74e1-4502-9529-937fef4b7968: —; 9d899178-847d-4964-90cf-4090ebe963f7: —; 9e901264-3351-482f-aab6-615989ae1624: —; 9fa58975-874a-4962-8182-1b88601063a1: —; a2541b3c-2edb-4b9e-ac60-a97ff99c5cf4: —; a32b1c5f-3f5e-4038-8e65-f4807ea9683c: —; a74ac810-9d68-4026-bee5-1d5ce44d70bc: —; a84c7218-9370-443e-a557-d8a0cd2c95af: —; a8b69f1d-48bf-4c3e-ac71-8cc5ffade72e: —; aa97b6af-e257-49e1-b10b-b2df2ff0b56e: —; abf7a6e0-0df7-4828-beee-a91905bc9508: —; ad13dc04-545b-47d2-b57c-968b34857acb: —; adf77f74-59e0-4aa9-b7f5-ab1f25bcac72: —; ae2a1952-00d3-4485-b213-2b38ca6fdf11: —; af5d98a7-5d31-4aeb-8483-9cf229330472: linkedin:nvidia; b0bd4213-70a7-4583-bcad-b4dbef143b75: —; b11dc6e4-208f-45b4-8049-160df7df176d: —; b7af91a5-b7a8-41ca-8704-75f889c02518: —; c0b1c8df-5db8-42e6-a2be-995e5b284321: —; c15bd13d-d6c9-4ded-9ee5-d189cede4916: —; c17d80f6-fc81-48ba-8702-6bb485b7d0f9: —; c46e12a9-fbac-43af-8921-8889a1ed3323: —; c4f4a135-031b-4752-b0f7-f54dfc6b130d: —; c691aac5-2187-40a1-9d27-b114e31afdf5: —; c7562767-1435-484d-a0ac-41e3b097f363: —; cb13670c-6a58-4d5b-b01d-40200bc0713b: —; d03de514-0a79-4a81-b0d6-1b229252a37a: —; d243ecae-de00-443b-bf4c-b32755332957: —; d2745663-a5bd-487a-975d-f7a2dc74c17c: —; d45ef7f7-330e-4d17-a1d8-db840f51f7fc: —; d53317c8-a6a7-43b5-a1d8-aeb353bc7668: —; d5b7265e-216a-464f-9c71-6adadbc6edfb: —; d9f8ddf2-e870-4c90-9b6e-b7d05dc03684: —; dc4195eb-3787-4ba4-ab31-29abd9b738ca: —; dc57aeae-6daf-40dc-bdfc-15cc1134ed69: —; ddfe1ee7-6410-45f7-aa2e-b655c84f4b5c: —; de50fd32-cd5a-4f02-8c6c-6dfdb1729a38: —; e41536f2-1ab6-4336-9265-ba1174da462d: —; e6deba91-65e9-455d-8e3e-4313420bb868: —; e74f141e-93d0-426f-a9b1-f2d073ab638e: —; e946337f-0295-4a2f-bf0c-eae55a4d1f81: —; eb01876e-7df3-4657-b25c-cab8ac1df823: —; eb3e282c-9c06-433c-b002-b791ada96870: —; f00d4692-c8a2-49e9-80df-641ef3184545: —; f0e0d560-bbfa-4d4b-b1b4-b5a0eb6e6c3d: —; f8cd16e0-96ad-4f7d-b64e-6e17427b8fbe: —; fb069ab8-c849-462a-9b69-ce50a7c655bb: —; fc5ba8b2-2284-4d4e-b53d-0eb60bc436ed: — |
+| nvidia ai | domain map | no bound identity | 171b18cc-c1a3-4490-8ff3-619ff89a5189: —; 693ad91d-49ee-4948-a595-bce1754c9955: —; 7a051f83-4c02-4115-8296-79949063cbd6: —; a588b376-f62d-43d9-bf10-609186b5768f: —; af129e33-e5dd-4a5b-acc6-f8a0820b192d: — |
+| oakwell hampton group | catalog | linkedin:oakwell-hampton | b18caefd-017a-4e9a-a356-fdd5a4355164: linkedin:oakwell-hampton |
+| ocho | domain map | no bound identity | 273dc289-8e23-4f4f-9017-f1a698ea9a77: —; b1862fef-1654-4c7d-9c82-155bd12b24d1: — |
+| okta | domain map | no bound identity | 564be27d-9f55-404c-a05b-e270edbf924b: — |
+| oktopost | domain map | oktopost.com | 28001836-3676-4943-8ecf-6cb8a964e7fa: lever:oktopost; 2ecc1616-8e01-4c00-87a0-fd9859552183: — |
+| oliver bernard | domain map | no bound identity | fe31e226-3d08-4d29-ad81-234abb7ae99f: — |
+| ontarget communications | domain map | no bound identity | de4bb1eb-36d4-4de4-b44d-ea4fcac24071: — |
+| op | domain map | no bound identity | b1724e48-3424-459d-97cf-f0cba3a3d743: — |
+| openai | catalog | linkedin:openai | c3095141-7a55-4e0a-9e9e-3d00be48fac4: linkedin:openai |
+| optimal dynamics | domain map | optimaldynamics.com | 37e52b22-a742-4fb2-b66c-ac0089e6ce7a: — |
+| oracle | domain map | oracle.com | f15015b4-e7ca-4b8b-9e27-824a0bf3c4e2: — |
+| orca ai | domain map | no bound identity | 2c05665b-275b-4278-8518-6e0039fb61f3: — |
+| orca security | domain map | no bound identity | 9dd683ac-365f-4643-9a01-276e8f00839b: — |
+| ourritual | domain map | no bound identity | 48d728ce-f2cf-4613-9229-8be5e9338cfd: — |
+| outschool | domain map | outschool.com | 5500fa99-eb8d-444e-92c8-60d40697c387: —; 74fbe27d-7db5-4684-8a74-d89b9437c02c: — |
+| ovative group | catalog | linkedin:ovative-group | 5d19f444-affe-41a0-b7a3-461b2ef32e70: linkedin:ovative-group |
+| pachama | catalog | linkedin:pachama | 817efad4-8b88-4055-9b3d-4a85a82bea62: linkedin:pachama |
+| pagaya israel | catalog | pagaya.com, greenhouse:pagayais | 0d1fe3b2-c576-4eba-9909-b04a268232e8: greenhouse:pagayais; ce795814-395f-470b-8039-2785cf247c5e: greenhouse:pagayais |
+| palantir | catalog | lever:palantir | 28f76922-0ecb-4998-ba0e-52e166151ab1: lever:palantir |
+| palo alto networks | catalog | linkedin:palo-alto-networks | 081a4a35-ab9d-48e6-803d-ac089b3c1ed4: —; 096ed800-cdc7-47df-bd35-2faf1229a521: linkedin:palo-alto-networks; 13c2d22a-95e9-4492-abce-a119c362d75c: —; 1450f7f5-5fb1-4476-a68d-24872f61ab60: —; 19aecdda-038a-414a-a5ae-887e4e616b03: —; 1fc1d7ab-9f61-48bd-b244-fd25a856cb84: linkedin:palo-alto-networks; 28e2779c-5b5c-4225-9528-cac3ab10cdee: —; 3337e135-2493-48a8-8463-cf65455f9da5: —; 3ce028c6-ba4e-47fa-b780-fed2d4c295fc: —; 4a29efe4-6002-48a8-bd45-d5a0abb73884: —; 5ba1dbbc-4b61-42d0-91a4-484c77c2b09e: —; 660ea2da-7a9c-4958-8081-a421f69568f8: —; 67e7cc5f-ca4c-40a3-921a-e4dc220e6973: —; 6c819546-246f-4a00-9e15-9d248993822d: —; 717a71fa-66bb-4ecf-b039-db27591a9634: —; 7b5b79ee-ef95-4620-b7b7-9a8af2243e06: —; 8455b43e-ec0e-4277-a389-691e1f32dac6: —; 88207eae-9483-40ca-b446-44fac4ffe143: —; 99036fd8-4f3e-49fd-8629-a9ba945e90c6: —; a1a756d2-d94a-4ad8-8821-2ec21ab80c9e: —; aefbf95c-240f-4194-bcab-05e6b916460c: —; afe86006-35c6-40e1-a375-10402c732db9: —; b0667e8c-a4bc-407b-b099-80c6f83ba6bb: —; b8b1d878-3b16-4dd4-8b41-de3313a01c30: —; c4a8c0d0-506a-41f5-bbe3-8e03d6c08c6b: —; c610f55d-08c4-443f-bcf3-03ad960a089e: —; d203925c-ce13-474a-bd5d-c4813ad5ceff: linkedin:palo-alto-networks; dfe79694-654f-4943-b963-2dcd4f5bc147: —; e21120dc-8daf-4943-a8bd-94250f31d765: —; e8f752e1-2a04-4d76-8f5f-4bd41e835301: —; e99934a0-2a01-4879-8ae9-37d913a83752: —; eb214c12-ebea-4cc0-8701-2bfb4ef82a47: linkedin:palo-alto-networks; f2fa59c6-2118-4db8-95ff-d04e1af247b4: —; f3563cea-2cb8-4eab-89c0-0a175215c771: — |
+| pansophic learning | domain map | no bound identity | d4ddbf48-b450-4a75-9f1a-ce6c924579c3: — |
+| papaya global | domain map | no bound identity | 03fc4316-d9cd-4a1d-9bb0-bbf48781ccbc: — |
+| paperless parts | catalog | linkedin:paperlessparts | 77c0f059-48f3-4a45-a007-2a4b08bb5ade: linkedin:paperlessparts |
+| par technology | domain map | partech.com | cc5d051c-7150-47e1-b32d-f9d3a8ce6188: — |
+| paragon | catalog | no bound identity | 36b8ee3e-8ef7-4fda-8784-c34df1623453: —; 3f7f8c94-57b0-470f-b210-bcb25a261b8d: —; 62b0af0d-f976-4d4c-99b9-398dd5a7f5cc: —; 6338b0f8-4832-49f2-9932-3c7ef7d26479: —; 65621805-f39b-42ae-9da0-8bca43262700: —; 6bd6e572-e5ec-4d2c-b63c-f1f88bb46c80: —; 7c3e8dfe-7db7-40a3-914b-ef70bdd8f9fd: —; 84b968fa-6b63-4632-9635-f759db93a381: —; 9c83d3bc-6d69-4f0e-b8f7-5de641550c95: —; a3e735e6-a8f5-4769-8965-8f2211b643ba: —; aad1bdd3-6e27-4c39-ac90-19f8a7818ae2: —; e2e01aa1-83ff-4b08-b4cb-1fce9f14981a: — |
+| parallel wireless | domain map | parallelwireless.com | 049b2fcf-9adc-4407-9b26-a1f42f0a0dd8: —; 27174701-fd54-40d4-9765-9eefc82cc759: —; f1a19132-3dd9-4820-b74c-1db8cc03c2ec: —; f67978ae-8f7b-473b-bb17-086d58768d2f: — |
+| parloa | catalog | linkedin:parloa | 50636ab0-4f7a-4b06-8efd-703b0d7407a4: linkedin:parloa |
+| patz corporation | catalog | linkedin:patz-corporation | 04b73075-e3d0-4f27-adeb-7c464088c96c: linkedin:patz-corporation |
 | payoneer | domain map | payoneer.com | 2012c5c0-5cd0-4bb7-90d6-894457358319: payoneer.com; 20da3397-a69b-4fa2-9a11-bc838d8326e1: —; cb6cb360-b331-4ba9-940c-3c2a923af41e: payoneer.com; fca9e5a7-05d0-4ac9-925c-990e4ad1c68a: payoneer.com |
-| peak innovation | domain map | unbound/null | 2b56d9fd-46bd-4c8d-96a5-6b16de6eef12: — |
-| pearson | domain map | pearson.com | 6f76f292-bad3-46d0-b3aa-3f913cda4345: pearson.com; 7fdd0fe6-9459-40c2-9b16-aebd7bc073d7: pearson.com; 8fb0917b-cf71-4159-86cc-cb28f962faaf: pearson.com; b8b62698-431f-4049-961a-ea90c0a4cd88: pearson.com |
-| pendo.io | domain map | unbound/null | af34b3e1-857b-49ec-9b13-e3ebdb1d0223: pendo.io |
-| pentera | catalog | unbound/null | a691cf81-03bb-4efb-975d-bc33a6fb3acf: —; bacdf8e7-9c16-442d-bdfe-addc554f57ce: — |
-| persado | catalog | unbound/null | 5ec0f9fb-ed12-47d9-84df-3afb4adb6807: — |
-| personetics | domain map | unbound/null | 2be72d7d-2d5c-417d-82b9-cbde6d75de96: — |
-| pilot | domain map | unbound/null | 475da156-4911-4cf3-910d-5130568d043c: — |
-| placer.ai | domain map | unbound/null | 4b3f855e-1b3f-437a-9398-72837eeb430c: placer.ai |
-| plaee | catalog | unbound/null | 30ddcb52-f24b-4a64-bf54-9a123ab2ec93: —; 350e299f-6f59-42ae-8151-243e0238e717: — |
-| play perfect | domain map | unbound/null | 502bf1e8-2d88-49b9-9207-4eb9ccaaa776: —; 93834287-ecf8-48ad-b736-9a45b99eab1a: — |
-| plus500tm | domain map | unbound/null | cee091e2-0916-49e5-83c5-72a523cde5b5: — |
-| pointfive | domain map | unbound/null | be2e67b0-97fb-467c-bdbf-c939b1f085f1: —; f722d83e-2cdd-4643-83f6-dc3a78ebc0ac: — |
-| port.io | domain map | unbound/null | 2d98ec23-d5ed-4044-9847-ce8c283acaf0: port.io; fded2ede-1f17-4f1c-9fc1-52409304aefe: port.io |
-| pplied | catalog | unbound/null | 7da2e11c-54ea-4e09-8522-d723547b06e9: — |
-| prestiga | domain map | unbound/null | 04e4f779-6a9e-4b7d-a839-5b8896dd5f00: — |
-| priority software | domain map | unbound/null | 0092139d-6cfd-4b1c-b071-ce9f3f4146b3: —; 83485d1d-0dc9-484b-8de2-4a005bfa0f36: —; b4e60a59-1a9d-4106-9fec-210c6d1101c9: — |
-| programmers.io | domain map | unbound/null | 91259383-8896-46bd-ba6c-864da4b4eaef: — |
-| prophecy | catalog | unbound/null | 3741e9a6-477c-4ef1-81ca-960a50a1b57e: — |
-| protolabs | catalog | unbound/null | 284dc6a2-05a3-40cf-965e-ee83dfaedfd7: — |
-| q-nomy | domain map | unbound/null | 8f505bd8-0b2d-4779-b767-0e51f5dcd734: — |
-| qualcomm | domain map | qualcomm.com | 569d5604-b929-4fd6-8e2e-5cde56c09a4e: qualcomm.com; 67d64bea-5403-434c-bd1b-75a5e170d7fc: qualcomm.com; a95b5999-0411-47f3-8eb2-0df8d0292f7a: qualcomm.com; e1a03596-0c23-495a-9c97-a84946a9d8cc: qualcomm.com |
-| qualigate | domain map | unbound/null | 46726cbc-ee4a-4947-8adb-21959cae5d14: — |
-| quantum integrators | domain map | unbound/null | 49791a8d-d963-4eff-9958-e68ff9ff442b: — |
-| quantumblack, ai by mckinsey | domain map | unbound/null | 027095ef-04f3-418c-91df-b416eb093483: —; c0a64143-2f46-4d6f-83dc-eb6656d41822: — |
-| rad | domain map | unbound/null | 443c3bc8-5488-47b6-99c8-0710298e4a23: —; e124cd94-0eee-4d3a-825e-4fc9eab308f6: — |
-| radical ideas house | domain map | unbound/null | 99a1d41d-7409-4526-bf42-a164e3d62c10: radical.org.il |
-| rafael advanced defense systems | domain map | unbound/null | 4dca2b6f-5cb2-4467-997c-6450787469a7: —; f6553ee8-25d9-4a56-a286-123fdb88a26a: — |
-| ramp | catalog | unbound/null | 4d20c0cd-40e2-4426-a961-13814b8844f4: ramp.com; 6c0ea6c8-0f83-4fbb-893a-69e9fedc1f48: ramp.com |
-| re partners | catalog | unbound/null | 404af27d-4a01-4779-8c6f-54ef9af737ca: — |
-| real dev inc | catalog | real.dev | 3d2d4e6a-cb2d-43be-9e32-387884635b6e: —; edbdf1d9-1f90-4686-9a7e-29acd9466651: — |
-| real estate in jeans (rej) | domain map | unbound/null | 2c463ba9-2775-4ae8-8ad9-8ca3ede39532: — |
-| recruiterforge | domain map | unbound/null | 0c7d4531-164f-4296-a6c2-b81912657087: — |
-| recruiting from scratch | domain map | recruitingfromscratch.com | e96f77ee-89b8-4077-af3f-fd7b870c5380: recruitingfromscratch.com |
-| recruitricks | domain map | unbound/null | 10fdc65f-7bc0-48dc-b4a4-2a266754e85c: —; 8a40850e-f8d4-4f2a-9053-5d436f427fce: —; acdb243c-6c70-4629-982f-b0803a0adca1: —; c2aad123-d321-46c4-8807-e200ec68e12a: — |
-| red hat | domain map | redhat.com | 9a8f078b-c579-4584-825d-6ce8743ebea4: redhat.com |
-| reddit | domain map | reddit.com | 0698777c-3cae-4aef-8922-e74304ee62d5: —; 0d4d9cc5-83ff-4db9-a7bd-7f07cb7baa10: reddit.com; 10d7d333-2e50-44a2-baca-7f87e2ab7e26: —; 17a472f3-2214-4149-a064-152050423254: reddit.com; 17cf70e5-2be9-459e-a35a-8bcf5031bb69: —; 198f7359-5ce4-40b6-af34-cd891a8a8418: —; 1ea4eac6-2695-441f-aece-711e3164a091: —; 1f387ba0-cb9b-43e6-a7b9-409aaff22163: —; 20e6bf55-0075-4746-a513-c2afa03db107: —; 2f7dac4c-9e23-4b02-99c2-b409ee5e5839: —; 366d87fd-75e3-42e7-925c-947deca5ae5d: —; 428db013-7853-442c-8111-9b59fae2382e: —; 52fdbd99-c9f1-4b6f-9eef-29fae5691608: —; 6a07917b-c87e-444c-af6c-353f2cce7e62: —; 6c19a188-93e5-4dd4-9a0a-f4db3a8111da: —; 6e120c7f-8c28-47fc-8ddc-011fbc961131: —; 735ef6ef-b581-4a2b-a75b-03005f0b6f2e: —; 753af798-e33d-4b4e-86d6-640b016a678b: —; 787b01c7-b169-4bca-9d85-81155548b734: —; 85b13841-5a5e-4825-8c22-1f381d2c061a: —; 8d31e1d6-a5c3-4cac-94ab-f95c7e2644f9: —; 8e5be672-2cd8-40ef-a67f-9ee5a32176c5: —; 914f7b69-b46f-4fd7-a6be-b78ce04273f9: —; 9e9dc5ac-6bb9-4e23-979f-6602bd91a7a7: —; a40b04a4-607c-4a00-99d9-990fb6611beb: —; aaf627c3-d24a-4450-b094-a813488cc7ee: —; c60f1d16-85d7-4ca5-9e52-1a7577749992: —; caf0aa54-63ee-4c0b-955c-ac07b291da2e: —; ce69b398-5df9-4697-a1b2-db1a97503150: —; ce9843b4-fe7d-4a69-8245-e61b9c6df140: reddit.com; cffc32b2-9f5a-4135-ad7d-f332db704ac8: reddit.com; d911cc63-cdc2-4b13-b48e-fb4ccf9a0efe: —; db5eb2d6-472e-410f-ae84-bd37349b37c6: —; e5e4cb26-1a31-45e8-ac38-6d3a59703943: —; f28b85d3-ff35-4704-aa22-eff49136510f: —; fcec57d1-bc5b-4cf6-8be5-62dfc52b588b: — |
-| reddit, inc. | domain map | unbound/null | 5a9b13b9-24a9-4fa0-9266-6cd4fc37a929: redditinc.com; e490e3e1-68cd-4eee-ba2d-0960db79473d: redditinc.com |
-| relocity, inc. | domain map | relocity.com | 6cd02126-c2a9-4db0-be8b-848ed992042b: relocity.com |
-| remotehunter | domain map | unbound/null | 065f9eb8-afb5-4ca3-a371-115ee3f54d37: —; 14a01996-1a04-4423-8b02-f699a9da2dac: —; 6a00529d-bed6-41a0-8bca-21387bd11483: —; 7b5a34ad-bf43-46c3-bc74-2271e14f3102: —; 87a76e15-657c-4ca7-b64f-84dd14937b67: —; b7a851d7-6382-46aa-9746-a3c630a80b7b: —; bf2d4c60-47ef-45ad-b38f-d0454621eee2: —; c32880b5-245a-4b44-90fa-22380460e824: —; c5091c86-c32d-4b05-8edb-6d103b9119d6: —; c96ca55b-8a9c-47a0-b42f-9adfa2291117: —; d1a38114-2c40-4bc9-ace6-e3fbbb5f639e: — |
-| resilience | catalog | unbound/null | b4799872-cea1-4529-bfc2-417321c63e76: resilience.com |
-| rexhio | domain map | unbound/null | 800758a5-a5bd-4a0a-8af6-c8b846861a49: —; 9e3bcbfc-ae95-4c8c-99d3-6f9f8d2dcf54: — |
-| rise technical | domain map | unbound/null | 9e0de40f-5324-487f-82f7-7e68d9663557: — |
-| roark (yc w25) | domain map | unbound/null | e1a7b50b-68a5-45c1-bd40-68e4390c4f28: — |
-| robots & pencils | domain map | unbound/null | 428c7724-0d01-42c1-9fd3-4626522be5e4: — |
-| rocket science group | catalog | unbound/null | 567c71bc-2861-47d0-9751-e432a972ef12: — |
-| roeto | domain map | unbound/null | 12f81e48-fc1d-4573-a04a-bf2bfb6d0dd0: — |
-| rolls-royce | catalog | unbound/null | 4ccc7400-3f02-4f50-9d2f-35d0d6c0c877: — |
-| rubrik | catalog | unbound/null | 64f9aea6-f619-483f-9706-9df2150247cd: rubrik.com; da6326e5-b11b-4920-a8ce-a1bde3dc4da9: rubrik.com |
-| runpod | domain map | unbound/null | e2dbf4e2-dc0e-4567-a4ba-1bffdd1b785b: — |
-| salesforce | domain map | unbound/null | 4bdf4a6d-3d44-4104-aa4a-2d8fa3767ed1: —; 4c611dcf-fb60-48fa-91c6-63a73060ef9d: — |
-| samsung semiconductor | domain map | unbound/null | 42028fb6-e80c-4a20-a698-99cc27ad1a6d: samsung.com; 53fa9232-603a-48ca-bf5b-5dfd6dd54574: —; 680df55f-ef6f-471a-a848-0bb5b11920d4: samsung.com; 686d33b2-bd22-4b19-a24f-758f3a8bdcc0: samsung.com |
-| sandisk | domain map | sandisk.com | 70f4da19-aecd-4d45-9124-fa7838669acd: sandisk.com; a4946133-a2cc-4328-bff8-14b9b2b20088: sandisk.com |
-| sap | domain map | sap.com | 2b337091-d93b-4f06-bb2a-7be33f4fc99a: sap.com |
-| sardine | catalog | unbound/null | 0bbad6e5-851d-4f24-a7ff-be2400c56e96: — |
-| sauce | catalog | unbound/null | 71cf05ee-5732-490d-8dd1-ec5c8de6fabe: — |
-| scaleops | domain map | unbound/null | 2c87e156-7c6b-4efd-84f3-1b0b87e6a64d: —; 69d52344-b335-45c1-b789-90df37a24138: — |
-| sciplay | domain map | unbound/null | 5b7d334d-8056-418e-8327-b529869b0f06: — |
-| seed health | domain map | seed.com | 1db0301c-6b32-49e0-b697-38645bb323b4: seedhealth.com, seed.com |
-| senai | catalog | unbound/null | 34e4e262-945e-497c-9de6-083b437d1b9a: —; d0151412-b0bc-4710-89a1-561dba7c840e: —; d7985d0d-4837-40a4-b30e-4aabc7525454: — |
-| sendi.io | domain map | unbound/null | a3ebf630-90af-4de4-9b08-5c3646e10d8c: — |
-| sensata technologies | catalog | unbound/null | 7f8239dc-e0df-438d-bf46-24cf7cab7407: — |
-| sentinelone | catalog | unbound/null | 589025e4-9aa9-4693-be9a-d7bcfb9b5e28: —; 58be104a-2c24-41b3-9f5f-6c8cdd0db70a: —; 77a28254-1416-4c26-a50e-9dda6c5153d3: —; 89254893-5ca2-42b9-af80-87b5a46a1240: —; 8f5a3a63-aba7-45a0-a71e-a1fcfbc6ae35: — |
-| sentra | domain map | unbound/null | 18c0905c-6dc9-461f-afe1-0a4d3948d79d: —; 7398c97a-a752-4d29-94bc-cb24a976fab4: — |
-| shabak - israeli security agency - career | domain map | unbound/null | 731447cf-0078-4760-a636-874eac9363fd: — |
-| sharegain | domain map | unbound/null | b9ad6d11-07e4-4bbf-acb6-184212c71803: — |
-| sharpies pro | domain map | unbound/null | 26ce660f-54bd-4a69-895a-5e516658efaa: — |
-| shifters | catalog | shiftersai.com | 19839819-cb9b-4368-bce4-e83eea9f0682: —; ae94af24-aa0e-4109-b96f-c1c783045704: — |
-| ship4wd | domain map | unbound/null | ecb104f2-265b-4ffc-ae91-1169c970731a: — |
-| siemens eda (siemens digital industries software) | domain map | unbound/null | 6e16117f-d507-4f25-bb25-a367367504e6: — |
-| sig sauer, inc. | domain map | sigsauer.com | 370dbea3-25e2-450e-a688-21d4848fe90f: sigsauer.com |
-| sightful | domain map | unbound/null | c180e759-5b96-4319-bb31-d092bdc1fac3: — |
-| signet jewelers | catalog | unbound/null | 55f1cfa3-96d3-4db9-9b58-bf8621f9e605: — |
-| silverfort | domain map | unbound/null | 7cf3788a-1698-426a-af2c-4b0d347d6af7: —; 96adf986-4cbf-403f-983c-b74f4a804e8b: —; bab17839-f95e-422b-ae71-c603fe80e3c9: — |
-| similarweb | domain map | similarweb.com | 030d833d-1412-4c7b-bda5-80693ee9171b: —; 0db39ef4-7b3e-4df5-9f89-69ca8e38cfec: —; 505e5b1d-e967-4320-9ced-37858ac71a40: —; 77c4990c-30ba-4ed3-9cdd-0478fa20b3df: —; 949c0b97-a602-4949-9ad5-93be4b1e4f2d: —; a1b28ed4-3fae-45b2-a37e-dd3b481fb68e: —; fdf82664-3447-4778-b629-93b15d05e9bf: — |
-| simplex 3d | domain map | unbound/null | d2170f02-04ee-467f-8337-4aebec8f65f9: — |
-| singular | catalog | unbound/null | e2887f3e-8b20-4a58-bc0c-0ce597cd391b: — |
-| skyde drones | catalog | unbound/null | cd1a4e06-cf1c-453a-ae4b-db55bc525613: — |
-| skygini | domain map | unbound/null | 51d4886b-180f-47fb-ba04-85f6e00b4cfa: — |
-| smartleaf | domain map | unbound/null | 28989559-fb0d-49c5-9299-c003efc6fc0c: — |
-| snatch up jobs | domain map | unbound/null | 34999372-de64-421d-b356-0bc6d4c6c907: —; e9d7b06f-5133-447e-b7e8-dca97ce6d17a: — |
-| soho square solutions | domain map | unbound/null | 36a458ca-b387-4117-93ee-f1098cf4fb46: — |
-| solid (ai powered by data) | domain map | unbound/null | ec8af67e-d9a8-4b8f-8e70-e597de08bbad: — |
-| solomon page | catalog | unbound/null | 43795730-e4e7-407e-be14-80ce85084054: solomonpage.com; 4d994261-d648-4a5c-b9af-b8dad640fcdf: solomonpage.com |
-| solventum | catalog | unbound/null | abe19a41-baf7-4d7f-bdf5-4425a377c907: solventum.com |
-| soni | catalog | unbound/null | c00761a5-741e-4a33-a650-b72170f41850: — |
-| soundcloud | domain map | unbound/null | dc30788b-8f1f-4907-abeb-f596a7ff4901: — |
-| spacex | catalog | unbound/null | 1dcc8d22-9e66-4741-a9b3-c26515182234: spacex.com; 4953f2dd-8d93-4100-a3be-bf5d12688922: spacex.com; 8216b939-ecbe-4c1f-baba-43f8bd3f53dd: spacex.com; 8c06740d-b959-445a-bca5-067ef0463822: spacex.com; a0318137-48ca-42b2-811d-8bc3eeb5d06c: spacex.com; d494c428-a575-4993-ae3c-29800fa6bcde: spacex.com |
-| speak | catalog | unbound/null | 907a5762-cd75-4154-aa6b-9506dd85b303: — |
-| speria | domain map | unbound/null | 90c9cf9e-5232-4fd2-9794-75c5c6bba64c: — |
-| spinquest | domain map | unbound/null | 74ed1785-d302-46df-b321-586dbeed8d9d: — |
-| spreetail | domain map | spreetail.com | e8fe5787-3842-487c-83ee-7c6b88f0e3e1: spreetail.com |
-| sqlink group | domain map | unbound/null | 32053f3c-526c-4485-bee5-4af5e27d3d14: —; 35e7b478-2f27-4c92-ae60-dfb9cc8643fb: —; 602a8fb2-3aaf-494d-8c36-4849fef5876f: —; 682bbdeb-ae00-43c5-b7c1-27b520cba3ed: —; 74659047-bf3a-4377-a042-0b1c1c1212be: —; 8450d88e-f839-47d1-856d-da15a01d5773: —; a3fb572c-ec4d-4d03-91db-7dc6e5f0ad29: —; d7643758-98df-45f1-bed3-dd7cee09ee4d: — |
-| ss&c technologies | domain map | unbound/null | eda42c73-a851-4d49-a31c-de3dae1d0810: — |
-| stackadapt | catalog | unbound/null | 01bb562a-6d5d-4e6d-a64b-e492ab4f77bd: —; 888d6757-4199-47f5-89ed-f58efc9e3990: —; a3794b34-8aa8-4e87-93ec-8c2ec68be9d4: —; de5ad2a1-a08d-4b97-9298-9db7d74ccfd5: — |
-| stampli | domain map | unbound/null | 77cbc1dd-50b5-4f36-bb9b-75de136b8321: —; 880d946c-becc-45aa-b959-7776ed031e3f: — |
-| startingup | catalog | unbound/null | 6a845040-7420-4b3f-9425-baa283ac1463: —; 8e701766-2227-42a4-bb30-76bdcef9f723: — |
-| status pipeline co | domain map | unbound/null | 00000000-0000-0000-0000-000000007001: example.test |
-| stigg | domain map | unbound/null | 9904c7af-251a-4536-ac70-b92d2da1fc6b: — |
-| stripe | catalog | unbound/null | 13104dc5-a414-478a-9af3-fe6896f0776a: —; 298efcc9-ed50-4f53-a2d8-dd65825d1a7c: —; 5f0c800d-1094-4c67-916f-a8879e697c85: —; 6abdf253-df94-4550-ba37-e08f02055695: —; e14e2eb7-9f0e-48ff-a41c-15de43941539: —; ec3f3131-1081-45b9-a51a-cd2c53f93e11: — |
-| success recruitments | domain map | unbound/null | 207e5bb2-6a8b-4918-8461-0e62be264169: —; f80a4479-f9b5-48ae-a4b4-68a4507d13e2: — |
-| sunbit | domain map | sunbit.com | 31bc37be-0e0d-47ce-a8db-96dcb85460e5: sunbit.com |
-| sundayy | catalog | unbound/null | 05baaa20-1d28-412e-96bd-e71143f641a1: —; 2069981b-c8bb-4c49-85e8-de3b069c1dd6: —; 439f36bb-ce1e-443e-ab22-abce53beab40: —; 5f758b27-d269-428a-8d56-1724c271841f: —; 5fe0bc39-f81f-4039-ab3e-027e0df975c5: —; 67025fea-3a82-4a0d-9c49-a014d997a13d: —; 688a7e20-edf8-4b54-ba6e-232da0f38f61: —; 696c630e-02f8-403c-b8f6-c384db2ce884: —; 76210e1c-4f80-451d-8415-08afe59c1f32: —; 7fe5b9fb-3fe4-4098-ac4b-620cbdb260bf: —; b41e29ea-43aa-444e-b4b0-215720d01254: —; bf3a8faf-16e4-41b6-9bfb-377a4fd7126f: —; c8d7dd00-a2ea-404a-b324-753a663200c3: —; c9d32f35-f6df-4f71-8c4b-ab19a0ad5565: —; ddd7eae9-c4ae-4895-97d7-7e304cb771f3: —; e024dbf3-b4d6-43a2-afa6-9273703bbeee: —; e33e0462-3938-4985-88e8-f9d60600d315: —; e4ef84ac-069c-4f75-b6f6-7c6b54e41ed6: —; ee8a377a-d251-4a35-a3fe-8ebe80a9a3bc: —; eee41d9a-bc7c-4f97-bd42-7c9a4e6407dd: — |
-| swakiotm | domain map | unbound/null | 5a56ffe0-f50f-4f24-9030-eeec33d62994: —; 84fb46bb-5775-4f9b-9a06-0d005b5f0b45: —; 8df4751d-cf86-42ee-8c50-b0fe3aac61f3: —; cf1c78b6-c87c-40c6-adfd-da892345c497: — |
-| ta9 | domain map | t-a9.com | e136a084-4563-447e-a3e1-45bcbcc32f10: t-a9.com |
-| taboola | catalog | unbound/null | 032dea70-57dc-4b0d-bcba-d49d48ca71ae: —; 0dffa54a-ec31-4a7f-b857-2743c2192f48: taboola.com; 17315194-0c38-49d2-9136-5627bd166d1a: taboola.com; 17f3aef5-6b5b-4703-a9eb-9fa05d60e4aa: taboola.com; 63ff3a21-46f8-4179-aedf-6388716213e7: taboola.com; 82964823-1adf-4fd5-a3c2-eabeb973b468: taboola.com; bc463f38-61a4-40f9-ba21-491a791984d6: taboola.com; e334b3e8-88ab-4955-bdfb-d30554537118: —; e9bf2af4-95a2-4af4-bc2b-15c12ff5765d: — |
-| tailor brands | domain map | unbound/null | f975ff52-5afb-48c1-a89c-596e7b13d82c: — |
-| tailscale | domain map | tailscale.com | 098d38fa-8542-4a63-8c85-a1efcdc54cf1: tailscale.com; 0ffcad28-a5ed-4a6a-a45a-9f11fe017184: tailscale.com; 1014abf1-3a04-41ec-8575-32fa415ba94a: tailscale.com; 147ae0b2-ee05-4ad4-93b6-a1b07b84e375: tailscale.com; 22dff5b5-bef6-416e-94a1-e82c65f59e4b: tailscale.com; 37786ccb-f9b0-4805-be3e-0ecfab51530a: tailscale.com; 58ecdd77-5d3a-463d-8019-265d682001e6: tailscale.com; d3f16baa-dd79-4b63-a496-dd2cb2feba61: tailscale.com |
-| tairc | domain map | tairc.com | 2e6aa36a-f0af-43c4-b93e-a7e29db92a65: tairc.com; b7daf711-830e-472a-b22a-c514a028990d: tairc.com; df34bdff-5623-4fae-9415-cd1122c70b69: tairc.com; f43ec306-93a5-4258-9352-435df7048e00: tairc.com |
-| talencio | catalog | unbound/null | 0863d4bb-69ff-4927-8949-a640a00b989a: — |
-| talener | domain map | talener.com | 25dbe978-3252-4b90-8249-eb7120416c56: talener.com |
-| talent integration | catalog | unbound/null | c60b6950-54f8-42e1-ad0a-32daeb59f1e3: — |
-| talentally | catalog | unbound/null | 1000dfb4-6b54-45c9-bd4b-5e68797fc61a: — |
-| talenthop | domain map | unbound/null | 09dbbac6-d5a2-45b1-b417-16caa06976b8: —; 116de045-d8ca-405a-b72f-3ec34bf35b84: —; 1d7ac420-5b70-4fc8-9098-43c9bc7d6bd6: —; 2371987e-e1da-44ee-8f86-6a72ce6de592: —; 2eb1946a-73ab-4612-8afb-bf94d72a86d9: —; 33d44ab2-ed09-4dd5-a0b8-aa9ac20a84ee: —; 36c4dec4-2ca0-4239-a9fa-19bac0f6b4c0: —; 3f1da413-a44c-4a5c-afdf-d7cb2af13a2b: —; 4a938cee-030b-4c21-bad3-85211b6ade33: —; 4c2b65fb-19c4-485f-9b27-7dc4cd29f96f: —; 4da920b1-f42f-42bc-b942-5a210dc32a44: —; 6d9c3b52-658d-40ba-8eb4-fdd5ac76e345: —; 75487e4b-e95b-4a42-9b60-b4d35997c28d: —; 9322437e-0afc-4f0f-8393-4bf969080d3a: —; 9a25c339-85db-42cf-91e8-4353d3013b2b: —; a81667ad-14a3-40cf-becd-c1285c65c699: —; a82f0390-16c7-4909-826f-862ba725dd41: —; c3a7ad76-c29f-429d-b57f-d71b410d03c5: —; d6911fd4-6916-496b-b587-1cce8b93917f: —; e67317db-ddae-4b71-a154-989e3205949d: —; f7bfd591-f965-45b2-b76c-ebfeb1619ef9: — |
-| team8 | catalog | unbound/null | 000d696d-dc39-4391-bee7-3b486f46ac71: —; 052044b4-3627-40c2-98e6-5a8357a6a59e: —; 1813a625-3fa7-42c5-90cf-638b3cc5840d: —; 294f394c-836a-4334-938d-72a3d773defd: —; 2c0bd0e3-7fb2-46ac-b0fb-c9357e23b240: —; 439624de-06b7-4280-b16e-9a4681253402: —; 47d6b9be-1365-483a-a3e2-d7f88d1bd63d: —; 6637b67b-b820-4ec2-adda-5eefe1a5dd69: —; 7c4bc795-17fb-4760-93d1-b7950030873b: —; 892b846b-0e10-4102-8be0-3fd65b972a34: —; 8e067a76-65a7-4f78-a147-053d715b18ba: —; 8e537537-d8b3-45c4-bbc9-1f11ccc5b614: —; 96317085-6985-4373-b168-4c6ae4f9eab9: —; 96cf7b03-effe-4368-b066-9d5ffd0a69df: —; 9726bdc8-c6f8-4335-a9df-aa5448bb0398: —; 993696e3-15fa-492b-91c0-4edc9366a732: —; 9eb34b0e-0cec-4f0f-9262-a1d90fd123da: —; ac82f561-33ec-40b5-8b33-5c7b7c2ea584: —; b58654c2-caf0-4072-9889-2528f30ec84e: —; b7037b2d-3648-4350-8f4c-8befab0a2cef: —; b8196e51-a908-412a-b27c-34aa36eabbf1: —; c0a9e7f6-38f7-4e4c-bdd3-4056df4fc36f: —; c8e893b8-230e-490e-bfa7-d7099b59e88d: —; d8362c3b-e848-45d5-bfd7-18951f5a855b: —; ea566542-a67b-4dd5-b0d3-8fd829977436: — |
-| tebra | domain map | tebra.com | 22912b14-dabc-459d-a792-5a460807ff75: tebra.com; 4b94eb32-5a50-44af-a733-0f4b2adf3d17: tebra.com; b533c225-1fb2-4dc8-ba17-e34195f8711c: tebra.com |
-| techaviv | catalog | unbound/null | 026c04ab-ae62-4792-9544-69e2990ca247: — |
-| techvantage software | domain map | unbound/null | a8d1da74-3a9d-4aee-9622-fea6525d8bf0: — |
-| teleport | domain map | goteleport.com | f4890b0e-5e4d-418c-aefe-32e03fe292a4: goteleport.com |
-| tempoatlas | domain map | unbound/null | 5c97748a-0655-437a-ac1a-f7d2ba4f4ab1: — |
-| temu | catalog | unbound/null | 17db65a1-0ff8-42ef-b3ab-a6838223bba6: —; 5f288705-9ce1-4104-911f-0f8738a61e7b: —; 89035356-7774-4cc6-8358-a210d24ad1e5: —; f7bd29f4-ebf9-4292-bf7f-9e484691c884: — |
-| tenable | domain map | tenable.com | 40489bf8-e12b-4e45-8899-496fa8104368: tenable.com |
-| tenable, inc. | catalog | unbound/null | a8b92ba6-2373-480a-a3ae-19281dc4d750: tenable.com; b4f5f3ab-eaeb-46d3-a3b8-501c2d4cb9f0: tenable.com; c4c589f3-231e-4d2a-a39c-2caffff0d253: tenable.com |
-| teradyne | catalog | unbound/null | 41a235dd-52c9-401d-9250-682c8cc5b058: — |
-| thales | domain map | unbound/null | 319cfd54-ba81-4f6e-b132-2a01ea5281a1: —; 92846bad-589b-4355-8430-1faec82af437: — |
-| the depository trust & clearing corporation (dtcc) | catalog | unbound/null | a5272d57-77f7-44af-9e48-401aa5001005: — |
-| the farmer's dog | catalog | unbound/null | 222432f7-943d-4036-aba4-bf36677cdba0: thefarmersdog.com; 28778ec7-ddde-46a5-bff9-075971dc4aef: thefarmersdog.com; 6abfb16c-3f51-449d-a999-f70e685733dc: thefarmersdog.com; 8071502a-9d15-4ae1-a11c-ee785ee70725: thefarmersdog.com; da7bddeb-6708-4244-8afa-e827e278475d: thefarmersdog.com; e0668d37-e31b-4ca9-8365-9d3d1f6616cc: thefarmersdog.com |
-| the restaurant store | catalog | unbound/null | 434173ae-c379-44f2-9eaa-c9f1fb6c7a56: — |
-| themarker | domain map | unbound/null | 54a2b2d6-cbc6-4897-9dc6-a42a76b61087: — |
-| tipalti | domain map | tipalti.com | 942ab526-0406-4d5a-9d15-6d353e581a6a: tipalti.com |
-| tlvtech | domain map | unbound/null | 2823bc92-cc8b-4f99-bfdd-4b1ce8051aeb: — |
-| tomax think academy | catalog | tomax.io | 223e4a79-b0fe-4ac4-851e-ad5250f356dd: —; 4f736c7b-16c9-4361-8751-72a4dbd49ff6: —; 55d87c0f-7d10-4144-bd6d-2e7ca476c320: —; 76d2d42e-bd95-4310-b218-e7e5892e1139: —; af244864-f114-4e84-831d-d3ff8e3feff8: — |
-| tomorrow.io | domain map | unbound/null | 68650f69-e422-461c-8674-37593c78958c: tomorrow.io |
-| torentify | domain map | unbound/null | 10245691-cdfd-4107-bd57-1b54b0bd089a: —; 2243d45b-057a-4270-bbb6-0c74fae7c561: —; 50276b2e-9d2f-4cfe-be80-d8977da79e9e: —; 55d7dd71-1228-4d7b-9867-d26e40fafcb9: —; 6cae591f-3e13-4088-a856-71dc77a003c7: —; 71b48029-aadb-4220-af4d-efde1b9f2cb6: —; 74490aff-210b-4867-ae03-aec0f2ebfedb: —; 7800c89b-d15a-4d36-ade5-9a6264f745c5: —; 79972e27-8f44-49eb-a9a6-8a4fdbbc122e: —; 861bbe8d-e11f-4b2d-8c7f-efde8bf97f6e: —; 9117a4cb-2738-4486-beb7-00c4795e97fa: —; 9580e21e-e2c9-4541-a0cb-aa4209d8ce50: —; 9b7f91cb-85f1-43c1-9451-fbf384350537: —; a04fe3d3-0813-4b08-8ced-f3e156e17794: —; a8a4670e-7335-4806-9cef-fe971625c0e1: —; abee141d-c7d8-4ca8-8cb0-222711f05fa2: —; aeb739be-b4a0-4ab6-9e6c-281e4e54e7d3: —; b054b341-2da6-4b03-b3fd-a6d6ab9d71cf: —; b8c5c2bc-49b6-497f-b0b1-632139728221: —; b8d5928e-ca66-41b0-b108-1b34f6b23933: —; c0809ac5-3ba4-40d3-bb7c-6290a571119a: —; c51c5058-d3e7-456d-9499-bd008439f7db: —; c6439937-fb04-48a6-8510-46ba1ffafc4c: —; d9f39631-bfaa-4b61-85ae-d3764e77aaee: —; daf44df1-746b-42b2-9c7f-5f034a2cff0c: —; dcf8a1c7-2f8a-4040-a07b-272cb20a0acc: —; e0de455e-ed87-4ffb-9d14-ca4d38a14523: —; e1330068-a7ef-4564-84fc-065d576476dd: —; fb063c27-ecc4-44b0-8312-a79b8ba59851: — |
-| trace3 | catalog | unbound/null | 519b21b8-6cd0-4e57-85a4-f425f3ebcfc2: trace3.com |
-| traild | domain map | unbound/null | d4bfc92a-e3e3-4155-a7ff-c5d064910e34: —; ef1a0044-c939-4d6a-903f-bb614261521d: — |
+| peak innovation | domain map | no bound identity | 2b56d9fd-46bd-4c8d-96a5-6b16de6eef12: — |
+| pearson | domain map | pearson.com | 6f76f292-bad3-46d0-b3aa-3f913cda4345: —; 7fdd0fe6-9459-40c2-9b16-aebd7bc073d7: —; 8fb0917b-cf71-4159-86cc-cb28f962faaf: —; b8b62698-431f-4049-961a-ea90c0a4cd88: — |
+| pendo.io | domain map | no bound identity | af34b3e1-857b-49ec-9b13-e3ebdb1d0223: — |
+| pentera | catalog | linkedin:penterasecurity | a691cf81-03bb-4efb-975d-bc33a6fb3acf: linkedin:penterasecurity; bacdf8e7-9c16-442d-bdfe-addc554f57ce: — |
+| persado | catalog | linkedin:persado | 5ec0f9fb-ed12-47d9-84df-3afb4adb6807: linkedin:persado |
+| personetics | domain map | no bound identity | 2be72d7d-2d5c-417d-82b9-cbde6d75de96: — |
+| pilot | domain map | no bound identity | 475da156-4911-4cf3-910d-5130568d043c: — |
+| placer.ai | domain map | no bound identity | 4b3f855e-1b3f-437a-9398-72837eeb430c: — |
+| plaee | catalog | linkedin:plaee | 30ddcb52-f24b-4a64-bf54-9a123ab2ec93: linkedin:plaee; 350e299f-6f59-42ae-8151-243e0238e717: linkedin:plaee |
+| play perfect | domain map | no bound identity | 502bf1e8-2d88-49b9-9207-4eb9ccaaa776: —; 93834287-ecf8-48ad-b736-9a45b99eab1a: — |
+| plus500tm | domain map | no bound identity | cee091e2-0916-49e5-83c5-72a523cde5b5: — |
+| pointfive | domain map | no bound identity | be2e67b0-97fb-467c-bdbf-c939b1f085f1: —; f722d83e-2cdd-4643-83f6-dc3a78ebc0ac: — |
+| port.io | domain map | no bound identity | 2d98ec23-d5ed-4044-9847-ce8c283acaf0: —; fded2ede-1f17-4f1c-9fc1-52409304aefe: — |
+| pplied | catalog | linkedin:pplied | 7da2e11c-54ea-4e09-8522-d723547b06e9: linkedin:pplied |
+| prestiga | domain map | no bound identity | 04e4f779-6a9e-4b7d-a839-5b8896dd5f00: — |
+| priority software | domain map | no bound identity | 0092139d-6cfd-4b1c-b071-ce9f3f4146b3: —; 83485d1d-0dc9-484b-8de2-4a005bfa0f36: —; b4e60a59-1a9d-4106-9fec-210c6d1101c9: — |
+| programmers.io | domain map | no bound identity | 91259383-8896-46bd-ba6c-864da4b4eaef: — |
+| prophecy | catalog | linkedin:prophecy-ai | 3741e9a6-477c-4ef1-81ca-960a50a1b57e: linkedin:prophecy-ai |
+| protolabs | catalog | linkedin:proto-labs | 284dc6a2-05a3-40cf-965e-ee83dfaedfd7: linkedin:proto-labs |
+| q-nomy | domain map | no bound identity | 8f505bd8-0b2d-4779-b767-0e51f5dcd734: — |
+| qualcomm | domain map | qualcomm.com | 569d5604-b929-4fd6-8e2e-5cde56c09a4e: —; 67d64bea-5403-434c-bd1b-75a5e170d7fc: —; a95b5999-0411-47f3-8eb2-0df8d0292f7a: —; e1a03596-0c23-495a-9c97-a84946a9d8cc: — |
+| qualigate | domain map | no bound identity | 46726cbc-ee4a-4947-8adb-21959cae5d14: — |
+| quantum integrators | domain map | no bound identity | 49791a8d-d963-4eff-9958-e68ff9ff442b: — |
+| quantumblack, ai by mckinsey | domain map | no bound identity | 027095ef-04f3-418c-91df-b416eb093483: —; c0a64143-2f46-4d6f-83dc-eb6656d41822: — |
+| rad | domain map | no bound identity | 443c3bc8-5488-47b6-99c8-0710298e4a23: —; e124cd94-0eee-4d3a-825e-4fc9eab308f6: — |
+| radical ideas house | domain map | no bound identity | 99a1d41d-7409-4526-bf42-a164e3d62c10: — |
+| rafael advanced defense systems | domain map | no bound identity | 4dca2b6f-5cb2-4467-997c-6450787469a7: —; f6553ee8-25d9-4a56-a286-123fdb88a26a: — |
+| ramp | catalog | linkedin:ramp | 4d20c0cd-40e2-4426-a961-13814b8844f4: linkedin:ramp; 6c0ea6c8-0f83-4fbb-893a-69e9fedc1f48: — |
+| re partners | catalog | linkedin:re-partners | 404af27d-4a01-4779-8c6f-54ef9af737ca: linkedin:re-partners |
+| real dev inc | catalog | real.dev, workable:real-dev-inc | 3d2d4e6a-cb2d-43be-9e32-387884635b6e: workable:real-dev-inc; edbdf1d9-1f90-4686-9a7e-29acd9466651: workable:real-dev-inc |
+| real estate in jeans (rej) | domain map | no bound identity | 2c463ba9-2775-4ae8-8ad9-8ca3ede39532: — |
+| recruiterforge | domain map | no bound identity | 0c7d4531-164f-4296-a6c2-b81912657087: — |
+| recruiting from scratch | domain map | recruitingfromscratch.com | e96f77ee-89b8-4077-af3f-fd7b870c5380: — |
+| recruitricks | domain map | no bound identity | 10fdc65f-7bc0-48dc-b4a4-2a266754e85c: —; 8a40850e-f8d4-4f2a-9053-5d436f427fce: —; acdb243c-6c70-4629-982f-b0803a0adca1: —; c2aad123-d321-46c4-8807-e200ec68e12a: — |
+| red hat | domain map | redhat.com | 9a8f078b-c579-4584-825d-6ce8743ebea4: — |
+| reddit | domain map | reddit.com | 0698777c-3cae-4aef-8922-e74304ee62d5: greenhouse:reddit; 0d4d9cc5-83ff-4db9-a7bd-7f07cb7baa10: greenhouse:reddit; 10d7d333-2e50-44a2-baca-7f87e2ab7e26: greenhouse:reddit; 17a472f3-2214-4149-a064-152050423254: greenhouse:reddit; 17cf70e5-2be9-459e-a35a-8bcf5031bb69: greenhouse:reddit; 198f7359-5ce4-40b6-af34-cd891a8a8418: greenhouse:reddit; 1ea4eac6-2695-441f-aece-711e3164a091: greenhouse:reddit; 1f387ba0-cb9b-43e6-a7b9-409aaff22163: greenhouse:reddit; 20e6bf55-0075-4746-a513-c2afa03db107: greenhouse:reddit; 2f7dac4c-9e23-4b02-99c2-b409ee5e5839: greenhouse:reddit; 366d87fd-75e3-42e7-925c-947deca5ae5d: greenhouse:reddit; 428db013-7853-442c-8111-9b59fae2382e: greenhouse:reddit; 52fdbd99-c9f1-4b6f-9eef-29fae5691608: greenhouse:reddit; 6a07917b-c87e-444c-af6c-353f2cce7e62: greenhouse:reddit; 6c19a188-93e5-4dd4-9a0a-f4db3a8111da: greenhouse:reddit; 6e120c7f-8c28-47fc-8ddc-011fbc961131: greenhouse:reddit; 735ef6ef-b581-4a2b-a75b-03005f0b6f2e: greenhouse:reddit; 753af798-e33d-4b4e-86d6-640b016a678b: greenhouse:reddit; 787b01c7-b169-4bca-9d85-81155548b734: greenhouse:reddit; 85b13841-5a5e-4825-8c22-1f381d2c061a: greenhouse:reddit; 8d31e1d6-a5c3-4cac-94ab-f95c7e2644f9: greenhouse:reddit; 8e5be672-2cd8-40ef-a67f-9ee5a32176c5: greenhouse:reddit; 914f7b69-b46f-4fd7-a6be-b78ce04273f9: greenhouse:reddit; 9e9dc5ac-6bb9-4e23-979f-6602bd91a7a7: greenhouse:reddit; a40b04a4-607c-4a00-99d9-990fb6611beb: greenhouse:reddit; aaf627c3-d24a-4450-b094-a813488cc7ee: greenhouse:reddit; c60f1d16-85d7-4ca5-9e52-1a7577749992: greenhouse:reddit; caf0aa54-63ee-4c0b-955c-ac07b291da2e: greenhouse:reddit; ce69b398-5df9-4697-a1b2-db1a97503150: greenhouse:reddit; ce9843b4-fe7d-4a69-8245-e61b9c6df140: greenhouse:reddit; cffc32b2-9f5a-4135-ad7d-f332db704ac8: greenhouse:reddit; d911cc63-cdc2-4b13-b48e-fb4ccf9a0efe: greenhouse:reddit; db5eb2d6-472e-410f-ae84-bd37349b37c6: greenhouse:reddit; e5e4cb26-1a31-45e8-ac38-6d3a59703943: greenhouse:reddit; f28b85d3-ff35-4704-aa22-eff49136510f: greenhouse:reddit; fcec57d1-bc5b-4cf6-8be5-62dfc52b588b: greenhouse:reddit |
+| reddit, inc. | domain map | no bound identity | 5a9b13b9-24a9-4fa0-9266-6cd4fc37a929: —; e490e3e1-68cd-4eee-ba2d-0960db79473d: — |
+| relocity, inc. | domain map | relocity.com | 6cd02126-c2a9-4db0-be8b-848ed992042b: — |
+| remotehunter | domain map | no bound identity | 065f9eb8-afb5-4ca3-a371-115ee3f54d37: —; 14a01996-1a04-4423-8b02-f699a9da2dac: —; 6a00529d-bed6-41a0-8bca-21387bd11483: —; 7b5a34ad-bf43-46c3-bc74-2271e14f3102: —; 87a76e15-657c-4ca7-b64f-84dd14937b67: —; b7a851d7-6382-46aa-9746-a3c630a80b7b: —; bf2d4c60-47ef-45ad-b38f-d0454621eee2: —; c32880b5-245a-4b44-90fa-22380460e824: —; c5091c86-c32d-4b05-8edb-6d103b9119d6: —; c96ca55b-8a9c-47a0-b42f-9adfa2291117: —; d1a38114-2c40-4bc9-ace6-e3fbbb5f639e: — |
+| resilience | catalog | linkedin:weareresilience | b4799872-cea1-4529-bfc2-417321c63e76: linkedin:weareresilience |
+| rexhio | domain map | no bound identity | 800758a5-a5bd-4a0a-8af6-c8b846861a49: —; 9e3bcbfc-ae95-4c8c-99d3-6f9f8d2dcf54: — |
+| rise technical | domain map | no bound identity | 9e0de40f-5324-487f-82f7-7e68d9663557: — |
+| roark (yc w25) | domain map | no bound identity | e1a7b50b-68a5-45c1-bd40-68e4390c4f28: — |
+| robots & pencils | domain map | no bound identity | 428c7724-0d01-42c1-9fd3-4626522be5e4: — |
+| rocket science group | catalog | linkedin:rocketsciencegg | 567c71bc-2861-47d0-9751-e432a972ef12: linkedin:rocketsciencegg |
+| roeto | domain map | no bound identity | 12f81e48-fc1d-4573-a04a-bf2bfb6d0dd0: — |
+| rolls-royce | catalog | linkedin:rolls-royce | 4ccc7400-3f02-4f50-9d2f-35d0d6c0c877: linkedin:rolls-royce |
+| rubrik | catalog | linkedin:rubrik-inc | 64f9aea6-f619-483f-9706-9df2150247cd: linkedin:rubrik-inc; da6326e5-b11b-4920-a8ce-a1bde3dc4da9: — |
+| runpod | domain map | no bound identity | e2dbf4e2-dc0e-4567-a4ba-1bffdd1b785b: — |
+| salesforce | domain map | no bound identity | 4bdf4a6d-3d44-4104-aa4a-2d8fa3767ed1: —; 4c611dcf-fb60-48fa-91c6-63a73060ef9d: — |
+| samsung semiconductor | domain map | no bound identity | 42028fb6-e80c-4a20-a698-99cc27ad1a6d: greenhouse:samsungsemiconductor; 53fa9232-603a-48ca-bf5b-5dfd6dd54574: —; 680df55f-ef6f-471a-a848-0bb5b11920d4: greenhouse:samsungsemiconductor; 686d33b2-bd22-4b19-a24f-758f3a8bdcc0: greenhouse:samsungsemiconductor |
+| sandisk | domain map | sandisk.com | 70f4da19-aecd-4d45-9124-fa7838669acd: —; a4946133-a2cc-4328-bff8-14b9b2b20088: — |
+| sap | domain map | sap.com | 2b337091-d93b-4f06-bb2a-7be33f4fc99a: — |
+| sardine | catalog | linkedin:sardineai | 0bbad6e5-851d-4f24-a7ff-be2400c56e96: linkedin:sardineai |
+| sauce | catalog | lever:sauce | 71cf05ee-5732-490d-8dd1-ec5c8de6fabe: lever:sauce |
+| scaleops | domain map | no bound identity | 2c87e156-7c6b-4efd-84f3-1b0b87e6a64d: greenhouse:scaleops; 69d52344-b335-45c1-b789-90df37a24138: greenhouse:scaleops |
+| sciplay | domain map | no bound identity | 5b7d334d-8056-418e-8327-b529869b0f06: — |
+| seed health | domain map | seed.com | 1db0301c-6b32-49e0-b697-38645bb323b4: — |
+| senai | catalog | no bound identity | 34e4e262-945e-497c-9de6-083b437d1b9a: —; d0151412-b0bc-4710-89a1-561dba7c840e: —; d7985d0d-4837-40a4-b30e-4aabc7525454: — |
+| sendi.io | domain map | no bound identity | a3ebf630-90af-4de4-9b08-5c3646e10d8c: — |
+| sensata technologies | catalog | linkedin:sensata-technologies | 7f8239dc-e0df-438d-bf46-24cf7cab7407: linkedin:sensata-technologies |
+| sentinelone | catalog | linkedin:sentinelone | 589025e4-9aa9-4693-be9a-d7bcfb9b5e28: —; 58be104a-2c24-41b3-9f5f-6c8cdd0db70a: linkedin:sentinelone; 77a28254-1416-4c26-a50e-9dda6c5153d3: —; 89254893-5ca2-42b9-af80-87b5a46a1240: —; 8f5a3a63-aba7-45a0-a71e-a1fcfbc6ae35: — |
+| sentra | domain map | no bound identity | 18c0905c-6dc9-461f-afe1-0a4d3948d79d: —; 7398c97a-a752-4d29-94bc-cb24a976fab4: — |
+| shabak - israeli security agency - career | domain map | no bound identity | 731447cf-0078-4760-a636-874eac9363fd: — |
+| sharegain | domain map | no bound identity | b9ad6d11-07e4-4bbf-acb6-184212c71803: — |
+| sharpies pro | domain map | no bound identity | 26ce660f-54bd-4a69-895a-5e516658efaa: — |
+| shifters | catalog | shiftersai.com, workable:shifters-ai | 19839819-cb9b-4368-bce4-e83eea9f0682: workable:shifters-ai; ae94af24-aa0e-4109-b96f-c1c783045704: workable:shifters-ai |
+| ship4wd | domain map | no bound identity | ecb104f2-265b-4ffc-ae91-1169c970731a: — |
+| siemens eda (siemens digital industries software) | domain map | no bound identity | 6e16117f-d507-4f25-bb25-a367367504e6: — |
+| sig sauer, inc. | domain map | sigsauer.com | 370dbea3-25e2-450e-a688-21d4848fe90f: — |
+| sightful | domain map | no bound identity | c180e759-5b96-4319-bb31-d092bdc1fac3: — |
+| signet jewelers | catalog | linkedin:signetjewelers | 55f1cfa3-96d3-4db9-9b58-bf8621f9e605: linkedin:signetjewelers |
+| silverfort | domain map | no bound identity | 7cf3788a-1698-426a-af2c-4b0d347d6af7: —; 96adf986-4cbf-403f-983c-b74f4a804e8b: —; bab17839-f95e-422b-ae71-c603fe80e3c9: — |
+| similarweb | domain map | similarweb.com | 030d833d-1412-4c7b-bda5-80693ee9171b: —; 0db39ef4-7b3e-4df5-9f89-69ca8e38cfec: —; 505e5b1d-e967-4320-9ced-37858ac71a40: greenhouse:similarweb; 77c4990c-30ba-4ed3-9cdd-0478fa20b3df: —; 949c0b97-a602-4949-9ad5-93be4b1e4f2d: greenhouse:similarweb; a1b28ed4-3fae-45b2-a37e-dd3b481fb68e: —; fdf82664-3447-4778-b629-93b15d05e9bf: — |
+| simplex 3d | domain map | no bound identity | d2170f02-04ee-467f-8337-4aebec8f65f9: — |
+| singular | catalog | linkedin:singular-labs | e2887f3e-8b20-4a58-bc0c-0ce597cd391b: linkedin:singular-labs |
+| skyde drones | catalog | linkedin:skyde-drones | cd1a4e06-cf1c-453a-ae4b-db55bc525613: linkedin:skyde-drones |
+| skygini | domain map | no bound identity | 51d4886b-180f-47fb-ba04-85f6e00b4cfa: — |
+| smartleaf | domain map | no bound identity | 28989559-fb0d-49c5-9299-c003efc6fc0c: — |
+| snatch up jobs | domain map | no bound identity | 34999372-de64-421d-b356-0bc6d4c6c907: —; e9d7b06f-5133-447e-b7e8-dca97ce6d17a: — |
+| soho square solutions | domain map | no bound identity | 36a458ca-b387-4117-93ee-f1098cf4fb46: — |
+| solid (ai powered by data) | domain map | no bound identity | ec8af67e-d9a8-4b8f-8e70-e597de08bbad: — |
+| solomon page | catalog | linkedin:solomon-page-group | 43795730-e4e7-407e-be14-80ce85084054: linkedin:solomon-page-group; 4d994261-d648-4a5c-b9af-b8dad640fcdf: linkedin:solomon-page-group |
+| solventum | catalog | linkedin:solventumhealth | abe19a41-baf7-4d7f-bdf5-4425a377c907: linkedin:solventumhealth |
+| soni | catalog | linkedin:soni-resources-group | c00761a5-741e-4a33-a650-b72170f41850: linkedin:soni-resources-group |
+| soundcloud | domain map | no bound identity | dc30788b-8f1f-4907-abeb-f596a7ff4901: — |
+| spacex | catalog | linkedin:spacex | 1dcc8d22-9e66-4741-a9b3-c26515182234: linkedin:spacex; 4953f2dd-8d93-4100-a3be-bf5d12688922: linkedin:spacex; 8216b939-ecbe-4c1f-baba-43f8bd3f53dd: linkedin:spacex; 8c06740d-b959-445a-bca5-067ef0463822: linkedin:spacex; a0318137-48ca-42b2-811d-8bc3eeb5d06c: linkedin:spacex; d494c428-a575-4993-ae3c-29800fa6bcde: linkedin:spacex |
+| speak | catalog | linkedin:usespeak | 907a5762-cd75-4154-aa6b-9506dd85b303: linkedin:usespeak |
+| speria | domain map | no bound identity | 90c9cf9e-5232-4fd2-9794-75c5c6bba64c: — |
+| spinquest | domain map | no bound identity | 74ed1785-d302-46df-b321-586dbeed8d9d: — |
+| spreetail | domain map | spreetail.com | e8fe5787-3842-487c-83ee-7c6b88f0e3e1: — |
+| sqlink group | domain map | no bound identity | 32053f3c-526c-4485-bee5-4af5e27d3d14: —; 35e7b478-2f27-4c92-ae60-dfb9cc8643fb: —; 602a8fb2-3aaf-494d-8c36-4849fef5876f: —; 682bbdeb-ae00-43c5-b7c1-27b520cba3ed: —; 74659047-bf3a-4377-a042-0b1c1c1212be: —; 8450d88e-f839-47d1-856d-da15a01d5773: —; a3fb572c-ec4d-4d03-91db-7dc6e5f0ad29: —; d7643758-98df-45f1-bed3-dd7cee09ee4d: — |
+| ss&c technologies | domain map | no bound identity | eda42c73-a851-4d49-a31c-de3dae1d0810: — |
+| stackadapt | catalog | greenhouse:stackadapt, linkedin:stackadapt | 01bb562a-6d5d-4e6d-a64b-e492ab4f77bd: linkedin:stackadapt; 888d6757-4199-47f5-89ed-f58efc9e3990: greenhouse:stackadapt; a3794b34-8aa8-4e87-93ec-8c2ec68be9d4: greenhouse:stackadapt; de5ad2a1-a08d-4b97-9298-9db7d74ccfd5: greenhouse:stackadapt |
+| stampli | domain map | no bound identity | 77cbc1dd-50b5-4f36-bb9b-75de136b8321: —; 880d946c-becc-45aa-b959-7776ed031e3f: — |
+| startingup | catalog | linkedin:startingup-io | 6a845040-7420-4b3f-9425-baa283ac1463: linkedin:startingup-io; 8e701766-2227-42a4-bb30-76bdcef9f723: — |
+| status pipeline co | domain map | no bound identity | 00000000-0000-0000-0000-000000007001: example.test |
+| stigg | domain map | no bound identity | 9904c7af-251a-4536-ac70-b92d2da1fc6b: — |
+| stripe | catalog | linkedin:stripe | 13104dc5-a414-478a-9af3-fe6896f0776a: —; 298efcc9-ed50-4f53-a2d8-dd65825d1a7c: linkedin:stripe; 5f0c800d-1094-4c67-916f-a8879e697c85: —; 6abdf253-df94-4550-ba37-e08f02055695: —; e14e2eb7-9f0e-48ff-a41c-15de43941539: —; ec3f3131-1081-45b9-a51a-cd2c53f93e11: — |
+| success recruitments | domain map | no bound identity | 207e5bb2-6a8b-4918-8461-0e62be264169: —; f80a4479-f9b5-48ae-a4b4-68a4507d13e2: — |
+| sunbit | domain map | sunbit.com | 31bc37be-0e0d-47ce-a8db-96dcb85460e5: — |
+| sundayy | catalog | linkedin:sundayyworld | 05baaa20-1d28-412e-96bd-e71143f641a1: —; 2069981b-c8bb-4c49-85e8-de3b069c1dd6: —; 439f36bb-ce1e-443e-ab22-abce53beab40: —; 5f758b27-d269-428a-8d56-1724c271841f: —; 5fe0bc39-f81f-4039-ab3e-027e0df975c5: —; 67025fea-3a82-4a0d-9c49-a014d997a13d: linkedin:sundayyworld; 688a7e20-edf8-4b54-ba6e-232da0f38f61: —; 696c630e-02f8-403c-b8f6-c384db2ce884: —; 76210e1c-4f80-451d-8415-08afe59c1f32: —; 7fe5b9fb-3fe4-4098-ac4b-620cbdb260bf: —; b41e29ea-43aa-444e-b4b0-215720d01254: —; bf3a8faf-16e4-41b6-9bfb-377a4fd7126f: —; c8d7dd00-a2ea-404a-b324-753a663200c3: —; c9d32f35-f6df-4f71-8c4b-ab19a0ad5565: linkedin:sundayyworld; ddd7eae9-c4ae-4895-97d7-7e304cb771f3: —; e024dbf3-b4d6-43a2-afa6-9273703bbeee: —; e33e0462-3938-4985-88e8-f9d60600d315: —; e4ef84ac-069c-4f75-b6f6-7c6b54e41ed6: —; ee8a377a-d251-4a35-a3fe-8ebe80a9a3bc: —; eee41d9a-bc7c-4f97-bd42-7c9a4e6407dd: — |
+| swakiotm | domain map | no bound identity | 5a56ffe0-f50f-4f24-9030-eeec33d62994: —; 84fb46bb-5775-4f9b-9a06-0d005b5f0b45: —; 8df4751d-cf86-42ee-8c50-b0fe3aac61f3: —; cf1c78b6-c87c-40c6-adfd-da892345c497: — |
+| ta9 | domain map | t-a9.com | e136a084-4563-447e-a3e1-45bcbcc32f10: — |
+| taboola | catalog | linkedin:taboola | 032dea70-57dc-4b0d-bcba-d49d48ca71ae: —; 0dffa54a-ec31-4a7f-b857-2743c2192f48: taboola.com; 17315194-0c38-49d2-9136-5627bd166d1a: taboola.com; 17f3aef5-6b5b-4703-a9eb-9fa05d60e4aa: taboola.com; 63ff3a21-46f8-4179-aedf-6388716213e7: taboola.com; 82964823-1adf-4fd5-a3c2-eabeb973b468: taboola.com; bc463f38-61a4-40f9-ba21-491a791984d6: taboola.com; e334b3e8-88ab-4955-bdfb-d30554537118: —; e9bf2af4-95a2-4af4-bc2b-15c12ff5765d: linkedin:taboola |
+| tailor brands | domain map | no bound identity | f975ff52-5afb-48c1-a89c-596e7b13d82c: — |
+| tailscale | domain map | tailscale.com | 098d38fa-8542-4a63-8c85-a1efcdc54cf1: greenhouse:tailscale; 0ffcad28-a5ed-4a6a-a45a-9f11fe017184: greenhouse:tailscale; 1014abf1-3a04-41ec-8575-32fa415ba94a: greenhouse:tailscale; 147ae0b2-ee05-4ad4-93b6-a1b07b84e375: greenhouse:tailscale; 22dff5b5-bef6-416e-94a1-e82c65f59e4b: greenhouse:tailscale; 37786ccb-f9b0-4805-be3e-0ecfab51530a: greenhouse:tailscale; 58ecdd77-5d3a-463d-8019-265d682001e6: —; d3f16baa-dd79-4b63-a496-dd2cb2feba61: greenhouse:tailscale |
+| tairc | domain map | tairc.com | 2e6aa36a-f0af-43c4-b93e-a7e29db92a65: —; b7daf711-830e-472a-b22a-c514a028990d: —; df34bdff-5623-4fae-9415-cd1122c70b69: —; f43ec306-93a5-4258-9352-435df7048e00: — |
+| talencio | catalog | linkedin:talencio | 0863d4bb-69ff-4927-8949-a640a00b989a: linkedin:talencio |
+| talener | domain map | talener.com | 25dbe978-3252-4b90-8249-eb7120416c56: — |
+| talent integration | catalog | linkedin:talent-integration | c60b6950-54f8-42e1-ad0a-32daeb59f1e3: linkedin:talent-integration |
+| talentally | catalog | linkedin:talentallyatwork | 1000dfb4-6b54-45c9-bd4b-5e68797fc61a: linkedin:talentallyatwork |
+| talenthop | domain map | no bound identity | 09dbbac6-d5a2-45b1-b417-16caa06976b8: —; 116de045-d8ca-405a-b72f-3ec34bf35b84: —; 1d7ac420-5b70-4fc8-9098-43c9bc7d6bd6: —; 2371987e-e1da-44ee-8f86-6a72ce6de592: —; 2eb1946a-73ab-4612-8afb-bf94d72a86d9: —; 33d44ab2-ed09-4dd5-a0b8-aa9ac20a84ee: —; 36c4dec4-2ca0-4239-a9fa-19bac0f6b4c0: —; 3f1da413-a44c-4a5c-afdf-d7cb2af13a2b: —; 4a938cee-030b-4c21-bad3-85211b6ade33: —; 4c2b65fb-19c4-485f-9b27-7dc4cd29f96f: —; 4da920b1-f42f-42bc-b942-5a210dc32a44: —; 6d9c3b52-658d-40ba-8eb4-fdd5ac76e345: —; 75487e4b-e95b-4a42-9b60-b4d35997c28d: —; 9322437e-0afc-4f0f-8393-4bf969080d3a: —; 9a25c339-85db-42cf-91e8-4353d3013b2b: —; a81667ad-14a3-40cf-becd-c1285c65c699: —; a82f0390-16c7-4909-826f-862ba725dd41: —; c3a7ad76-c29f-429d-b57f-d71b410d03c5: —; d6911fd4-6916-496b-b587-1cce8b93917f: —; e67317db-ddae-4b71-a154-989e3205949d: —; f7bfd591-f965-45b2-b76c-ebfeb1619ef9: — |
+| team8 | catalog | no bound identity | 000d696d-dc39-4391-bee7-3b486f46ac71: —; 052044b4-3627-40c2-98e6-5a8357a6a59e: —; 1813a625-3fa7-42c5-90cf-638b3cc5840d: —; 294f394c-836a-4334-938d-72a3d773defd: —; 2c0bd0e3-7fb2-46ac-b0fb-c9357e23b240: —; 439624de-06b7-4280-b16e-9a4681253402: —; 47d6b9be-1365-483a-a3e2-d7f88d1bd63d: —; 6637b67b-b820-4ec2-adda-5eefe1a5dd69: —; 7c4bc795-17fb-4760-93d1-b7950030873b: —; 892b846b-0e10-4102-8be0-3fd65b972a34: —; 8e067a76-65a7-4f78-a147-053d715b18ba: —; 8e537537-d8b3-45c4-bbc9-1f11ccc5b614: —; 96317085-6985-4373-b168-4c6ae4f9eab9: —; 96cf7b03-effe-4368-b066-9d5ffd0a69df: —; 9726bdc8-c6f8-4335-a9df-aa5448bb0398: —; 993696e3-15fa-492b-91c0-4edc9366a732: —; 9eb34b0e-0cec-4f0f-9262-a1d90fd123da: —; ac82f561-33ec-40b5-8b33-5c7b7c2ea584: —; b58654c2-caf0-4072-9889-2528f30ec84e: —; b7037b2d-3648-4350-8f4c-8befab0a2cef: —; b8196e51-a908-412a-b27c-34aa36eabbf1: —; c0a9e7f6-38f7-4e4c-bdd3-4056df4fc36f: —; c8e893b8-230e-490e-bfa7-d7099b59e88d: —; d8362c3b-e848-45d5-bfd7-18951f5a855b: —; ea566542-a67b-4dd5-b0d3-8fd829977436: — |
+| tebra | domain map | tebra.com | 22912b14-dabc-459d-a792-5a460807ff75: —; 4b94eb32-5a50-44af-a733-0f4b2adf3d17: greenhouse:tebra; b533c225-1fb2-4dc8-ba17-e34195f8711c: greenhouse:tebra |
+| techaviv | catalog | linkedin:techaviv | 026c04ab-ae62-4792-9544-69e2990ca247: linkedin:techaviv |
+| techvantage software | domain map | no bound identity | a8d1da74-3a9d-4aee-9622-fea6525d8bf0: — |
+| teleport | domain map | goteleport.com | f4890b0e-5e4d-418c-aefe-32e03fe292a4: — |
+| tempoatlas | domain map | no bound identity | 5c97748a-0655-437a-ac1a-f7d2ba4f4ab1: — |
+| temu | catalog | linkedin:temuapp | 17db65a1-0ff8-42ef-b3ab-a6838223bba6: —; 5f288705-9ce1-4104-911f-0f8738a61e7b: linkedin:temuapp; 89035356-7774-4cc6-8358-a210d24ad1e5: —; f7bd29f4-ebf9-4292-bf7f-9e484691c884: linkedin:temuapp |
+| tenable | domain map | tenable.com | 40489bf8-e12b-4e45-8899-496fa8104368: — |
+| tenable, inc. | catalog | greenhouse:tenableinc | a8b92ba6-2373-480a-a3ae-19281dc4d750: greenhouse:tenableinc; b4f5f3ab-eaeb-46d3-a3b8-501c2d4cb9f0: greenhouse:tenableinc; c4c589f3-231e-4d2a-a39c-2caffff0d253: greenhouse:tenableinc |
+| teradyne | catalog | linkedin:teradyne | 41a235dd-52c9-401d-9250-682c8cc5b058: linkedin:teradyne |
+| thales | domain map | no bound identity | 319cfd54-ba81-4f6e-b132-2a01ea5281a1: —; 92846bad-589b-4355-8430-1faec82af437: — |
+| the depository trust & clearing corporation (dtcc) | catalog | linkedin:dtcc | a5272d57-77f7-44af-9e48-401aa5001005: linkedin:dtcc |
+| the farmer's dog | catalog | greenhouse:thefarmersdog, linkedin:the-farmer's-dog | 222432f7-943d-4036-aba4-bf36677cdba0: greenhouse:thefarmersdog; 28778ec7-ddde-46a5-bff9-075971dc4aef: linkedin:the-farmer's-dog; 6abfb16c-3f51-449d-a999-f70e685733dc: greenhouse:thefarmersdog; 8071502a-9d15-4ae1-a11c-ee785ee70725: greenhouse:thefarmersdog; da7bddeb-6708-4244-8afa-e827e278475d: greenhouse:thefarmersdog; e0668d37-e31b-4ca9-8365-9d3d1f6616cc: linkedin:the-farmer's-dog |
+| the restaurant store | catalog | linkedin:the-restaurant-store | 434173ae-c379-44f2-9eaa-c9f1fb6c7a56: linkedin:the-restaurant-store |
+| themarker | domain map | no bound identity | 54a2b2d6-cbc6-4897-9dc6-a42a76b61087: — |
+| tipalti | domain map | tipalti.com | 942ab526-0406-4d5a-9d15-6d353e581a6a: — |
+| tlvtech | domain map | no bound identity | 2823bc92-cc8b-4f99-bfdd-4b1ce8051aeb: — |
+| tomax think academy | catalog | tomax.io, workable:tomax | 223e4a79-b0fe-4ac4-851e-ad5250f356dd: workable:tomax; 4f736c7b-16c9-4361-8751-72a4dbd49ff6: workable:tomax; 55d87c0f-7d10-4144-bd6d-2e7ca476c320: workable:tomax; 76d2d42e-bd95-4310-b218-e7e5892e1139: workable:tomax; af244864-f114-4e84-831d-d3ff8e3feff8: workable:tomax |
+| tomorrow.io | domain map | no bound identity | 68650f69-e422-461c-8674-37593c78958c: — |
+| torentify | domain map | no bound identity | 10245691-cdfd-4107-bd57-1b54b0bd089a: —; 2243d45b-057a-4270-bbb6-0c74fae7c561: —; 50276b2e-9d2f-4cfe-be80-d8977da79e9e: —; 55d7dd71-1228-4d7b-9867-d26e40fafcb9: —; 6cae591f-3e13-4088-a856-71dc77a003c7: —; 71b48029-aadb-4220-af4d-efde1b9f2cb6: —; 74490aff-210b-4867-ae03-aec0f2ebfedb: —; 7800c89b-d15a-4d36-ade5-9a6264f745c5: —; 79972e27-8f44-49eb-a9a6-8a4fdbbc122e: —; 861bbe8d-e11f-4b2d-8c7f-efde8bf97f6e: —; 9117a4cb-2738-4486-beb7-00c4795e97fa: —; 9580e21e-e2c9-4541-a0cb-aa4209d8ce50: —; 9b7f91cb-85f1-43c1-9451-fbf384350537: —; a04fe3d3-0813-4b08-8ced-f3e156e17794: —; a8a4670e-7335-4806-9cef-fe971625c0e1: —; abee141d-c7d8-4ca8-8cb0-222711f05fa2: —; aeb739be-b4a0-4ab6-9e6c-281e4e54e7d3: —; b054b341-2da6-4b03-b3fd-a6d6ab9d71cf: —; b8c5c2bc-49b6-497f-b0b1-632139728221: —; b8d5928e-ca66-41b0-b108-1b34f6b23933: —; c0809ac5-3ba4-40d3-bb7c-6290a571119a: —; c51c5058-d3e7-456d-9499-bd008439f7db: —; c6439937-fb04-48a6-8510-46ba1ffafc4c: —; d9f39631-bfaa-4b61-85ae-d3764e77aaee: —; daf44df1-746b-42b2-9c7f-5f034a2cff0c: —; dcf8a1c7-2f8a-4040-a07b-272cb20a0acc: —; e0de455e-ed87-4ffb-9d14-ca4d38a14523: —; e1330068-a7ef-4564-84fc-065d576476dd: —; fb063c27-ecc4-44b0-8312-a79b8ba59851: — |
+| trace3 | catalog | linkedin:trace3 | 519b21b8-6cd0-4e57-85a4-f425f3ebcfc2: linkedin:trace3 |
+| traild | domain map | no bound identity | d4bfc92a-e3e3-4155-a7ff-c5d064910e34: —; ef1a0044-c939-4d6a-903f-bb614261521d: — |
 | transmit security | domain map | transmitsecurity.com | 617ab3a6-1e02-4d0a-9843-934f09e6b223: transmitsecurity.com; 6af67692-6d20-4a53-88cb-2e50de643a78: transmitsecurity.com; 88104050-be71-4475-99ea-a69d27246ef9: —; 98b0dce1-1d68-4463-b614-59a67f6bfdf7: —; ee758397-9335-44ef-8841-a65f4f90c3d4: transmitsecurity.com |
-| trm labs | catalog | unbound/null | 1144276b-85af-4766-b22f-e1c2fa9f47c0: —; bc4bf6e2-32ac-44f4-9e65-795595532336: trmlabs.com |
-| trust in soda | domain map | unbound/null | dd77b680-3f14-4eea-b7d6-ad6eb2b640ed: — |
-| unavailable | domain map | unbound/null | 8db8bb37-56e7-4b93-888f-3e8f71db4bf8: — |
-| underdog.io -apply to top tech jobs in 60 seconds. a place where companies apply to you | domain map | unbound/null | 70f7a7a8-f73e-425c-b6b6-0953654d00be: — |
-| unframe | catalog | unbound/null | 068921c8-3a88-4836-b328-13bb4fc792c3: —; 11645dbd-32ed-48ab-8d03-14d8080ad3a2: —; 1c75ba7d-c652-4447-8e35-441bc30b39dd: —; 8762c485-ea69-4d8c-8088-a9058ff6b4e7: —; 9da5d1d4-5d98-4733-81f9-33d11a304b3c: —; a01f8105-b37f-4a6b-ba24-625c3fadc800: —; a74a36d6-9d1f-4818-b86e-2dcbd6326aeb: —; b5f1d2fd-4d28-4c7f-b14a-a406b8a0a143: —; bccf48b2-3481-4f9e-afd6-658bc1e4b366: —; d69c3067-07e2-4b6d-bc0b-cc6910ad3243: — |
-| unilink ltd. | domain map | unbound/null | 898affa9-bdd1-4fe6-b71d-a78a0f9406c7: — |
-| unity | domain map | unity.com | 8c6d5866-c5bc-4d43-b8fe-4a82cccbe012: unity.com |
-| upwind security | domain map | unbound/null | 4b9b1bd6-dc27-4862-84e5-fc89eaf0e8ac: — |
-| ust | domain map | ust.com | 1c6ebf32-1bda-4485-98b5-7ed57dbcc309: ust.com |
-| uveye | domain map | unbound/null | 836c9cce-e344-4666-a4ee-3033803773fe: — |
-| uvision group | domain map | unbound/null | 1704a382-63a4-40c9-90a5-ef666d54fffb: — |
-| vanguard | catalog | unbound/null | 0774d244-813d-4e5d-ab29-5ef3964ee8ae: —; f80be84e-a58b-4e5e-a77b-5f871d4a5e4e: — |
-| varonis | domain map | unbound/null | 5534c710-8a77-496b-b68d-d0bdb0454dc8: — |
-| venn | domain map | unbound/null | 6050c080-6e91-477a-a4e5-a759fad4f660: — |
-| venture up | catalog | unbound/null | 375b7662-3833-4e19-9f35-66362745a74f: — |
-| versigent | catalog | unbound/null | b175bedc-52e5-4f77-9806-8b9c4299e1f5: versigent.com |
-| vertafore | domain map | vertafore.com | 93015ef9-74f6-4075-bcf4-e81f45f8852b: vertafore.com |
-| via | domain map | unbound/null | 28fe7b41-652c-494a-bd13-5518b293e0c9: —; 823b11d7-01d9-42c1-8d36-5d898d7186c3: —; c6b5924b-4379-42fd-9599-7771ade88c52: —; f4e5263b-122c-42be-82bd-27e6e23df159: — |
-| virtualitics | domain map | unbound/null | d8cfe405-bf8a-45b6-b0d8-cddd8099acfa: — |
-| virtuous | domain map | virtuous.org | 64796923-022e-4368-91e7-9a82a9671f06: virtuous.org; dea0b693-111f-40f1-b5bf-8099f8533afd: virtuous.org |
-| viz.ai | domain map | unbound/null | abab0d3a-3a54-4b08-9405-6b9ed46150f7: viz.ai |
-| voyantis | domain map | unbound/null | 417ea12f-02d1-42d1-ab2c-a0293018206f: —; c070098d-358a-4b57-a356-f2bbfa6e4be5: — |
-| vybs | domain map | unbound/null | 23f4b16d-e868-4413-8cfe-84495e63504e: — |
-| warner music group | domain map | unbound/null | 84f60cb0-7f9f-4bb7-9a1f-61022508ccab: — |
-| wayve | domain map | wayve.ai | 0c382cbc-17d9-4a22-96b4-a025b5662c3e: —; 5ecde07f-2cee-43b0-aec4-6ff6e38f1322: firststage.co; 83857305-0576-4ab4-b462-1fb3a62e4afb: firststage.co; cfd1cc0e-6222-4453-bb37-e92f5e78125a: firststage.co |
-| wedev | catalog | unbound/null | d2d65eb3-dc07-40e2-ab9c-da1bef3cf18e: — |
-| wedoit.co.il | domain map | unbound/null | 8925f5d9-fb9c-4668-b404-1e0819163580: — |
-| weka | domain map | unbound/null | ad8be8bd-d101-4e7f-b912-9a778572a9a5: — |
-| weski | domain map | unbound/null | 338b7ed2-307c-48da-8bb6-88bce5cf8cbd: — |
-| wilson brown | domain map | unbound/null | e207c865-d0f6-4510-bc8a-8f904dcbd146: — |
-| wiraa | domain map | unbound/null | 143aeb9a-2b6b-4ed7-b01a-3513c5c4f92c: —; 16a320a1-0c5e-4512-ad14-cd076e6a8fbf: —; 1e206a43-e750-45d3-b3a8-7530a8277017: —; 4ed87776-f827-43a6-96a3-a4c1762eed7d: —; 51113c3f-5c08-4573-8f1b-08511514a369: —; 6c92fbaa-b954-4fd7-accb-083e7c81786d: —; 719334c2-32a8-4ae8-aaf8-1bdcc10644a5: —; 9f1c8fd7-aff8-4bba-82dc-09477b744140: —; a00c1067-80c8-4be4-8b7e-cd8bb82d4ac1: —; e8b72b6e-33e9-4843-9ea6-bb758862f07a: —; fe22546e-0212-4dd5-8af9-e19bffad65ff: — |
-| wittix | domain map | unbound/null | eda871dd-797e-4d1d-a821-3f3438c8b44f: — |
+| trm labs | catalog | linkedin:trmlabs | 1144276b-85af-4766-b22f-e1c2fa9f47c0: linkedin:trmlabs; bc4bf6e2-32ac-44f4-9e65-795595532336: — |
+| trust in soda | domain map | no bound identity | dd77b680-3f14-4eea-b7d6-ad6eb2b640ed: — |
+| unavailable | domain map | no bound identity | 8db8bb37-56e7-4b93-888f-3e8f71db4bf8: — |
+| underdog.io -apply to top tech jobs in 60 seconds. a place where companies apply to you | domain map | no bound identity | 70f7a7a8-f73e-425c-b6b6-0953654d00be: — |
+| unframe | catalog | greenhouse:unframe, linkedin:unframe-ai | 068921c8-3a88-4836-b328-13bb4fc792c3: greenhouse:unframe; 11645dbd-32ed-48ab-8d03-14d8080ad3a2: linkedin:unframe-ai; 1c75ba7d-c652-4447-8e35-441bc30b39dd: greenhouse:unframe; 8762c485-ea69-4d8c-8088-a9058ff6b4e7: greenhouse:unframe; 9da5d1d4-5d98-4733-81f9-33d11a304b3c: —; a01f8105-b37f-4a6b-ba24-625c3fadc800: greenhouse:unframe; a74a36d6-9d1f-4818-b86e-2dcbd6326aeb: greenhouse:unframe; b5f1d2fd-4d28-4c7f-b14a-a406b8a0a143: —; bccf48b2-3481-4f9e-afd6-658bc1e4b366: —; d69c3067-07e2-4b6d-bc0b-cc6910ad3243: greenhouse:unframe |
+| unilink ltd. | domain map | no bound identity | 898affa9-bdd1-4fe6-b71d-a78a0f9406c7: — |
+| unity | domain map | unity.com | 8c6d5866-c5bc-4d43-b8fe-4a82cccbe012: — |
+| upwind security | domain map | no bound identity | 4b9b1bd6-dc27-4862-84e5-fc89eaf0e8ac: — |
+| ust | domain map | ust.com | 1c6ebf32-1bda-4485-98b5-7ed57dbcc309: — |
+| uveye | domain map | no bound identity | 836c9cce-e344-4666-a4ee-3033803773fe: — |
+| uvision group | domain map | no bound identity | 1704a382-63a4-40c9-90a5-ef666d54fffb: — |
+| vanguard | catalog | linkedin:vanguard | 0774d244-813d-4e5d-ab29-5ef3964ee8ae: linkedin:vanguard; f80be84e-a58b-4e5e-a77b-5f871d4a5e4e: linkedin:vanguard |
+| varonis | domain map | no bound identity | 5534c710-8a77-496b-b68d-d0bdb0454dc8: — |
+| venn | domain map | no bound identity | 6050c080-6e91-477a-a4e5-a759fad4f660: — |
+| venture up | catalog | linkedin:ventureups | 375b7662-3833-4e19-9f35-66362745a74f: linkedin:ventureups |
+| versigent | catalog | linkedin:versigent | b175bedc-52e5-4f77-9806-8b9c4299e1f5: linkedin:versigent |
+| vertafore | domain map | vertafore.com | 93015ef9-74f6-4075-bcf4-e81f45f8852b: — |
+| via | domain map | no bound identity | 28fe7b41-652c-494a-bd13-5518b293e0c9: —; 823b11d7-01d9-42c1-8d36-5d898d7186c3: —; c6b5924b-4379-42fd-9599-7771ade88c52: —; f4e5263b-122c-42be-82bd-27e6e23df159: — |
+| virtualitics | domain map | no bound identity | d8cfe405-bf8a-45b6-b0d8-cddd8099acfa: — |
+| virtuous | domain map | virtuous.org | 64796923-022e-4368-91e7-9a82a9671f06: —; dea0b693-111f-40f1-b5bf-8099f8533afd: — |
+| viz.ai | domain map | no bound identity | abab0d3a-3a54-4b08-9405-6b9ed46150f7: — |
+| voyantis | domain map | no bound identity | 417ea12f-02d1-42d1-ab2c-a0293018206f: —; c070098d-358a-4b57-a356-f2bbfa6e4be5: — |
+| vybs | domain map | no bound identity | 23f4b16d-e868-4413-8cfe-84495e63504e: — |
+| warner music group | domain map | no bound identity | 84f60cb0-7f9f-4bb7-9a1f-61022508ccab: — |
+| wayve | domain map | wayve.ai | 0c382cbc-17d9-4a22-96b4-a025b5662c3e: —; 5ecde07f-2cee-43b0-aec4-6ff6e38f1322: firststage:wayve; 83857305-0576-4ab4-b462-1fb3a62e4afb: firststage:wayve; cfd1cc0e-6222-4453-bb37-e92f5e78125a: firststage:wayve |
+| wedev | catalog | greenhouse:wedev | d2d65eb3-dc07-40e2-ab9c-da1bef3cf18e: greenhouse:wedev |
+| wedoit.co.il | domain map | no bound identity | 8925f5d9-fb9c-4668-b404-1e0819163580: — |
+| weka | domain map | no bound identity | ad8be8bd-d101-4e7f-b912-9a778572a9a5: — |
+| weski | domain map | no bound identity | 338b7ed2-307c-48da-8bb6-88bce5cf8cbd: — |
+| wilson brown | domain map | no bound identity | e207c865-d0f6-4510-bc8a-8f904dcbd146: — |
+| wiraa | domain map | no bound identity | 143aeb9a-2b6b-4ed7-b01a-3513c5c4f92c: —; 16a320a1-0c5e-4512-ad14-cd076e6a8fbf: —; 1e206a43-e750-45d3-b3a8-7530a8277017: —; 4ed87776-f827-43a6-96a3-a4c1762eed7d: —; 51113c3f-5c08-4573-8f1b-08511514a369: —; 6c92fbaa-b954-4fd7-accb-083e7c81786d: —; 719334c2-32a8-4ae8-aaf8-1bdcc10644a5: —; 9f1c8fd7-aff8-4bba-82dc-09477b744140: —; a00c1067-80c8-4be4-8b7e-cd8bb82d4ac1: —; e8b72b6e-33e9-4843-9ea6-bb758862f07a: —; fe22546e-0212-4dd5-8af9-e19bffad65ff: — |
+| wittix | domain map | no bound identity | eda871dd-797e-4d1d-a821-3f3438c8b44f: — |
 | wix | catalog | wix.com | 4bb10417-c104-45ab-b3ab-731605ec33ce: —; 531abef2-6aa1-445c-ad97-2e202ead1ddc: —; 5c114bdc-5cb1-414b-ae96-cc38abd910e6: —; 93e8ef8c-498e-4cdb-a33a-85250923e9c9: —; e2db019c-9c61-452d-8fca-d1b4d620bbb4: — |
-| wiz | catalog | unbound/null | 6573db23-78ac-48fb-84b8-9710b973a1aa: —; 66e1efee-0370-4863-9d20-7475be5feb96: —; 7499de57-06de-404a-bd22-a4333bf60ce8: —; e6b00dbe-21b5-4a06-b645-b03d0ffb272a: —; f3825ce1-4bd4-4b9f-97dd-c52071286693: —; ff2a3735-fc90-4936-97c1-4b9204f6ac38: — |
+| wiz | catalog | linkedin:wizsecurity | 6573db23-78ac-48fb-84b8-9710b973a1aa: linkedin:wizsecurity; 66e1efee-0370-4863-9d20-7475be5feb96: —; 7499de57-06de-404a-bd22-a4333bf60ce8: linkedin:wizsecurity; e6b00dbe-21b5-4a06-b645-b03d0ffb272a: linkedin:wizsecurity; f3825ce1-4bd4-4b9f-97dd-c52071286693: linkedin:wizsecurity; ff2a3735-fc90-4936-97c1-4b9204f6ac38: — |
 | workday | domain map | workday.com | 5c5e21b7-5a4e-48b1-b5ba-4afb4d166972: — |
-| workiva | domain map | workiva.com | 42787c5e-533f-4ac7-bf90-b8156c3679fd: workiva.com |
-| worldquant | domain map | unbound/null | 9f2dfa75-5cf3-45d2-9604-bfe1105378d7: —; b4826faa-b60d-43ce-8b74-164c21940b8c: — |
-| wrkmark | domain map | unbound/null | 17165d9a-8369-4fb5-84be-e61785099810: wrkmark.com |
-| xpend | domain map | unbound/null | 9550154b-2033-453e-96b1-8a36b8bb67d6: — |
-| yad2 | domain map | unbound/null | 2d3d2b81-37fa-4b80-88bf-2b5908d03f33: — |
-| yael group | domain map | unbound/null | 03f103f0-620d-47c4-86cf-619dd765ee6b: —; 98307b6d-09c5-4d76-9c60-a6c53c971b40: — |
-| yael korentec technologies | domain map | unbound/null | 295552f5-a8a8-4cf9-8f62-9da192c545c5: —; 458feb54-054d-4b46-a412-5e501a16a2f6: —; 4a34d18d-870b-4632-9568-a3372be0b802: —; 4bc089c9-e487-4106-bd38-8c55cdc185ad: —; 5adbd1be-24b1-4f31-9159-e6087ab83857: —; 710ec9f3-e2e5-4af5-b00c-fc15dd33bac7: —; f80f62f0-21a7-41c0-8a2c-d0a625cd4af7: —; f9811c58-9dc8-4f5c-bd8b-09abfde9e2e9: — |
-| yahoo | domain map | unbound/null | 07e62576-08fd-4054-a7e1-dd277e57b2ef: —; 45e6c165-ddf2-4648-9aa2-de2c448cc346: —; 81abbff0-dadc-46ee-b96d-9ecf79a7c309: — |
-| yara ai | domain map | unbound/null | 845f3212-71c1-4734-86a1-c5755f4d8bea: — |
-| yotpo | domain map | unbound/null | 3bfb200d-141f-47b0-864c-5efd6c9613bf: — |
-| zadara | domain map | unbound/null | 75bbdb21-e36a-42e6-9037-ccf7430d895d: — |
-| zealot | domain map | unbound/null | 81cbf147-90af-4eae-a563-ab7d42346835: — |
-| zendesk | catalog | unbound/null | 205e7ccd-4699-4d69-8874-7385f3d19c4e: zendesk.com |
-| zenity | catalog | unbound/null | 89e3d0e2-d385-4763-b8f8-f4df1ec9ddcd: —; 9ab8a5f0-091a-4401-91d4-492f2c9cd582: — |
-| zero networks | domain map | unbound/null | eec49dac-bbfa-46f9-b519-d29f15d2c6be: — |
-| zipher | domain map | unbound/null | 097a21d5-c34d-45c6-8ddd-77c6b4b42724: —; ef516ef7-a30a-4ff6-8b5a-471428328b28: — |
-| zocdoc | catalog | unbound/null | d29bf13b-afc2-4630-9a63-7e7ddebe566a: — |
-| שני נוי - ייעוץ תעסוקתי | domain map | unbound/null | e8ab0976-a7b0-4087-aad2-0f130b5ef0ee: — |
+| workiva | domain map | workiva.com | 42787c5e-533f-4ac7-bf90-b8156c3679fd: — |
+| worldquant | domain map | no bound identity | 9f2dfa75-5cf3-45d2-9604-bfe1105378d7: —; b4826faa-b60d-43ce-8b74-164c21940b8c: — |
+| wrkmark | domain map | no bound identity | 17165d9a-8369-4fb5-84be-e61785099810: — |
+| xpend | domain map | no bound identity | 9550154b-2033-453e-96b1-8a36b8bb67d6: — |
+| yad2 | domain map | no bound identity | 2d3d2b81-37fa-4b80-88bf-2b5908d03f33: — |
+| yael group | domain map | no bound identity | 03f103f0-620d-47c4-86cf-619dd765ee6b: —; 98307b6d-09c5-4d76-9c60-a6c53c971b40: — |
+| yael korentec technologies | domain map | no bound identity | 295552f5-a8a8-4cf9-8f62-9da192c545c5: —; 458feb54-054d-4b46-a412-5e501a16a2f6: —; 4a34d18d-870b-4632-9568-a3372be0b802: —; 4bc089c9-e487-4106-bd38-8c55cdc185ad: —; 5adbd1be-24b1-4f31-9159-e6087ab83857: —; 710ec9f3-e2e5-4af5-b00c-fc15dd33bac7: —; f80f62f0-21a7-41c0-8a2c-d0a625cd4af7: —; f9811c58-9dc8-4f5c-bd8b-09abfde9e2e9: — |
+| yahoo | domain map | no bound identity | 07e62576-08fd-4054-a7e1-dd277e57b2ef: —; 45e6c165-ddf2-4648-9aa2-de2c448cc346: —; 81abbff0-dadc-46ee-b96d-9ecf79a7c309: — |
+| yara ai | domain map | no bound identity | 845f3212-71c1-4734-86a1-c5755f4d8bea: — |
+| yotpo | domain map | no bound identity | 3bfb200d-141f-47b0-864c-5efd6c9613bf: — |
+| zadara | domain map | no bound identity | 75bbdb21-e36a-42e6-9037-ccf7430d895d: — |
+| zealot | domain map | no bound identity | 81cbf147-90af-4eae-a563-ab7d42346835: — |
+| zendesk | catalog | linkedin:zendesk | 205e7ccd-4699-4d69-8874-7385f3d19c4e: linkedin:zendesk |
+| zenity | catalog | linkedin:zenitysec | 89e3d0e2-d385-4763-b8f8-f4df1ec9ddcd: linkedin:zenitysec; 9ab8a5f0-091a-4401-91d4-492f2c9cd582: linkedin:zenitysec |
+| zero networks | domain map | no bound identity | eec49dac-bbfa-46f9-b519-d29f15d2c6be: — |
+| zipher | domain map | no bound identity | 097a21d5-c34d-45c6-8ddd-77c6b4b42724: —; ef516ef7-a30a-4ff6-8b5a-471428328b28: — |
+| zocdoc | catalog | linkedin:zocdoc | d29bf13b-afc2-4630-9a63-7e7ddebe566a: linkedin:zocdoc |
+| שני נוי - ייעוץ תעסוקתי | domain map | no bound identity | e8ab0976-a7b0-4087-aad2-0f130b5ef0ee: — |

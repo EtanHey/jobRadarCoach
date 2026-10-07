@@ -1,6 +1,7 @@
 import domainsJson from "./company-logo-domains.json";
 import catalogJson from "./company-logo-catalog.json";
 import identitiesJson from "./company-logo-identities.json";
+import sourceBindingsJson from "./company-logo-source-bindings.json";
 import { companyLogoOverrides, type CompanyLogoOverride } from "./company-logo-overrides";
 
 export type CompanyLogoDomainMap = Readonly<Record<string, string | null>>;
@@ -8,8 +9,9 @@ const domains: CompanyLogoDomainMap = domainsJson;
 const catalog = catalogJson as Record<string, string>;
 
 export type CompanyLogoSource = { kind: "catalog" | "override" | "logo-dev"; src: string };
-export type CompanyLogoInput = { company: string; applyUrl?: string | null; url?: string | null; rawJd?: string | null };
-export type CompanyLogoIdentity = { domains: readonly string[]; unambiguous?: boolean };
+export type CompanyLogoInput = { company: string; applyUrl?: string | null; url?: string | null; rawJd?: string | null; postingId?: string | null; sourceCompany?: string | null };
+export type CompanyLogoIdentity = { domains: readonly string[]; sourceCompanies?: readonly string[]; postingIds?: readonly string[]; collision?: boolean };
+const sourceBindings: Readonly<Record<string, string>> = sourceBindingsJson;
 const identities: Readonly<Record<string, CompanyLogoIdentity>> = identitiesJson;
 export type CompanyLogoOptions = { logoDevKey?: string; domainMap?: CompanyLogoDomainMap; overrides?: Readonly<Record<string, CompanyLogoOverride>>; identities?: Readonly<Record<string, CompanyLogoIdentity>> };
 
@@ -23,7 +25,7 @@ const sharedJobHosts = [
   "bamboohr.com", "recruitee.com", "breezy.hr", "jobvite.com", "icims.com", "teamtailor.com", "personio.de",
   "personio.com", "pinpointhq.com", "rippling.com", "rippling-ats.com", "applytojob.com", "jazzhr.com",
   "taleo.net", "successfactors.com", "successfactors.eu", "oraclecloud.com", "wellfound.com", "ycombinator.com",
-  "builtin.com", "hibob.com", "gem.com", "dover.com", "jobs.ashbyhq.com", "google.com", "notion.site",
+  "builtin.com", "firststage.co", "hibob.com", "gem.com", "dover.com", "jobs.ashbyhq.com", "google.com", "notion.site",
 ];
 const secondLevelLabels = new Set(["co", "com", "org", "net", "ac", "gov", "edu"]);
 const genericCompanyWords = new Set(["the", "inc", "ltd", "llc", "group", "labs", "lab", "technologies", "technology", "tech", "security", "israel", "software", "systems", "solutions", "company", "global", "international", "ai", "io", "app", "com"]);
@@ -78,12 +80,10 @@ function logoDevUrl(path: string, key: string): string {
   return `https://img.logo.dev/${path}?${params}`;
 }
 
-/** Explicit domains in job copy corroborate identity only when they resemble the employer or an identity pin. */
-export function postingCompanyDomains(input: CompanyLogoInput, expected: readonly string[] = []): string[] {
-  const references = input.rawJd?.match(/(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"']*)?/gi) ?? [];
-  const urls = [input.applyUrl, input.url, ...references.map(raw => /^https?:\/\//i.test(raw) ? raw : `https://${raw}`)];
+/** Only structured posting/apply URLs identify domains. Free-text JD is deliberately ignored. */
+export function postingCompanyDomains(input: CompanyLogoInput): string[] {
   const found = new Set<string>();
-  for (const [index, url] of urls.entries()) {
+  for (const url of [input.applyUrl, input.url]) {
     if (!url) continue;
     try {
       const parsed = new URL(url);
@@ -91,8 +91,33 @@ export function postingCompanyDomains(input: CompanyLogoInput, expected: readonl
       const host = parsed.hostname.toLowerCase();
       if (sharedJobHosts.some(shared => host === shared || host.endsWith(`.${shared}`))) continue;
       const domain = registrableDomain(host);
-      if (domain && (index < 2 || expected.includes(domain) || companyDomain(input.company, [url]))) found.add(domain);
-    } catch { /* Invalid references provide no identity evidence. */ }
+      if (domain) found.add(domain);
+    } catch { /* Invalid URLs provide no identity evidence. */ }
+  }
+  return [...found];
+}
+
+/** ATS tenant paths are structured employer identifiers, never shared-host domain evidence. */
+export function postingSourceCompanies(input: CompanyLogoInput): string[] {
+  const found = new Set<string>();
+  if (input.sourceCompany) found.add(input.sourceCompany.toLowerCase());
+  const bound = input.postingId ? own(sourceBindings, input.postingId) : undefined;
+  if (bound) found.add(bound);
+  for (const raw of [input.applyUrl, input.url]) {
+    if (!raw) continue;
+    try {
+      const url = new URL(raw);
+      if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) continue;
+      const host = url.hostname.toLowerCase(), parts = url.pathname.split("/").filter(Boolean);
+      const slug = parts[0]?.toLowerCase();
+      if (!slug || !/^[a-z0-9_-]+$/.test(slug)) continue;
+      if (["boards.greenhouse.io", "job-boards.greenhouse.io", "boards.eu.greenhouse.io", "job-boards.eu.greenhouse.io"].includes(host)) found.add(`greenhouse:${slug}`);
+      else if (host === "jobs.lever.co" || host === "jobs.eu.lever.co") found.add(`lever:${slug}`);
+      else if (host === "jobs.ashbyhq.com") found.add(`ashby:${slug}`);
+      else if (host === "apply.workable.com") found.add(`workable:${slug}`);
+      else if (host.endsWith(".firststage.co")) found.add(`firststage:${host.split(".")[0]}`);
+      else if ((host === "linkedin.com" || host.endsWith(".linkedin.com")) && parts[0] === "company" && parts[1]) found.add(`linkedin:${parts[1].toLowerCase()}`);
+    } catch { /* Invalid URLs provide no source-company identifier. */ }
   }
   return [...found];
 }
@@ -108,19 +133,26 @@ export function resolveCompanyLogo(input: CompanyLogoInput, options: CompanyLogo
   const identity = own(options.identities ?? identities, name);
   const mapped = own(options.domainMap ?? domains, name);
   const expected = override?.kind === "domain" ? [override.domain] : identity?.domains ?? (mapped ? [mapped] : []);
-  const evidence = postingCompanyDomains(input, expected);
+  const evidence = postingCompanyDomains(input);
+  const companies = postingSourceCompanies(input);
+  const expectedCompanies = identity?.sourceCompanies ?? [];
+  const companyConflict = expectedCompanies.length > 0 && companies.some(company => !expectedCompanies.includes(company));
+  if (companyConflict) return null;
   // Two competing employer domains cannot be resolved by URL order or by a name match.
   if (evidence.length > 1) return null;
   const domain = evidence[0];
-  const qualified = domain ? expected.includes(domain) : identity?.unambiguous === true && expected.every(candidate => identity.domains.includes(candidate));
+  const sourceMatch = companies.some(company => expectedCompanies.includes(company)) || !!(input.postingId && identity?.postingIds?.includes(input.postingId));
+  const domainMatch = !!domain && expected.includes(domain);
+  const domainConflict = !!domain && (expected.length > 0 ? !domainMatch : !companyDomain(input.company, [input.applyUrl, input.url]));
+  const qualified = !domainConflict && (domainMatch || sourceMatch || !identity?.collision);
   if (override?.kind === "file") return qualified ? { kind: "override", src: override.src } : null;
   if (override?.kind === "domain") return qualified && key ? { kind: "logo-dev", src: logoDevUrl(override.domain, key) } : null;
   const curated = own(catalog, name);
-  if (curated && identity && qualified) return { kind: "catalog", src: curated };
+  if (curated && qualified) return { kind: "catalog", src: curated };
   if (!key) return null;
   if (domain && (expected.includes(domain) || companyDomain(input.company, [`https://${domain}`]))) return { kind: "logo-dev", src: logoDevUrl(domain, key) };
-  // An explicit unambiguous ruling is required even for a previously audited domain map.
-  if (!domain && mapped && identity?.unambiguous && identity.domains.includes(mapped)) return { kind: "logo-dev", src: logoDevUrl(mapped, key) };
+  // Audited map names retain coverage unless a known collision requires structured proof.
+  if (!domain && mapped && qualified) return { kind: "logo-dev", src: logoDevUrl(mapped, key) };
   return null;
 }
 

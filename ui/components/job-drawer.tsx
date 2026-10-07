@@ -39,7 +39,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent initialFocus={() => document.querySelector<HTMLElement>("[data-job-description]")} finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
-        <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} rawJd={detail?.raw_jd} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
+        <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} postingId={heading.id} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {heading && <div className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} lastPublishedAt={heading.last_published_at} firstSeenAt={heading.first_seen_at} /></div>}
         {detail && <>

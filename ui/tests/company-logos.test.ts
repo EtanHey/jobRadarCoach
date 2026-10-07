@@ -58,12 +58,12 @@ test("DoiT com evidence retains its curated logo, but a name alone does not", ()
 
 test("conflicting company domains veto both catalog and domain lookup", () => {
   assert.equal(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.com/jobs/1", url: "https://doit.app/jobs/1" }, { logoDevKey: KEY }), null);
-  assert.equal(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.com/jobs/1", rawJd: "Our personal finance app is at https://doit.app." }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.com/jobs/1", rawJd: "Our partner is at https://doit.app." }, { logoDevKey: KEY })?.kind, "catalog");
 });
 
-test("unqualified catalog, mapped and unseen names render initials", () => {
-  assert.equal(resolveCompanyLogo({ company: "MeeBoss" }, { logoDevKey: KEY }), null);
-  assert.equal(resolveCompanyLogo({ company: "Acme Robotics" }, { logoDevKey: KEY, domainMap: { "acme robotics": "acmerobotics.ai" } }), null);
+test("ordinary catalog and audited mapped names retain coverage without conflicting identity", () => {
+  assert.equal(resolveCompanyLogo({ company: "MeeBoss" }, { logoDevKey: KEY })?.kind, "catalog");
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Acme Robotics" }, { logoDevKey: KEY, domainMap: { "acme robotics": "acmerobotics.ai" } })?.src).pathname, "/acmerobotics.ai");
   assert.equal(resolveCompanyLogo({ company: "Unseen Widgets" }, { logoDevKey: KEY, domainMap: {} }), null);
 });
 
@@ -243,7 +243,7 @@ test("UTF-8 company names match the shipped map instead of falling through to na
 });
 
 test("explicit unambiguous exceptions cannot override conflicting evidence", () => {
-  assert.equal(resolveCompanyLogo({ company: "Wix", rawJd: "Visit wix.app for this employer." }), null);
+  assert.equal(resolveCompanyLogo({ company: "Wix", rawJd: "Our partner uses wix.app." })?.kind, "catalog");
   assert.equal(logoDev(resolveCompanyLogo({ company: "Jeen.ai", applyUrl: "https://jeen.app/jobs/1" }, { logoDevKey: KEY })?.src).pathname, "/jeen.app");
 });
 
@@ -252,11 +252,22 @@ test("a map cannot substitute another homonym domain for posting evidence", () =
   assert.equal(logoDev(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.app/jobs/1" }, { logoDevKey: KEY, domainMap })?.src).pathname, "/doit.app");
 });
 
-test("job-copy URLs, bare domains and email domains provide identity without generic technology names", () => {
-  for (const rawJd of ["Visit https://doit.com/about.", "Our site is doit.com.", "Recruiting: hiring@doit.com."]) {
-    assert.equal(resolveCompanyLogo({ company: "DoiT", rawJd })?.kind, "catalog", rawJd);
+test("free-text partner, negation, email and userinfo mentions never grant identity", () => {
+  for (const rawJd of ["Our cloud partner is DoiT (https://doit.com).", "We are not affiliated with doit.com.", "Contact support@doit.com.", "See https://doit.com@attacker.example/jobs/1"]) {
+    assert.equal(resolveCompanyLogo({ company: "Doit", url: "https://www.linkedin.com/jobs/view/1", rawJd }, { logoDevKey: KEY }), null, rawJd);
+    assert.equal(resolveCompanyLogo({ company: "Wix", applyUrl: "https://wix.com/jobs/1", rawJd })?.kind, "catalog", rawJd);
   }
-  assert.equal(resolveCompanyLogo({ company: "Doit", rawJd: "We use Next.js and Node.js." }, { logoDevKey: KEY }), null);
+});
+
+test("DoiT structured ATS/company and verified posting bindings retain its catalog", () => {
+  for (const input of [
+    { company: "DoiT", applyUrl: "https://boards.greenhouse.io/doitintl/jobs/1" },
+    { company: "DoiT", sourceCompany: "linkedin:doitintl" },
+    { company: "DoiT", postingId: "799dfdd2-e6a0-43b0-9fbe-b30debbfde81" },
+  ]) assert.equal(resolveCompanyLogo(input)?.kind, "catalog");
+  assert.equal(resolveCompanyLogo({ company: "Doit", sourceCompany: "linkedin:doit-official" }), null);
+  assert.equal(resolveCompanyLogo({ company: "Doit", postingId: "f0dc6b0d-5897-4e50-9946-5e91aae3e321" }), null);
+  assert.equal(resolveCompanyLogo({ company: "DoiT", sourceCompany: "linkedin:doit-official", applyUrl: "https://doit.com/jobs/1" }), null);
 });
 
 test("prototype keys cannot select inherited logo entries", () => {

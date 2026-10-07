@@ -20,16 +20,19 @@ const companies = [
   { company: "Jeen.ai", expect: { source: "logo-dev", state: "loaded" } },
   { company: "TalentHop", expect: { state: "unmapped", initials: "T" } },
   { company: "Doit", apply_url: "https://doit.app/jobs/1", expect: { source: "logo-dev", state: "load-failed", initials: "D" } },
-  { company: "DoiT", apply_url: "https://doit.com/jobs/1", expect: { source: "catalog", state: "loaded" } },
+  { company: "DoiT", apply_url: "https://job-boards.greenhouse.io/doitintl/jobs/1", expect: { source: "catalog", state: "loaded" } },
+  { company: "Anthropic", expect: { source: "catalog", state: "loaded" } },
+  { company: "DOIT", expect: { state: "unmapped", initials: "D" } },
+  { company: "Shifters", posting_id: "19839819-cb9b-4368-bce4-e83eea9f0682", expect: { source: "catalog", state: "loaded" } },
 ];
 const places = [["Rehovot, Israel", 34.8113, 31.8928], ["Berlin, Germany", 13.405, 52.52], ["Tel Aviv, Israel", 34.7818, 32.0853], ["London, United Kingdom", -0.1276, 51.5072], ["Paris, France", 2.3522, 48.8566], ["Rome, Italy", 12.4964, 41.9028]];
-const jobs = companies.map(({ company, apply_url = null }, n) => ({ id: id(n), title: `Fixture engineer ${n}`, company, source: "fixture",
+const jobs = companies.map(({ company, apply_url = null, posting_id }, n) => ({ id: posting_id ?? id(n), title: `Fixture engineer ${n}`, company, source: "fixture",
   last_seen_at: "2026-10-04T00:00:00Z", experience: "3+ years", description_available: true, seniority_origin: "title",
   extraction_state: "not-extracted", location: places[n % places.length][0], remote: false, seniority: "Junior", stack: ["React", "TypeScript"], salary: null,
   url: "https://www.linkedin.com/jobs/view/1", apply_url, posted_at: null, first_seen_at: "2026-10-04T00:00:00Z", status: "new", status_reason: null,
-  score: 70 + n * 3, fit_line: null, recommendation: null }));
-const detail = job => ({ ...job, raw_jd: `Synthetic description for the logo fixture.${job.company === "DoiT" ? " Our employer site is https://doit.app." : ""}`, reasons: [], score_payload: null, brain: null, scored_at: null });
-const globe = { jobs, points: jobs.map((_, n) => ({ posting_id: id(n), lng: places[n % places.length][1], lat: places[n % places.length][2], precision: "city", source: "Synthetic fixture", resolved_at: "2026-10-04T00:00:00Z" })),
+  score: Math.min(99, 70 + n * 3), fit_line: null, recommendation: null }));
+const detail = job => ({ ...job, raw_jd: `Synthetic description for the logo fixture.${job.company === "DoiT" ? " Our partner site is https://doit.app." : job.company === "DOIT" ? " Our cloud partner is DoiT (https://doit.com). We are not affiliated with doit.com. Contact support@doit.com. See https://doit.com@attacker.example/jobs/1." : ""}`, reasons: [], score_payload: null, brain: null, scored_at: null });
+const globe = { jobs, points: jobs.map((_, n) => ({ posting_id: jobs[n].id, lng: places[n % places.length][1], lat: places[n % places.length][2], precision: "city", source: "Synthetic fixture", resolved_at: "2026-10-04T00:00:00Z" })),
   total_count: jobs.length, resolved_count: jobs.length, unresolved_count: 0, attribution: "© OpenStreetMap contributors" };
 const syntheticLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="64" cy="64" r="44" fill="#7c3aed"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">AR</text></svg>';
 
@@ -76,8 +79,15 @@ async function open(viewport, colorScheme, body) {
   } finally { await context.close(); }
 }
 
-const settled = (page, scope) => page.waitForFunction(selector => [...document.querySelectorAll(`${selector} [data-company-logo]`)]
-  .every(logo => logo.dataset.logoState !== "loading"), scope, { timeout: 15000 });
+// Exercise lazy images in the real viewport before asking every tile to settle.
+const settled = async (page, scope) => {
+  const position = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
+  for (const logo of await page.locator(`${scope} [data-company-logo]`).all()) {
+    await logo.scrollIntoViewIfNeeded();
+    await page.waitForFunction(element => element.dataset.logoState !== "loading", await logo.elementHandle(), { timeout: 15000 });
+  }
+  await page.evaluate(({ x, y }) => window.scrollTo(x, y), position);
+};
 async function logosIn(page, scope) {
   await settled(page, scope);
   return page.locator(`${scope} [data-company-logo]`).evaluateAll(logos => logos.map(logo => {
@@ -142,11 +152,20 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
         await drawer.waitFor({ state: "hidden" });
 
         await page.getByRole("button", { name: "Open Fixture engineer 7 at DoiT", exact: true }).click();
-        await drawer.getByText("Our employer site is https://doit.app.", { exact: false }).waitFor();
+        await drawer.getByText("Our partner site is https://doit.app.", { exact: false }).waitFor();
         const [conflictLogo] = await logosIn(page, '[role="dialog"]');
-        assert.equal(conflictLogo.state, "unmapped", `${name}: loaded conflicting JD vetoes the catalog`);
-        assert.equal(conflictLogo.image, null, `${name}: conflicting drawer has no image`);
+        assert.equal(conflictLogo.state, "loaded", `${name}: partner JD cannot veto structured DoiT identity`);
+        assert.equal(conflictLogo.image.src, grid[7].image.src, `${name}: drawer keeps the ATS-bound catalog`);
         await shot(page, `${name}-conflict-drawer`);
+        await page.keyboard.press("Escape");
+        await drawer.waitFor({ state: "hidden" });
+
+        await page.getByRole("button", { name: "Open Fixture engineer 9 at DOIT", exact: true }).click();
+        await drawer.getByText("Our cloud partner is DoiT", { exact: false }).waitFor();
+        const [partnerLogo] = await logosIn(page, '[role="dialog"]');
+        assert.equal(partnerLogo.state, "unmapped", `${name}: partner, negated, email and userinfo mentions cannot grant identity`);
+        assert.equal(partnerLogo.image, null, `${name}: homonym drawer stays initials`);
+        await shot(page, `${name}-partner-drawer`);
         await page.keyboard.press("Escape");
         await drawer.waitFor({ state: "hidden" });
 

@@ -17,8 +17,8 @@ test("the audit reports competing domains but preserves missing evidence explici
   const doit = auditLogoCollisions(rows).find(entry => entry.name === "doit")!;
   assert.deepEqual(doit.expected, ["doit.com"]);
   assert.deepEqual(doit.postings, [
-    { id: "synthetic-app", evidence: ["doit.app"], conflicts: ["doit.app"] },
-    { id: "synthetic-cloud", evidence: ["doit.com"], conflicts: [] },
-    { id: "synthetic-unknown", evidence: [], conflicts: [] },
+    { id: "synthetic-app", evidence: ["doit.app"], sourceCompanies: [], conflicts: ["doit.app"] },
+    { id: "synthetic-cloud", evidence: ["doit.com"], sourceCompanies: [], conflicts: [] },
+    { id: "synthetic-unknown", evidence: [], sourceCompanies: [], conflicts: [] },
   ]);
 });
