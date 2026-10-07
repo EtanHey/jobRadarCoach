@@ -23,6 +23,8 @@ MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
 def migrated_database_url():
     try:
         with migrated_database(MIGRATIONS, through=6) as url:
+            with psycopg.connect(url, autocommit=True) as db:
+                db.execute((MIGRATIONS / "0028_relevance_gate.sql").read_text())
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
@@ -381,6 +383,8 @@ def test_candidate_query_keeps_eligibility_leases_and_priority_order() -> None:
         def execute(self, sql, params=()):
             if "from public.profile" in sql:
                 return Result(list(profile_snapshot().items()))
+            if "select p.id::text,p.title,p.raw_jd" in sql:
+                return Result([])
             self.candidate_sql = sql
             self.candidate_params = params
             return Result([("unscored",), ("stale",)])
@@ -442,4 +446,13 @@ def test_raw_description_can_score_without_extraction_and_then_skip(connection) 
 def test_unusable_description_is_not_selected(connection, raw_jd) -> None:
     posting_id = seed(connection, status="new")
     connection.execute("update public.postings set raw_jd=%s where id=%s", (raw_jd, posting_id))
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []
+
+
+def test_explicit_score_request_runs_once_even_with_current_profile(connection):
+    posting_id = seed(connection, status='new')
+    assert persistence.score_and_persist(connection, posting_id, brain_runner=runner) == 'stored'
+    connection.execute("update postings set relevance_gate='{\"override\":true,\"score_requested\":true}'::jsonb where id=%s", (posting_id,))
+    assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == [posting_id]
+    assert persistence.score_and_persist(connection, posting_id, brain_runner=runner) == 'unchanged'
     assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []

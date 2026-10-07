@@ -15,7 +15,7 @@ from extractor.job import select_postings
 @pytest.fixture(scope='module')
 def database_url():
     try:
-        with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=12) as url:
+        with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=28) as url:
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
