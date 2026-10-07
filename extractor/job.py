@@ -126,6 +126,7 @@ def run_batch(
     timeout_seconds: int | float,
     posting_ids: Sequence[str] = (),
     env: Mapping[str, str] | None = None,
+    allow_legacy_settings: bool = True,
     extractor: Callable[..., dict[str, object]] | None = None,
     persister: Callable[..., str] = persist_extraction,
 ) -> int:
@@ -139,7 +140,7 @@ def run_batch(
     ):
         raise ValueError("timeout must be between 0 and 120 seconds")
     profile = load_runtime_profile(connection)
-    settings = stage_settings('extractor', profile, env)
+    settings = stage_settings('extractor', profile, env, allow_legacy=allow_legacy_settings)
     provider = resolve_brain(profile, settings)
     if extractor is None:
         extractor = partial(extract_posting, runner=partial(run_brain, env=settings))

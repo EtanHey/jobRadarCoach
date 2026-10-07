@@ -14,10 +14,12 @@ launch environment. Each stage resolves independently. For persisted config,
 use profile fields `runtime.extractor.provider`, `runtime.extractor.model`,
 `runtime.extractor.reasoning_effort` and their `runtime.scorer.*` equivalents.
 
-Precedence for each setting: stage environment, stage profile, legacy transport
-environment, default. Provider selection also retains `runtime.brain` as a
-legacy fallback before the default. Existing `BRAIN`, `CODEX_MODEL`,
-`CODEX_REASONING_EFFORT`, `OLLAMA_MODEL`, and `OLLAMA_BASE_URL` remain supported.
+For the local worker, precedence is stage environment, stage profile, default.
+Shared `BRAIN`, `CODEX_MODEL`, `CODEX_REASONING_EFFORT`, `OLLAMA_MODEL`, and
+`runtime.brain` cannot override its independent stage settings. Standalone batch
+CLIs retain these legacy fallbacks before defaults for compatibility.
+`OLLAMA_BASE_URL` remains a transport setting for both paths. With no provider
+setting, standalone jobs now default to Codex (previously Ollama).
 Ollama defaults to `qwen2.5:7b-instruct` when selected without a model; reasoning
 effort applies to Codex only. Blank explicit settings fail configuration.
 

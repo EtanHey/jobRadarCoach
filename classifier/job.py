@@ -90,6 +90,7 @@ def run_batch(
     timeout_seconds: int | float,
     posting_ids: Sequence[str] = (),
     env: Mapping[str, str] | None = None,
+    allow_legacy_settings: bool = True,
     candidate_lister: Callable[..., list[str]] = list_scoring_candidates,
     scorer: Callable[..., str] = score_and_persist,
     brain: Callable[..., object] = run_brain,
@@ -104,7 +105,7 @@ def run_batch(
     ):
         raise ValueError("timeout must be between 0 and 120 seconds")
     profile = load_runtime_profile(connection)
-    settings = stage_settings('scorer', profile, env)
+    settings = stage_settings('scorer', profile, env, allow_legacy=allow_legacy_settings)
     provider = resolve_brain(profile, settings)
     if provider not in IMPLEMENTED_BRAINS:
         _log(selected=0, scored=0, failed=1, provider=provider,

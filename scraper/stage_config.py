@@ -1,14 +1,15 @@
 """Stage-owned model policy, translated at the provider transport boundary.
 
 Stage environment keys override runtime.<stage>.<field> profile settings,
-then legacy transport settings. Add future provider adapters here; do not
-silently route an unimplemented provider through Codex or Ollama.
+then optional legacy transport settings for standalone jobs. Add future provider
+adapters here; do not silently route an unimplemented provider through Codex or Ollama.
 """
 from __future__ import annotations
 
 import os
 from collections.abc import Mapping
 
+from scraper.brain import DEFAULT_OLLAMA_MODEL
 from scraper.brain_contract import BrainConfigurationError, resolve_brain
 
 EXTRACTOR_PROVIDER = 'codex'
@@ -40,23 +41,26 @@ def load_stage_profile(connection) -> dict[str, object]:
 
 
 def stage_settings(stage: str, profile: Mapping[str, object],
-                   env: Mapping[str, str] | None = None) -> dict[str, str]:
+                   env: Mapping[str, str] | None = None, *,
+                   allow_legacy: bool = True) -> dict[str, str]:
     source = os.environ if env is None else env
     default_provider, default_model, default_effort = DEFAULTS[stage]
     def value(field, legacy, default):
         env_key = f'{stage.upper()}_{field.upper()}'
         profile_key = f'runtime.{stage}.{field}'
-        selected = source.get(env_key, profile.get(profile_key, source.get(legacy, default)))
+        fallback = source.get(legacy, default) if allow_legacy else default
+        selected = source.get(env_key, profile.get(profile_key, fallback))
         if not isinstance(selected, str) or not selected.strip():
             raise BrainConfigurationError(f'{env_key} must be a nonblank string')
         return selected.strip()
     provider = resolve_brain(env={'BRAIN': value(
-        'provider', 'BRAIN', profile.get('runtime.brain', default_provider),
+        'provider', 'BRAIN',
+        profile.get('runtime.brain', default_provider) if allow_legacy else default_provider,
     )})
     settings = {'BRAIN': provider}
     if provider in ('codex', 'ollama'):
         model_key = 'CODEX_MODEL' if provider == 'codex' else 'OLLAMA_MODEL'
-        fallback_model = default_model if provider == 'codex' else 'qwen2.5:7b-instruct'
+        fallback_model = default_model if provider == 'codex' else DEFAULT_OLLAMA_MODEL
         settings[model_key] = value('model', model_key, fallback_model)
     if provider == 'codex':
         settings['CODEX_REASONING_EFFORT'] = value(
