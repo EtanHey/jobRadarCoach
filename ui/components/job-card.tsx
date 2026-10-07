@@ -42,7 +42,7 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
     <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }}
       onFocus={event => { if (event.currentTarget.matches(":focus-visible")) prefetchIntent?.start(job.id); }} onBlur={() => prefetchIntent?.end(job.id)} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
-      <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} size={logoSize} className={dim} />
+      <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} postingId={job.id} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
         <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
           <p className="truncate">{job.company}</p>
