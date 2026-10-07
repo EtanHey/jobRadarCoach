@@ -35,13 +35,15 @@ or recovery link** button, reads only the local Mailpit inbox and follows the
 real Auth verification/callback. It saves storage state once for the smoke
 project. HTTPS preserves the existing production auth contract; Node explicitly
 trusts the generated certificate, and Playwright accepts it locally.
-Next dev overwrites `NODE_EXTRA_CA_CERTS` with custom HTTPS certs, so its child
-uses `--use-openssl-ca` / `SSL_CERT_FILE` instead; TLS verification stays enabled.
-Next children use a 1280 MB heap ceiling and the browser a 1200×800 viewport.
-The disposable app uses `next dev --webpack`: the default Turbopack run on
-Ubuntu exceeded the unchanged 3072 MB process-tree cap (3313 MB, exit 137).
-Webpack keeps compilation in the capped Node heap; the same auth, API and
-globe assertions run locally and in CI, with no retries or skipped tests.
+The runner builds the disposable app once with `next build`, before
+launching Chromium, then serves Next's production request handler in a local
+HTTPS server (`next start` has no HTTPS flag). No development compilation runs
+alongside the browser. Both phases remain inside the same 3072 MB/600-second
+process-tree cap; build/server children have a 1024 MB heap ceiling and one
+Next build worker, using the same default bundler as the repository build.
+The original hosted dev run exceeded the cap (3313 MB, exit 137); Webpack dev
+also exceeded it (3388 MB). The browser retains its 1200×800 viewport.
+On a cap failure, the portable runner reports process RSS/names without arguments.
 The app copy retains proxy, auth and API routes. No job/API requests are mocked.
 Smoke opens a card/drawer, changes Applied, verifies it after reload and a real
 detail GET, then verifies the globe SQL snapshot and visible WebGL canvas.

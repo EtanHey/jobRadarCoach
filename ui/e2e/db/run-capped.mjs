@@ -6,6 +6,14 @@ import { database } from './db.mjs';
 await database('up');
 await database('seed');
 await rm('.e2e/db-auth.json', { force: true });
-const child = spawn(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', '--config', 'e2e/db/playwright.config.ts'], { env: cleanEnv(), stdio: 'inherit' });
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
-child.on('exit', code => process.exit(code ?? 1));
+async function run(args) {
+  const child = spawn(process.execPath, args, { env: cleanEnv(), stdio: 'inherit' });
+  const stop = signal => child.kill(signal);
+  const interrupt = () => stop('SIGINT'), terminate = () => stop('SIGTERM');
+  process.on('SIGINT', interrupt); process.on('SIGTERM', terminate);
+  const code = await new Promise((ok, fail) => { child.on('error', fail); child.on('exit', ok); });
+  process.off('SIGINT', interrupt); process.off('SIGTERM', terminate);
+  if (code !== 0) process.exit(code ?? 1);
+}
+await run(['e2e/db/start-app.mjs', 'build']);
+await run(['node_modules/@playwright/test/cli.js', 'test', '--config', 'e2e/db/playwright.config.ts']);
