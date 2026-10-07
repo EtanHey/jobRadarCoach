@@ -84,18 +84,18 @@ def test_closed_fixture_keeps_the_phrase_in_visible_body_text() -> None:
     assert "no longer accepting applications" in visible
 
 
-def test_linkedin_not_currently_accepting_applications_is_dead() -> None:
+def test_linkedin_captured_visible_status_is_dead() -> None:
     liveness = load_liveness()
 
     def opener(request, **_kwargs):
         return Response(
             200,
             request.full_url,
-            fixture("liveness-linkedin-not-accepting.html"),
+            fixture("linkedin-guest/4476383841-2026-10-07.html"),
         )
 
     result = liveness.check_url(
-        "https://www.linkedin.com/jobs/view/senior-software-engineer-4462954347",
+        "https://www.linkedin.com/jobs/view/full-stack-developer-4476383841",
         opener=opener,
     )
     assert result["alive"] is False
@@ -208,7 +208,7 @@ def test_non_dead_http_error_records_the_real_final_url() -> None:
     assert result["liveness_final_url"] == final
 
 
-def test_redirect_from_linkedin_job_to_search_is_dead() -> None:
+def test_redirect_from_linkedin_job_to_search_is_unknown() -> None:
     liveness = load_liveness()
 
     def opener(_request, **_kwargs):
@@ -217,8 +217,8 @@ def test_redirect_from_linkedin_job_to_search_is_dead() -> None:
     result = liveness.check_url(
         "https://www.linkedin.com/jobs/view/full-stack-engineer-123", opener=opener
     )
-    assert result["alive"] is False
-    assert result["liveness_reason"] == "redirect-to-search"
+    assert result["alive"] is None
+    assert result["liveness_reason"] == "http-200-uncertain"
 
 
 def test_redirect_from_linkedin_job_to_authwall_is_unknown() -> None:
@@ -231,7 +231,7 @@ def test_redirect_from_linkedin_job_to_authwall_is_unknown() -> None:
         "https://www.linkedin.com/jobs/view/full-stack-engineer-123", opener=opener
     )
     assert result["alive"] is None
-    assert result["liveness_reason"] == "redirect-to-auth"
+    assert result["liveness_reason"] == "http-200-uncertain"
 
 
 def test_greenhouse_job_redirect_to_same_board_error_is_dead() -> None:

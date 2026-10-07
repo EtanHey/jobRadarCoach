@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler
 
-from scraper.liveness import check_url
+from scraper.liveness import check_url, LINKEDIN_REQUEST_INTERVAL
 from scraper.public_https import pinned_open
 from scraper.ats_sources import ATS_SOURCES
 from scraper.ats_liveness import BoardChecker, check_posting_url, reliability_update, _counter
@@ -85,6 +85,8 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
                 receipt["unsupported"] += 1
             else:
                 try:
+                    if checker is None:
+                        time.sleep(LINKEDIN_REQUEST_INTERVAL)
                     result = checker(url) if checker else check_url(url, opener=pinned_open, timeout=8)
                 except Exception as error:
                     result = {"alive": None, "liveness_reason": type(error).__name__}

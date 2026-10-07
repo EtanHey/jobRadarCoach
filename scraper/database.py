@@ -297,13 +297,17 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
         or _timestamp(checked_at) is None
     ):
         return {}
-    return {
+    evidence = {
         "alive": alive,
         "liveness_status": status,
         "liveness_reason": reason,
         "liveness_final_url": final_url,
         "liveness_checked_at": checked_at,
     }
+    phrase = _nonblank(posting.get("liveness_phrase"))
+    if phrase:
+        evidence["liveness_phrase"] = phrase
+    return evidence
 
 
 def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[object, ...]:

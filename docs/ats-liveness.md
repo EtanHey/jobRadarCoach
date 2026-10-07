@@ -17,3 +17,30 @@ Board membership is checked for Greenhouse, Lever, Comeet, Workable, Ashby, Smar
 ## Tag backfill
 
 `python -m scripts.backfill_ats_liveness docs.local/reports/2026-10-05-inactive-ats.json` validates the whole tag batch and prints a dry-run receipt with zero network/database actions. Explicit `--apply` uses `DATABASE_URL` and remains frozen before 2026-10-05 18:00 IDT; lead authorization is required. Apply rereads each current identity and liveness state, observes the complete tenant list once, and uses the exact ongoing reliability gate. Old tags do not count as a strike. First misses only record pending state; two consecutive successful misses at least 45 minutes apart plus own-URL closure proof are required. Applying immediately after the hourly first miss stays pending. Reappearance reactivates, new uncertainty increments alerts, repeated URL uncertainty backs off after three checks, and list errors reset strikes. `observed` counts successful guarded state writes; `applied` counts confirmed inactive writes, so recording a first miss is not reported as closure. Concurrent identity/state changes skip writes; the transaction rolls back on failure. No real tags/credentials belong in Git.
+
+## LinkedIn guest status
+
+The six-hourly rotating recheck selects 60 LinkedIn rows by default (maximum 120),
+waits two seconds before each GET, and requests only the per-job guest endpoint
+`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<id>`, derived from the
+stored URL's numeric job ID. Harvest uses the same single-request check, retaining
+its four-request cloud budget. There are no normal-page fallbacks or retries.
+
+Only an HTTP 200 at that exact endpoint with a complete guest-fragment shape can
+close a row: one root `section.top-card-layout`, its own `figure.closed-job`, and
+`figcaption.closed-job__flavor--closed` containing either supported English phrase.
+Other document shapes, redirects, 404/410, 429/5xx, bodies over 512 KB, malformed
+markup and unrecognized statuses stay UNKNOWN. Scripts, styles, templates,
+comments, hidden/aria-hidden ancestors and SVG content cannot supply status text;
+inline styles on status ancestors conservatively prevent closure, including CSS
+comments and escapes. Foreign job identity/links and related-card containers cannot
+supply the requested job's status. The transport binds identity to the requested
+per-job fragment; matching body URNs are not required. External CSS is not rendered;
+unsupported layouts/languages can miss closures, so this does not establish live
+application availability or reopen previously closed jobs.
+
+Closure stores `alive=false`, phrase, HTTP status, exact endpoint and UTC timestamp
+in existing liveness JSON/harvest JSONL. UNKNOWN updates attempt metadata only and
+never erases prior conclusive evidence. The application state, scores and ATS
+ownership remain preserved. Dated provider fixtures and adversarial SQL regressions
+are in `scraper/fixtures/linkedin-guest` and `scraper/test_linkedin_guest.py`.

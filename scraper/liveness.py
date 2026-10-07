@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 from urllib.parse import parse_qs, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+from scraper import linkedin_liveness
 from scraper.sources import workday
 from scraper.sources import smartrecruiters
 from scraper.sources import ashby
@@ -188,6 +189,34 @@ def _check_ashby_url(url: str, opener: Callable[..., object], timeout: float) ->
         return _result(None, status=status, reason="ashby-board-uncertain", final_url=endpoint)
 
 
+LINKEDIN_REQUEST_INTERVAL = linkedin_liveness.REQUEST_INTERVAL
+
+
+def _check_linkedin(url, opener, timeout):
+    endpoint = linkedin_liveness.guest_url(url)
+    if not endpoint:
+        return _result(None, status=None, reason="linkedin-invalid-url", final_url=url)
+    try:
+        request = Request(endpoint, headers={"User-Agent": BROWSER_USER_AGENT, "Accept": "text/html"}, method="GET")
+        with opener(request, timeout=timeout) as response:
+            status, final = int(response.getcode()), str(response.geturl())
+            body = response.read(linkedin_liveness.BODY_LIMIT + 1)
+        phrase = None
+        if status == 200 and final == endpoint and len(body) <= linkedin_liveness.BODY_LIMIT:
+            phrase = linkedin_liveness.closure_phrase(body.decode("utf-8"), linkedin_liveness.job_id(endpoint))
+        result = _result(False if phrase else None, status=status,
+                         reason="closed-page-text" if phrase else f"http-{status}-uncertain", final_url=final)
+        if phrase:
+            result["liveness_phrase"] = phrase
+        return result
+    except HTTPError as error:
+        final = _error_location(error, endpoint)
+        return _result(None, status=error.code, reason="redirect-to-auth" if AUTH_PATH.search(urlparse(final).path)
+                       else f"http-{error.code}-uncertain", final_url=final)
+    except (OSError, ValueError) as error:
+        return _result(None, status=None, reason=f"network-uncertain:{type(error).__name__}", final_url=endpoint)
+
+
 def check_url(
     url: str,
     *,
@@ -199,6 +228,9 @@ def check_url(
     if not urlparse(url).scheme.startswith("http"):
         return _result(None, status=None, reason="invalid-url", final_url=url)
 
+    host = (urlparse(url).hostname or "").lower()
+    if host == "linkedin.com" or host.endswith(".linkedin.com"):
+        return _check_linkedin(url, opener, timeout)
     if workday.coordinates(url):
         return _check_workday(url, opener, timeout)
     if urlparse(url).netloc in {"jobs.smartrecruiters.com", "www.smartrecruiters.com"}:
