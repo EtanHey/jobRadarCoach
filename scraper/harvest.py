@@ -659,6 +659,27 @@ def _has_blocking_years_requirement(text: str) -> bool:
             continue
         if YEAR_COMPANY_HISTORY_PATTERN.search(item):
             continue
+        prefix = text[max(0, text.rfind("\n", 0, match.start()) + 1):match.start()]
+        prefix = re.split(r"[.!?;](?=\s)", prefix)[-1]
+        company_verb = re.search(
+            r"\b(?:company|business|we|our)\b.*\b(?:builds?\s+on|has|have)\s+(?:(?:over|more\s+than)\s+)?$",
+            prefix, re.I,
+        ) or re.fullmatch(
+            r"\s*[A-Z][A-Za-z0-9&.-]+\s+(?:builds?\s+on|has)\s+(?:(?:over|more\s+than)\s+)?", prefix,
+        )
+        sentence_end = re.search(r"[.!?;\n]", text[match.end():])
+        remainder = text[match.end():match.end()+sentence_end.start()] if sentence_end else text[match.end():]
+        candidate_context = re.search(
+            r"\b(?:required|must|minimum|requirements?|qualifications?|you|candidates?|applicants?)\b",
+            item + remainder, re.I,
+        )
+        history_preface = re.fullmatch(r"\s*with\s+", prefix, re.I) and re.search(
+            r",\s*(?:[A-Z][A-Za-z0-9&.-]+|(?:our|the) company|we)\s+(?:builds?|has|have|offers?|provides?)\b", item + remainder,
+        )
+        company_verb = company_verb and not candidate_context
+        history_preface = history_preface and not candidate_context
+        if company_verb or history_preface:
+            continue
         if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(item):
             return True
     return False

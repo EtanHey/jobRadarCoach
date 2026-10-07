@@ -1443,6 +1443,9 @@ def test_exactly_six_year_minimum_and_six_plus_are_stretch_not_hard_block() -> N
         "Our company has 10 years of experience serving customers",
         "We have been 12 years in business",
         "Founded 15 years ago",
+        "SyntheticCo builds on more than 25 years of experience in artificial intelligence risk",
+        "Acme has over 20 years of experience serving customers",
+        "With 25 years of experience, Acme builds financial software",
         "The partnership lasted 9 years.",
     ],
 )
@@ -1475,6 +1478,13 @@ def test_year_hard_gate_blocks_standalone_requirement_bullet() -> None:
 
     assert harvest._has_blocking_years_requirement(
         "7+ years building production Python systems"
+    ) is True
+
+
+def test_company_tenure_does_not_hide_a_separate_candidate_requirement() -> None:
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(
+        "Acme builds on 25 years of experience. Requirements: 7+ years of software experience"
     ) is True
 
 
@@ -3109,3 +3119,15 @@ def test_linkedin_absolute_publication_is_preserved_without_guessing_relative_ag
     for value in ["", "invalid"]:
         row = harvest.parse_job_cards(html.replace('datetime="2026-10-01"', f'datetime="{value}"'))[0]
         assert "posted_at" not in row
+
+
+def test_mandatory_experience_after_years_and_candidate_subject_still_block() -> None:
+    harvest = load_harvest_module()
+    for requirement in (
+        "Backend: 8 years of experience required",
+        "You have over 8 years of experience building software",
+        "With 8 years of experience required, you will build products",
+        "With 8 years of experience, you will build products",
+        "The ideal engineer has over 8 years of experience required",
+    ):
+        assert harvest._has_blocking_years_requirement(requirement) is True
