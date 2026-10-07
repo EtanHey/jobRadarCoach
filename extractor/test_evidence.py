@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from extractor.evidence import derive_remote_fact, validate_facts
+from extractor.evidence import ExtractionValidationError, derive_remote_fact, validate_facts
 from scraper.brain_contract import BrainValidationError
 
 
@@ -199,8 +199,10 @@ def test_explicit_role_location_survives_company_office_context() -> None:
     validate_facts(candidate, raw_jd)
 
 
-def test_role_explicitly_based_at_headquarters_is_supported() -> None:
+def test_role_prefix_cannot_bypass_company_geography_check() -> None:
     quote = "This role is based at our regional headquarters in Tel Aviv"
     candidate = remote_only_facts(None, None)
     candidate["location"] = {"value": "Tel Aviv", "evidence_quote": quote}
-    validate_facts(candidate, quote)
+    with pytest.raises(ExtractionValidationError) as rejected:
+        validate_facts(candidate, quote)
+    assert rejected.value.category == "location_context"

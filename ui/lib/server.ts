@@ -9,6 +9,7 @@ import {
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
 import { postingUrl, titleSeniority } from "./job-metadata";
+import { foundWithinCutoff } from "./job-filters";
 import { HttpError } from "./http";
 
 export interface ApiStore {
@@ -106,11 +107,20 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   if (input.ids) {
     return parseSummaryRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
+  if ((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined) {
+    return parseSummaryRows(await data(db.rpc("board_postings", {
+      filter: input.filter, availability: input.availability, fit: input.fit ?? "",
+      statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
+      ...(input.found_within ? { found_within: input.found_within } : {}),
+    }).select(SUMMARY))).jobs;
+  }
   let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
   if (input.filter !== "all") query = query.eq("posting_status.status", input.filter === "new-for-me" ? "new" : input.filter);
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
+  const cutoff = foundWithinCutoff(input.found_within);
+  if (cutoff !== null) query = query.gte("first_seen_at", new Date(cutoff).toISOString());
   if (input.since) query = query.gt("first_seen_at", input.since);
   query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
   return parseSummaryRows(await data(query)).jobs;

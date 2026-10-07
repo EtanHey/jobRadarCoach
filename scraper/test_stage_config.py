@@ -171,3 +171,49 @@ def test_worker_policy_allows_explicit_ollama_without_legacy_model(stage):
         'BRAIN': 'ollama', 'OLLAMA_MODEL': DEFAULT_OLLAMA_MODEL,
         'OLLAMA_BASE_URL': 'http://localhost:11434',
     }
+
+
+@pytest.mark.parametrize('stage,model', [('extractor', 'gpt-5.6-luna'), ('scorer', 'gpt-5.6-terra')])
+@pytest.mark.parametrize('legacy', ['BRAIN', 'runtime.brain', 'CODEX_MODEL', 'CODEX_REASONING_EFFORT'])
+@pytest.mark.parametrize('override', [None, 'env', 'profile'])
+def test_cli_main_ignores_shared_settings(monkeypatch, stage, model, legacy, override):
+    from contextlib import nullcontext
+    from functools import partial
+    from unittest.mock import patch
+    import os
+    import psycopg
+    module = extractor if stage == 'extractor' else scorer
+    connection = ExtractConnection() if stage == 'extractor' else ScoreConnection()
+    profile = {'runtime.brain': 'ollama'} if legacy == 'runtime.brain' else {}
+    environment = {'DATABASE_URL': 'postgresql://synthetic.invalid/db'}
+    if legacy != 'runtime.brain':
+        environment[legacy] = {'BRAIN': 'ollama', 'CODEX_MODEL': 'shared-model',
+                               'CODEX_REASONING_EFFORT': 'low'}[legacy]
+    expected = {'BRAIN': 'codex', 'CODEX_MODEL': model, 'CODEX_REASONING_EFFORT': 'xhigh'}
+    if override:
+        values = {'provider': 'codex', 'model': f'synthetic-{stage}', 'reasoning_effort': 'high'}
+        expected.update(CODEX_MODEL=values['model'], CODEX_REASONING_EFFORT='high')
+        if override == 'env':
+            environment.update({f'{stage.upper()}_{key.upper()}': value for key, value in values.items()})
+        else:
+            profile.update({f'runtime.{stage}.{key}': value for key, value in values.items()})
+    monkeypatch.setattr(psycopg, 'connect', lambda *a, **kw: nullcontext(connection))
+    monkeypatch.setattr(module, 'load_runtime_profile', lambda *a: profile)
+    captured = []
+    transport = lambda *a, **kw: captured.append(kw['env'])
+    if stage == 'extractor':
+        def extract(posting, profile, *, runner, timeout_seconds):
+            runner(object(), profile)
+            return {'brain': 'codex', 'model': expected['CODEX_MODEL']}
+        monkeypatch.setattr(extractor, 'extract_posting', extract)
+        monkeypatch.setattr(extractor, 'run_brain', transport)
+        monkeypatch.setattr(module, 'run_batch', partial(module.run_batch, persister=lambda *a: 'stored'))
+    else:
+        def score(connection, posting_id, *, brain_runner):
+            brain_runner(object(), {})
+            return 'stored'
+        monkeypatch.setattr(module, 'run_batch', partial(module.run_batch,
+            candidate_lister=lambda *a, **kw: ['synthetic'], scorer=score, brain=transport))
+    with patch.dict(os.environ, environment, clear=True):
+        assert module.main(['--limit', '1', '--timeout-seconds', '10']) == 0
+    assert captured == [expected]

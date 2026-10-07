@@ -7,6 +7,15 @@ test("list requests key the complete server query", () => {
   assert.equal(jobListRequestPath({ filter: "seen", availability: "inactive", limit: 1000 }), "/api/jobs?filter=seen&availability=inactive&limit=1000");
 });
 
+test("board requests send fit, pipeline statuses and sort to the server", () => {
+  const path = jobListRequestPath({ filter: "all", availability: "active", limit: 1000,
+    fit: "recommended", statuses: ["applied", "worth_checking"], sort: "fit" });
+  const params = new URL(path, "https://example.test").searchParams;
+  assert.equal(params.get("fit"), "recommended");
+  assert.equal(params.get("statuses"), "applied,worth_checking");
+  assert.equal(params.get("sort"), "fit");
+});
+
 test("a status mutation updates the active list without resetting unrelated rows", () => {
   const current = [
     { id: "job-1", status: "new", status_reason: null },
