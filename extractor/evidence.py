@@ -174,6 +174,7 @@ def derive_remote_fact(evidence_quote: object, raw_jd: str) -> dict[str, object]
 
 _NON_ROLE_LOCATION_RE = re.compile(
     r"\b(?:headquarters|headquartered)\b|"
+    r"\bהמטה\b|"
     r"\boffices\s+(?:are\s+)?(?:located\s+)?in\b|"
     r"\b(?:within|across)\s+the\s+\w+\s+market\b|"
     r"\b(?:startup|company)\s+(?:is\s+)?based\s+in\b",

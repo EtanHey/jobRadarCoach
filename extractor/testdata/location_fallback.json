@@ -168,6 +168,12 @@
     "quote": "Harbor City"
   },
   {
+    "name": "r2_hebrew_company_hq",
+    "jd": "המטה שלנו נמצא ב-Harbor City. המשרה ב-Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
     "name": "r2_spanish_denial",
     "jd": "The option to work from our Harbor City headquarters no está disponible para este puesto.",
     "value": "Harbor City",
