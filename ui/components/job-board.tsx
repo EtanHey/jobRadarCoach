@@ -266,10 +266,7 @@ function Board() {
     const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
     if (storage) clearBoardPreferences(storage);
     const next = defaultBoardPreferences();
-    if (filter !== next.filter || view.availability !== next.view.availability) {
-      filterRef.current = next.filter;
-      client.removeQueries({ queryKey: boardListKey(next.filter, next.view.availability, next.view), exact: true });
-    }
+    prepareListSource(next.filter, next.view.availability);
     setPreferences(next);
   }
   function toggleGlobe() {

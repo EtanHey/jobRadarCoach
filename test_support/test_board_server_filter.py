@@ -18,13 +18,17 @@ from test_support.postgres import DatabaseUnavailable, database_url, migrated_da
 ROOT = Path(__file__).parents[1]
 
 
-def test_board_filters_and_sorts_before_cap(tmp_path):
+@pytest.fixture
+def require_database():
     try:
         database_url()
     except DatabaseUnavailable as error:
         if os.environ.get("JOBRADAR_REQUIRE_PG17") == "1":
             pytest.fail(str(error))
         pytest.skip(str(error))
+
+
+def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
     rows = []
     for i in range(1012):
         score = None if i % 6 == 0 else i % 100
@@ -107,3 +111,36 @@ def test_board_filters_and_sorts_before_cap(tmp_path):
                     process.wait(timeout=10)
         else:
             assert os.environ.get("JOBRADAR_REQUIRE_LIST_DB") != "1", "PostgREST is required in CI"
+
+
+@pytest.mark.parametrize("tie", ["discovery", "id"])
+def test_unicode_equivalent_titles_at_board_cap(tie, require_database):
+    # Exactly 999 titles precede the equivalent pair. Bytewise ordering must not
+    # decide which member survives LIMIT instead of discovery time / ID.
+    rows = [dict(id=str(UUID(int=i + 1)), title=f"A Engineer {i:04}",
+                 company=f"Example {i}", seniority="Junior", source="synthetic",
+                 first_seen_at="2026-10-01T00:00:00Z", posted_at=None, score=None,
+                 status="new", location=None, remote=None, stack=[])
+            for i in range(1003)]
+    rows[999]["title"] = "e\u0301 Engineer" if tie == "discovery" else "\u00e9 Engineer"
+    rows[1000]["title"] = "\u00e9 Engineer" if tie == "discovery" else "e\u0301 Engineer"
+    if tie == "discovery":
+        rows[1000]["first_seen_at"] = "2026-10-02T00:00:00Z"
+    for row in rows[1001:]:
+        row["title"] = "Z Engineer"
+    case = dict(search="", source="", location="", seniority="", availability="all",
+                statuses=[], fit="", sort="seniority")
+    expected = json.loads(subprocess.run(
+        ["node", "--import", "tsx", "tests/fixtures/board-golden.ts"], cwd=ROOT / "ui",
+        input=json.dumps(dict(rows=rows, cases=[case])), text=True, capture_output=True, check=True,
+    ).stdout)[0]
+    assert expected[-1] == rows[1000 if tie == "discovery" else 999]["id"]
+    latest = max(int(p.name[:4]) for p in (ROOT / "supabase/migrations").glob("[0-9]*.sql"))
+    with migrated_database(ROOT / "supabase/migrations", through=latest) as url, psycopg.connect(url) as db:
+        for row in rows:
+            db.execute("insert into postings(id,source,external_id,url,title,company,seniority,first_seen_at,last_seen_at) "
+                       "values (%s,'synthetic',%s,'https://example.test',%s,%s,'Junior',%s,'2026-10-06')",
+                       (row["id"], row["id"], row["title"], row["company"], row["first_seen_at"]))
+        db.execute("set local role service_role")
+        actual = db.execute("select id from public.board_postings('all','all','','{}','seniority',1000)").fetchall()
+        assert [str(row[0]) for row in actual] == expected
