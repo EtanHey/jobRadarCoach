@@ -1,0 +1,272 @@
+[
+  {
+    "name": "r1_denied_option",
+    "jd": "This job is based in Cedar Bay, with no option to work from our Harbor City headquarters.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_denied_onsite",
+    "jd": "This job is based in Cedar Bay, and daily onsite presence at our Harbor City headquarters is not required or offered.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_negated_position",
+    "jd": "This job is not a position based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_other_vacancy",
+    "jd": "This job is based in Cedar Bay; another position is based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_other_vacancy_same_sentence",
+    "jd": "This job is based in Cedar Bay, while a different job is based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_restricted_benefit",
+    "jd": "Employee benefits: the option to work from our Harbor City headquarters applies only to corporate staff, not this job.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_historical_vacancy",
+    "jd": "This job is based in Cedar Bay; the previous position was a job based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_curly_denial",
+    "jd": "This job is based in Cedar Bay; the option to work from our Harbor City headquarters isn’t available for this role.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_curly_cannot",
+    "jd": "You can’t take the option to work from our Harbor City headquarters; this job is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_doesnt_ascii",
+    "jd": "The option to work from our Harbor City headquarters doesn't apply to this job.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_no_before_conjunction",
+    "jd": "This job has no office option and daily onsite presence at our Harbor City headquarters is for visitors.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_other_named_role",
+    "jd": "This engineering job is based in Cedar Bay; our sales role is based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_unrelated_role",
+    "jd": "This job is based in Cedar Bay; an unrelated position is based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_future_role",
+    "jd": "This job is based in Cedar Bay; a future position will be based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_historical_earlier_sentence",
+    "jd": "Our previous vacancy is described below. The position is based at our headquarters in Harbor City. This job is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_markdown_other_heading",
+    "jd": "### Another position\nThe role is based at our headquarters in Harbor City.\n### This job\nBased in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_current_role_markdown",
+    "jd": "This **role** is **based** at our **headquarters** in **Harbor City**.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_markdown_negation",
+    "jd": "This role is **not** based at our headquarters in **Harbor City**.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_headquartered_different",
+    "jd": "We are headquartered in Harbor City, while this role is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_office_list",
+    "jd": "Our offices are located in Harbor City and Cedar Bay; this role is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_list_role_heading",
+    "jd": "Locations: our headquarters in Harbor City; our offices in Cedar Bay. This role is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_not_only",
+    "jd": "Not only is this role based at our headquarters in Harbor City, it offers flexible hours.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_not_only_benefit",
+    "jd": "Not only is the option to work from our Harbor City headquarters available, corporate staff also receive parking.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_double_negation",
+    "jd": "It is not true that this role is not based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_double_negation_option",
+    "jd": "The option to work from our Harbor City headquarters is not unavailable.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_negated_other_role",
+    "jd": "No other position is based at our headquarters in Harbor City; this job is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_not_only_other_role",
+    "jd": "Not only is another position based at our headquarters in Harbor City, the sales team is too; this job is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_hebrew_denial",
+    "jd": "This role is based at our headquarters in Harbor City — לא זמין למשרה זו.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_spanish_denial",
+    "jd": "The option to work from our Harbor City headquarters no está disponible para este puesto.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_french_denial",
+    "jd": "The option to work from our Harbor City headquarters n’est pas disponible pour ce poste.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_conditional_not_offered",
+    "jd": "If we offered the option to work from our Harbor City headquarters, you could use it; this job is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_unless_not_eligible",
+    "jd": "The option to work from our Harbor City headquarters requires a corporate badge; this job is based in Cedar Bay and has no badge.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_sales_only",
+    "jd": "The option to work from our Harbor City headquarters is for the sales team only; this engineering job is based in Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_company_context_duty_role",
+    "jd": "This job is based in Cedar Bay; you will support the role based at our headquarters in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_closed_position",
+    "jd": "This job is based in Cedar Bay; the position based at our headquarters in Harbor City has been closed.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_replacement_city",
+    "jd": "The role is based at our headquarters in Harbor City, a typo: the workplace is Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_except_role",
+    "jd": "The option to work from our Harbor City headquarters is available to all roles except this job.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_not_only_irrelevant",
+    "jd": "This role is not only based in Cedar Bay; our headquarters are in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r2_repeated_supported_city",
+    "jd": "Our headquarters are in Harbor City. This job is based in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "cohort_remote_region",
+    "jd": "Our offices are in Harbor City, and the position is remote within Cedar State.",
+    "value": "Cedar State",
+    "quote": "the position is remote within Cedar State"
+  },
+  {
+    "name": "cohort_hq_option",
+    "jd": "Benefits include the option to work from our Harbor City headquarters.",
+    "value": "Harbor City",
+    "quote": "the option to work from our Harbor City headquarters"
+  },
+  {
+    "name": "cohort_onsite_hq",
+    "jd": "Daily onsite presence at our Harbor City office/headquarters is required.",
+    "value": "Harbor City",
+    "quote": "Daily onsite presence at our Harbor City office/headquarters"
+  },
+  {
+    "name": "cohort_markdown_hq",
+    "jd": "An engineer based at our headquarters in **Harbor City**.",
+    "value": "Harbor City",
+    "quote": "based at our headquarters in **Harbor City**"
+  },
+  {
+    "name": "cohort_office_list",
+    "jd": "Offices in Harbor City and Cedar Bay.",
+    "value": "Harbor City and Cedar Bay",
+    "quote": "Offices in Harbor City and Cedar Bay"
+  },
+  {
+    "name": "cohort_saved_response_hq",
+    "jd": "Backend work based at our headquarters in **Harbor City**.",
+    "value": "Harbor City",
+    "quote": "based at our headquarters in **Harbor City**"
+  }
+]
