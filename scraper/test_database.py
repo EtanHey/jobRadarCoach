@@ -65,6 +65,31 @@ def harvest_observation(source, *, alive=True, checked_at="2026-10-05T10:00:00Z"
     }
 
 
+def test_linkedin_closure_recheck_preserves_workflow_and_unknown_evidence(connection):
+    from scraper.recheck import recheck
+    from scraper.test_linkedin_liveness import GUEST, URL, page
+    from scraper.test_liveness import Response
+    from scraper.liveness import check_url
+
+    evidence = check_url(GUEST, opener=lambda request, **_: Response(
+        200, request.full_url, page("closed-no-longer")))
+    observation = {**harvest_observation("linkedin"), "id": "1234567890", "url": URL,
+                   **evidence}
+    posting_id = database.persist_postings(connection, [observation], "2026-10-07T12:00:00Z")[0]
+    connection.execute("update posting_status set status='worth_checking' where posting_id=%s", (posting_id,))
+    assert recheck(connection, scope="linkedin", checker=lambda _: evidence)["closed"] == 1
+    before = connection.execute("select liveness from postings where id=%s", (posting_id,)).fetchone()[0]
+    assert before["alive"] is False and before["liveness_phrase"] == "no longer accepting applications"
+    assert before["liveness_final_url"] == GUEST and before["liveness_checked_at"].endswith("Z")
+    assert recheck(connection, scope="linkedin", checker=lambda _: {
+        "alive": None, "liveness_reason": "http-429-uncertain"})["unknown"] == 1
+    after = connection.execute("select liveness from postings where id=%s", (posting_id,)).fetchone()[0]
+    assert all(after[key] == before[key] for key in evidence)
+    assert after["last_attempt_reason"] == "http-429-uncertain"
+    assert connection.execute("select status from posting_status where posting_id=%s", (posting_id,)).fetchone() == ("worth_checking",)
+    assert connection.execute("select count(*) from posting_scores where posting_id=%s", (posting_id,)).fetchone() == (0,)
+
+
 @pytest.mark.parametrize("source", ATS_SOURCES)
 @pytest.mark.parametrize("alive", [True, False, None])
 @pytest.mark.parametrize("original_alive", [True, False])

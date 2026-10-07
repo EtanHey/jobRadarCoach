@@ -208,7 +208,7 @@ def test_non_dead_http_error_records_the_real_final_url() -> None:
     assert result["liveness_final_url"] == final
 
 
-def test_redirect_from_linkedin_job_to_search_is_dead() -> None:
+def test_redirect_from_linkedin_job_to_search_is_unknown() -> None:
     liveness = load_liveness()
 
     def opener(_request, **_kwargs):
@@ -217,8 +217,8 @@ def test_redirect_from_linkedin_job_to_search_is_dead() -> None:
     result = liveness.check_url(
         "https://www.linkedin.com/jobs/view/full-stack-engineer-123", opener=opener
     )
-    assert result["alive"] is False
-    assert result["liveness_reason"] == "redirect-to-search"
+    assert result["alive"] is None
+    assert result["liveness_reason"] == "http-200-uncertain"
 
 
 def test_redirect_from_linkedin_job_to_authwall_is_unknown() -> None:

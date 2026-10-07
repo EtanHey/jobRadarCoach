@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import time
 from datetime import datetime, timezone
 from typing import Callable
 from urllib.error import HTTPError
@@ -36,6 +37,29 @@ AUTH_PATH = re.compile(r"/(?:authwall|uas/login|login|checkpoint)(?:/|$)", re.I)
 NON_VISIBLE_MARKUP = re.compile(
     r"<(script|style)\b[^>]*>.*?</\1\s*>", re.I | re.S
 )
+LINKEDIN_CLOSED = re.compile(
+    r"\b(?:no longer accepting applications|not currently accepting applications)\b", re.I
+)
+LINKEDIN_LOGIN = re.compile(
+    r"<(?:title|h1)\b[^>]*>\s*(?:LinkedIn\s*[:|\-]\s*)?"
+    r"(?:sign in|log in|join LinkedIn)\b", re.I
+)
+LINKEDIN_REQUEST_INTERVAL = 2.0  # Same spacing as guest JD fetching.
+
+
+def _linkedin_host(url: str) -> bool:
+    host = urlparse(url).hostname or ""
+    return host == "linkedin.com" or host.endswith(".linkedin.com")
+
+
+def _linkedin_job_id(url: str) -> str | None:
+    if not _linkedin_host(url) or urlparse(url).scheme != "https":
+        return None
+    match = re.fullmatch(
+        r"/(?:jobs/view/(?:[^/]*-)?|jobs-guest/jobs/api/jobPosting/)(\d+)/?",
+        urlparse(url).path,
+    )
+    return match.group(1) if match else None
 
 
 def _visible_text(body: str) -> str:
@@ -188,7 +212,7 @@ def _check_ashby_url(url: str, opener: Callable[..., object], timeout: float) ->
         return _result(None, status=status, reason="ashby-board-uncertain", final_url=endpoint)
 
 
-def check_url(
+def _check_url_once(
     url: str,
     *,
     opener: Callable[..., object] = urlopen,
@@ -212,6 +236,20 @@ def check_url(
             status = int(response.getcode())
             final_url = str(response.geturl())
             body = response.read(512_000).decode("utf-8", errors="replace")
+        if _linkedin_host(url):
+            # LinkedIn errors/redirects can be access restrictions, not closure.
+            reason = f"http-{status}-uncertain"
+            phrase = None
+            if AUTH_PATH.search(urlparse(final_url).path) or LINKEDIN_LOGIN.search(body):
+                reason = "redirect-to-auth"
+            elif (status == 200 and _linkedin_job_id(url)
+                  and _linkedin_job_id(url) == _linkedin_job_id(final_url)):
+                phrase = LINKEDIN_CLOSED.search(_visible_text(body))
+            result = _result(False if phrase else None, status=status,
+                             reason="closed-page-text" if phrase else reason, final_url=final_url)
+            if phrase:
+                result["liveness_phrase"] = phrase.group(0).casefold()
+            return result
         if status in DEAD_STATUS_CODES:
             return _result(False, status=status, reason=f"http-{status}", final_url=final_url)
         if _redirected_to_auth(url, final_url):
@@ -249,7 +287,7 @@ def check_url(
                 reason="greenhouse-board-error-redirect",
                 final_url=final_url,
             )
-        if error.code in DEAD_STATUS_CODES:
+        if error.code in DEAD_STATUS_CODES and not _linkedin_host(url):
             return _result(
                 False, status=error.code, reason=f"http-{error.code}", final_url=final_url
             )
@@ -268,5 +306,25 @@ def check_url(
         )
 
 
+def check_url(
+    url: str,
+    *,
+    opener: Callable[..., object] = urlopen,
+    timeout: float = 12.0,
+    guest_fallback: bool = True,
+) -> dict[str, object]:
+    """Check a page, then at most one public LinkedIn guest page if inconclusive."""
+    result = _check_url_once(url, opener=opener, timeout=timeout)
+    job_id = _linkedin_job_id(url)
+    if (guest_fallback and job_id and "/jobs/view/" in urlparse(url).path and result["alive"] is None
+            and result["liveness_status"] in {200, 301, 302, 303, 307, 308}):
+        time.sleep(LINKEDIN_REQUEST_INTERVAL)
+        guest_url = f"https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}"
+        return _check_url_once(guest_url, opener=opener, timeout=timeout)
+    return result
+
+
 def check_posting(posting: dict[str, object]) -> dict[str, object]:
-    return check_url(str(posting.get("url", "")))
+    # Harvest's liveness budget counts postings: retain one GET per posting.
+    # The separate rotating stored-row recheck owns guest-page fallbacks.
+    return check_url(str(posting.get("url", "")), guest_fallback=False)
