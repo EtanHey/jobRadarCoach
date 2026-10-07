@@ -11,7 +11,7 @@ from uuid import UUID
 
 from classifier.core import diagnostic_scope
 from classifier.persistence import list_scoring_candidates, score_and_persist
-from scraper.brain import run_brain
+from scraper.brain import provider_diagnostic_scope, run_brain
 from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import UnsupportedBrainError, resolve_brain
 
@@ -122,12 +122,13 @@ def run_batch(
     _log(selected=len(candidates), provider=provider)
 
     def brain_runner(request, profile_snapshot):
-        return brain(
-            request,
-            profile_snapshot,
-            env=settings,
-            timeout_seconds=timeout_seconds,
-        )
+        with provider_diagnostic_scope(lambda event: _log(event="provider_request", **event)):
+            return brain(
+                request,
+                profile_snapshot,
+                env=settings,
+                timeout_seconds=timeout_seconds,
+            )
 
     scored = failed = 0
     for posting_id in candidates:
