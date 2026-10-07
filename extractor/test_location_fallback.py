@@ -76,3 +76,15 @@ def test_remote_consistency_after_drop_still_rejects(monkeypatch, caplog):
         core.extract_posting({"raw_jd": row["jd"] + " " + OTHER_JD}, {}, runner=runner_for(candidate))
     assert (rejected.value.category, rejected.value.field) == ("remote_consistency", "remote")
     assert caplog.messages == []
+
+
+@pytest.mark.parametrize("value,jd", [
+    ("Harbor City", "This job is based in Cedar Bay."),
+    ("arbor", "This job is based in Harbor City."),
+    ("Cit", "This job is based in Harbor City."),
+])
+def test_r1_absent_city_and_lexical_controls_still_reject(value, jd):
+    candidate = facts()
+    candidate["location"] = {"value": value, "evidence_quote": "Harbor City"}
+    with pytest.raises(BrainValidationError):
+        core.extract_posting({"raw_jd": jd + " " + OTHER_JD}, {}, runner=runner_for(candidate))

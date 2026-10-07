@@ -42,6 +42,24 @@
     "quote": "Harbor City"
   },
   {
+    "name": "r1_generic_hq",
+    "jd": "Our headquarters are in Harbor City.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_generic_offices",
+    "jd": "Our offices are located in Harbor City and Cedar Bay.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
+    "name": "r1_customer_hq",
+    "jd": "Our customers work from their Harbor City headquarters.",
+    "value": "Harbor City",
+    "quote": "Harbor City"
+  },
+  {
     "name": "r2_curly_denial",
     "jd": "This job is based in Cedar Bay; the option to work from our Harbor City headquarters isn’t available for this role.",
     "value": "Harbor City",
