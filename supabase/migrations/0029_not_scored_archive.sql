@@ -79,13 +79,15 @@ $$;
 revoke all on function public.get_globe_snapshot(text,text) from public, anon, authenticated;
 grant execute on function public.get_globe_snapshot(text,text) to service_role;
 
--- One atomic, idempotent override; only the authenticated server may invoke it.
+-- Queue only the first override transition. Replays after acknowledgement still
+-- succeed for an existing row without requesting another model call.
 create function public.score_anyway(posting_id uuid) returns boolean
 language sql security invoker set search_path='' as $$
   with changed as (update public.postings p
     set relevance_gate=p.relevance_gate || '{"override":true,"score_requested":true}'::jsonb
-    where p.id=$1 returning p.id)
-  select exists(select 1 from changed)
+    where p.id=$1 and not coalesce((p.relevance_gate->>'override')::boolean,false)
+    returning p.id)
+  select exists(select 1 from changed) or exists(select 1 from public.postings p where p.id=$1)
 $$;
 revoke all on function public.score_anyway(uuid) from public,anon,authenticated;
 grant execute on function public.score_anyway(uuid) to service_role;

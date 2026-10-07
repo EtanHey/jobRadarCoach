@@ -17,14 +17,15 @@ try {
   browser=await chromium.launch({headless:true});
   for(const viewport of [{width:1280,height:900},{width:390,height:844}]){
     const context=await browser.newContext({viewport,reducedMotion:'reduce',colorScheme:viewport.width===390?'dark':'light'});
-    const page=await context.newPage();activePage=page;const errors=[];let rescued=false,attempts=0,seen=0;
+    const page=await context.newPage();activePage=page;const errors=[];let rescued=false,attempts=0,seen=0,archivePolls=0;
+    await page.clock.install();
     page.on('pageerror',e=>{errors.push(e.message);pageErrors.push(e.message);});
     await page.route('**/api/**',route=>{
       const req=route.request(),url=new URL(req.url());
       const archived=job(2,{relevance_filtered:!rescued});
       if(url.pathname.endsWith('/score-anyway')){attempts++;if(attempts===1)return route.fulfill({status:503,json:{error:'Synthetic retry needed.'}});rescued=true;return route.fulfill({json:{...archived,relevance_filtered:false,raw_jd:'Synthetic description',reasons:[],score_payload:rescued?null:{employer_type:'direct',seniority_real:true,fit_score:72,fit_tier:'good',fit_line:'Earlier automated score',recommendation:'apply',reasons:[],fit_line_evidence_ids:[],luna_status:'ok'},brain:null,scored_at:null}});}
       if(url.pathname.endsWith('/status')){seen++;return route.fulfill({json:{status:'seen',reason:null}});}
-      if(url.pathname==='/api/jobs'){const filter=url.searchParams.get('filter');return route.fulfill({json:{jobs:filter==='not-scored'?(rescued?[]:[archived]):[job(1),...(rescued?[archived]:[])]}});}
+      if(url.pathname==='/api/jobs'){const filter=url.searchParams.get('filter');if(filter==='not-scored'&&url.searchParams.has('since')){archivePolls++;return route.fulfill({json:{jobs:[job(3,{relevance_filtered:true,relevance_rule:'mandatory-degree'})]}});}return route.fulfill({json:{jobs:filter==='not-scored'?(rescued?[]:[archived]):[job(1),...(rescued?[archived]:[])]}});}
       if(url.pathname===`/api/jobs/${archived.id}`)return route.fulfill({json:{job:{...archived,raw_jd:'Synthetic description',reasons:[],score_payload:rescued?null:{employer_type:'direct',seniority_real:true,fit_score:72,fit_tier:'good',fit_line:'Earlier automated score',recommendation:'apply',reasons:[],fit_line_evidence_ids:[],luna_status:'ok'},brain:null,scored_at:null}}});
       return route.fulfill({status:404,json:{error:'fixture only'}});
     });
@@ -34,6 +35,11 @@ try {
     await expect(page.locator('article')).toHaveCount(1);
     await expect(page.getByText('Not scored (filtered)',{exact:true})).toBeVisible();
     await expect(page.getByText('Must already live in the US',{exact:true})).toBeVisible();
+    await page.clock.runFor(90_001);
+    // Let any interval-triggered network work complete before checking the counter.
+    await new Promise(resolve => setTimeout(resolve,200));
+    assert.equal(archivePolls,0,'Not scored must never poll or announce filtered arrivals');
+    await expect(page.locator('[data-new-roles]')).toHaveCount(0);
     await page.screenshot({path:`${output}/${viewport.width}-archive.png`});
     await page.getByRole('button',{name:'Open Full Stack Engineer at Synthetic 2'}).click();
     await page.getByRole('button',{name:'Open previous AI assessment: fit score 72 out of 100'}).click();
@@ -48,7 +54,7 @@ try {
     await expect(page.locator('article')).toHaveCount(0);
     await page.screenshot({path:`${output}/${viewport.width}-queued.png`});
     assert.deepEqual(errors,[]);assert.equal(attempts,2);
-    console.log(`PASS ${viewport.width}: archive-only / reason / failed-save preserved / retry / override`);
+    console.log(`PASS ${viewport.width}: archive-only / no arrival poll / reason / failed-save preserved / retry / override`);
     await context.close();
   }
 } catch(error) {console.error('PAGE_ERRORS',pageErrors);if(activePage&&!activePage.isClosed()){console.error('PAGE_BODY',await activePage.locator('body').innerText());await activePage.screenshot({path:`${output}/failure.png`});}throw error;} finally {await browser?.close();server.kill('SIGTERM');await new Promise(resolve=>server.exitCode!==null?resolve():server.once('exit',resolve));await log.close();}

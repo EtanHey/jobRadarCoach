@@ -169,7 +169,7 @@ function Board() {
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const newRolesCutoff = useMemo(() => newRolesSince(jobs), [jobs]);
-  const newRoles = useNewRoles(preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff, view.found_within);
+  const newRoles = useNewRoles(filter !== "not-scored" && preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff, view.found_within);
   const newRoleCount = useMemo(() => countNewRoleCards(jobs, newRoles.jobs, view), [jobs, newRoles.jobs, view]);
   const refetchList = listQuery.refetch;
   const requestRefresh = useCallback(() => {

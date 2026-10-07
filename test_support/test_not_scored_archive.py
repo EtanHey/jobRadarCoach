@@ -40,3 +40,12 @@ def test_scored_archive_override_queues_exactly_one_analysis():
         assert list_scoring_candidates(db,limit=1,posting_ids=[id])==[id]
         assert score_and_persist(db,id,brain_runner=runner)=='unchanged'
         assert list_scoring_candidates(db,limit=1,posting_ids=[id])==[]
+        # A delayed identical request remains successful without another model call.
+        assert db.execute('select score_anyway(%s)',(id,)).fetchone()==(True,)
+        assert list_scoring_candidates(db,limit=1,posting_ids=[id])==[]
+        # A changed JD resets the override; a fresh deliberate action can queue it.
+        db.execute("update postings set raw_jd=raw_jd || ' Additional role detail.' where id=%s",(id,))
+        refresh_gate(db,posting_ids=[id])
+        assert db.execute('select relevance_filtered from postings where id=%s',(id,)).fetchone()==(True,)
+        assert db.execute('select score_anyway(%s)',(id,)).fetchone()==(True,)
+        assert list_scoring_candidates(db,limit=1,posting_ids=[id])==[id]
