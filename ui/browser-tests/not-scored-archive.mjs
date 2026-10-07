@@ -22,10 +22,10 @@ try {
     await page.route('**/api/**',route=>{
       const req=route.request(),url=new URL(req.url());
       const archived=job(2,{relevance_filtered:!rescued});
-      if(url.pathname.endsWith('/score-anyway')){attempts++;if(attempts===1)return route.fulfill({status:503,json:{error:'Synthetic retry needed.'}});rescued=true;return route.fulfill({json:{...archived,relevance_filtered:false,raw_jd:'Synthetic description',reasons:[],score_payload:rescued?null:{fit_score:72,fit_line:'Earlier automated score',recommendation:'apply'},brain:null,scored_at:null}});}
+      if(url.pathname.endsWith('/score-anyway')){attempts++;if(attempts===1)return route.fulfill({status:503,json:{error:'Synthetic retry needed.'}});rescued=true;return route.fulfill({json:{...archived,relevance_filtered:false,raw_jd:'Synthetic description',reasons:[],score_payload:rescued?null:{employer_type:'direct',seniority_real:true,fit_score:72,fit_tier:'good',fit_line:'Earlier automated score',recommendation:'apply',reasons:[],fit_line_evidence_ids:[],luna_status:'ok'},brain:null,scored_at:null}});}
       if(url.pathname.endsWith('/status')){seen++;return route.fulfill({json:{status:'seen',reason:null}});}
       if(url.pathname==='/api/jobs'){const filter=url.searchParams.get('filter');return route.fulfill({json:{jobs:filter==='not-scored'?(rescued?[]:[archived]):[job(1),...(rescued?[archived]:[])]}});}
-      if(url.pathname===`/api/jobs/${archived.id}`)return route.fulfill({json:{...archived,raw_jd:'Synthetic description',reasons:[],score_payload:rescued?null:{fit_score:72,fit_line:'Earlier automated score',recommendation:'apply'},brain:null,scored_at:null}});
+      if(url.pathname===`/api/jobs/${archived.id}`)return route.fulfill({json:{...archived,raw_jd:'Synthetic description',reasons:[],score_payload:rescued?null:{employer_type:'direct',seniority_real:true,fit_score:72,fit_tier:'good',fit_line:'Earlier automated score',recommendation:'apply',reasons:[],fit_line_evidence_ids:[],luna_status:'ok'},brain:null,scored_at:null}});
       return route.fulfill({status:404,json:{error:'fixture only'}});
     });
     await page.goto(base);
@@ -36,6 +36,10 @@ try {
     await expect(page.getByText('Must already live in the US',{exact:true})).toBeVisible();
     await page.screenshot({path:`${output}/${viewport.width}-archive.png`});
     await page.getByRole('button',{name:'Open Full Stack Engineer at Synthetic 2'}).click();
+    await page.getByRole('button',{name:'Open previous AI assessment: fit score 72 out of 100'}).click();
+    await expect(page.getByRole('heading',{name:'Previous AI assessment',exact:true})).toBeVisible();
+    await page.screenshot({path:`${output}/${viewport.width}-previous.png`});
+    await page.keyboard.press('Escape');
     await page.getByRole('button',{name:'Score anyway',exact:true}).click();
     await expect(page.getByText('Synthetic retry needed.',{exact:true})).toBeVisible();
     assert.equal(rescued,false);assert.equal(seen,0,'archive open must not mark Seen');
