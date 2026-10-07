@@ -405,7 +405,7 @@ function Board() {
           <StatusSelect key={detail.id} job={detail} saving={saving || selected === null} changeStatus={changeStatus} />
           <a className={buttonVariants({className:"w-fit"})} href={detail.apply_url ?? detail.url} target="_blank" rel="noopener noreferrer">Apply on company site <ArrowUpRight aria-hidden="true" /></a>
         </div>
-        {scoreAnyway.isSuccess && scoreAnyway.data.id === detail.id && <p role="status" className="text-xs text-muted-foreground">Queued for scoring. It will return to the board on the next analysis run.</p>}
+        {scoreAnyway.isSuccess && scoreAnyway.data.id === detail.id && <p role="status" className="text-xs text-muted-foreground">Queued for scoring. Find this role in All roles while it waits for analysis.</p>}
         {detail.status_reason && <p className="text-xs text-muted-foreground">Status reason: {detail.status_reason}</p>}
       </> : undefined}
     />
