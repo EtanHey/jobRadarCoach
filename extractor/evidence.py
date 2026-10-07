@@ -180,30 +180,57 @@ _NON_ROLE_LOCATION_RE = re.compile(
     re.IGNORECASE,
 )
 
+_ROLE_LOCATION_PREFIX = (
+    r"\b(?:role|position|job)\s*,?\s+(?:(?:is|will\s+be)\s+)?"
+    r"(?:based|located)\s+(?:in|at)\s+|"
+    r"\b(?:this|the)\s+(?:role|position|job)\s+(?:is\s+)?"
+    r"remote(?:ly)?\s+(?:within|in|from)\s+(?:the\s+)?|"
+    r"\b(?:the\s+)?option\s+to\s+work\s+(?:from|at|in)\s+our\s+|"
+    r"\b(?:daily\s+)?on[ -]?site\s+(?:presence|work|attendance)\s+"
+    r"(?:at|in)\s+"
+)
+_OFFICE_LOCATION_PREFIX = (
+    r"(?:(?:our|the|regional|global|corporate|company|main)\s+)*"
+    r"(?:(?:office|headquarters|hq)\s+in\s+)?"
+)
+
+
+def _supports_role_location(context: str, value: str) -> bool:
+    # Markdown changes presentation, not the meaning of an already exact quote.
+    context = re.sub(r"[*_`]", "", context)
+    return re.search(
+        rf"(?:{_ROLE_LOCATION_PREFIX}){_OFFICE_LOCATION_PREFIX}"
+        rf"(?<!\w){re.escape(value)}(?!\w)",
+        context,
+        re.IGNORECASE,
+    ) is not None
+
 
 def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
     if fact["value"] is None:
         return
     quote = fact["evidence_quote"]
     assert isinstance(quote, str)
-    if re.search(
-        r"\b(?:this|the)\s+(?:role|position|job)\s+(?:is\s+)?(?:based|located)\b",
-        quote, re.IGNORECASE,
-    ):
-        return
+    value = fact["value"]
+    assert isinstance(value, str)
     offset = 0
+    company_geography = False
     while (start := raw_jd.find(quote, offset)) >= 0:
         before = max(raw_jd.rfind(boundary, 0, start) for boundary in ".!?;\n")
         after = [position for boundary in ".!?;\n"
                  if (position := raw_jd.find(boundary, start + len(quote))) >= 0]
         context = raw_jd[before + 1:min(after, default=len(raw_jd))]
+        if _supports_role_location(context, value):
+            return
         if _NON_ROLE_LOCATION_RE.search(context):
-            raise ExtractionValidationError(
-                "company geography does not establish job location",
-                category="location_context",
-                field="location",
-            )
+            company_geography = True
         offset = start + len(quote)
+    if company_geography:
+        raise ExtractionValidationError(
+            "company geography does not establish job location",
+            category="location_context",
+            field="location",
+        )
 
 
 def validate_facts(facts: dict[str, object], raw_jd: str) -> None:

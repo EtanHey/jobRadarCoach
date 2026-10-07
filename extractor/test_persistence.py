@@ -134,6 +134,39 @@ def durable_state(connection, posting_id: str) -> tuple[object, ...]:
     ).fetchone()
 
 
+def test_explicit_headquarters_role_location_survives_extraction_and_persistence(
+    connection,
+) -> None:
+    from scraper.brain import BrainResult
+
+    raw_jd = (
+        "This is a **full-time** position, based at our headquarters in **Harbor City**. "
+        "Build reliable backend services with the engineering team."
+    )
+    facts = {
+        field: {"value": None, "evidence_quote": None}
+        for field in ("location", "remote", "seniority", "salary")
+    }
+    facts["stack"] = []
+    facts["location"] = {
+        "value": "Harbor City",
+        "evidence_quote": "based at our headquarters in **Harbor City**",
+    }
+    posting_id = insert_posting(connection, raw_jd)
+
+    def runner(request, *_args, **_kwargs):
+        return BrainResult(facts, "codex", "fixture-model", request=request)
+
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    stored = connection.execute(
+        "select p.location, e.extractor_version, e.facts from public.postings p "
+        "join public.posting_extractions e on e.posting_id = p.id where p.id = %s",
+        (posting_id,),
+    ).fetchone()
+    assert stored == ("Harbor City", core.EXTRACTOR_VERSION, facts)
+
+
 def protected_state(connection, posting_id: str) -> tuple[object, ...]:
     return connection.execute(
         "select p.source, p.external_id, p.url, p.title, p.company, p.raw_jd, "

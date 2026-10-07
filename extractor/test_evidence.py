@@ -204,3 +204,57 @@ def test_role_explicitly_based_at_headquarters_is_supported() -> None:
     candidate = remote_only_facts(None, None)
     candidate["location"] = {"value": "Tel Aviv", "evidence_quote": quote}
     validate_facts(candidate, quote)
+
+
+@pytest.mark.parametrize(("raw_jd", "quote", "value"), [
+    (
+        "This is a **full-time** position, based at our headquarters in **Harbor City**.",
+        "Harbor City", "Harbor City",
+    ),
+    (
+        "Location: Daily onsite presence at our Cedar Bay office/headquarters in alignment with our policy.",
+        "Cedar Bay", "Cedar Bay",
+    ),
+    (
+        "The role is remote, with the option to work from our Harbor City headquarters.",
+        "Harbor City", "Harbor City",
+    ),
+    (
+        "The position is remote within Canada, with office requirements for candidates near our headquarters in Cedar Bay.",
+        "Canada", "Canada",
+    ),
+    (
+        "Our headquarters are in Harbor City. This role is based in Harbor City.",
+        "Harbor City", "Harbor City",
+    ),
+])
+def test_role_locations_survive_headquarters_elsewhere_in_source_context(
+    raw_jd: str, quote: str, value: str,
+) -> None:
+    candidate = remote_only_facts(None, None)
+    candidate["location"] = {"value": value, "evidence_quote": quote}
+    validate_facts(candidate, raw_jd)
+
+
+@pytest.mark.parametrize(("raw_jd", "quote", "value"), [
+    (
+        "This role is based in Cedar Bay, while our headquarters are in Harbor City.",
+        "This role is based in Cedar Bay, while our headquarters are in Harbor City",
+        "Harbor City",
+    ),
+    (
+        "The position is remote within Canada, with office requirements for candidates near our headquarters in Cedar Bay.",
+        "Cedar Bay", "Cedar Bay",
+    ),
+    (
+        "Our customers work from their Harbor City headquarters.",
+        "Harbor City", "Harbor City",
+    ),
+])
+def test_role_wording_does_not_authorize_unrelated_headquarters_location(
+    raw_jd: str, quote: str, value: str,
+) -> None:
+    candidate = remote_only_facts(None, None)
+    candidate["location"] = {"value": value, "evidence_quote": quote}
+    with pytest.raises(BrainValidationError, match="job location"):
+        validate_facts(candidate, raw_jd)
