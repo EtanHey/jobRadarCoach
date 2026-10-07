@@ -1,4 +1,4 @@
-import type { Availability, JobSummary } from "./contracts";
+import type { Availability, FoundWithin, JobSummary } from "./contracts";
 import { uniqueJobsById } from "./job-board-state";
 import { filterJobGroups, type ViewOptions } from "./job-filters";
 
@@ -21,8 +21,10 @@ export function newRolesSince(jobs: readonly { first_seen_at: string }[]): strin
   return newest ?? EVERYTHING;
 }
 
-export function newRolesRequestPath(input: { filter: string; availability: Availability; since: string }): string {
-  return `/api/jobs?${new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(NEW_ROLES_LIMIT + 1), since: input.since })}`;
+export function newRolesRequestPath(input: { filter: string; availability: Availability; since: string; found_within?: FoundWithin }): string {
+  const params = new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(NEW_ROLES_LIMIT + 1), since: input.since });
+  if (input.found_within) params.set("found_within", input.found_within);
+  return `/api/jobs?${params}`;
 }
 
 // The pill's number is the cards Show would add: the board's own view filters and
