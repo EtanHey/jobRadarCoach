@@ -283,6 +283,16 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
     # Harvest never owns either ATS transition or changes the gate's evidence.
     if (_nonblank(posting.get("source")) or "linkedin") in ATS_SOURCES:
         return {}
+    # LinkedIn observations are advisory, including legacy alive=false input.
+    if (_nonblank(posting.get("source")) or "linkedin") == "linkedin":
+        signal = posting.get("linkedin_closed_signal")
+        if (isinstance(signal, dict) and signal.get("phrase") in
+                {"no longer accepting applications", "not currently accepting applications"}
+                and _timestamp(signal.get("checked_at")) is not None
+                and isinstance(signal.get("url"), str)
+                and signal["url"] == posting.get("url")):
+            return {"linkedin_closed_signal": signal, "liveness_checked_at": signal["checked_at"]}
+        return {}
     alive = posting.get("alive")
     status = posting.get("liveness_status")
     reason = _known_text(posting.get("liveness_reason"))
@@ -297,13 +307,14 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
         or _timestamp(checked_at) is None
     ):
         return {}
-    return {
+    evidence = {
         "alive": alive,
         "liveness_status": status,
         "liveness_reason": reason,
         "liveness_final_url": final_url,
         "liveness_checked_at": checked_at,
     }
+    return evidence
 
 
 def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[object, ...]:

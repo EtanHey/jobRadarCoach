@@ -17,3 +17,36 @@ Board membership is checked for Greenhouse, Lever, Comeet, Workable, Ashby, Smar
 ## Tag backfill
 
 `python -m scripts.backfill_ats_liveness docs.local/reports/2026-10-05-inactive-ats.json` validates the whole tag batch and prints a dry-run receipt with zero network/database actions. Explicit `--apply` uses `DATABASE_URL` and remains frozen before 2026-10-05 18:00 IDT; lead authorization is required. Apply rereads each current identity and liveness state, observes the complete tenant list once, and uses the exact ongoing reliability gate. Old tags do not count as a strike. First misses only record pending state; two consecutive successful misses at least 45 minutes apart plus own-URL closure proof are required. Applying immediately after the hourly first miss stays pending. Reappearance reactivates, new uncertainty increments alerts, repeated URL uncertainty backs off after three checks, and list errors reset strikes. `observed` counts successful guarded state writes; `applied` counts confirmed inactive writes, so recording a first miss is not reported as closure. Concurrent identity/state changes skip writes; the transaction rolls back on failure. No real tags/credentials belong in Git.
+
+## LinkedIn guest advisory badge
+
+LinkedIn closure evidence never sets `alive=false` or hides a job. Harvest and
+recheck store `linkedin_closed_signal: {phrase, checked_at, url}` in liveness JSON
+(and harvest JSONL). Card and drawer show a linked “LinkedIn: no longer accepting
+applications · checked <date>” badge; the alternate supported phrase is displayed
+verbatim. Active, New for me and Seen retain their existing status rules. ATS
+liveness transitions remain owned by the ATS reliability gate.
+
+The six-hourly rotating recheck selects 60 LinkedIn rows by default (maximum 120),
+waits two seconds before each GET, and requests only
+`https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<id>`. Harvest retains its
+four-request cloud budget. There are no normal-page fallbacks or retries.
+
+The parser from #443 accepts an HTTP 200 at the exact guest endpoint, a bounded
+complete response and a top-card closed-job figure with either supported English
+phrase. Other statuses, redirects, unsupported layouts/languages and framing
+failures supply no new signal. UNKNOWN updates attempt metadata only; it retains
+prior advisory evidence. Newer harvest evidence replaces older evidence; stale
+observations do not overwrite it. Scores and application state remain unchanged.
+
+Known false positives are deliberately advisory: non-void self-closing hidden
+HTML elements and foreign job links containing dot segments/backslashes can
+produce a badge. All thirteen r2 examples are retained as real SQL regressions
+in `scraper/test_linkedin_badge.py`: a signal is stored but no `alive` field is
+written. External CSS is not rendered. The badge is evidence from a checked page,
+not a guarantee of current application availability. Previously stored inactive
+state is not migrated or reopened by this source change.
+
+Dated minimal provider fixtures and provenance are in
+`scraper/fixtures/linkedin-guest`; inherited parsing/framing tests remain. The
+alternate English phrase has synthetic controls only; no provider capture is claimed.

@@ -1930,7 +1930,7 @@ def test_append_jsonl_schema_and_latest_summary(tmp_path: Path) -> None:
             "core_stack_present", "ai_bonus_gated", "employer_class",
             "employer_class_note", "source", "source_tenant", "alive",
             "liveness_status", "liveness_reason", "liveness_final_url",
-            "liveness_checked_at",
+            "liveness_checked_at", "linkedin_closed_signal",
         }
     summary = (tmp_path / "latest-summary.md").read_text(encoding="utf-8")
     assert "Harvested cards: 4" in summary
