@@ -23,6 +23,8 @@ MIGRATIONS = Path(__file__).parents[1] / "supabase/migrations"
 def migrated_database_url():
     try:
         with migrated_database(MIGRATIONS, through=6) as url:
+            with psycopg.connect(url, autocommit=True) as db:
+                db.execute((MIGRATIONS / "0027_relevance_gate.sql").read_text())
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
@@ -381,6 +383,8 @@ def test_candidate_query_keeps_eligibility_leases_and_priority_order() -> None:
         def execute(self, sql, params=()):
             if "from public.profile" in sql:
                 return Result(list(profile_snapshot().items()))
+            if "select p.id::text,p.title,p.raw_jd" in sql:
+                return Result([])
             self.candidate_sql = sql
             self.candidate_params = params
             return Result([("unscored",), ("stale",)])
