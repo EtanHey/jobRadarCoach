@@ -37,7 +37,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
   const selectedHeading = detail ?? selectedJob;
   const heading = selectedHeading && relatedJobs.length
     ? { ...selectedHeading, ...linkedPublicationDates([selectedHeading, ...relatedJobs]) } : selectedHeading;
-  const repost = heading && repostNote(heading, undefined, relatedJobs.length > 0);
+  const repost = selectedHeading && repostNote(selectedHeading);
   // Open on the description, never the first tabbable: header date icons would pop a tooltip and swallow the first Escape.
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent initialFocus={() => document.querySelector<HTMLElement>("[data-job-description]")} finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">

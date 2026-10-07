@@ -9,5 +9,5 @@ test('LinkedIn repost labels require explicit same-posting evidence, regardless 
   const signal = {label:'Reposted 2 weeks ago', url:job.url, checked_at:'2026-10-07T00:00:00Z'};
   assert.equal(repostNote({...job, linkedin_reposted_signal:signal}), signal.label);
   assert.equal(repostNote({...job, linkedin_reposted_signal:{...signal,url:'https://www.linkedin.com/jobs/view/999'}}), null);
-  assert.equal(repostNote({...job, linkedin_reposted_signal:signal}, undefined, true), signal.label);
+  assert.equal(repostNote({...job, linkedin_reposted_signal:signal, listing_publication_dates:{posted_at:null}}, undefined), signal.label);
 });

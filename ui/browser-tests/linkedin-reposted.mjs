@@ -25,6 +25,10 @@ const base = { company: "Fixture", source: "fixture", location: "Tel Aviv, Israe
   last_seen_at: "2026-10-04T00:00:00Z", experience: null, description_available: false,
   seniority_origin: "unknown", extraction_state: "not-extracted" };
 const rows = [
+  { ...base, id: "00000000-0000-4000-8000-000000000005", title: "ATS republished", source: "greenhouse", score: 90,
+    posted_at: "2026-09-01T12:00:00Z", last_published_at: "2026-10-03T12:00:00Z", first_seen_at: "2026-10-04T10:00:00Z" },
+  { ...base, id: "00000000-0000-4000-8000-000000000006", title: "ATS republished", source: "linkedin",
+    posted_at: "2026-08-01T12:00:00Z", last_published_at: "2026-10-04T12:00:00Z", first_seen_at: "2026-08-01T12:00:00Z" },
   { ...base, id: "00000000-0000-4000-8000-000000000001", title: "Linked role", location: "Haifa District, Israel", source: "linkedin", external_id: "old",
     apply_url: null, url: "https://www.linkedin.com/jobs/view/111", posted_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T12:00:00Z" },
   { ...base, id: "00000000-0000-4000-8000-000000000002", title: "Linked role", location: "Haifa, Israel", source: "greenhouse", external_id: "123",
@@ -73,16 +77,33 @@ try {
     await page.addInitScript(() => { Date.now = () => Date.parse("2026-10-04T12:00:00Z"); });
     await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.locator("article").first().waitFor({ timeout: 10000 });
-    assert.deepEqual(await page.locator("article h2").allTextContents(), ["Explicit repost", "Independent opening", "Linked role"]);
+    assert.deepEqual(await page.locator("article h2").allTextContents(), ["ATS republished", "Explicit repost", "Independent opening", "Linked role"]);
     const old = page.locator('article[data-posting-id$="000002"]');
     assert.equal(await old.locator("[data-repost-marker]").count(), 0, "linked date ranges must not infer a repost");
-    assert.equal(await page.locator("article [data-repost-marker]").count(), 1);
-    assert.equal(await page.locator("article [data-repost-marker]").innerText(), "Reposted 2 weeks ago");
+    const ats = page.locator('article[data-posting-id$="000005"]');
+    assert.equal(await ats.locator("[data-repost-marker]").count(), 1, "grouped ATS republish evidence must survive");
+    assert.equal(await ats.locator("[data-repost-marker]").innerText(), "Reposted: republished 2026-10-03");
+    assert.match(await ats.innerText(), /2 listings/);
+    await ats.getByRole("button", { name: /^Republished 2026-10-04,/ }).waitFor();
+    assert.equal(await page.locator("article [data-repost-marker]").count(), 2);
+    assert.equal(await page.locator('article[data-posting-id$="000003"] [data-repost-marker]').innerText(), "Reposted 2 weeks ago");
     await expectLinkedDates(old);
     assert.equal(await old.locator("time").count(), 3);
     assert.match(await old.innerText(), /2 listings/);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: resolve(output, `cards-${width}.png`), fullPage: true });
+    await page.getByRole("button", {name:"Open ATS republished at Fixture",exact:true}).click();
+    const atsDrawer = page.getByRole("dialog");
+    await atsDrawer.waitFor();
+    assert.equal(await atsDrawer.locator("[data-repost-marker]").count(), 1, "grouped ATS drawer must retain listing evidence");
+    assert.equal(await atsDrawer.locator("[data-repost-marker]").innerText(), "Reposted: republished 2026-10-03");
+    await atsDrawer.getByRole("button", { name: /^Republished 2026-10-04,/ }).first().waitFor();
+    await page.screenshot({path:resolve(output, `ats-drawer-${width}.png`),fullPage:true,animations:"disabled"});
+    await atsDrawer.getByText("Other listings for this role (1)").click();
+    await atsDrawer.getByRole("button", { name: /listing .*00000006/ }).click();
+    assert.equal(await atsDrawer.locator("[data-repost-marker]").count(), 0, "LinkedIn alternate has no explicit repost label");
+    await page.keyboard.press("Escape");
+    await atsDrawer.waitFor({state:"hidden"});
     await page.getByRole("button", {name:"Open Explicit repost at Fixture",exact:true}).click();
     await page.getByRole("dialog").waitFor();
     assert.equal(await page.getByRole("dialog").locator("[data-repost-marker]").innerText(), "Reposted 2 weeks ago");
@@ -103,5 +124,5 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
-  console.log("PASS: explicit stored LinkedIn label on card and drawer, absent for inferred group dates, alternates and date icons retained, no overflow or page errors; desktop 1280 and mobile 390.");
+  console.log("PASS: grouped ATS listing evidence independent of aggregate dates on card and drawer; explicit stored LinkedIn label on card and drawer, absent for inferred group dates, alternates and date icons retained, no overflow or page errors; desktop 1280 and mobile 390.");
 } finally { await browser?.close(); await new Promise(closed => server.close(closed)); }

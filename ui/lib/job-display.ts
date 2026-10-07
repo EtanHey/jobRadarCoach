@@ -55,15 +55,20 @@ export function postingDates(postedAt: string | null, firstSeenAt: string | null
   return dates;
 }
 
+// Client-only evidence retained before group display dates are aggregated.
+export type ListingPublicationEvidence = {
+  listing_publication_dates?: { posted_at: string | null; last_published_at?: string | null };
+};
+
 export function repostNote(job: { source: string; url: string; posted_at: string | null; last_published_at?: string | null;
-  linkedin_reposted_signal?: { label: string; url: string } | null }, timeZone?: string, linked = false): string | null {
+  linkedin_reposted_signal?: { label: string; url: string } | null } & ListingPublicationEvidence, timeZone?: string): string | null {
   if (job.source === "linkedin") {
     const signal = job.linkedin_reposted_signal;
     return signal?.url === job.url ? signal.label : null;
   }
-  if (linked) return null; // Group date ranges do not prove an ATS repost.
-  const latest = parsedTime(job.last_published_at);
-  return latest !== null && isRepublished(parsedTime(job.posted_at), latest)
+  const publication = job.listing_publication_dates ?? job;
+  const latest = parsedTime(publication.last_published_at);
+  return latest !== null && isRepublished(parsedTime(publication.posted_at), latest)
     ? `Reposted: republished ${calendarStamp(latest, timeZone, false)}` : null;
 }
 

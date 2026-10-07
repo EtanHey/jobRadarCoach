@@ -31,7 +31,7 @@ type Props = {
 
 export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, openerRef, selectJob, prefetchIntent, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
-  const repost = repostNote(job, undefined, alternateCount > 0);
+  const repost = repostNote(job);
   const location = job.location ?? "Location unspecified";
   // Every view names a non-new status under the score; terminal statuses (and Seen, kept in New for me) dim the
   // content, never the frame, so hover border and focus ring stay full strength.

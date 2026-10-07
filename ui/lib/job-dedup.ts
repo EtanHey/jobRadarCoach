@@ -1,9 +1,10 @@
+import type { ListingPublicationEvidence } from "./job-display";
 import { timestamp } from "./job-time";
 import type { JobSummary } from "./contracts";
 import { createRepostLocationMatcher } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
 
-export type DuplicateJobGroup = { job: JobSummary; alternates: JobSummary[] };
+export type DuplicateJobGroup = { job: JobSummary & ListingPublicationEvidence; alternates: JobSummary[] };
 
 function normalizedIdentity(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/gu, " ").toLowerCase();
@@ -81,7 +82,10 @@ export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
     return groups.map(members => {
       const listings = members.map(member => member.job).sort(newestFirst);
       const [job, ...alternates] = listings;
-      return { job: alternates.length ? { ...job, ...linkedPublicationDates(listings) } : job, alternates };
+      return { job: alternates.length ? { ...job,
+        listing_publication_dates: {
+          posted_at: job.posted_at, last_published_at: job.last_published_at,
+        }, ...linkedPublicationDates(listings) } : job, alternates };
     });
   });
 }

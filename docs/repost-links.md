@@ -57,6 +57,9 @@ The marker is hidden if the stored URL differs from the current posting.
 
 Removed: discovery-time earlier-listing counts, their card prop and both
 LinkedIn publication-range and alternate-count repost guesses. Grouping,
-alternate selection and publication-date icons remain. ATS single-listing
-markers still require a latest source publication after its original publication;
-aggregate group date ranges do not qualify as evidence for the marker.
+alternate selection and publication-date icons remain. ATS markers, including
+listings with alternates, still require a latest source publication after its
+original publication. Grouping retains the representative listing's own dates
+separately for marker evidence, and drawer markers use the selected listing before
+merging display dates. Aggregate group date ranges do not qualify
+as evidence for the marker.

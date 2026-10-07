@@ -52,7 +52,7 @@ test("ATS marker keeps source publication evidence, without discovery guesses", 
   assert.equal(repostNote(job, "UTC"), "Reposted: republished 2026-09-07");
   assert.equal(repostNote({...job,last_published_at:job.posted_at}), null);
   assert.equal(repostNote({...job,posted_at:null}), null);
-  assert.equal(repostNote(job, "UTC", true), null, "aggregate date ranges are not ATS evidence");
+  assert.equal(repostNote({...job, listing_publication_dates:{posted_at:job.posted_at, last_published_at:job.posted_at}}, "UTC"), null, "aggregate date ranges are not ATS evidence");
 });
 
 test("work mode reads a structured mode first and falls back to the remote flag", () => {

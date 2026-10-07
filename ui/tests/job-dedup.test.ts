@@ -229,3 +229,16 @@ test("LinkedIn grouping keeps dates and alternates without inferring a repost", 
     assert.equal(repostNote(groups[0].job), null);
   }
 });
+
+
+test("ATS grouping preserves each listing's republish evidence separately from group dates", () => {
+  const ats = job(200, { source: "greenhouse", posted_at: "2026-09-01T12:00:00Z", last_published_at: "2026-10-03T12:00:00Z" });
+  const alternate = job(201, { posted_at: "2026-08-01T12:00:00Z", last_published_at: "2026-10-04T12:00:00Z" });
+  const [group] = groupDuplicateJobs([ats, alternate]);
+  assert.equal(group.job.id, ats.id);
+  assert.equal(group.job.posted_at, alternate.posted_at);
+  assert.equal(group.job.last_published_at, alternate.last_published_at);
+  assert.equal(repostNote(group.job, "UTC"), "Reposted: republished 2026-10-03");
+  const [ordinary] = groupDuplicateJobs([{ ...ats, last_published_at: ats.posted_at }, alternate]);
+  assert.equal(repostNote(ordinary.job, "UTC"), null, "aggregate dates alone are not evidence");
+});
