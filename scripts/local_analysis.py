@@ -146,14 +146,10 @@ def _run_embedding_scan(connection, limit: int) -> None:
 
 def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
                *, embeddings_enabled: bool = True) -> int:
-    settings = {
-        "BRAIN": "codex",
-        "CODEX_MODEL": "gpt-5.6-luna" if stage == "extract" else "gpt-5.6-terra",
-    }
     runner = extractor_job.run_batch if stage == "extract" else classifier_job.run_batch
     if stage != "score" or not embeddings_enabled:
         return runner(connection, limit=1, timeout_seconds=timeout_seconds,
-                      posting_ids=(posting_id,), env=settings)
+                      posting_ids=(posting_id,), allow_legacy_settings=False)
     try:
         prepared = job_embeddings.capture_posting(connection, posting_id)
     except Exception as error:
@@ -163,7 +159,7 @@ def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
     if prepared:
         _start_embedding(prepared, posting_id)
     return runner(connection, limit=1, timeout_seconds=timeout_seconds,
-                  posting_ids=(posting_id,), env=settings)
+                  posting_ids=(posting_id,), allow_legacy_settings=False)
 
 
 def run_cycle(connection, *, max_items: int, timeout_seconds: float,

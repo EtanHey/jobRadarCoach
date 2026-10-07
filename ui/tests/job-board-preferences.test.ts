@@ -145,3 +145,15 @@ test("remote and non-remote filters survive reload without changing old defaults
     assert.equal(readBoardPreferences(storage).view.remote, remote);
   }
 });
+
+test("collapsed filters persist with otherwise default preferences and survive tab changes", () => {
+  const storage = memoryStorage();
+  const collapsed = { ...defaultBoardPreferences(), filtersCollapsed: true };
+  writeBoardPreferences(storage, collapsed);
+  assert.equal(readBoardPreferences(storage).filtersCollapsed, true);
+  const changed = preferencesForBoardFilter(readBoardPreferences(storage), "seen");
+  assert.equal(changed.filtersCollapsed, true);
+  assert.equal(preferencesForPipelineStatuses(changed, ["offer"]).filtersCollapsed, true);
+  clearBoardPreferences(storage);
+  assert.equal(readBoardPreferences(storage).filtersCollapsed ?? false, false);
+});
