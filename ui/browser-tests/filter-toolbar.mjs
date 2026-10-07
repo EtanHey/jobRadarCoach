@@ -61,6 +61,20 @@ try {
       });
       await page.screenshot({ path: `${output}/toolbar-${width}.png` });
       if (width >= 900) assert.ok(rows <= 2, `${width}px filter bar has ${rows} rows (max 2)`);
+      if (width === 1100 || width === 900) {
+        const labels = await toolbar.locator('[role=combobox], summary').evaluateAll(nodes => nodes
+          .filter(node => node.checkVisibility())
+          .map(node => {
+            const label = (node.matches('summary') ? node.parentElement.parentElement : node.parentElement).firstElementChild;
+            return { label: label.textContent, top: label.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom };
+          }));
+        const pipeline = labels.find(label => label.label === 'Pipeline status');
+        assert.ok(pipeline, `${width}px pipeline label is visible`);
+        const siblings = labels.filter(label => label !== pipeline && Math.abs(label.bottom - pipeline.bottom) <= 1);
+        assert.ok(siblings.length > 0, `${width}px pipeline has sibling labels in its row`);
+        assert.ok(siblings.every(label => Math.abs(label.top - pipeline.top) <= 1),
+          `${width}px label tops must align: ${JSON.stringify([pipeline, ...siblings])}`);
+      }
       if (process.env.FILTER_LAYOUT_ONLY !== '1') {
         const toggle = toolbar.getByRole('button', { name: /Filters/ });
         if (width >= 900) {

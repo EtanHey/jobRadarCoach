@@ -23,3 +23,15 @@ Screenshots were visually inspected. This is local synthetic UI evidence; hosted
 | 1100 | [Toolbar](toolbar-1100.png) |
 | 900 | [Toolbar](toolbar-900.png) |
 | 390 | [Toolbar](toolbar-390.png), [drawer](toolbar-390-drawer.png) |
+
+## PR #432 fix round 1
+
+At review head `bcf5408`, the new same-row label-top assertion failed at 1100px
+(pipeline 169px, sibling labels 171px) and 900px (239px versus 241px). Making the
+pipeline label block-level passes that assertion at both widths. The full capped
+browser suite passes all five widths, including collapse persistence, long labels,
+Reset, mobile focus return, overflow and page-error checks. The refreshed 1100/900
+screenshots were visually inspected. Scoped ESLint and TypeScript also pass.
+
+The optional Reset behavior change is deferred: `isDefaultBoardPreferences` also
+controls persistence, so ignoring collapse there would discard saved collapse state.
