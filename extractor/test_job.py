@@ -41,6 +41,8 @@ class Connection:
     def execute(self, query, params=()):
         self.queries.append(query)
         if "from public.profile" in query:
+            if params and params[0] != "runtime.brain":
+                return Result()
             return Result(one=(self.brain,))
         assert "not exists" in query.casefold()
         assert "regexp_replace" in query
@@ -88,7 +90,7 @@ def test_batch_is_bounded_and_second_run_skips_extracted_explicit_ids(capsys) ->
     assert (first, second) == (0, 0)
     assert len(calls) == 2
     assert all(call[1:] == ({"runtime.brain": "codex"}, 17) for call in calls)
-    assert sum("from public.profile" in query for query in connection.queries) == 2
+    assert sum("from public.profile" in query for query in connection.queries) == 14
     records = logs(capsys)
     assert all(record["provider"] == "ollama" for record in records)
     summaries = [record for record in records if "extracted" in record]
@@ -215,4 +217,4 @@ def test_explicit_environment_reaches_real_extractor_adapter(monkeypatch) -> Non
     assert job.run_batch(Connection(brain="codex"), limit=1, timeout_seconds=17,
                          env={"BRAIN": "ollama"},
                          persister=lambda *_: "stored") == 0
-    assert calls == [({"BRAIN": "ollama"}, 17)]
+    assert calls == [({"BRAIN": "ollama", "OLLAMA_MODEL": "qwen2.5:7b-instruct"}, 17)]
