@@ -7,7 +7,7 @@ export const BOARD_PREFERENCES_KEY = "job-radar.board-preferences";
 export const BOARD_PREFERENCES_VERSION = 3;
 
 export type BoardFilter = "all" | "new-for-me" | "seen";
-export type BoardPreferences = { filter: BoardFilter; view: ViewOptions };
+export type BoardPreferences = { filter: BoardFilter; view: ViewOptions; filtersCollapsed?: boolean };
 type StorageReader = Pick<Storage, "getItem">;
 type StorageWriter = Pick<Storage, "setItem" | "removeItem">;
 type StorageHost = { readonly localStorage: Storage };
@@ -40,6 +40,7 @@ const pipelineStatusSchema = z.enum(pipelineStatusValues);
 const availabilitySchema = z.enum(["active", "inactive", "all"]);
 const storedPreferencesSchema = z.object({
   version: z.literal(BOARD_PREFERENCES_VERSION),
+  filtersCollapsed: z.boolean().optional(),
   filter: z.enum(["all", "new-for-me", "seen"]),
   view: viewSchema.extend({ statuses: z.array(pipelineStatusSchema).max(pipelineStatusValues.length), availability: availabilitySchema }).strict(),
 }).strict();
@@ -64,7 +65,7 @@ export function readBoardPreferences(storage: StorageReader): BoardPreferences {
     if (!raw) return freshDefaults();
     const json: unknown = JSON.parse(raw);
     const parsed = storedPreferencesSchema.safeParse(json);
-    if (parsed.success) return { filter: parsed.data.filter, view: { ...parsed.data.view, statuses: [...new Set(parsed.data.view.statuses)] } };
+    if (parsed.success) return { ...(parsed.data.filtersCollapsed !== undefined ? { filtersCollapsed: parsed.data.filtersCollapsed } : {}), filter: parsed.data.filter, view: { ...parsed.data.view, statuses: [...new Set(parsed.data.view.statuses)] } };
     const versionTwo = versionTwoPreferencesSchema.safeParse(json);
     if (versionTwo.success) return { filter: versionTwo.data.filter, view: { ...versionTwo.data.view, statuses: [...new Set(versionTwo.data.view.statuses)], availability: "active" } };
     const legacy = legacyPreferencesSchema.safeParse(json);
@@ -86,7 +87,8 @@ export function boardPreferenceStorage(host: StorageHost): Storage | null {
 }
 
 export function isDefaultBoardPreferences(preferences: BoardPreferences): boolean {
-  return preferences.filter === DEFAULT_BOARD_PREFERENCES.filter
+  return !preferences.filtersCollapsed
+    && preferences.filter === DEFAULT_BOARD_PREFERENCES.filter
     && preferences.view.remote === undefined
     && preferences.view.work_mode === undefined
     && preferences.view.statuses.length === 0
@@ -120,6 +122,7 @@ export function defaultBoardPreferences(): BoardPreferences {
 
 export function preferencesForBoardFilter(preferences: BoardPreferences, filter: BoardFilter): BoardPreferences {
   return {
+    ...preferences,
     filter,
     view: {
       ...preferences.view,
@@ -131,6 +134,7 @@ export function preferencesForBoardFilter(preferences: BoardPreferences, filter:
 
 export function preferencesForPipelineStatuses(preferences: BoardPreferences, statuses: PipelineStatus[]): BoardPreferences {
   return {
+    ...preferences,
     filter: statuses.length > 0 ? "all" : preferences.filter,
     view: { ...preferences.view, statuses },
   };
