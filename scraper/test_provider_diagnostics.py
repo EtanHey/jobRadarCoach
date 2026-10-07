@@ -137,3 +137,30 @@ def test_receipt_uses_normalized_runtime_model_and_effort(monkeypatch, tmp_path)
     with brain.provider_diagnostic_scope(events.append), pytest.raises(brain.BrainTransportError):
         brain.run_brain(request(), env={'BRAIN': 'codex', 'CODEX_MODEL': ' gpt-5.6-terra ', 'CODEX_REASONING_EFFORT': ' XHIGH '})
     assert events[0]['model'] == 'gpt-5.6-terra' and events[0]['reasoning_effort'] == 'xhigh'
+
+
+def test_parent_exit_tears_down_group_once(monkeypatch, tmp_path):
+    from scraper import codex_process
+    from scraper.test_codex_process import running
+    import os
+    pidfile = tmp_path / 'child.pid'
+    code = ('import subprocess,sys;from pathlib import Path;'
+            'p=subprocess.Popen([sys.executable,"-c","import time;time.sleep(60)"]);'
+            'Path(sys.argv[1]).write_text(str(p.pid));sys.exit(0)')
+    original = codex_process._stop_group
+    calls = []
+
+    def stop(process):
+        calls.append(process.pid)
+        assert len(calls) == 1, 'group teardown repeated after parent exit'
+        original(process)
+
+    monkeypatch.setattr(codex_process, '_stop_group', stop)
+    try:
+        result = run_codex_process([sys.executable, '-c', code, str(pidfile)], stdin_text='',
+            text=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=2, cwd=tmp_path, env={})
+        assert result.returncode == 0 and len(calls) == 1
+        assert not running(int(pidfile.read_text()))
+    finally:
+        if pidfile.exists() and running(int(pidfile.read_text())):
+            os.kill(int(pidfile.read_text()), 9)

@@ -14,7 +14,8 @@ def _stop_group(process):
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
         pass
-    process.wait()
+    finally:
+        process.wait()
 
 
 MAX_STDERR_BYTES = 16_384
@@ -37,7 +38,7 @@ def _stderr_category(raw, truncated):
     return "nonzero_exit"
 
 
-def _bounded_stderr(process, command, stdin_text, timeout):
+def _bounded_stderr(process, command, stdin_text, timeout, stop_group):
     deadline = time.monotonic() + timeout
     pending = memoryview(stdin_text.encode() if isinstance(stdin_text, str) else stdin_text)
     retained = bytearray()
@@ -71,7 +72,7 @@ def _bounded_stderr(process, command, stdin_text, timeout):
                     truncated = truncated or len(retained) + len(chunk) > MAX_STDERR_BYTES
                     retained[:] = (retained + chunk)[-MAX_STDERR_BYTES:]
             if process.poll() is not None:
-                _stop_group(process)  # Descendants must not hold stderr open after exit.
+                stop_group()  # Descendants must not hold stderr open after exit.
         process.wait(timeout=max(0, deadline - time.monotonic()))
     return {"category": _stderr_category(retained, truncated), "truncated": truncated}
 
@@ -80,15 +81,23 @@ def run_codex_process(command, *, stdin_text, text, stdout, stderr, timeout, cwd
     """Discard output or return only bounded stderr categories; always kill the group."""
     with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr,
                           text=text, cwd=cwd, env=env, start_new_session=True) as process:
+        cleanup_started = False
+
+        def stop_group():
+            nonlocal cleanup_started
+            if not cleanup_started:
+                cleanup_started = True
+                _stop_group(process)
+
         try:
             diagnostic = None
             if stderr == subprocess.PIPE:
-                diagnostic = _bounded_stderr(process, command, stdin_text, timeout)
+                diagnostic = _bounded_stderr(process, command, stdin_text, timeout, stop_group)
             else:
                 process.communicate(input=stdin_text, timeout=timeout)
             return subprocess.CompletedProcess(command, process.returncode, stderr=diagnostic)
         finally:
-            _stop_group(process)
+            stop_group()
 
 
 def _read_version(process, command, timeout):
