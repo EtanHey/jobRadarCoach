@@ -32,8 +32,15 @@ close a row: one root `section.top-card-layout`, its own `figure.closed-job`, an
 Other document shapes, redirects, 404/410, 429/5xx, bodies over 512 KB, malformed
 markup and unrecognized statuses stay UNKNOWN. Scripts, styles, templates,
 comments, hidden/aria-hidden ancestors and SVG content cannot supply status text;
-inline styles on status ancestors conservatively prevent closure, including CSS
-comments and escapes. Foreign job identity/links and related-card containers cannot
+unopened dialogs, closed details outside their first direct summary, popovers with
+unknown display state, and native text/control/fallback containers are excluded.
+Content-Length must match the received byte count; chunked responses must finish
+their framing, and connection-close responses must reach EOF within the size cap.
+Malformed/ambiguous framing and buffered unfinished HTML tokens stay UNKNOWN.
+Inline styles on status ancestors conservatively prevent closure, including CSS
+comments and escapes. Job-link paths are percent-decoded and normalized for case,
+trailing slash and query before identity comparison; ambiguous encoded job paths
+stay UNKNOWN. Foreign job identity/links and related-card containers cannot
 supply the requested job's status. The transport binds identity to the requested
 per-job fragment; matching body URNs are not required. External CSS is not rendered;
 unsupported layouts/languages can miss closures, so this does not establish live

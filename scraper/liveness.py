@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import http.client
 import json
 import re
 from datetime import datetime, timezone
@@ -200,7 +201,7 @@ def _check_linkedin(url, opener, timeout):
         request = Request(endpoint, headers={"User-Agent": BROWSER_USER_AGENT, "Accept": "text/html"}, method="GET")
         with opener(request, timeout=timeout) as response:
             status, final = int(response.getcode()), str(response.geturl())
-            body = response.read(linkedin_liveness.BODY_LIMIT + 1)
+            body = linkedin_liveness.read_guest_body(response)
         phrase = None
         if status == 200 and final == endpoint and len(body) <= linkedin_liveness.BODY_LIMIT:
             phrase = linkedin_liveness.closure_phrase(body.decode("utf-8"), linkedin_liveness.job_id(endpoint))
@@ -213,7 +214,7 @@ def _check_linkedin(url, opener, timeout):
         final = _error_location(error, endpoint)
         return _result(None, status=error.code, reason="redirect-to-auth" if AUTH_PATH.search(urlparse(final).path)
                        else f"http-{error.code}-uncertain", final_url=final)
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, http.client.HTTPException) as error:
         return _result(None, status=None, reason=f"network-uncertain:{type(error).__name__}", final_url=endpoint)
 
 

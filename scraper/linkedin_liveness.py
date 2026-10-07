@@ -1,13 +1,13 @@
 """Accept closure only from the requested guest fragment's own visible status."""
 from html.parser import HTMLParser
 import re
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 BODY_LIMIT = 512_000
 REQUEST_INTERVAL = 2.0
 PHRASE = re.compile(r'^(no longer accepting applications|not currently accepting applications)$', re.I)
 VOID = frozenset('area base br col embed hr img input link meta param source track wbr'.split())
-NONVISIBLE = frozenset('script style template noscript svg canvas'.split())
+NONVISIBLE = frozenset('script style template noscript svg canvas textarea select iframe object'.split())
 EXCLUDED = NONVISIBLE | {'aside', 'nav', 'footer'}
 
 
@@ -27,6 +27,37 @@ def job_id(url):
 def guest_url(url):
     identity = job_id(url)
     return f'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{identity}' if identity else None
+
+
+def linked_job_id(href):
+    # Links are veto evidence, including relative/foreign-origin and encoded paths.
+    path = unquote(urlparse(href).path, errors='strict').lower().rstrip('/')
+    prefix = re.search(r'/(?:jobs/view/|(?:jobs-guest/)?jobs/api/jobposting/)', path)
+    if not prefix:
+        return None
+    match = re.fullmatch(r'(?:[^/]*-)?([0-9]+)', path[prefix.end():])
+    if not match or '%' in path:
+        raise ValueError('ambiguous job link')
+    return match.group(1)
+
+
+def read_guest_body(response):
+    """Read to framed completion (or connection EOF), bounded at cap plus one."""
+    headers = getattr(response, 'headers', {})
+    lengths = (headers.get_all('Content-Length', []) if hasattr(headers, 'get_all')
+               else [headers['Content-Length']] if headers.get('Content-Length') is not None else [])
+    transfer = (headers.get('Transfer-Encoding') or '').strip().lower()
+    # Unsupported/ambiguous framing cannot authenticate a complete fragment.
+    if transfer and (transfer != 'chunked' or lengths):
+        raise ValueError('ambiguous HTTP framing')
+    if len(lengths) > 1 or (lengths and not re.fullmatch(r'[0-9]+', lengths[0].strip())):
+        raise ValueError('invalid Content-Length')
+    body = response.read(BODY_LIMIT + 1)
+    if len(body) > BODY_LIMIT or (lengths and len(body) != int(lengths[0])):
+        raise ValueError('incomplete or over-limit body')
+    # http.client/urllib validate chunk termination; their bounded reads without
+    # Content-Length consume through connection EOF. Never decode before this gate.
+    return body
 
 
 class _Fragment(HTMLParser):
@@ -56,8 +87,14 @@ class _Fragment(HTMLParser):
             if parent:
                 self.uncertain = True
         excluded = tag in EXCLUDED or bool(parent and parent['excluded'])
+        first_summary = bool(parent and parent['closed_details'] and tag == 'summary'
+                             and not parent['summary_seen'])
+        if parent and parent['closed_details'] and tag == 'summary':
+            parent['summary_seen'] = True
         # Unknown inline CSS cannot establish visibility. This includes comments/escapes.
-        hidden = (any(key in attrs for key in ('hidden', 'inert', 'style')) or
+        hidden = (any(key in attrs for key in ('hidden', 'inert', 'style', 'popover')) or
+                  (tag == 'dialog' and 'open' not in attrs) or
+                  bool(parent and parent['closed_details'] and not first_summary) or
                   (attrs.get('aria-hidden') or '').lower() == 'true' or
                   bool(classes & {'hidden', 'invisible', 'sr-only'}) or
                   bool(parent and parent['hidden']))
@@ -71,8 +108,11 @@ class _Fragment(HTMLParser):
         if attrs.get('data-job-id') not in (None, self.identity):
             self.uncertain = True
         href = attrs.get('href') or ''
-        linked = re.search(r'/jobs/(?:view/(?:[^/?]*-)?|api/jobPosting/)([0-9]+)', href)
-        if linked and linked.group(1) != self.identity:
+        try:
+            linked = linked_job_id(href)
+            if linked and linked != self.identity:
+                self.uncertain = True
+        except ValueError:
             self.uncertain = True
         own_topcard = topcard or bool(parent and parent['topcard'])
         figure = tag == 'figure' and 'closed-job' in classes and own_topcard
@@ -83,7 +123,8 @@ class _Fragment(HTMLParser):
             self.statuses.append([])
         status = self.statuses[-1] if caption else (parent['status'] if parent else None)
         frame = dict(tag=tag, excluded=excluded, hidden=hidden, topcard=own_topcard,
-                     figure=figure, status=status)
+                     figure=figure, status=status, summary_seen=False,
+                     closed_details=tag == 'details' and 'open' not in attrs)
         if tag not in VOID:
             self.stack.append(frame)
         elif status is not None and not hidden and not excluded:
@@ -108,13 +149,16 @@ class _Fragment(HTMLParser):
                 self.uncertain = True
             return
         frame = self.stack[-1]
-        if frame['status'] is not None and not frame['hidden'] and not frame['excluded']:
+        if (frame['status'] is not None and not frame['hidden'] and not frame['excluded']
+                and not frame['closed_details']):
             frame['status'].append(data)
 
 
 def closure_phrase(body, identity):
     parser = _Fragment(identity)
     parser.feed(body)
+    if parser.rawdata:
+        return None  # HTMLParser versions differ in how close() flushes unfinished tokens.
     parser.close()
     if parser.uncertain or parser.stack or parser.topcards != 1 or len(parser.statuses) != 1:
         return None
