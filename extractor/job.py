@@ -97,7 +97,8 @@ def select_postings(
     )
     rows = connection.execute(
         "select p.id::text, p.raw_jd from public.postings p "
-        "where p.raw_jd is not null and p.raw_jd ~ '[^[:space:]]' "
+        "where p.liveness->'alive' is distinct from 'false'::jsonb "
+        "and p.raw_jd is not null and p.raw_jd ~ '[^[:space:]]' "
         "and char_length(regexp_replace(p.raw_jd, "
         "'(^[[:space:]]+|[[:space:]]+$)', '', 'g')) >= %s "
         "and octet_length(p.raw_jd) <= %s "
