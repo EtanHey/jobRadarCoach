@@ -35,3 +35,13 @@ screenshots were visually inspected. Scoped ESLint and TypeScript also pass.
 
 The optional Reset behavior change is deferred: `isDefaultBoardPreferences` also
 controls persistence, so ignoring collapse there would discard saved collapse state.
+
+## PR #441 conflict resolution
+
+Merged master `09e9f230abc04b582424530e4273d716b4e11144` into the found-within branch.
+The screenshots now include the chips inside the desktop collapsible controls and
+the mobile sheet. With chips, all four desktop widths use two rows. The browser
+suite also verifies the found-window badge contribution, chip selection, hiding
+chips on collapse, clearing the window on Reset, and mobile sheet selection.
+The chips-missing resolution failed those assertions at every tested width before
+the combined toolbar passed. Local synthetic evidence only.

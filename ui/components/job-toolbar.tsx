@@ -37,6 +37,12 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
       <div key={key} className="min-w-0 shrink-0" style={compact ? { width: `clamp(6rem, ${(selectedLabel.length + 5) * 0.44}rem, 10rem)` } : undefined}><AppSelect compact label={label} value={value} options={choices} onValueChange={(next) => onChange(key === "work_mode" ? { ...options, remote: undefined, work_mode: next === "" ? undefined : next as ViewOptions["work_mode"] } : { ...options, [key]: next })} /></div>,
     ];
   });
+  const foundWithin = <div role="group" aria-label="Found in the past" className="min-w-0 shrink-0">
+    <span className="mb-1 block text-[11px] leading-4 text-muted-foreground">Found in the past</span>
+    <div className="flex flex-wrap gap-1">
+      {([ ["", "Any time"], ["24h", "24 h"], ["3d", "3 d"], ["7d", "7 d"], ["30d", "30 d"] ] as const).map(([value, label]) => <Button key={value} type="button" size="sm" className="h-10" variant={(options.found_within ?? "") === value ? "secondary" : "ghost"} aria-pressed={(options.found_within ?? "") === value} onClick={() => onChange({ ...options, found_within: value || undefined })}>{label}</Button>)}
+    </div>
+  </div>;
   const badge = active > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{active}<span className="sr-only"> active</span></span>;
   return <div data-job-toolbar>
     <div role="group" aria-label="Found in the past" className="mb-2 flex flex-wrap items-center gap-1">
@@ -45,14 +51,14 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
     </div>
     <div className={`hidden flex-wrap items-end gap-2 pb-2 ${globeOpen ? "xl:flex" : "md:flex"}`}>
       <Button type="button" variant="outline" className="h-10" aria-expanded={!filtersCollapsed} aria-controls={filtersId} onClick={() => onFiltersCollapsedChange?.(!filtersCollapsed)}><SlidersHorizontal aria-hidden="true" />Filters{badge}</Button>
-      <div id={filtersId} hidden={filtersCollapsed} className={filtersCollapsed ? "hidden" : "contents"}>{!filtersCollapsed && controls(true)}</div>
+      <div id={filtersId} hidden={filtersCollapsed} className={filtersCollapsed ? "hidden" : "contents"}>{!filtersCollapsed && <>{controls(true)}{foundWithin}</>}</div>
       <div className="flex h-10 shrink-0 items-center gap-1"><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
     </div>
     <div className={`flex flex-wrap items-center gap-2 pb-2 ${globeOpen ? "xl:hidden" : "md:hidden"}`}><Button ref={opener} variant="outline" onClick={() => setOpen(true)}><SlidersHorizontal aria-hidden="true" />Filters{badge}</Button><Button type="button" variant="ghost" className="h-10" disabled={!canReset} onClick={onReset}>Reset view</Button>{actions}</div>
 
     <Sheet open={open} onOpenChange={setOpen}><SheetContent finalFocus={opener} className="overflow-y-auto data-[side=right]:w-full">
       <SheetHeader><SheetTitle>Filters</SheetTitle><SheetDescription>Narrow the roles and choose their order.</SheetDescription></SheetHeader>
-      <div className="grid gap-5 px-4">{controls(false)}<Button onClick={() => setOpen(false)}>Show roles</Button></div>
+      <div className="grid gap-5 px-4">{controls(false)}{foundWithin}<Button onClick={() => setOpen(false)}>Show roles</Button></div>
     </SheetContent></Sheet>
   </div>;
 }
