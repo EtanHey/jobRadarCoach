@@ -1,12 +1,21 @@
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import type { Availability, JobDetail, JobSummary, StatusResult } from "./contracts";
 import { statusMutationRemovesCard } from "./job-status";
-import { updateJobStatus } from "./job-board-state";
+import { uniqueJobsById, updateJobStatus } from "./job-board-state";
 import type { BoardFilter } from "./job-board-preferences";
 import { loadJobDetail } from "./job-detail-request";
+import type { ViewOptions } from "./job-filters";
 
 export type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
-export const boardListKey = (filter: BoardFilter, availability: Availability) => ["board-list", filter, availability] as const;
+export const boardListKey = (filter: BoardFilter, availability: Availability, view?: Pick<ViewOptions, "fit" | "statuses" | "sort">) =>
+  ["board-list", filter, availability, view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit"] as const;
+// Facet-specific snapshots still belong to one New-for-me visit. Keep settled
+// cards when a sort/fit change creates a new query, and hydrate them by ID.
+export function cachedVisitCohort(client: QueryClient, availability: Availability): JobSummary[] | null {
+  const snapshots = client.getQueriesData<CachedList>({ queryKey: ["board-list", "new-for-me", availability] })
+    .flatMap(([, data]) => data ? [data.jobs] : []);
+  return snapshots.length ? uniqueJobsById(snapshots.flat()) : null;
+}
 type Confirmation = { id: string; result: StatusResult; automatic: boolean; revision: number };
 export const confirmedStatusRevision = (client: QueryClient) => client.getQueryData<number>(["board-status-revision"]) ?? 0;
 

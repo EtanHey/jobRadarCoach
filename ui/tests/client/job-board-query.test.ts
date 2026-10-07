@@ -2,7 +2,27 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobDetail, JobSummary } from "../../lib/contracts";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
+
+test("server facet changes retain the New-for-me visit cohort across query keys", () => {
+  const client = new QueryClient();
+  const view = { fit: "recommended", statuses: [], sort: "fit" as const };
+  const kept = { id: "kept", status: "seen" } as JobSummary;
+  client.setQueryData(boardListKey("new-for-me", "active", view), { jobs: [kept], loadedUpdatedAt: null });
+  client.setQueryData(boardListKey("new-for-me", "active", { ...view, sort: "found" }), { jobs: [kept, row], loadedUpdatedAt: null });
+  assert.deepEqual(cachedVisitCohort(client, "active"), [kept, row]);
+  assert.equal(cachedVisitCohort(client, "inactive"), null);
+  client.clear();
+});
+
+test("list cache isolates every server facet, canonicalizing OR status order", () => {
+  const view = { fit: "recommended", statuses: ["applied", "worth_checking"] as const, sort: "fit" as const };
+  const key = boardListKey("all", "active", { ...view, statuses: [...view.statuses] });
+  assert.deepEqual(key, boardListKey("all", "active", { ...view, statuses: ["worth_checking", "applied", "applied"] }));
+  assert.notDeepEqual(key, boardListKey("all", "active", { ...view, statuses: [], fit: "recommended" }));
+  assert.notDeepEqual(key, boardListKey("all", "active", { ...view, statuses: [...view.statuses], fit: "good" }));
+  assert.notDeepEqual(key, boardListKey("all", "active", { ...view, statuses: [...view.statuses], sort: "found" }));
+});
 
 test("list queries isolate filter and availability and reuse their cached response", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });

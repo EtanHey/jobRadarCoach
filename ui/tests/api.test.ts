@@ -8,9 +8,29 @@ import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
 import { JobIdSchema, JobStatusSchema, type JobDetail, type JobSummary } from "../lib/contracts";
 import { HttpError } from "../lib/http";
 import type { ApiStore } from "../lib/server";
+import { createClient } from "@supabase/supabase-js";
 import { availabilityPredicate, parseSummaryRows, selectSummaries } from "../lib/server";
 
 const ID = "0199d9c3-a742-7000-8000-000000000001";
+
+test("board facets validate and reach the SQL RPC through the real Supabase client", async () => {
+  const calls: { url: string; body: unknown }[] = [];
+  const db = createClient("https://database.example.test", "synthetic-key", {
+    auth: { persistSession: false }, global: { fetch: async (url, init) => {
+      calls.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+      return new Response("[]", { headers: { "content-type": "application/json" } });
+    } },
+  });
+  const handler = makeGetJobs(store({ listJobs: input => selectSummaries(db, input) }));
+  const response = await handler(new Request("https://example.test/api/jobs?filter=all&availability=active&limit=1000&fit=recommended&statuses=applied,worth_checking&sort=fit"));
+  assert.equal(response.status, 200);
+  assert.match(calls[0].url, /\/rpc\/board_postings\?select=/);
+  assert.deepEqual(calls[0].body, { filter: "all", availability: "active", fit: "recommended", statuses: ["applied", "worth_checking"], sort: "fit", max: 1000 });
+  for (const query of ["fit=unknown", "sort=unknown", "statuses=new", "statuses=invalid", `ids=${ID}&filter=all&availability=all&fit=good`, "since=2026-10-01T00:00:00Z&sort=fit"]) {
+    assert.equal((await handler(new Request(`https://example.test/api/jobs?${query}`))).status, 400, query);
+  }
+  assert.equal(calls.length, 1);
+});
 const summary: JobSummary = {
   id: ID,
   title: "Backend Engineer",

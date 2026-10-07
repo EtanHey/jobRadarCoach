@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import { createClient } from "@supabase/supabase-js";
+import { selectSummaries } from "../../lib/server";
+async function main() {
+  const db = createClient("http://fixture.invalid", "synthetic-key", { auth: { persistSession: false }, global: {
+    fetch: async (input, init) => {
+      const url = new URL(String(input)), headers = new Headers(init?.headers);
+      // Disposable standalone PostgREST has no Supabase gateway or JWT secret.
+      headers.delete("authorization");
+      const response = await fetch(`${process.env.JOBRADAR_TEST_REST_URL}${url.pathname.replace(/^\/rest\/v1/, "")}${url.search}`, { ...init, headers });
+      if (!response.ok) console.error(response.status, await response.clone().text());
+      return response;
+    },
+  } });
+  const rows = await selectSummaries(db, { filter: "all", availability: "all", fit: "", statuses: [], sort: "fit", limit: 1000 });
+  const pipeline = await selectSummaries(db, { filter: "all", availability: "all", fit: "recommended", statuses: ["applied", "worth_checking"], sort: "fit", limit: 1000 });
+  assert.ok(pipeline.length > 0);
+  assert.ok(pipeline.every(row => ["applied", "worth_checking"].includes(row.status) && ["apply", "review", "referral"].includes(row.recommendation ?? "")));
+  process.stdout.write(JSON.stringify({ first: rows[0].id, count: rows.length, pipeline: true }));
+}
+void main();

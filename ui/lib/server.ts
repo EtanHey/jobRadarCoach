@@ -106,6 +106,12 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   if (input.ids) {
     return parseSummaryRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
+  if (input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined) {
+    return parseSummaryRows(await data(db.rpc("board_postings", {
+      filter: input.filter, availability: input.availability, fit: input.fit ?? "",
+      statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
+    }).select(SUMMARY))).jobs;
+  }
   let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
   if (input.filter !== "all") query = query.eq("posting_status.status", input.filter === "new-for-me" ? "new" : input.filter);
   const availability = availabilityPredicate(input.availability);
