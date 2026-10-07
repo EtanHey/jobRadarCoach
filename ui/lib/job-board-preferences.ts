@@ -138,7 +138,7 @@ export function preferencesForBoardFilter(preferences: BoardPreferences, filter:
 export function preferencesForPipelineStatuses(preferences: BoardPreferences, statuses: PipelineStatus[]): BoardPreferences {
   return {
     ...preferences,
-    filter: statuses.length > 0 ? "all" : preferences.filter,
+    filter: statuses.length > 0 && preferences.filter !== "not-scored" ? "all" : preferences.filter,
     view: { ...preferences.view, statuses },
   };
 }
