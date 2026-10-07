@@ -88,9 +88,9 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
     description_available: list_metadata.description_available,
     experience: list_metadata.experience, extraction_state: extraction ? "extracted" : "not-extracted",
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
-    score: score?.score ?? null,
-    fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
-    recommendation: fit && "recommendation" in fit ? fit.recommendation : null,
+    score: base.relevance_filtered ? null : score?.score ?? null,
+    fit_line: !base.relevance_filtered && fit && "fit_line" in fit ? fit.fit_line : null,
+    recommendation: !base.relevance_filtered && fit && "recommendation" in fit ? fit.recommendation : null,
     alive: typeof liveness?.alive === "boolean" ? liveness.alive : null,
   });
 }

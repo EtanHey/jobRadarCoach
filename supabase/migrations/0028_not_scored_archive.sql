@@ -83,7 +83,7 @@ grant execute on function public.get_globe_snapshot(text,text) to service_role;
 create function public.score_anyway(posting_id uuid) returns boolean
 language sql security invoker set search_path='' as $$
   with changed as (update public.postings p
-    set relevance_gate=p.relevance_gate || '{"override":true}'::jsonb
+    set relevance_gate=p.relevance_gate || '{"override":true,"score_requested":true}'::jsonb
     where p.id=$1 returning p.id)
   select exists(select 1 from changed)
 $$;

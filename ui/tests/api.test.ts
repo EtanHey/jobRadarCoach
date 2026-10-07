@@ -454,3 +454,12 @@ test("score anyway validates origin and body before queuing a stored override", 
   assert.equal(response.status, 200); assert.equal((await response.json()).relevance_filtered, false);
   assert.equal(calls, 1);
 });
+
+test("an archived prior score does not appear as a current recommendation", () => {
+  const raw = { ...summary, relevance_filtered: true, relevance_gate: { rule: "already-us-resident" },
+    list_metadata: { stack: [], experience: null, description_available: true }, liveness: null, posting_extractions: null,
+    posting_status: null, posting_scores: { score: 72, score_payload: { recommendation: "apply", fit_line: "Cached assessment" } } };
+  const archived = parseSummaryRows([raw]).jobs[0];
+  assert.equal(archived.score, null); assert.equal(archived.recommendation, null);
+  assert.equal(parseSummaryRows([{ ...raw, relevance_filtered: false }]).jobs[0].score, 72);
+});
