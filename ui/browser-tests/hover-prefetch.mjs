@@ -34,7 +34,7 @@ try {
     await page.route("**/api/**", route => {
       const request = route.request(), url = new URL(request.url());
       requests.push({ method: request.method(), path: url.pathname, poll: url.searchParams.has("since") });
-      if(url.pathname==="/api/jobs/new-roles"){return route.fulfill({json:{count:0,truncated:false,...(route.request().method()==="GET"?{companies:[]}: {})}});}
+      if(url.pathname==="/api/jobs/new-roles"){return route.fulfill({json:{count:0,truncated:false,...(route.request().method()==="GET"?{companies:[],incoming_ids:[]}: {})}});}
       if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs: url.searchParams.has("since") ? [] : structuredClone(jobs) } });
       const row = jobs.find(candidate => url.pathname.startsWith(`/api/jobs/${candidate.id}`));
       if (!row) return route.fulfill({ status: 404, json: { error: "fixture only" } });

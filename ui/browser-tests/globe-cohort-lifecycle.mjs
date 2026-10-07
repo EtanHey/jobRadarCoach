@@ -33,7 +33,7 @@ try {
         const isNew = url.searchParams.get("filter") === "new-for-me";
         const filtered = isNew ? jobs.filter(job => job.status === "new") : jobs;
         // The new-roles count poll sees one arriving role while state.newRoles is set.
-        if (url.pathname === "/api/jobs/new-roles") return route.fulfill({json:{count:state.newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[]}: {})}});
+        if (url.pathname === "/api/jobs/new-roles") return route.fulfill({json:{count:state.newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[],incoming_ids:[]}: {})}});
         if (url.pathname === "/api/jobs") {
           if (!isNew) state.allLists += 1;
           const ids=url.searchParams.get("ids")?.split(",");

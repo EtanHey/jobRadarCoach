@@ -15,7 +15,7 @@ export function POST(request: Request): Promise<Response> { return makePostNewRo
 // Quiet polls send no loaded ids. A nonempty probe is reconciled with the loaded cohort by POST.
 export function makeGetNewRoles(store: ReturnType<typeof getNewRolesStore>) {
   return (request: Request) => safely(async () => output(NewRolesProbeSchema, await store.probe(
-    parse(NewRolesQuerySchema.omit({ids:true,view:true}),Object.fromEntries(new URL(request.url).searchParams)),
+    parse(NewRolesQuerySchema.omit({ids:true,view:true,incoming_ids:true}),Object.fromEntries(new URL(request.url).searchParams)),
   )), "job_list");
 }
 export function GET(request: Request): Promise<Response> { return makeGetNewRoles(getNewRolesStore())(request); }

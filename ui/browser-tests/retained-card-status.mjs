@@ -26,7 +26,7 @@ for (const page of pages) {
     const url = new URL(route.request().url());
     const filtered = url.searchParams.get("filter") === "new-for-me" ? jobs.filter(job => job.status === "new") : jobs;
     // The new-roles count poll sees one arriving role while fixture.newRoles is set.
-        if (url.pathname === "/api/jobs/new-roles") return route.fulfill({json:{count:fixture.newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[]}: {})}});
+        if (url.pathname === "/api/jobs/new-roles") return route.fulfill({json:{count:fixture.newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[],incoming_ids:[]}: {})}});
     if (url.pathname === "/api/jobs") {
       const ids = url.searchParams.get("ids")?.split(",");
       if (ids) fixture.hydrationCalls += 1;

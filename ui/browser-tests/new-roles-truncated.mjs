@@ -45,10 +45,10 @@ try {
       await page.route("**/api/**", route => {
         const url = new URL(route.request().url());
         if (url.pathname === "/api/jobs/new-roles") {
-          if (route.request().method() === "GET") return route.fulfill({json:{count:published?rows.length:0,truncated:false,companies:rows.slice(0,101).map(row=>row.company.toLowerCase())}});
-          const {since,view} = route.request().postDataJSON();
-          const incoming = (published ? rows : []).filter(row => row.first_seen_at>since).slice(0,101);
-          return route.fulfill({json:{count:countNewRoleCards([job(0)],incoming.slice(0,100),view),truncated:incoming.length>100}});
+          if (route.request().method() === "GET") return route.fulfill({json:{count:published?Math.min(rows.length,101):0,truncated:published&&rows.length>100,incoming_ids:published?rows.slice(0,101).map(row=>row.id):[],companies:published?rows.slice(0,101).map(row=>row.company.toLowerCase()):[]}});
+          const {since,view,incoming_ids} = route.request().postDataJSON();
+          const incoming = (published ? rows : []).filter(row => incoming_ids.includes(row.id) && row.first_seen_at>since).slice(0,101);
+          return route.fulfill({json:{count:countNewRoleCards([job(0)],incoming.slice(0,100),view),truncated:incoming_ids.length>100}});
         }
         if (url.pathname !== "/api/jobs") return route.fulfill({ status: 404, json: { error: "fixture only" } });
         const since = url.searchParams.get("since");

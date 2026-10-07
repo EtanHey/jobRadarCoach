@@ -56,11 +56,15 @@ try {
         const visible = jobs.filter(row => published.has(row.id));
         const inFilter = rows => url.searchParams.get("filter") === "new-for-me" ? rows.filter(row => row.status === "new") : rows;
         if (url.pathname === "/api/jobs/new-roles") {
-          if (route.request().method() === "GET") return route.fulfill({json:{count:visible.filter(row => row.first_seen_at>url.searchParams.get("since")).length,truncated:false,companies:visible.map(row=>row.company.normalize("NFKC").trim().toLowerCase())}});
-          const {since,ids,view,filter} = request.postDataJSON();
-          const incoming = structuredClone(visible.filter(row => row.first_seen_at > since && (filter !== "new-for-me" || row.status === "new")).slice(0,101));
+          if (request.method() === "GET") {
+            const incoming = inFilter(visible).filter(row => row.first_seen_at > url.searchParams.get("since")).slice(0,101);
+            return route.fulfill({json:{count:incoming.length,truncated:incoming.length>100,
+              incoming_ids:incoming.map(row=>row.id),companies:[...new Set(incoming.map(row=>row.company.normalize("NFKC").trim().toLowerCase()))]}});
+          }
+          const {since,ids,view,filter,incoming_ids} = request.postDataJSON();
+          const incoming = structuredClone(visible.filter(row => incoming_ids.includes(row.id) && row.first_seen_at > since && (filter !== "new-for-me" || row.status === "new")).slice(0,101));
           const current = jobs.filter(row => ids.includes(row.id));
-          const result = {count:countNewRoleCards(current,incoming.slice(0,100),view),truncated:incoming.length>100};
+          const result = {count:countNewRoleCards(current,incoming.slice(0,100),view),truncated:incoming_ids.length>100};
           if (hold.poll) {hold.poll.started=true;await hold.poll.promise;}
           return route.fulfill({json:result}).catch(() => {});
         }

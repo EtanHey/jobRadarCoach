@@ -24,7 +24,7 @@ export function newRolesQueryOptions(path: string, ids: string[] = [], view: Vie
       const companies=new Set(arrivals.companies);
       const relevantIds=loaded ? loaded.filter(job=>companies.has(normalizedIdentity(job.company))).map(job=>job.id) : ids;
       const params = Object.fromEntries(new URL(path, "http://localhost").searchParams);
-      const response = await fetch(path.split("?")[0], { cache: "no-store", signal, method: "POST", headers: {"content-type":"application/json"}, body: JSON.stringify({...params, ids:relevantIds, view}) });
+      const response = await fetch(path.split("?")[0], { cache: "no-store", signal, method: "POST", headers: {"content-type":"application/json"}, body: JSON.stringify({...params, ids:relevantIds, view, incoming_ids: arrivals.incoming_ids}) });
       if (!response.ok) throw new Error("New roles unavailable");
       return NewRolesResponseSchema.parse(await response.json());
     },

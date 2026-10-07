@@ -17,7 +17,7 @@ await page.addInitScript(()=>{localStorage.setItem('job-radar.board-preferences'
 await page.clock.install();let newRoles=0;
 await page.route('**/*',route=>{const req=route.request(),url=new URL(req.url());if(url.hostname!=='127.0.0.1')return url.hostname.endsWith('.cartocdn.com')?route.continue():route.abort();if(!url.pathname.startsWith('/api/'))return route.continue();requests.push({method:req.method(),path:url.pathname});
 if(url.pathname==='/api/jobs/globe')return route.fulfill({json:payload});
-if(url.pathname==="/api/jobs/new-roles")return route.fulfill({json:{count:newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[]}: {})}});
+if(url.pathname==="/api/jobs/new-roles")return route.fulfill({json:{count:newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[],incoming_ids:[]}: {})}});
 if(url.pathname==='/api/jobs'){if(holdList){pendingLists.push(route);return null;}return route.fulfill({json:{jobs:[jobs[0]]}});}
 if(url.pathname.endsWith('/status'))return route.fulfill({json:{status:'seen',reason:null}});
 const selected=jobs.find(j=>url.pathname===`/api/jobs/${j.id}`);if(selected){if(holdDetail){pendingDetails.push(route);return null;}return route.fulfill({json:{job:{...selected,raw_jd:`Fixture body ${selected.id}`,reasons:[],score_payload:null,brain:null,scored_at:null}}});}

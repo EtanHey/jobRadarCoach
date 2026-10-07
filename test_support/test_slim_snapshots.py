@@ -39,5 +39,20 @@ def test_slim_snapshots(capsys):
         assert [row['id'] for row in poll('all','inactive','24h')['incoming']] == [ids[1]]
         assert [row['id'] for row in poll('not-scored','all')['incoming']] == [ids[2]]
         assert db.execute("select get_new_roles_snapshot('all','all',now(),'','{}')").fetchone()[0]['incoming'] == []
-        assert db.execute("select has_function_privilege('anon','get_new_roles_snapshot(text,text,timestamptz,text,uuid[])','execute')").fetchone() == (False,)
+        cohort = poll('all','all')['incoming']
+        cohort_ids = [row['id'] for row in cohort]
+        # A later burst must not evict the 101 rows captured by the GET probe.
+        db.execute('reset role')
+        for n in range(1100, 1202):
+            new_id = str(UUID(int=n))
+            db.execute("""insert into postings(id,source,external_id,url,title,company,first_seen_at,last_seen_at)
+                values(%s,'fixture',%s,'https://example.test','Later arrival','Later Company',now(),now())""",
+                (new_id, new_id))
+        db.execute('set role service_role')
+        pinned = db.execute("select get_new_roles_snapshot('all','all',now()-interval '2 hours','',%s::uuid[],%s::uuid[])",
+                            ([ids[0]], cohort_ids)).fetchone()[0]
+        assert pinned['incoming'] == cohort
+        assert [row['id'] for row in poll('all','all')['incoming']] != cohort_ids
+        assert db.execute("select get_new_roles_snapshot('all','all',now()-interval '2 hours','','{}','{}')").fetchone()[0]['incoming'] == []
+        assert db.execute("select has_function_privilege('anon','get_new_roles_snapshot(text,text,timestamptz,text,uuid[],uuid[])','execute')").fetchone() == (False,)
         print("synthetic globe DB JSON bytes:",len(json.dumps(before,separators=(',',':')).encode()),"->",len(json.dumps(after,separators=(',',':')).encode()))
