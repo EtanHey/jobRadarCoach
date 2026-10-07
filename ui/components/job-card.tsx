@@ -9,6 +9,7 @@ import { statusDimsCard, statusLabels, type JobStatus } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
 import { CompanyLogo } from "./company-logo";
 import { InfoTip } from "./info-tip";
+import { LinkedInClosureBadge } from "./linkedin-closure-badge";
 import { PostingDates } from "./posting-dates";
 import { WorkModeIcon } from "./work-mode-icon";
 
@@ -72,6 +73,7 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
         {alternateCount > 0 && <span className="shrink-0" title="Open to choose another listing">{alternateCount + 1} listings</span>}
       </div>
     </div>
+    <LinkedInClosureBadge job={job} />
     {actions && <div className="relative z-10">{actions}</div>}
   </article>;
 }

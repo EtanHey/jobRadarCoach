@@ -182,6 +182,8 @@ OUTPUT_FIELDS = (
     "liveness_reason",
     "liveness_final_url",
     "liveness_checked_at",
+    "linkedin_closed_signal",
+    "linkedin_closed_signal_cleared_at",
 )
 OUTPUT_DEFAULTS: dict[str, object] = {
     "updated_at": "",
@@ -199,6 +201,8 @@ OUTPUT_DEFAULTS: dict[str, object] = {
     "liveness_reason": "not-checked",
     "liveness_final_url": "",
     "liveness_checked_at": "",
+    "linkedin_closed_signal": None,
+    "linkedin_closed_signal_cleared_at": None,
 }
 LUNA_FIELDS = (
     "employer_type", "seniority_real", "fit_score", "fit_tier",
