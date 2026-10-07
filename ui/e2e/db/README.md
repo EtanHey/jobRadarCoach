@@ -37,11 +37,17 @@ project. HTTPS preserves the existing production auth contract; Node explicitly
 trusts the generated certificate, and Playwright accepts it locally.
 Next dev overwrites `NODE_EXTRA_CA_CERTS` with custom HTTPS certs, so its child
 uses `--use-openssl-ca` / `SSL_CERT_FILE` instead; TLS verification stays enabled.
-Next children use a 768 MB heap ceiling and the browser a 1200×800 viewport.
+Next children use a 1280 MB heap ceiling and the browser a 1200×800 viewport.
+The disposable app uses `next dev --webpack`: the default Turbopack run on
+Ubuntu exceeded the unchanged 3072 MB process-tree cap (3313 MB, exit 137).
+Webpack keeps compilation in the capped Node heap; the same auth, API and
+globe assertions run locally and in CI, with no retries or skipped tests.
 The app copy retains proxy, auth and API routes. No job/API requests are mocked.
 Smoke opens a card/drawer, changes Applied, verifies it after reload and a real
 detail GET, then verifies the globe SQL snapshot and visible WebGL canvas.
 Map styles/tiles use the existing public Carto CDN and require network access.
+Globe controls must become visible within 30 seconds to allow cold CDN tiles
+and software WebGL initialization; an unready globe still fails the smoke.
 
 CI runs the same capped runner on Ubuntu 24.04 with Docker and pinned CLI.
 It excludes services unrelated to auth/REST/SQL/mail to fit the runner budget.

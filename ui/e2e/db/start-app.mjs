@@ -16,11 +16,12 @@ await writeFile(css, (await readFile(css, 'utf8')).replace('@import "tailwindcss
 const local = await status();
 const owner = JSON.parse(await readFile(resolve(root, 'owner.json'), 'utf8'));
 // Next dev overwrites NODE_EXTRA_CA_CERTS when custom HTTPS certs are supplied.
-const env = { ...cleanEnv(), NODE_OPTIONS: '--use-openssl-ca --max-old-space-size=768', SSL_CERT_FILE: cert, NEXT_TELEMETRY_DISABLED: '1',
+const env = { ...cleanEnv(), NODE_OPTIONS: '--use-openssl-ca --max-old-space-size=1280', SSL_CERT_FILE: cert, NEXT_TELEMETRY_DISABLED: '1',
   SUPABASE_URL: local.API_URL, SUPABASE_SERVICE_ROLE_KEY: local.SERVICE_ROLE_KEY,
   NEXT_PUBLIC_SUPABASE_URL: local.API_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local.ANON_KEY,
   JRC_OWNER_USER_IDS: owner.id, JRC_OWNER_RECOVERY_ENABLED: 'true', JRC_OWNER_RECOVERY_EMAIL: email, UI_ORIGIN: origin };
-const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', target, '--hostname', '127.0.0.1', '--port', '4343', '--experimental-https', '--experimental-https-key', key, '--experimental-https-cert', cert], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+// Use Webpack so compilation shares the capped Node heap instead of Turbopack's native allocation.
+const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', target, '--webpack', '--hostname', '127.0.0.1', '--port', '4343', '--experimental-https', '--experimental-https-key', key, '--experimental-https-cert', cert], { env, stdio: ['ignore', 'pipe', 'pipe'] });
 for (const [stream, output] of [[child.stdout, process.stdout], [child.stderr, process.stderr]]) {
   let pending = '';
   stream.on('data', chunk => {

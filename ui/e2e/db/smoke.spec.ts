@@ -25,6 +25,7 @@ test('real database board, drawer, durable status and globe', async ({ page }) =
   expect(response.status()).toBe(200);
   expect((await response.json()).resolved_count).toBe(3);
   await expect(page.locator('.job-globe canvas')).toBeVisible();
-  await expect(page.getByRole('group', { name: 'Globe controls' })).toBeVisible();
+  // Real CDN tiles and software WebGL can outlast Playwright's default five seconds.
+  await expect(page.getByRole('group', { name: 'Globe controls' })).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: '.e2e/db-results/globe.png', fullPage: true });
 });
