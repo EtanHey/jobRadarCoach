@@ -1,5 +1,9 @@
 // A truncated new-roles page whose sampled postings are all hidden by the view must still offer Show.
 // Real local JobBoard, synthetic APIs, Playwright clock. Run only through run-suite-capped.sh.
+import { register } from "tsx/cjs/api";
+import { createRequire } from "node:module";
+register();
+const { countNewRoleCards } = createRequire(import.meta.url)("../lib/new-roles.ts");
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
@@ -40,6 +44,12 @@ try {
       await page.clock.install();
       await page.route("**/api/**", route => {
         const url = new URL(route.request().url());
+        if (url.pathname === "/api/jobs/new-roles") {
+          if (route.request().method() === "GET") return route.fulfill({json:{count:published?rows.length:0,truncated:false,companies:rows.slice(0,101).map(row=>row.company.toLowerCase())}});
+          const {since,view} = route.request().postDataJSON();
+          const incoming = (published ? rows : []).filter(row => row.first_seen_at>since).slice(0,101);
+          return route.fulfill({json:{count:countNewRoleCards([job(0)],incoming.slice(0,100),view),truncated:incoming.length>100}});
+        }
         if (url.pathname !== "/api/jobs") return route.fulfill({ status: 404, json: { error: "fixture only" } });
         const since = url.searchParams.get("since");
         const all = (published ? [...rows, job(0)] : [job(0)]).filter(row => !since || row.first_seen_at > since);
@@ -48,7 +58,7 @@ try {
       await page.goto(base);
       await expect(page.locator("article[data-posting-id]")).toHaveCount(1);
       published = true;
-      const polled = page.waitForResponse(response => new URL(response.url()).searchParams.has("since"));
+      const polled = page.waitForResponse(response => new URL(response.url()).pathname === "/api/jobs/new-roles");
       await page.clock.runFor(91_000);
       await polled;
       const pill = page.locator("[data-new-roles]");

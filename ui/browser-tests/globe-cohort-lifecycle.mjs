@@ -32,11 +32,12 @@ try {
         const url = new URL(route.request().url());
         const isNew = url.searchParams.get("filter") === "new-for-me";
         const filtered = isNew ? jobs.filter(job => job.status === "new") : jobs;
-        // The new-roles poll (since=) sees one arriving role while state.newRoles is set.
-        if (url.searchParams.has("since")) return route.fulfill({ json: { jobs: state.newRoles ? [{ ...fixtureJob(99), title: "Arriving role", company: "Arriving", score: 80 }] : [] } });
+        // The new-roles count poll sees one arriving role while state.newRoles is set.
+        if (url.pathname === "/api/jobs/new-roles") return route.fulfill({json:{count:state.newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[]}: {})}});
         if (url.pathname === "/api/jobs") {
           if (!isNew) state.allLists += 1;
-          return route.fulfill({ json: { jobs: filtered.slice(0, 2) } });
+          const ids=url.searchParams.get("ids")?.split(",");
+          return route.fulfill({ json: { jobs: ids ? jobs.filter(job=>ids.includes(job.id)) : filtered.slice(0, 2) } });
         }
         if (url.pathname === "/api/jobs/globe") {
           if (isNew) state.newRequests += 1;

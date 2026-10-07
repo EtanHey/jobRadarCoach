@@ -17,7 +17,7 @@ import { applyScoreAnyway, applyConfirmedStatus, boardListKey, cachedVisitCohort
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, viewForBoardQuery, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { relevanceLabel } from "@/lib/relevance-label";
 import { relativeAge } from "@/lib/job-display";
-import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
+import { newRolesSince } from "@/lib/new-roles";
 import { useNewRoles } from "./use-new-roles";
 import { NewRolesPill } from "./new-roles-pill";
 import { relatedDuplicateJobs } from "@/lib/job-dedup";
@@ -115,10 +115,13 @@ function Board() {
   const detailQuery = useQuery({ ...jobDetailQueryOptions(client, selected), enabled: selected !== null });
   const prefetchDetail = useCallback((id: string) => { void client.prefetchQuery(jobDetailQueryOptions(client, id)); }, [client]);
   const detail = selected === null ? closingDetail : detailQuery.data ?? null;
-  const globe = useGlobeData(globeOpen, filter, queryView.availability, revision, jobs);
+  const globe = useGlobeData(globeOpen, filter, queryView.availability, revision, jobs, queryView.found_within);
   const patchGlobeStatus = globe.patchStatus;
   const globeActive = globeOpen && !globe.failure;
-  const displayJobs = globeActive && globe.data ? globe.data.jobs : jobs;
+  const displayJobs = useMemo(() => {
+    const loaded = new Map(jobs.map(job => [job.id, job]));
+    return globeActive && globe.data ? globe.data.jobs.map(marker => ({...loaded.get(marker.id),...marker})) : jobs;
+  }, [globeActive, globe.data, jobs]);
   const relatedId = selected ?? detail?.id;
   const relatedJobs = useMemo(() => relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [], [displayJobs, relatedId, detail]);
   const groups = useMemo(() => filterJobGroups(displayJobs, queryView), [displayJobs, queryView]);
@@ -170,8 +173,8 @@ function Board() {
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const newRolesCutoff = useMemo(() => newRolesSince(jobs), [jobs]);
-  const newRoles = useNewRoles(filter !== "not-scored" && preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff, view.found_within);
-  const newRoleCount = useMemo(() => countNewRoleCards(jobs, newRoles.jobs, view), [jobs, newRoles.jobs, view]);
+  const newRoles = useNewRoles(filter !== "not-scored" && preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff, view.found_within, jobs, view);
+  const newRoleCount = newRoles.count;
   const refetchList = listQuery.refetch;
   const requestRefresh = useCallback(() => {
     client.removeQueries({ queryKey: ["board-list"], type: "inactive" });

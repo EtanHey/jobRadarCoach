@@ -1,6 +1,10 @@
 // No live sync: no SSE, no list GET after a status change (even with a list read in flight),
 // and a polled "N new roles · Show" pill whose number is the cards Show adds under the view.
 // Real local JobBoard, synthetic APIs, Playwright clock. Run only through run-suite-capped.sh.
+import { register } from "tsx/cjs/api";
+import { createRequire } from "node:module";
+register();
+const { countNewRoleCards } = createRequire(import.meta.url)("../lib/new-roles.ts");
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
@@ -47,10 +51,19 @@ try {
       await page.route("**/api/**", async route => {
         const request = route.request();
         const url = new URL(request.url());
-        const kind = url.searchParams.has("ids") ? " ids" : url.searchParams.has("since") ? " since" : "";
+        const kind = url.searchParams.has("ids") ? " ids" : url.pathname === "/api/jobs/new-roles" ? " since" : "";
         log.push(`${request.method()} ${url.pathname}${kind}`);
         const visible = jobs.filter(row => published.has(row.id));
         const inFilter = rows => url.searchParams.get("filter") === "new-for-me" ? rows.filter(row => row.status === "new") : rows;
+        if (url.pathname === "/api/jobs/new-roles") {
+          if (route.request().method() === "GET") return route.fulfill({json:{count:visible.filter(row => row.first_seen_at>url.searchParams.get("since")).length,truncated:false,companies:visible.map(row=>row.company.normalize("NFKC").trim().toLowerCase())}});
+          const {since,ids,view,filter} = request.postDataJSON();
+          const incoming = structuredClone(visible.filter(row => row.first_seen_at > since && (filter !== "new-for-me" || row.status === "new")).slice(0,101));
+          const current = jobs.filter(row => ids.includes(row.id));
+          const result = {count:countNewRoleCards(current,incoming.slice(0,100),view),truncated:incoming.length>100};
+          if (hold.poll) {hold.poll.started=true;await hold.poll.promise;}
+          return route.fulfill({json:result}).catch(() => {});
+        }
         if (url.pathname === "/api/jobs") {
           const ids = url.searchParams.get("ids")?.split(",");
           const since = url.searchParams.get("since");
@@ -79,7 +92,7 @@ try {
       const pill = page.locator("[data-new-roles]");
       const dialog = page.getByRole("dialog");
       const poll = async ms => {
-        const answered = page.waitForResponse(response => new URL(response.url()).searchParams.has("since"));
+        const answered = page.waitForResponse(response => new URL(response.url()).pathname === "/api/jobs/new-roles");
         await page.clock.runFor(ms);
         await answered;
       };
@@ -130,7 +143,7 @@ try {
       if (scenario.full) {
         // Focus asks again after the quiet gap.
         await page.clock.runFor(16_000);
-        const focused = page.waitForResponse(response => new URL(response.url()).searchParams.has("since"));
+        const focused = page.waitForResponse(response => new URL(response.url()).pathname === "/api/jobs/new-roles");
         await page.evaluate(() => window.dispatchEvent(new Event("focus")));
         await focused;
       } else await poll(91_000);

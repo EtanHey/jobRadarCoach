@@ -4,11 +4,12 @@ import { createPrefetchIntent } from "@/lib/detail-prefetch";
 import { earlierListingCount, type DuplicateJobGroup } from "@/lib/job-dedup";
 import { partitionGlobeGroups } from "@/lib/globe-viewport";
 import { keptCardStatus } from "@/lib/job-status";
-import { JobCard } from "./job-card";
+import type { GlobeJob } from "@/lib/globe-contract";
+import { BoardCard } from "./globe-card";
 import { TechnologyChips } from "./technology-chips";
 import { Button } from "./ui/button";
 
-type Props = { groups: DuplicateJobGroup[]; globeOpen: boolean; filter?: string; visiblePostingIds?: readonly string[]; selectedId?: string | null;
+type Props = { groups: DuplicateJobGroup<GlobeJob>[]; globeOpen: boolean; filter?: string; visiblePostingIds?: readonly string[]; selectedId?: string | null;
   bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void;
   openerRef: RefObject<HTMLButtonElement | null>; selectJob: (id: string | null) => void; openDetail?: (id: string) => void; prefetchDetail?: (id: string) => void };
 export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, selectedId, openerRef, selectJob, openDetail, prefetchDetail, bubble, clearBubble, onWholeWorld }: Props) {
@@ -23,12 +24,14 @@ export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, se
     if (bubble) return { visible: groups.filter(group => bubble.ids.includes(group.job.id)), outside: [] };
     return partitionGlobeGroups(groups, visiblePostingIds);
   }, [groups, globeOpen, visiblePostingIds, bubble]);
-  const cards = (rows: DuplicateJobGroup[]) => rows.map(({job, alternates}) => <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
-    <JobCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
+  const cards = (rows: DuplicateJobGroup<GlobeJob>[]) => rows.map(({job, alternates}) => {
+    return <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
+    <BoardCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
       selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} logoSize={sections ? "sm" : "md"} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob} prefetchIntent={prefetchIntent}>
       <TechnologyChips names={job.stack} presentation="card" />
-    </JobCard>
-  </div>);
+    </BoardCard>
+  </div>;
+  });
   if (globeOpen && !sections) return <div role="status" className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Counting roles on screen…</div>;
   if (!sections) return <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">{cards(groups)}</div>;
   // The header is a sibling above the list, so in the scrolling rail only the list scrolls and nothing paints behind the chip.
