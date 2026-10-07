@@ -13,7 +13,7 @@ import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
 import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { applyConfirmedStatus, boardListKey, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus, type CachedList } from "@/lib/job-board-query";
+import { applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { relativeAge } from "@/lib/job-display";
 import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
@@ -89,12 +89,12 @@ function Board() {
   const [cameraAway, setCameraAway] = useState(false);
   const [globeWarning, setGlobeWarning] = useState("");
   const listQuery = useQuery({
-    queryKey: boardListKey(filter, view.availability), enabled: preferencesReady,
+    queryKey: boardListKey(filter, view.availability, view), enabled: preferencesReady,
     queryFn: async ({ signal }) => {
       const started = confirmedStatusRevision(client);
-      const previous = client.getQueryData<CachedList>(boardListKey(filter, view.availability));
-      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: view.availability, limit: 1000 }), { signal })).jobs);
-      const read = filter === "new-for-me" ? await refreshVisitCohort(previous?.jobs ?? null, next, async ids => {
+      const previous = filter === "new-for-me" ? cachedVisitCohort(client, view.availability) : null;
+      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: view.availability, limit: 1000, fit: view.fit, statuses: view.statuses, sort: view.sort }), { signal })).jobs);
+      const read = filter === "new-for-me" ? await refreshVisitCohort(previous, next, async ids => {
         const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
         return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal })).jobs;
       }) : next;
@@ -251,7 +251,7 @@ function Board() {
   }
   function prepareListSource(value: Filter, availability: ViewOptions["availability"]) {
     filterRef.current = value;
-    if (value === "new-for-me") client.removeQueries({ queryKey: boardListKey(value, availability), exact: true });
+    if (value === "new-for-me") client.removeQueries({ queryKey: ["board-list", value, availability] });
   }
   function chooseFilter(value: Filter) { if (value === filter) return; prepareListSource(value, view.availability); setPreferences((current) => preferencesForBoardFilter(current, value)); }
   function changeView(next: ViewOptions) {
@@ -266,10 +266,7 @@ function Board() {
     const storage = preferenceStorageRef.current ?? boardPreferenceStorage(window);
     if (storage) clearBoardPreferences(storage);
     const next = defaultBoardPreferences();
-    if (filter !== next.filter || view.availability !== next.view.availability) {
-      filterRef.current = next.filter;
-      client.removeQueries({ queryKey: boardListKey(next.filter, next.view.availability), exact: true });
-    }
+    prepareListSource(next.filter, next.view.availability);
     setPreferences(next);
   }
   function toggleGlobe() {

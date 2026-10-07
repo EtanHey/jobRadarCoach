@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pipelineStatusValues } from "./pipeline-status-values";
 
 const text = z.string();
 const nullableText = text.nullable();
@@ -82,8 +83,14 @@ export const JobListQuerySchema = z.object({
   ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
   // Strictly-newer cursor for the board's new-roles poll.
   since: z.iso.datetime({ offset: true }).optional(),
+  fit: z.enum(["", "recommended", "skip", "good", "scored", "unscored"]).optional(),
+  statuses: z.string().transform(value => value === "" ? [] : value.split(","))
+    .pipe(z.array(z.enum(pipelineStatusValues)).max(pipelineStatusValues.length)).optional(),
+  sort: z.enum(["found", "posted", "fit", "seniority"]).optional(),
 }).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since), {
   message: "ID lookup requires all statuses and availability, without a cursor.",
+}).refine(query => !(query.ids || query.since) || (query.fit === undefined && query.statuses === undefined && query.sort === undefined), {
+  message: "ID and poll reads do not accept board facets.",
 });
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);

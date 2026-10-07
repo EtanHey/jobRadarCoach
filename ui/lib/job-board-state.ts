@@ -1,8 +1,14 @@
-export function jobListCacheKey(input: { filter: string; availability: string; limit: number }): string {
-  return new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(input.limit) }).toString();
+import type { ViewOptions } from "./job-filters";
+type ListRequest = { filter: string; availability: string; limit: number } & Partial<Pick<ViewOptions, "fit" | "statuses" | "sort">>;
+export function jobListCacheKey(input: ListRequest): string {
+  const params = new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(input.limit) });
+  if (input.fit !== undefined) params.set("fit", input.fit);
+  if (input.statuses !== undefined) params.set("statuses", [...new Set(input.statuses)].sort().join(","));
+  if (input.sort !== undefined) params.set("sort", input.sort);
+  return params.toString();
 }
 
-export function jobListRequestPath(input: { filter: string; availability: string; limit: number }): string {
+export function jobListRequestPath(input: ListRequest): string {
   return `/api/jobs?${jobListCacheKey(input)}`;
 }
 
