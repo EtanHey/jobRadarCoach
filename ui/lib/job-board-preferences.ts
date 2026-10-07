@@ -6,7 +6,7 @@ import { pipelineStatusValues, type PipelineStatus } from "./job-status";
 export const BOARD_PREFERENCES_KEY = "job-radar.board-preferences";
 export const BOARD_PREFERENCES_VERSION = 3;
 
-export type BoardFilter = "all" | "new-for-me" | "seen";
+export type BoardFilter = "all" | "new-for-me" | "seen" | "not-scored";
 export type BoardPreferences = { filter: BoardFilter; view: ViewOptions; filtersCollapsed?: boolean };
 type StorageReader = Pick<Storage, "getItem">;
 type StorageWriter = Pick<Storage, "setItem" | "removeItem">;
@@ -42,7 +42,7 @@ const availabilitySchema = z.enum(["active", "inactive", "all"]);
 const storedPreferencesSchema = z.object({
   version: z.literal(BOARD_PREFERENCES_VERSION),
   filtersCollapsed: z.boolean().optional(),
-  filter: z.enum(["all", "new-for-me", "seen"]),
+  filter: z.enum(["all", "new-for-me", "seen", "not-scored"]),
   view: viewSchema.extend({ statuses: z.array(pipelineStatusSchema).max(pipelineStatusValues.length), availability: availabilitySchema }).strict(),
 }).strict();
 const versionTwoPreferencesSchema = z.object({
@@ -128,6 +128,7 @@ export function preferencesForBoardFilter(preferences: BoardPreferences, filter:
     filter,
     view: {
       ...preferences.view,
+      ...(filter === "not-scored" ? { availability: "all" as const, found_within: "" as const } : {}),
       fit: filter === "new-for-me" ? "recommended" : "",
       statuses: filter === "all" ? preferences.view.statuses : [],
     },

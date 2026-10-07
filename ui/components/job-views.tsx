@@ -11,7 +11,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { scoreBands, scoreCss } from "@/lib/globe-model";
 export { JobDrawer } from "./job-drawer";
 export type Filter = BoardFilter;
-const filters: Record<Filter, string> = { all: "All roles", "new-for-me": "New for me", seen: "Seen" };
+const filters: Record<Filter, string> = { all: "All roles", "new-for-me": "New for me", seen: "Seen", "not-scored": "Not scored" };
 type Opener = RefObject<HTMLButtonElement | null>;
 type ListProps = { prefetchDetail?: (id: string) => void; notice?: ReactNode; bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void; visiblePostingIds?: readonly string[]; globe?: ReactNode; globeMeta?: ReactNode; globeOpen?: boolean; selectedId?: string | null; openDetail?: (id: string) => void; filter: Filter; search: string; jobs: JobSummary[]; groups: DuplicateJobGroup[]; loading: boolean; error: string; openerRef: Opener; selectJob: (id: string | null) => void; chooseFilter: (filter: Filter) => void; setSearch: (value: string) => void; reload: () => void; toolbar?: ReactNode; resultLimit: number; sortLabel?: string };
 

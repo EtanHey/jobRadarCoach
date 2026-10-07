@@ -143,7 +143,7 @@ test("every current page and route file is covered by the default-private policy
     "/",
     "/api/jobs",
     "/api/jobs/example",
-    "/api/jobs/example/status", "/api/jobs/globe",
+    "/api/jobs/example/score-anyway", "/api/jobs/example/status", "/api/jobs/globe",
     "/api/profile",
     "/auth/callback",
     "/auth/passkeys",
