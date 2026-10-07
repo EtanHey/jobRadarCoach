@@ -128,7 +128,6 @@ export function preferencesForBoardFilter(preferences: BoardPreferences, filter:
     filter,
     view: {
       ...preferences.view,
-      ...(filter === "not-scored" ? { availability: "all" as const, found_within: "" as const } : {}),
       fit: filter === "new-for-me" ? "recommended" : "",
       statuses: filter === "all" ? preferences.view.statuses : [],
     },
@@ -141,4 +140,11 @@ export function preferencesForPipelineStatuses(preferences: BoardPreferences, st
     filter: statuses.length > 0 && preferences.filter !== "not-scored" ? "all" : preferences.filter,
     view: { ...preferences.view, statuses },
   };
+}
+
+// Archive query overrides must never enter the persisted board preferences.
+export function viewForBoardQuery(preferences: BoardPreferences): ViewOptions {
+  return preferences.filter === "not-scored"
+    ? { ...preferences.view, availability: "all", found_within: "" }
+    : preferences.view;
 }

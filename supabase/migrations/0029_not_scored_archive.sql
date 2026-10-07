@@ -1,5 +1,5 @@
 begin;
--- Replace the old signature to avoid ambiguous PostgREST overloads.
+-- Extend the board query with the Not scored archive.
 create or replace function public.board_postings(
   filter text default 'all', availability text default 'active', fit text default '',
   statuses text[] default '{}', sort text default 'fit', "max" integer default 1000, found_within text default ''

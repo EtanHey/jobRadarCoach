@@ -163,8 +163,8 @@ export function getApiStore(): ApiStore {
       });
     },
     async scoreAnyway(id) {
-      const changed = await data(client().rpc("score_anyway", { posting_id: id }));
-      if (changed !== true) return null;
+      const exists = await data(client().rpc("score_anyway", { posting_id: id }));
+      if (exists !== true) return null;
       return this.getJob(id);
     },
     async setStatus(input) {

@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { jobListRequestPath } from "../lib/job-board-state";
+import { filterJobGroups } from "../lib/job-filters";
+import type { JobSummary } from "../lib/contracts";
 import {
   BOARD_PREFERENCES_KEY,
   boardPreferenceStorage,
@@ -9,6 +12,7 @@ import {
   preferencesForPipelineStatuses,
   readBoardPreferences,
   writeBoardPreferences,
+  viewForBoardQuery,
   type BoardPreferences,
 } from "../lib/job-board-preferences";
 
@@ -156,4 +160,51 @@ test("collapsed filters persist with otherwise default preferences and survive t
   assert.equal(preferencesForPipelineStatuses(changed, ["offer"]).filtersCollapsed, true);
   clearBoardPreferences(storage);
   assert.equal(readBoardPreferences(storage).filtersCollapsed ?? false, false);
+});
+
+test("leaving Not scored preserves availability and found-within before and after reload", () => {
+  for (const availability of ["active", "inactive", "all"] as const) {
+    for (const reloadInArchive of [false, true]) {
+      const storage = memoryStorage();
+      const prior: BoardPreferences = {
+        filter: "all",
+        view: { ...defaultBoardPreferences().view, availability, found_within: "7d" },
+      };
+      let archive = preferencesForBoardFilter(prior, "not-scored");
+      writeBoardPreferences(storage, archive);
+      if (reloadInArchive) archive = readBoardPreferences(storage);
+      for (const filter of ["new-for-me", "all", "seen"] as const) {
+        const returned = preferencesForBoardFilter(archive, filter);
+        assert.equal(returned.view.availability, availability);
+        assert.equal(returned.view.found_within, "7d");
+        writeBoardPreferences(storage, returned);
+        assert.deepEqual(readBoardPreferences(storage), returned);
+      }
+    }
+  }
+});
+
+test("archive query includes older and inactive roles without persisting its overrides", () => {
+  const storage = memoryStorage();
+  const prior: BoardPreferences = {
+    filter: "all", view: { ...defaultBoardPreferences().view, found_within: "24h" },
+  };
+  const archive = preferencesForBoardFilter(prior, "not-scored");
+  const queryView = viewForBoardQuery(archive);
+  assert.equal(queryView.availability, "all");
+  assert.equal(queryView.found_within, "");
+  const path = jobListRequestPath({ filter: archive.filter, ...queryView, limit: 1000 });
+  assert.match(path, /availability=all/);
+  assert.doesNotMatch(path, /found_within=/);
+  const oldRole = { id: "old", title: "Engineer", company: "Synthetic", source: "fixture",
+    first_seen_at: "2000-01-01T00:00:00Z", location: null, seniority: null, stack: [],
+    score: null, status: "new", relevance_filtered: true, alive: false } as unknown as JobSummary;
+  assert.equal(filterJobGroups([oldRole], queryView).length, 1);
+  assert.equal(filterJobGroups([oldRole], archive.view).length, 0);
+  writeBoardPreferences(storage, archive);
+  assert.deepEqual(readBoardPreferences(storage), archive);
+  assert.equal(readBoardPreferences(storage).view.availability, "active");
+  assert.equal(readBoardPreferences(storage).view.found_within, "24h");
+  const returned = preferencesForBoardFilter(readBoardPreferences(storage), "new-for-me");
+  assert.deepEqual(viewForBoardQuery(returned), returned.view);
 });

@@ -14,7 +14,7 @@ import { ArrowUpRight, Globe } from "lucide-react";
 import { JobDetailSchema, JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
 import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
 import { applyScoreAnyway, applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus } from "@/lib/job-board-query";
-import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
+import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, viewForBoardQuery, writeBoardPreferences } from "@/lib/job-board-preferences";
 import { relevanceLabel } from "@/lib/relevance-label";
 import { relativeAge } from "@/lib/job-display";
 import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
@@ -68,6 +68,7 @@ function Board() {
   const [preferences, setPreferences] = useState(defaultBoardPreferences);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const { filter, view } = preferences;
+  const queryView = useMemo(() => viewForBoardQuery(preferences), [preferences]);
   const [selected, setSelected] = useState<string | null>(null);
   const [markSeenOnOpen, setMarkSeenOnOpen] = useState(true);
   const [closingDetail, setClosingDetail] = useState<JobDetail | null>(null);
@@ -90,11 +91,11 @@ function Board() {
   const [cameraAway, setCameraAway] = useState(false);
   const [globeWarning, setGlobeWarning] = useState("");
   const listQuery = useQuery({
-    queryKey: boardListKey(filter, view.availability, view), enabled: preferencesReady,
+    queryKey: boardListKey(filter, queryView.availability, queryView), enabled: preferencesReady,
     queryFn: async ({ signal }) => {
       const started = confirmedStatusRevision(client);
       const previous = filter === "new-for-me" ? cachedVisitCohort(client, view.availability, view.found_within) : null;
-      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: view.availability, limit: 1000, fit: view.fit, statuses: view.statuses, sort: view.sort, found_within: view.found_within }), { signal })).jobs);
+      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: queryView.availability, limit: 1000, fit: queryView.fit, statuses: queryView.statuses, sort: queryView.sort, found_within: queryView.found_within }), { signal })).jobs);
       const read = filter === "new-for-me" ? await refreshVisitCohort(previous, next, async ids => {
         const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
         return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal })).jobs;
@@ -114,16 +115,16 @@ function Board() {
   const detailQuery = useQuery({ ...jobDetailQueryOptions(client, selected), enabled: selected !== null });
   const prefetchDetail = useCallback((id: string) => { void client.prefetchQuery(jobDetailQueryOptions(client, id)); }, [client]);
   const detail = selected === null ? closingDetail : detailQuery.data ?? null;
-  const globe = useGlobeData(globeOpen, filter, view.availability, revision, jobs);
+  const globe = useGlobeData(globeOpen, filter, queryView.availability, revision, jobs);
   const patchGlobeStatus = globe.patchStatus;
   const globeActive = globeOpen && !globe.failure;
   const displayJobs = globeActive && globe.data ? globe.data.jobs : jobs;
   const relatedId = selected ?? detail?.id;
   const relatedJobs = useMemo(() => relatedId ? relatedDuplicateJobs(displayJobs, relatedId, detail) : [], [displayJobs, relatedId, detail]);
-  const groups = useMemo(() => filterJobGroups(displayJobs, view), [displayJobs, view]);
+  const groups = useMemo(() => filterJobGroups(displayJobs, queryView), [displayJobs, queryView]);
   const points = useMemo(() => globePoints(groups, globe.data?.points ?? []), [groups, globe.data]);
   const positionKey = useMemo(() => globe.data?.points.map(point => `${point.posting_id}:${point.lng}:${point.lat}`).sort().join("|") ?? "", [globe.data]);
-  const viewportKey = `${filter}/${view.availability}`;
+  const viewportKey = `${filter}/${queryView.availability}`;
   const visiblePostingIds = globeActive && globe.data && viewport?.key === viewportKey && viewport.positions === positionKey && points.every(point => viewport.evaluated.has(point.posting_id)) ? viewport.ids : undefined;
   const updateViewport = useCallback((ids: string[]) => {
     if (!globeActive || !globe.data) return;
