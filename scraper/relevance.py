@@ -1,10 +1,14 @@
 """Fixed, cheap JD rules calibrated against owner Pursue labels. No model I/O."""
 import re
 
-VERSION = '2026-10-07-v5'
+VERSION = '2026-10-07-v6'
 OPTIONAL = r'\b(?:advantage|bonus|nice[ -]to[ -]have|plus|preferred|optional)\b|יתרון'
 ALTERNATIVE = r'\b(?:or|such as|e\.g\.?|for example|one of|including)\b|כגון|לדוגמה|או'
 REQUIRED = r'\b(?:required|mandatory|must|proficien\w*|strong|deep|extensive|advanced|proven|expert\w*|\d+\+?\s+years?|experience\s+(?:in|with))\b'
+NEGATED_REQUIREMENT = (
+    r"\b(?:not|never|(?:is|are|was|were|do|does|did)n['’]t)\s+(?:strictly\s+)?(?:required|mandatory)\b"
+    r"|\bno\s+(?:(?:formal|academic|college|university|bachelor['’]?s?|master['’]?s?|b\.?sc\.?)\s+)*degrees?\b"
+)
 
 
 def matches(pattern: str, text: str) -> bool:
@@ -42,7 +46,7 @@ def gate_rule(title: str, jd: str) -> str | None:
         return 'incompatible-stack-title'
     # Profile-role removal and Data-family rules remain OFF pending rulings #2/#3.
     for clause in (c.strip() for c in re.split(r'\n|[;•]|(?<=[.!?])\s+(?=[A-Z])', text)):
-        if matches(OPTIONAL + r'|\b(?:not|never)\s+(?:strictly\s+)?(?:required|mandatory)\b|\bno\s+(?:formal\s+)?degree\b', clause):
+        if matches(OPTIONAL + '|' + NEGATED_REQUIREMENT, clause):
             continue
         if matches(r'\bequity[ -]only\b', clause) and not matches(r'\bnot\s+(?:(?:an?|purely|solely)\s+)?equity[ -]only\b', clause):
             return 'equity-only'
