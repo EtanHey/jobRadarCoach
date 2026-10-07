@@ -206,3 +206,16 @@ test("a status-only cache write keeps the detail read's age, so score and body s
   assert.equal(client.getQueryCache().find({ queryKey: ["board-detail", "never-read"] }), undefined, "no entry is created for an unread role");
   client.clear();
 });
+
+test("found windows isolate list caches and retained New-for-me cohorts", () => {
+  const client = new QueryClient();
+  const view = { fit: "recommended", statuses: [], sort: "fit" as const, found_within: "24h" as const };
+  const recent = boardListKey("new-for-me", "active", view);
+  const older = boardListKey("new-for-me", "active", { ...view, found_within: "30d" });
+  assert.notDeepEqual(recent, older);
+  client.setQueryData(recent, { jobs: [row], loadedUpdatedAt: null });
+  client.setQueryData(older, { jobs: [{ ...row, id: "old" }], loadedUpdatedAt: null });
+  assert.deepEqual(cachedVisitCohort(client, "active", "24h"), [row]);
+  assert.equal(cachedVisitCohort(client, "active", "7d"), null);
+  client.clear();
+});

@@ -1,7 +1,8 @@
 import type { ViewOptions } from "./job-filters";
-type ListRequest = { filter: string; availability: string; limit: number } & Partial<Pick<ViewOptions, "fit" | "statuses" | "sort">>;
+type ListRequest = { filter: string; availability: string; limit: number } & Partial<Pick<ViewOptions, "fit" | "statuses" | "sort" | "found_within">>;
 export function jobListCacheKey(input: ListRequest): string {
   const params = new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(input.limit) });
+  if (input.found_within) params.set("found_within", input.found_within);
   if (input.fit !== undefined) params.set("fit", input.fit);
   if (input.statuses !== undefined) params.set("statuses", [...new Set(input.statuses)].sort().join(","));
   if (input.sort !== undefined) params.set("sort", input.sort);
