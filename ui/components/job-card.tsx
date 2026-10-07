@@ -4,6 +4,7 @@ import type { ReactNode, RefObject } from "react";
 import { Recycle } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
 import { scoreCss } from "@/lib/globe-model";
+import { relevanceLabel } from "@/lib/relevance-label";
 import { repostNote } from "@/lib/job-display";
 import { statusDimsCard, statusLabels, type JobStatus } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,7 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
           title keeps its width. Long labels wrap to a second line inside the header's fixed height. */}
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <span style={job.score === null ? { border: "2px solid var(--globe-unscored-ring)" } : { backgroundColor: scoreCss(job.score), color: "#08111c" }} aria-label={job.score === null ? "Not scored" : `Fit score ${job.score} out of 100`} className={cn(job.score === null ? "rounded-lg px-2 py-1 text-xs text-muted-foreground" : "rounded-lg px-2 py-1", dim)}>
-          {job.score === null ? "Unscored" : <><strong className="text-base tabular-nums">{job.score}</strong><span className="text-[10px]">/100</span></>}
+          {job.score === null ? job.relevance_filtered ? "Not scored (filtered)" : "Unscored" : <><strong className="text-base tabular-nums">{job.score}</strong><span className="text-[10px]">/100</span></>}
         </span>
         {chip && <span id={chipId} data-card-status={job.status} title={chip} className={cn("line-clamp-2 w-0 min-w-full rounded-md border px-1 py-0.5 text-center text-[10px] font-medium leading-3 [overflow-wrap:anywhere]", job.status === "seen" ? "text-muted-foreground" : "bg-muted text-foreground", dim)}>{chip}</span>}
       </div>
@@ -72,6 +73,7 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
         {alternateCount > 0 && <span className="shrink-0" title="Open to choose another listing">{alternateCount + 1} listings</span>}
       </div>
     </div>
+    {job.relevance_filtered && <p className="pointer-events-none text-xs text-muted-foreground">{relevanceLabel(job.relevance_rule)}</p>}
     {actions && <div className="relative z-10">{actions}</div>}
   </article>;
 }

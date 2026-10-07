@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobDetail, JobSummary } from "../../lib/contracts";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
+import { applyScoreAnyway, applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
 
 test("server facet changes retain the New-for-me visit cohort across query keys", () => {
   const client = new QueryClient();
@@ -217,5 +217,23 @@ test("found windows isolate list caches and retained New-for-me cohorts", () => 
   client.setQueryData(older, { jobs: [{ ...row, id: "old" }], loadedUpdatedAt: null });
   assert.deepEqual(cachedVisitCohort(client, "active", "24h"), [row]);
   assert.equal(cachedVisitCohort(client, "active", "7d"), null);
+  client.clear();
+});
+
+test("filtered postings leave retained normal tabs and remain only in the archive", () => {
+  const client = new QueryClient();
+  const filtered = { ...row, relevance_filtered: true, relevance_rule: "leadership-title-strict" };
+  for (const filter of ["all", "new-for-me", "seen"] as const) assert.deepEqual(confirmListRead(client, [filtered], filter, 0), []);
+  assert.deepEqual(confirmListRead(client, [filtered], "not-scored", 0), [filtered]);
+  client.clear();
+});
+
+
+test("an override defeats a held archive read but a later JD verdict stays authoritative", () => {
+  const client = new QueryClient();
+  const filtered = { ...row, relevance_filtered: true };
+  applyScoreAnyway(client, { ...filtered, relevance_filtered: false } as JobDetail);
+  assert.deepEqual(confirmListRead(client, [filtered], "not-scored", 0), []);
+  assert.deepEqual(confirmListRead(client, [filtered], "not-scored", confirmedStatusRevision(client)), [filtered]);
   client.clear();
 });

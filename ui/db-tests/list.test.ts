@@ -15,7 +15,7 @@ const fixtureFetch: typeof fetch = (input, init) => {
     headers.delete("authorization");
     return nativeFetch(`${process.env.JOBRADAR_TEST_REST_URL}${url.pathname}${url.search}`, {...init, headers}).then(async response => {
       if (!response.ok) console.error(response.status, await response.clone().text());
-      if (url.pathname === "/postings") responses.push(await response.clone().json());
+      if (url.pathname === "/postings") responses.push(await response.clone().json().catch(() => []));
       return response;
     });
 };
@@ -71,4 +71,23 @@ test("the real detail store retains the full description and identical summary m
     if (previousUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previousUrl;
     if (previousKey === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = previousKey;
   }
+});
+
+
+test("archive filters direct lists, polls and board RPC before LIMIT; override is atomic", async () => {
+  const id = "00000000-0000-0000-0000-000000024009";
+  const inserted = await rest.from("postings").insert({ id, source: "fixture", external_id: "archive", title: "Principal Engineer", company: "Synthetic", url: "https://example.test/archive", first_seen_at: "2099-01-01Z", last_seen_at: "2099-01-01Z", relevance_gate: { version: "test", rule: "leadership-title-strict" } });
+  assert.equal(inserted.error, null);
+  assert.equal((await rest.from("posting_status").insert({ posting_id: id, status: "seen" })).error, null);
+  for (const filter of ["all", "new-for-me", "seen", "not-scored"] as const) {
+    for (const facets of [{}, { since: "1970-01-01T00:00:00Z" }, { sort: "found" as const }]) {
+      const rows = await selectSummaries(rest, { filter, availability: "all", limit: 1, ...facets });
+      assert.equal(rows.some(row => row.id === id), filter === "not-scored");
+      if (filter === "not-scored") assert.equal(rows[0].relevance_rule, "leadership-title-strict");
+    }
+  }
+  assert.deepEqual((await selectSummaries(rest, { filter: "all", availability: "all", ids: [id], limit: 1 })).map(row => row.id), [id]);
+  for (let i=0; i<2; i++) assert.equal((await rest.rpc("score_anyway", { posting_id: id })).data, true);
+  assert.deepEqual(await selectSummaries(rest, { filter: "not-scored", availability: "all", limit: 1 }), []);
+  assert.equal((await selectSummaries(rest, { filter: "seen", availability: "all", limit: 1 }))[0].id, id);
 });

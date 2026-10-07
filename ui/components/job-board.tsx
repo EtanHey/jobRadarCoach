@@ -11,10 +11,11 @@ import { countGlobeRoles } from "@/lib/globe-viewport";
 import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
-import { JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
+import { JobDetailSchema, JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
 import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
-import { applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus } from "@/lib/job-board-query";
+import { applyScoreAnyway, applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, writeBoardPreferences } from "@/lib/job-board-preferences";
+import { relevanceLabel } from "@/lib/relevance-label";
 import { relativeAge } from "@/lib/job-display";
 import { countNewRoleCards, newRolesSince } from "@/lib/new-roles";
 import { useNewRoles } from "./use-new-roles";
@@ -191,6 +192,18 @@ function Board() {
     },
   });
   // Opening a role must not queue behind, or disable, a manual save.
+  const scoreAnyway = useMutation({
+    mutationFn: async (id: string) => JobDetailSchema.parse(await request(`/api/jobs/${id}/score-anyway`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    })),
+    onSuccess(job) {
+      applyScoreAnyway(client, job);
+      patchGlobeStatus(job.id, { status: job.status, reason: job.status_reason }, true);
+      setDetailError("");
+      requestRefresh();
+    },
+    onError(cause) { setDetailError(cause.message); },
+  });
   const automaticSeen = useMutation({
     mutationFn: async ({ id, signal }: { id: string; signal: AbortSignal }) => StatusResultSchema.parse(await request(`/api/jobs/${id}/status`, {
       method: "PATCH", headers: { "Content-Type": "application/json", "X-Job-Radar-Status-Version": "2" }, body: JSON.stringify({ status: "seen", automatic: true }), signal,
@@ -204,7 +217,7 @@ function Board() {
   // mid-PATCH and must not abort this opening's Seen. Close and switch still cancel it.
   const loadedDetailId = detailQuery.data?.id ?? null;
   useEffect(() => {
-    if (!selected || !loadedDetailId || !markSeenOnOpen) return;
+    if (!selected || !loadedDetailId || !markSeenOnOpen || filter === "not-scored") return;
     const selection = `${selected}/${detailRevision}`;
     if (automaticSelection.current === selection) return;
     automaticSelection.current = selection;
@@ -218,7 +231,7 @@ function Board() {
       if (!controller.signal.aborted) setDetailError(cause instanceof Error ? cause.message : "Could not open this job.");
     });
     return () => controller.abort();
-  }, [client, selected, detailRevision, loadedDetailId, markSeenOnOpen, markSeen, patchGlobeStatus]);
+  }, [client, selected, detailRevision, loadedDetailId, markSeenOnOpen, markSeen, patchGlobeStatus, filter]);
   function showNewRoles() {
     newRoles.dismiss();
     // The pill unmounts on click; keep focus and the reader at the top of the refreshed list.
@@ -383,10 +396,16 @@ function Board() {
       selectJob={id => selectJob(id, markSeenOnOpen)}
       actions={detail ? <>
         <p className="text-xs capitalize text-muted-foreground">Source: {detail.source}</p>
+        {detail.relevance_filtered && <div className="space-y-2">
+          <p className="text-sm">Not scored (filtered): {relevanceLabel(detail.relevance_rule)}</p>
+          <Button disabled={scoreAnyway.isPending} onClick={() => scoreAnyway.mutate(detail.id)}>{scoreAnyway.isPending ? "Queuing…" : "Score anyway"}</Button>
+          <p className="text-xs text-muted-foreground">Moves this role back to the board for the next analysis run.</p>
+        </div>}
         <div className="flex flex-wrap items-end gap-3">
           <StatusSelect key={detail.id} job={detail} saving={saving || selected === null} changeStatus={changeStatus} />
           <a className={buttonVariants({className:"w-fit"})} href={detail.apply_url ?? detail.url} target="_blank" rel="noopener noreferrer">Apply on company site <ArrowUpRight aria-hidden="true" /></a>
         </div>
+        {scoreAnyway.isSuccess && scoreAnyway.data.id === detail.id && <p role="status" className="text-xs text-muted-foreground">Queued for scoring. It will return to the board on the next analysis run.</p>}
         {detail.status_reason && <p className="text-xs text-muted-foreground">Status reason: {detail.status_reason}</p>}
       </> : undefined}
     />
