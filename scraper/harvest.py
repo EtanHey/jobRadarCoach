@@ -93,27 +93,28 @@ NEGATIVE_RULES: tuple[tuple[str, re.Pattern[str], int, str], ...] = (
 )
 YEARS_REQUIREMENT_PATTERN = re.compile(
     r"\b(?:(?:minimum(?:\s+of)?|at\s+least)\s+)?"
-    r"(?P<minimum>\d{1,2})\s*(?:\+|-\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
+    r"(?P<minimum>\d{1,2})\s*(?:\+|\s*(?:[-–—]|to)\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
     re.I,
 )
-YEAR_QUALIFICATION_CONTEXT_PATTERN = re.compile(
-    r"\b(?:requirements?|qualifications?|required|must|minimum|at\s+least|"
-    r"experience|expertise|background|proficien\w*|candidates?|"
-    r"you(?:'ll|\s+will)?\s+(?:have|bring|need)|years?\s+(?:of|in|with|"
-    r"building|creating|delivering|designing|developing|leading|managing|"
-    r"operating|programming|shipping|working))\b",
-    re.I,
+YEAR_EXPERIENCE_PATTERN = re.compile(
+    r"^\s+(?:(?:of\s+)?(?:[\w-]+\s+){0,4}experience\b|"
+    r"(?:of\s+)?(?:building|creating|delivering|designing|developing|leading|"
+    r"managing|operating|programming|shipping|working)\b|"
+    r"in\s+(?:software|backend|frontend|engineering)\b)", re.I,
+)
+YEAR_CANDIDATE_PREFIX_PATTERN = re.compile(
+    r"^(?:you(?:['’]ll|\s+will)?\s+(?:(?:must\s+)?have|bring|need)|"
+    r"(?:(?:candidates?|applicants?)\s+)?must\s+have|required:)\s*"
+    r"(?:(?:at\s+least|minimum(?:\s+of)?)\s+)?\s*$", re.I,
 )
 YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
     r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
     re.I,
 )
-YEAR_COMPANY_HISTORY_PATTERN = re.compile(
-    r"\b(?:our|the|this)\s+(?:company|business|firm|organization|organisation)\s+"
-    r"(?:has|have)\b.*\b\d{1,2}\s*years?\b|"
-    r"\b\d{1,2}\s*years?\s+in\s+business\b|"
-    r"\bfounded\b.*\b\d{1,2}\s*years?\s+ago\b",
-    re.I,
+YEAR_SECTION_HEADING_PATTERN = re.compile(
+    r"^\s*(?:\#{1,6}\s*)?(?:([\w /'’–-]{2,60}):|"
+    r"(requirements?|qualifications?|about us|responsibilities|benefits|"
+    r"what we offer|what you'll do|preferred qualifications|nice to have|bonus)\s*$)", re.I,
 )
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
@@ -561,7 +562,7 @@ def _requirement_list_item(text: str, start: int, end: int) -> str:
 
     boundaries = [
         match.start()
-        for match in re.finditer(r"[,;\n•]|[.!?](?=\s+[A-Z]|\s*$)", text)
+        for match in re.finditer(r"[,;\n•]|[.!?](?=\s|$)", text)
     ]
     left = max((index for index in boundaries if index < start), default=-1)
     right_candidates = [index for index in boundaries if index >= end]
@@ -649,17 +650,58 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
 
 
 def _has_blocking_years_requirement(text: str) -> bool:
-    """Block when any single stated experience minimum is seven years or higher."""
+    """Discard only unambiguous applicant experience minimums of seven or more.
 
+    Bare role descriptions and organization history remain available to scoring.
+    Section context grants N+ experience minima and explicit requirement bullets.
+    """
+
+    text = re.sub(r"[*_`]", "", text)
     for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
         if int(match.group("minimum")) < 7:
             continue
         item = _requirement_list_item(text, match.start(), match.end())
         if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
             continue
-        if YEAR_COMPANY_HISTORY_PATTERN.search(item):
+        offset = item.index(match.group(0))
+        prefix = item[:offset].strip().lstrip("- ")
+        suffix = item[offset + len(match.group(0)):]
+        experience = YEAR_EXPERIENCE_PATTERN.match(suffix)
+        section = False
+        for line in text[:match.start()].splitlines():
+            heading = YEAR_SECTION_HEADING_PATTERN.match(line)
+            if heading:
+                title = (heading.group(1) or heading.group(2)).strip().casefold()
+                section = title in {
+                    "requirement", "requirements", "qualification", "qualifications"
+                }
+        inline = re.fullmatch(r"(?:requirements?|qualifications?):\s*", prefix, re.I)
+        bare = not prefix or bool(inline)
+        # An explicit section list can name the skill without the word experience.
+        line_prefix = text[:match.start()].rsplit("\n", 1)[-1]
+        listed = bool(re.fullmatch(r"\s*[-•]\s*", line_prefix))
+        if bare and section and ("+" in match.group(0) or inline or listed) and (
+            experience or re.match(
+                r"\s+of\s+(?:Python|Java|JavaScript|TypeScript|React)\b", suffix, re.I
+            )
+        ):
+            return True
+        if not experience:
             continue
-        if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(item):
+        if YEAR_CANDIDATE_PREFIX_PATTERN.fullmatch(prefix):
+            return True
+        if bare and re.match(r"(?:minimum|at\s+least)\b", match.group(0), re.I):
+            return True
+        # "required for this role" is applicant-directed even after a role noun.
+        after_experience = suffix[experience.end():]
+        if re.match(
+            r"\s+(?:is\s+)?required\s+for\s+(?:this|the)\s+(?:role|position)\b",
+            after_experience, re.I,
+        ):
+            return True
+        if (bare or prefix.casefold() == "with") and re.match(
+            r"\s+(?:is\s+)?required\b", after_experience, re.I
+        ):
             return True
     return False
 
