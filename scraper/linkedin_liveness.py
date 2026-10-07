@@ -1,5 +1,6 @@
 """Accept closure only from the requested guest fragment's own visible status."""
 from html.parser import HTMLParser
+import http.client
 import re
 from urllib.parse import unquote, urlparse
 
@@ -41,6 +42,37 @@ def linked_job_id(href):
     return match.group(1)
 
 
+def _read_chunked_body(response):
+    # stdlib accepts EOF in trailers and discards unchecked chunk delimiters.
+    # Validate the raw framing ourselves, for both pinned and urllib responses.
+    raw = getattr(response, '_http_response', response)
+    if not isinstance(raw, http.client.HTTPResponse) or not raw.chunked or raw.fp is None:
+        raise ValueError('unverifiable chunked transport')
+    body = bytearray()
+    while True:
+        line = raw.fp.readline(65_537)
+        if len(line) > 65_536 or not re.fullmatch(rb'[0-9a-fA-F]+(?:;[^\r\n]*)?\r\n', line):
+            raise ValueError('incomplete chunk header')
+        size = int(line.split(b';', 1)[0].strip(), 16)
+        if size == 0:
+            trailer_bytes = 0
+            while True:
+                trailer = raw.fp.readline(65_537)
+                trailer_bytes += len(trailer)
+                if (not trailer.endswith(b'\r\n') or trailer_bytes > 65_536):
+                    raise ValueError('incomplete chunk trailers')
+                if trailer == b'\r\n':
+                    return bytes(body)
+                if b':' not in trailer:
+                    raise ValueError('invalid chunk trailer')
+        if size > BODY_LIMIT - len(body):
+            raise ValueError('over-limit chunked body')
+        chunk = raw.fp.read(size)
+        if len(chunk) != size or raw.fp.read(2) != b'\r\n':
+            raise ValueError('incomplete chunk body')
+        body.extend(chunk)
+
+
 def read_guest_body(response):
     """Read to framed completion (or connection EOF), bounded at cap plus one."""
     headers = getattr(response, 'headers', {})
@@ -52,11 +84,11 @@ def read_guest_body(response):
         raise ValueError('ambiguous HTTP framing')
     if len(lengths) > 1 or (lengths and not re.fullmatch(r'[0-9]+', lengths[0].strip())):
         raise ValueError('invalid Content-Length')
-    body = response.read(BODY_LIMIT + 1)
+    body = _read_chunked_body(response) if transfer else response.read(BODY_LIMIT + 1)
     if len(body) > BODY_LIMIT or (lengths and len(body) != int(lengths[0])):
         raise ValueError('incomplete or over-limit body')
-    # http.client/urllib validate chunk termination; their bounded reads without
-    # Content-Length consume through connection EOF. Never decode before this gate.
+    # Bounded stdlib reads without Content-Length consume through connection EOF.
+    # Never decode before this gate.
     return body
 
 
