@@ -70,6 +70,8 @@ export const JobSummarySchema = z.object({
   first_seen_at: text,
   status: JobStatusSchema,
   status_reason: nullableText,
+  relevance_filtered: z.boolean().optional(),
+  relevance_rule: nullableText.optional(),
   score: z.number().int().min(0).max(100).nullable(),
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
@@ -91,7 +93,7 @@ export type FoundWithin = z.infer<typeof FoundWithinSchema>;
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 const filterStatus = JobStatusSchema.exclude(["skipped"]);
 export const JobListQuerySchema = z.object({
-  filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
+  filter: z.enum(["all", "new-for-me", "not-scored", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),
   limit,
   ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),

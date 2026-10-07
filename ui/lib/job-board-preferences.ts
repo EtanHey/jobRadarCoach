@@ -6,7 +6,7 @@ import { pipelineStatusValues, type PipelineStatus } from "./job-status";
 export const BOARD_PREFERENCES_KEY = "job-radar.board-preferences";
 export const BOARD_PREFERENCES_VERSION = 3;
 
-export type BoardFilter = "all" | "new-for-me" | "seen";
+export type BoardFilter = "all" | "new-for-me" | "seen" | "not-scored";
 export type BoardPreferences = { filter: BoardFilter; view: ViewOptions; filtersCollapsed?: boolean };
 type StorageReader = Pick<Storage, "getItem">;
 type StorageWriter = Pick<Storage, "setItem" | "removeItem">;
@@ -42,7 +42,7 @@ const availabilitySchema = z.enum(["active", "inactive", "all"]);
 const storedPreferencesSchema = z.object({
   version: z.literal(BOARD_PREFERENCES_VERSION),
   filtersCollapsed: z.boolean().optional(),
-  filter: z.enum(["all", "new-for-me", "seen"]),
+  filter: z.enum(["all", "new-for-me", "seen", "not-scored"]),
   view: viewSchema.extend({ statuses: z.array(pipelineStatusSchema).max(pipelineStatusValues.length), availability: availabilitySchema }).strict(),
 }).strict();
 const versionTwoPreferencesSchema = z.object({
@@ -137,7 +137,14 @@ export function preferencesForBoardFilter(preferences: BoardPreferences, filter:
 export function preferencesForPipelineStatuses(preferences: BoardPreferences, statuses: PipelineStatus[]): BoardPreferences {
   return {
     ...preferences,
-    filter: statuses.length > 0 ? "all" : preferences.filter,
+    filter: statuses.length > 0 && preferences.filter !== "not-scored" ? "all" : preferences.filter,
     view: { ...preferences.view, statuses },
   };
+}
+
+// Archive query overrides must never enter the persisted board preferences.
+export function viewForBoardQuery(preferences: BoardPreferences): ViewOptions {
+  return preferences.filter === "not-scored"
+    ? { ...preferences.view, availability: "all", found_within: "" }
+    : preferences.view;
 }

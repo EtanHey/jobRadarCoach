@@ -49,7 +49,7 @@ export function uniqueJobsById<T extends { id: string }>(jobs: T[]): T[] {
   return unique.length === jobs.length ? jobs : unique;
 }
 
-export function retainVisitCohort<T extends { id: string }>(current: T[] | null, incoming: T[], latest: T[] = []): T[] {
+export function retainVisitCohort<T extends { id: string; relevance_filtered?: boolean }>(current: T[] | null, incoming: T[], latest: T[] = []): T[] {
   const uniqueIncoming = uniqueJobsById(incoming);
   if (current === null) return uniqueIncoming;
   const uniqueCurrent = uniqueJobsById(current);
@@ -57,7 +57,8 @@ export function retainVisitCohort<T extends { id: string }>(current: T[] | null,
   const retainedIds = new Set(uniqueCurrent.map((job) => job.id));
   return uniqueCurrent
     .map((job) => incomingById.get(job.id) ?? job)
-    .concat(uniqueIncoming.filter((job) => !retainedIds.has(job.id)));
+    .concat(uniqueIncoming.filter((job) => !retainedIds.has(job.id)))
+    .filter(job => !job.relevance_filtered);
 }
 
 // Hydrate excluded retained IDs independently of status/availability and list limits.
