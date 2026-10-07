@@ -23,3 +23,24 @@ def test_found_windows_before_cap():
             assert [r[0] for r in rows] == [UUID(int=i + 1) for i in range(count)]
         assert db.execute("select id from board_postings('all','all','','{}','fit',1,'24h')").fetchall() == [(UUID(int=1),)]
         assert db.execute("select has_function_privilege('anon','public.board_postings(text,text,text,text[],text,integer,text)','execute')").fetchone() == (False,)
+
+
+def test_found_window_rollback_restores_six_argument_rpc():
+    root = Path(__file__).parents[1]
+    with migrated_database(root / 'supabase/migrations', through=26) as url, psycopg.connect(url) as db:
+        db.execute("insert into postings(id,source,external_id,url,title,company) "
+                   "values (%s,'synthetic','rollback','https://example.test','Engineer','Example')",
+                   (UUID(int=1),))
+        db.commit()
+        db.execute((root / 'supabase/rollbacks/0026_board_found_within.sql').read_text())
+        assert db.execute("select pronargs from pg_proc where oid='public.board_postings(text,text,text,text[],text,integer)'::regprocedure").fetchone() == (6,)
+        assert db.execute("select to_regprocedure('public.board_postings(text,text,text,text[],text,integer,text)')").fetchone() == (None,)
+        for role in ('anon', 'authenticated', 'service_role'):
+            assert db.execute("select has_function_privilege(%s,'public.board_postings(text,text,text,text[],text,integer)','execute')", (role,)).fetchone() == (role == 'service_role',)
+        db.execute('set local role service_role')
+        assert db.execute("select id from public.board_postings('all','all','','{}','fit',1000)").fetchall() == [(UUID(int=1),)]
+        db.execute('reset role')
+        db.commit()
+        db.execute((root / 'supabase/migrations/0026_board_found_within.sql').read_text())
+        db.execute('set local role service_role')
+        assert db.execute("select id from public.board_postings('all','all','','{}','fit',1000,'24h')").fetchall() == [(UUID(int=1),)]
