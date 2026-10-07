@@ -55,6 +55,9 @@ at the observation time; it is not recalculated from JRC discovery. A later
 unknown, ordinary age label or failed fetch retains the previously seen evidence.
 The marker is hidden if the stored URL differs from the current posting.
 
+JSONL harvest rows also include `linkedin_reposted_signal`: the same evidence
+object when observed, or `null` when no explicit repost evidence is available.
+
 Removed: discovery-time earlier-listing counts, their card prop and both
 LinkedIn publication-range and alternate-count repost guesses. Grouping,
 alternate selection and publication-date icons remain. ATS markers, including
