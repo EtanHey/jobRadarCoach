@@ -79,7 +79,7 @@ def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
                                 (case["fit"], case["statuses"], case["sort"])).fetchall()
             assert [str(row[0]) for row in actual] == ids, case
         assert db.execute("select id from board_postings('new-for-me','all','recommended','{}','fit',1000) limit 1").fetchone()[0] == UUID(rows[0]["id"])
-        assert db.execute("select has_function_privilege('anon','public.board_postings(text,text,text,text[],text,integer)','execute')").fetchone() == (False,)
+        assert db.execute("select has_function_privilege('anon','public.board_postings(text,text,text,text[],text,integer,text)','execute')").fetchone() == (False,)
         # Opt-in real PostgREST/Supabase-client leg; SQL parity always runs in CI.
         if binary := os.environ.get("JOBRADAR_POSTGREST_BIN") or shutil.which("postgrest"):
             db.commit()
@@ -105,7 +105,7 @@ def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
                                             cwd=ROOT / "ui", text=True, capture_output=True, timeout=60,
                                             env={**os.environ, "JOBRADAR_TEST_REST_URL": endpoint})
                     assert result.returncode == 0, result.stderr
-                    assert json.loads(result.stdout) == dict(first=rows[0]["id"], count=1000, pipeline=True)
+                    assert json.loads(result.stdout) == dict(first=rows[0]["id"], count=1000, pipeline=True, window=True, poll=True)
                 finally:
                     process.terminate()
                     process.wait(timeout=10)

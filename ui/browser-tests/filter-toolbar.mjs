@@ -91,19 +91,32 @@ try {
           await toolbar.getByRole('combobox', { name: 'Seniority', exact: true }).click();
           await page.getByRole('option', { name: 'Hide senior+ (keep unknown)', exact: true }).click();
           await expect(toggle).toContainText('2');
+          const found = toolbar.getByRole('group', { name: 'Found in the past' });
+          await expect(found).toBeVisible();
+          await found.getByRole('button', { name: '7 d', exact: true }).click();
+          await expect(toggle).toContainText('3');
+          await expect(found.getByRole('button', { name: '7 d', exact: true })).toHaveAttribute('aria-pressed', 'true');
           const wideRows = await toolbar.locator('[role=combobox], summary, button').evaluateAll(nodes => [...new Set(nodes.filter(node => node.checkVisibility()).map(node => Math.round(node.getBoundingClientRect().bottom)))].length);
           assert.ok(wideRows <= 2, `${width}px long-label layout has ${wideRows} rows`);
           await toggle.click();
+          await expect(found).toBeHidden();
           await toolbar.getByRole('button', { name: 'Reset view', exact: true }).click();
           await expect(toggle).toHaveAttribute('aria-expanded', 'true');
           await expect(toolbar.getByRole('combobox', { name: 'Seniority', exact: true })).toHaveText('All levels');
+          await expect(found.getByRole('button', { name: 'Any time', exact: true })).toHaveAttribute('aria-pressed', 'true');
+          await expect(toggle).toContainText('1');
         } else {
           await toggle.click();
           const dialog = page.getByRole('dialog');
           await expect(dialog.getByRole('combobox', { name: 'Location', exact: true })).toBeVisible();
+          const found = dialog.getByRole('group', { name: 'Found in the past' });
+          await expect(found).toBeVisible();
+          await found.getByRole('button', { name: '24 h', exact: true }).click();
+          await expect(found.getByRole('button', { name: '24 h', exact: true })).toHaveAttribute('aria-pressed', 'true');
           await page.screenshot({ path: `${output}/toolbar-${width}-drawer.png` });
           await dialog.getByRole('button', { name: 'Show roles', exact: true }).click();
           await expect(toggle).toBeFocused();
+          await expect(toggle).toContainText('2');
         }
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no horizontal overflow');
         assert.deepEqual(errors, []);

@@ -92,8 +92,8 @@ function Board() {
     queryKey: boardListKey(filter, view.availability, view), enabled: preferencesReady,
     queryFn: async ({ signal }) => {
       const started = confirmedStatusRevision(client);
-      const previous = filter === "new-for-me" ? cachedVisitCohort(client, view.availability) : null;
-      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: view.availability, limit: 1000, fit: view.fit, statuses: view.statuses, sort: view.sort }), { signal })).jobs);
+      const previous = filter === "new-for-me" ? cachedVisitCohort(client, view.availability, view.found_within) : null;
+      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: view.availability, limit: 1000, fit: view.fit, statuses: view.statuses, sort: view.sort, found_within: view.found_within }), { signal })).jobs);
       const read = filter === "new-for-me" ? await refreshVisitCohort(previous, next, async ids => {
         const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
         return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal })).jobs;
@@ -168,7 +168,7 @@ function Board() {
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const newRolesCutoff = useMemo(() => newRolesSince(jobs), [jobs]);
-  const newRoles = useNewRoles(preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff);
+  const newRoles = useNewRoles(preferencesReady && !loading && !error, filter, view.availability, newRolesCutoff, view.found_within);
   const newRoleCount = useMemo(() => countNewRoleCards(jobs, newRoles.jobs, view), [jobs, newRoles.jobs, view]);
   const refetchList = listQuery.refetch;
   const requestRefresh = useCallback(() => {

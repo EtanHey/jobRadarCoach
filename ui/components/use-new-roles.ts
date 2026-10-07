@@ -1,6 +1,6 @@
 "use client";
 import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
-import { JobListResponseSchema, type Availability, type JobSummary } from "@/lib/contracts";
+import { JobListResponseSchema, type Availability, type FoundWithin, type JobSummary } from "@/lib/contracts";
 import { NEW_ROLES_LIMIT, NEW_ROLES_MIN_GAP_MS, NEW_ROLES_POLL_MS, newRolesRequestPath } from "@/lib/new-roles";
 
 type NewRoles = { jobs: JobSummary[]; truncated: boolean };
@@ -22,9 +22,9 @@ export function newRolesQueryOptions(path: string) {
 }
 
 // Reads a bounded page of postings newer than the loaded list; never touches the list itself.
-export function useNewRoles(enabled: boolean, filter: string, availability: Availability, since: string) {
+export function useNewRoles(enabled: boolean, filter: string, availability: Availability, since: string, found_within?: FoundWithin) {
   const client = useQueryClient();
-  const options = newRolesQueryOptions(newRolesRequestPath({ filter, availability, since }));
+  const options = newRolesQueryOptions(newRolesRequestPath({ filter, availability, since, found_within }));
   const query = useQuery({ ...options, enabled });
   return { ...(enabled ? query.data : NONE), dismiss: () => client.setQueryData(options.queryKey, NONE) };
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { WorkModeSchema } from "./contracts";
+import { WorkModeSchema, FoundWithinSchema } from "./contracts";
 import type { ViewOptions } from "./job-filters";
 import { pipelineStatusValues, type PipelineStatus } from "./job-status";
 
@@ -27,6 +27,7 @@ export const DEFAULT_BOARD_PREFERENCES: BoardPreferences = {
 };
 
 const viewSchema = z.object({
+  found_within: FoundWithinSchema.optional(),
   remote: z.boolean().optional(),
   work_mode: WorkModeSchema.optional(),
   search: z.string().max(500),
@@ -89,6 +90,7 @@ export function boardPreferenceStorage(host: StorageHost): Storage | null {
 export function isDefaultBoardPreferences(preferences: BoardPreferences): boolean {
   return !preferences.filtersCollapsed
     && preferences.filter === DEFAULT_BOARD_PREFERENCES.filter
+    && !preferences.view.found_within
     && preferences.view.remote === undefined
     && preferences.view.work_mode === undefined
     && preferences.view.statuses.length === 0
