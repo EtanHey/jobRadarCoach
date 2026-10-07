@@ -134,14 +134,16 @@ def test_harvest_cannot_set_ats_liveness_on_insert_or_update(connection, source,
     assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == ({},)
 
 
-def test_linkedin_harvest_still_closes_and_reopens_with_newer_evidence(connection):
+def test_linkedin_legacy_harvest_liveness_never_hides_or_reopens(connection):
     dead = harvest_observation("linkedin", alive=False)
+    assert database._liveness_evidence(dead) == {}
     posting_ids = database.persist_postings(connection, [dead], "2026-10-05T10:00:00Z")
     assert len(posting_ids) == 1
     posting_id = posting_ids[0]
     assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == (database._liveness_evidence(dead),)
     for alive, checked_at in [(True, "2026-10-05T11:00:00Z"), (False, "2026-10-05T12:00:00Z")]:
         observation = harvest_observation("linkedin", alive=alive, checked_at=checked_at)
+        assert database._liveness_evidence(observation) == {}
         database.persist_postings(connection, [observation], checked_at)
         assert connection.execute("select liveness from public.postings where id = %s", (posting_id,)).fetchone() == (database._liveness_evidence(observation),)
 

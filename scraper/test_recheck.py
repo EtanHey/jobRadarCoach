@@ -26,7 +26,7 @@ class Database:
         return self.rows
 
 
-def test_closed_and_unknown_preserve_application_state_and_prior_evidence():
+def test_linkedin_discovered_urls_never_hide_application_state():
     db = Database([("closed", "https://job-boards.greenhouse.io/a/jobs/1"),
                    ("unknown", "https://il.linkedin.com/jobs/view/2")])
     def check(url):
@@ -34,8 +34,8 @@ def test_closed_and_unknown_preserve_application_state_and_prior_evidence():
             return {"alive": False, "liveness_reason": "closed-page-text"}
         return {"alive": None, "liveness_reason": "http-429-uncertain"}
     receipt = recheck(db, limit=2, checker=check)
-    assert receipt == {"checked": 2, "closed": 1, "alive": 0, "unknown": 1, "unsupported": 0, "alerts": 0}
-    assert json.loads(db.writes[0][1][0])["alive"] is False
+    assert receipt == {"checked": 2, "closed": 0, "alive": 0, "unknown": 2, "unsupported": 0, "alerts": 0}
+    assert "alive" not in json.loads(db.writes[0][1][0])
     unknown = json.loads(db.writes[1][1][0])
     assert "alive" not in unknown and "liveness_reason" not in unknown
     assert unknown["last_attempt_reason"] == "http-429-uncertain"
@@ -81,7 +81,7 @@ def test_selection_binds_registered_sources_instead_of_a_sql_copy(monkeypatch):
     assert "source = any(%s)" in module.SELECT_STALE
 
 
-def test_default_transport_preserves_greenhouse_closed_redirect(monkeypatch):
+def test_linkedin_discovered_greenhouse_redirect_does_not_own_ats_closure(monkeypatch):
     from urllib.error import HTTPError
     import scraper.recheck as module
 
@@ -90,8 +90,9 @@ def test_default_transport_preserves_greenhouse_closed_redirect(monkeypatch):
     monkeypatch.setattr(module, "pinned_open", lambda *_a, **_k: (_ for _ in ()).throw(error))
     db = Database([("closed", url)])
     receipt = recheck(db)
-    assert receipt["closed"] == 1
-    assert json.loads(db.writes[0][1][0])["liveness_reason"] == "greenhouse-board-error-redirect"
+    assert receipt["closed"] == 0
+    assert "alive" not in json.loads(db.writes[0][1][0])
+    assert json.loads(db.writes[0][1][0])["last_attempt_reason"] == "greenhouse-board-error-redirect"
 
 
 def test_ats_recheck_closes_only_absent_ids_and_binds_stored_identity():

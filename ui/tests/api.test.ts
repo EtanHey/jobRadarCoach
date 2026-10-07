@@ -149,6 +149,16 @@ test("unknown and malformed liveness remain visible as unknown summary data", ()
     posting_status: null, posting_scores: null,
   };
   assert.equal(parseSummaryRows([raw]).jobs[0].alive, null);
+  const signal = {phrase: "no longer accepting applications", checked_at: "2026-10-07T13:00:00Z", url: "https://www.linkedin.com/jobs/view/1234567890"};
+  const advisory = parseSummaryRows([{ ...raw, source: "linkedin", liveness: { linkedin_closed_signal: signal } }]).jobs[0];
+  assert.equal(advisory.alive, null);
+  assert.deepEqual(advisory.linkedin_closed_signal, signal);
+  const cleared = parseSummaryRows([{ ...raw, source: "linkedin", liveness: {
+    linkedin_closed_signal: null, linkedin_closed_signal_cleared_at: "2026-10-07T14:00:00Z",
+  } }]).jobs[0];
+  assert.equal(cleared.linkedin_closed_signal, null);
+  assert.equal(cleared.alive, null);
+
   assert.equal(parseSummaryRows([{ ...raw, work_mode: "hybrid" }]).jobs[0].work_mode, "hybrid");
   assert.equal(parseSummaryRows([{ ...raw, liveness: { alive: "false" } }]).jobs[0].alive, null);
 });

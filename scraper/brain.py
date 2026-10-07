@@ -1,6 +1,9 @@
 """Native Ollama and Codex transports for validated batch brain requests."""
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -104,7 +107,65 @@ def _load_json(raw: bytes, label: str) -> object:
     except ValueError as error:
         raise BrainResponseError(f"Ollama returned invalid {label} JSON") from error
 
-def run_brain(
+_PROVIDER_DIAGNOSTIC = ContextVar("provider_diagnostic", default=None)
+_TRANSPORT_CATEGORIES = frozenset({"transport_error", "nonzero_exit", "timeout", "launch_error", "auth", "quota", "model_access"})
+_PUBLIC_MODELS = frozenset({"gpt-5.6", "gpt-5.6-luna", "gpt-5.6-terra"})
+
+
+@contextmanager
+def provider_diagnostic_scope(callback):
+    """Observe safe receipts without changing the library's default output."""
+    token = _PROVIDER_DIAGNOSTIC.set(callback)
+    try:
+        yield
+    finally:
+        _PROVIDER_DIAGNOSTIC.reset(token)
+
+
+def run_brain(request, profile_snapshot=None, *, env=None, opener=urlopen,
+              timeout_seconds=60, codex_version_verifier=None):
+    started = time.monotonic()
+    started_at = datetime.now(timezone.utc).isoformat()
+    settings = os.environ if env is None else env
+    category, exit_code, truncated = "provider_error", None, False
+    provider = "unknown"
+    try:
+        provider = resolve_brain(profile_snapshot, settings)
+        result = _run_brain(request, profile_snapshot, env=env, opener=opener,
+                            timeout_seconds=timeout_seconds,
+                            codex_version_verifier=codex_version_verifier)
+        category = "success"
+        return result
+    except BrainTransportError as error:
+        category = error.category if isinstance(error.category, str) and error.category in _TRANSPORT_CATEGORIES else "transport_error"
+        exit_code = error.exit_code if type(error.exit_code) is int else None
+        truncated = error.stderr_truncated is True
+        raise
+    except BrainConfigurationError as error:
+        category = "unsupported_runtime" if error.category == "unsupported_runtime" else "configuration_error"
+        raise
+    except BrainResponseError:
+        category = "response_error"
+        raise
+    finally:
+        callback = _PROVIDER_DIAGNOSTIC.get()
+        if callback is not None:
+            model = settings.get("CODEX_MODEL", DEFAULT_CODEX_MODEL) if provider == "codex" else "configured"
+            effort = settings.get("CODEX_REASONING_EFFORT", DEFAULT_CODEX_REASONING_EFFORT)
+            model = model.strip() if isinstance(model, str) else model
+            effort = effort.strip().casefold() if isinstance(effort, str) else effort
+            event = dict(started_at=started_at, provider=provider, model=model if isinstance(model, str) and model in _PUBLIC_MODELS else "configured",
+                         reasoning_effort=effort if isinstance(effort, str) and effort in CODEX_REASONING_EFFORTS and provider == "codex" else "configured",
+                         category=category, exit_code=exit_code, stderr_truncated=truncated,
+                         elapsed_ms=round((time.monotonic() - started) * 1000, 3),
+                         timeout_seconds=timeout_seconds if type(timeout_seconds) in (int, float) and 0 < timeout_seconds <= MAX_TIMEOUT_SECONDS else None)
+            try:
+                callback(event)
+            except Exception:
+                pass  # An observer must not turn a valid score into a failed item.
+
+
+def _run_brain(
     request: BrainRequest,
     profile_snapshot: Mapping[str, object] | None = None,
     *,
@@ -150,10 +211,10 @@ def run_brain(
     except HTTPError as error:
         raise BrainTransportError(f"Ollama request failed with HTTP {error.code}") from error
     except TimeoutError as error:
-        raise BrainTransportError("Ollama request timed out") from error
+        raise BrainTransportError("Ollama request timed out", category="timeout") from error
     except URLError as error:
         message = "Ollama request timed out" if isinstance(error.reason, TimeoutError) else "Ollama request failed"
-        raise BrainTransportError(message) from error
+        raise BrainTransportError(message, category="timeout" if isinstance(error.reason, TimeoutError) else "transport_error") from error
     except OSError as error:
         raise BrainTransportError("Ollama request failed") from error
     return _parse_response(raw, request)
@@ -178,7 +239,7 @@ def _run_codex(
         codex = _discover_codex()
         auth_path = _subscription_auth_path()
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
-        raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
+        raise BrainConfigurationError("Codex runtime is unavailable or unsupported", category="unsupported_runtime") from error
 
     try:
         with tempfile.TemporaryDirectory(prefix="job-radar-codex-") as temp_dir:
@@ -197,7 +258,7 @@ def _run_codex(
                     timeout=min(10, max(0, deadline - time.monotonic())),
                 )
             except RuntimeError as error:
-                raise BrainConfigurationError("Codex runtime is unavailable or unsupported") from error
+                raise BrainConfigurationError("Codex runtime is unavailable or unsupported", category="unsupported_runtime") from error
             schema_path = workspace / "schema.json"
             output_path = workspace / "result.json"
             schema_path.write_text(
@@ -217,22 +278,27 @@ def _run_codex(
                 stdin_text=request.prompt,
                 text=True,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
                 timeout=max(0, deadline - time.monotonic()),
                 cwd=workspace,
                 env=environment,
             )
             if completed.returncode != 0:
+                diagnostic = getattr(completed, "stderr", None)
+                diagnostic = diagnostic if isinstance(diagnostic, dict) else {}
                 raise BrainTransportError(
-                    f"Codex request failed with exit code {completed.returncode}"
+                    f"Codex request failed with exit code {completed.returncode}",
+                    category=diagnostic.get("category", "nonzero_exit"),
+                    exit_code=completed.returncode,
+                    stderr_truncated=diagnostic.get("truncated", False),
                 )
             raw = _read_codex_output(output_path)
     except subprocess.TimeoutExpired as error:
-        raise BrainTransportError("Codex request timed out") from error
+        raise BrainTransportError("Codex request timed out", category="timeout") from error
     except BrainError:
         raise
     except OSError as error:
-        raise BrainTransportError("Codex request failed") from error
+        raise BrainTransportError("Codex request failed", category="launch_error") from error
 
     data = _load_codex_json(raw)
     if not isinstance(data, dict):
