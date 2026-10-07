@@ -19,6 +19,7 @@ from extractor.core import (
 from extractor.evidence import ExtractionValidationError
 from extractor.persistence import persist_extraction
 from scraper.brain import run_brain
+from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import (
     BrainValidationError,
     UnsupportedBrainError,
@@ -69,12 +70,9 @@ def _assignment_fields(
 
 
 def load_runtime_profile(connection: Connection) -> dict[str, object]:
-    """Capture only the committed provider-selection field needed by extraction."""
+    """Capture committed stage model settings and the legacy provider fallback."""
 
-    row = connection.execute(
-        "select value from public.profile where field = 'runtime.brain'"
-    ).fetchone()
-    return {} if row is None else {"runtime.brain": row[0]}
+    return load_stage_profile(connection)
 
 
 def select_postings(
@@ -141,7 +139,7 @@ def run_batch(
     ):
         raise ValueError("timeout must be between 0 and 120 seconds")
     profile = load_runtime_profile(connection)
-    settings = dict(os.environ if env is None else env)
+    settings = stage_settings('extractor', profile, env)
     provider = resolve_brain(profile, settings)
     if extractor is None:
         extractor = partial(extract_posting, runner=partial(run_brain, env=settings))

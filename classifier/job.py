@@ -12,15 +12,13 @@ from uuid import UUID
 from classifier.core import diagnostic_scope
 from classifier.persistence import list_scoring_candidates, score_and_persist
 from scraper.brain import run_brain
+from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import UnsupportedBrainError, resolve_brain
 
 
 MAX_BATCH_SIZE = 30
 MAX_TIMEOUT_SECONDS = 120
 IMPLEMENTED_BRAINS = frozenset({"ollama", "codex"})
-BRAIN_SETTINGS = (
-    "BRAIN", "OLLAMA_BASE_URL", "OLLAMA_MODEL", "CODEX_MODEL", "CODEX_REASONING_EFFORT",
-)
 
 
 class Result(Protocol):
@@ -54,10 +52,7 @@ def _assignment_fields(
 
 
 def load_runtime_profile(connection: Connection) -> dict[str, object]:
-    row = connection.execute(
-        "select value from public.profile where field = 'runtime.brain'"
-    ).fetchone()
-    return {} if row is None else {"runtime.brain": row[0]}
+    return load_stage_profile(connection)
 
 
 def _selection(
@@ -109,16 +104,13 @@ def run_batch(
     ):
         raise ValueError("timeout must be between 0 and 120 seconds")
     profile = load_runtime_profile(connection)
-    source_settings = os.environ if env is None else env
-    settings = {key: source_settings[key] for key in BRAIN_SETTINGS if key in source_settings}
+    settings = stage_settings('scorer', profile, env)
     provider = resolve_brain(profile, settings)
     if provider not in IMPLEMENTED_BRAINS:
         _log(selected=0, scored=0, failed=1, provider=provider,
              failure=UnsupportedBrainError.__name__)
         return 1
     settings["BRAIN"] = provider
-    if provider == "codex":
-        settings.setdefault("CODEX_MODEL", "gpt-5.6-terra")
     candidates = _selection(
         connection,
         limit=limit,

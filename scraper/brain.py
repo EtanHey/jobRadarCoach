@@ -13,8 +13,6 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 from scraper.annotate import (
-    LUNA_MODEL,
-    LUNA_REASONING_EFFORT,
     _codex_exec_command,
     _discover_codex,
     _isolated_codex_environment,
@@ -48,9 +46,9 @@ DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
 DEFAULT_OLLAMA_MODEL = "qwen2.5:7b-instruct"
 
-DEFAULT_CODEX_MODEL = LUNA_MODEL
+DEFAULT_CODEX_MODEL = "gpt-5.6"
 
-DEFAULT_CODEX_REASONING_EFFORT = LUNA_REASONING_EFFORT
+DEFAULT_CODEX_REASONING_EFFORT = "medium"
 
 CODEX_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high", "xhigh"})
 

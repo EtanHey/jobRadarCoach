@@ -39,6 +39,7 @@ py-modules = [
   "scraper.ats_sources",
   "scraper.brain",
   "scraper.brain_contract",
+  "scraper.stage_config",
   "scraper.codex_process",
   "scraper.database",
   "scripts.local_analysis",
