@@ -1,7 +1,7 @@
 """Fixed, cheap JD rules calibrated against owner Pursue labels. No model I/O."""
 import re
 
-VERSION = '2026-10-07-v3'
+VERSION = '2026-10-07-v4'
 OPTIONAL = r'\b(?:advantage|bonus|nice[ -]to[ -]have|plus|preferred|optional)\b|יתרון'
 ALTERNATIVE = r'\b(?:or|such as|e\.g\.?|for example|one of|including)\b|כגון|לדוגמה|או'
 REQUIRED = r'\b(?:required|mandatory|must|proficien\w*|strong|deep|extensive|advanced|proven|expert\w*|\d+\+?\s+years?|experience\s+(?:in|with))\b'
@@ -44,12 +44,12 @@ def gate_rule(title: str, jd: str) -> str | None:
     for clause in (c.strip() for c in re.split(r'\n|[;•]|(?<=[.!?])\s+(?=[A-Z])', text)):
         if matches(OPTIONAL, clause):
             continue
-        if matches(r'\bequity[ -]only\b', clause):
+        if matches(r'\bequity[ -]only\b', clause) and not matches(r'\bnot\s+(?:(?:an?|purely|solely)\s+)?equity[ -]only\b', clause):
             return 'equity-only'
         years = re.match(r'^(?:[-–*]\s*)?(?:(?:minimum(?: of)?|at least|must have|you have)\s+)?(?P<minimum>\d{1,2})\s*(?:\+|[-–]\s*\d{1,2}|\s+or more)?\s+years?\b.{0,90}\b(?:experience|expertise|developing|building|leading|managing|working)\b', clause, re.I)
         if years and int(years['minimum']) >= 7 and not matches(r'\b(?:company|business|founded|history|our|we)\b', clause):
             return 'years-minimum-7-strict'
-        if not matches(r'\bequivalent\b', clause) and matches(r'\b(?:bsc|b\.?sc\.?|bachelor\S*|degree)\b', clause) and matches(r'\b(?:required|mandatory|must hold|must have)\b', clause):
+        if not matches(r'\bequivalent\b|\b(?:not|never)\s+(?:strictly\s+)?(?:required|mandatory)\b|\bno\s+(?:formal\s+)?degree\b', clause) and matches(r'\b(?:bsc|b\.?sc\.?|bachelor\S*|degree)\b', clause) and matches(r'\b(?:required|mandatory|must hold|must have)\b', clause):
             return 'mandatory-degree'
         if not matches(ALTERNATIVE, clause) and matches(r'\bmarketing background\b|\bSAP\s+(?:ABAP|development)\b|\b\d+\+?\s+years?\b.{0,40}\bbuilding security solutions\b', clause) and matches(REQUIRED, clause):
             return 'specialist-required'
