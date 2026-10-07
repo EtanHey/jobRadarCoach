@@ -1573,6 +1573,32 @@ def test_year_hard_gate_preserves_section_context_and_alternatives(text, blockin
     assert harvest._has_blocking_years_requirement(text) is blocking
 
 
+@pytest.mark.parametrize(
+    ("text", "blocking"),
+    [
+        ("Preferred qualifications (optional):\nMinimum 8 years of experience", False),
+        ("Preferred qualifications (nice to have):\nYou have 10+ years of experience", False),
+        ("Preferred qualifications (optional)\nMinimum 8 years of experience", False),
+        ("Preferred qualifications (optional):\nMinimum 8 years of experience\n"
+         "Requirements:\n• 8+ years of experience", True),
+        ("Requirements:\n• 8+ years of experience\n  or a relevant degree", False),
+        ("Requirements:\n- 8+ years of experience\n  or a relevant degree", False),
+        ("Requirements:\n• 8+ years of experience\n  • Python or Java", True),
+        ("Requirements:\n• 8+ years of experience\n  or a relevant degree\n"
+         "• 10+ years of backend experience", True),
+        ("Requirements:\n• 8+ years of experience is not required", False),
+        ("Requirements:\n• 8+ years of experience isn't required", False),
+        ("Requirements:\n• 8+ years of experience isn’t required", False),
+        ("Requirements:\n• 8+ years of experience is desirable", False),
+        ("Requirements:\n• 8+ years of experience is not required\n"
+         "• 10+ years of backend experience", True),
+    ],
+)
+def test_year_hard_gate_followup_wrong_drops(text, blocking):
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(text) is blocking
+
+
 def test_us_only_onsite_posting_survives_source_scope() -> None:
     harvest = load_harvest_module()
     searches = [{"keywords": "Software Engineer", "location": "United States", "recency": "r10800"}]
@@ -1755,6 +1781,12 @@ def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
         ("Build React products.\nRequirements:\nAbout the company\n"
          "25+ years of experience serving customers", "10+ years"),
         ("Build React products.\nRequirements:\n• 8+ years of experience or a relevant degree",
+         "8-9+ years"),
+        ("Build React products.\nPreferred qualifications (optional):\n"
+         "Minimum 8 years of experience", "8-9+ years"),
+        ("Build React products.\nRequirements:\n• 8+ years of experience\n"
+         "  or a relevant degree", "8-9+ years"),
+        ("Build React products.\nRequirements:\n• 8+ years of experience is not required",
          "8-9+ years"),
     ],
 )

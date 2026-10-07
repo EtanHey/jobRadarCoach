@@ -108,15 +108,15 @@ YEAR_CANDIDATE_PREFIX_PATTERN = re.compile(
     r"(?:(?:at\s+least|minimum(?:\s+of)?)\s+)?\s*$", re.I,
 )
 YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
-    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|(?:a\s+)?plus|preferred|optional)\b",
+    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|(?:a\s+)?plus|preferred|optional|desirable)\b",
     re.I,
 )
 YEAR_SECTION_HEADING_PATTERN = re.compile(
-    r"^\s*(?:\#{1,6}\s+([\w /'’–-]{2,60})\s*$|([\w /'’–-]{2,60}):|"
+    r"^\s*(?:\#{1,6}\s+([\w /'’()–-]{2,60})\s*$|([\w /'’()–-]{2,60}):|"
     r"(requirements?|qualifications?|about (?:us|the company|our company)|"
     r"company overview|responsibilities|benefits|what we offer|what you'll do|"
     r"(?:preferred|nice[\s-]+to[\s-]+have|bonus|plus|optional)"
-    r"(?:\s+[\w /'’–-]{2,40})?)\s*$|"
+    r"(?:\s+[\w /'’()–-]{2,40})?)\s*$|"
     r"((?-i:[A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|and|of|the|we|are)){0,7}|"
     r"[A-Z][A-Z /]{2,60}))\s*$)", re.I,
 )
@@ -669,7 +669,9 @@ def _has_blocking_years_requirement(text: str) -> bool:
         if int(match.group("minimum")) < 7:
             continue
         item = _requirement_list_item(text, match.start(), match.end())
-        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
+        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item) or re.search(
+            r"\b(?:not\s+required|isn['’]t\s+required)\b", item, re.I
+        ):
             continue
         offset = item.index(match.group(0))
         prefix = item[:offset].strip().lstrip("- ")
@@ -688,10 +690,13 @@ def _has_blocking_years_requirement(text: str) -> bool:
         if optional_section:
             continue
         # Keep comma-separated alternatives together, while independent sentences
-        # and list items still have their own requirement evidence.
+        # and list items still have their own requirement evidence. Indented
+        # continuation lines belong to the current item; new bullets do not.
         clause_boundaries = [
             boundary.start()
-            for boundary in re.finditer(r"[;\n•]|[.!?](?=\s|$)", text)
+            for boundary in re.finditer(
+                r"[;•]|\n(?![ \t]+(?![-•]|\d+[.)]\s)\S)|[.!?](?=\s|$)", text
+            )
         ]
         left = max((index for index in clause_boundaries if index < match.start()), default=-1)
         right = min(
