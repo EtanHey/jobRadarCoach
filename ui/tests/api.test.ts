@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { makeGetJob } from "../app/api/jobs/[id]/route";
+import { makeScoreAnyway } from "../app/api/jobs/[id]/score-anyway/route";
 import { makePatchStatus } from "../app/api/jobs/[id]/status/route";
 import { GET as getJobs, makeGetJobs } from "../app/api/jobs/route";
 import { makeGetProfile, makePatchProfile } from "../app/api/profile/route";
@@ -405,6 +406,7 @@ test("the cursor narrows the list query with the list's own filters, ordering an
     await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], { filter, availability: "active", limit: 101, since });
     assert.deepEqual(calls, [
       ["select", statusFilter ? "inner" : "left"],
+      ["eq", "relevance_filtered", false],
       ...(statusFilter ? [["eq", "posting_status.status", statusFilter]] : []),
       ["or", "liveness->alive.neq.false,liveness->alive.is.null"],
       ["gt", "first_seen_at", since],
@@ -430,9 +432,34 @@ test("new-for-me uses only new status, availability and cursor, without reading 
   const since = "2026-10-05T10:00:00Z";
   await selectSummaries(db as unknown as Parameters<typeof selectSummaries>[0], {filter: "new-for-me", availability: "active", since, limit: 101});
   assert.deepEqual(calls, [
+    ["eq", "relevance_filtered", false],
     ["eq", "posting_status.status", "new"],
     ["or", "liveness->alive.neq.false,liveness->alive.is.null"],
     ["gt", "first_seen_at", since],
     ["order", "first_seen_at", {ascending: false}], ["order", "id", null], ["limit", 101],
   ]);
+});
+
+
+test("score anyway validates origin and body before queuing a stored override", async () => {
+  let calls = 0;
+  const handler = makeScoreAnyway(store({ scoreAnyway: async id => { assert.equal(id, ID); calls++; return { ...detail, relevance_filtered: false }; } }));
+  const context = { params: Promise.resolve({ id: ID }) };
+  const request = (body: string, origin = "https://example.test") => new Request(`https://example.test/api/jobs/${ID}/score-anyway`, {
+    method: "POST", headers: { "Content-Type": "application/json", origin }, body,
+  });
+  assert.equal((await handler(request("{}", "https://foreign.test"), context)).status, 403);
+  assert.equal((await handler(request('{"rule":"bypass"}'), context)).status, 400);
+  const response = await handler(request("{}"), context);
+  assert.equal(response.status, 200); assert.equal((await response.json()).relevance_filtered, false);
+  assert.equal(calls, 1);
+});
+
+test("an archived prior score does not appear as a current recommendation", () => {
+  const raw = { ...summary, relevance_filtered: true, relevance_gate: { rule: "already-us-resident" },
+    list_metadata: { stack: [], experience: null, description_available: true }, liveness: null, posting_extractions: null,
+    posting_status: null, posting_scores: { score: 72, score_payload: { recommendation: "apply", fit_line: "Cached assessment" } } };
+  const archived = parseSummaryRows([raw]).jobs[0];
+  assert.equal(archived.score, null); assert.equal(archived.recommendation, null);
+  assert.equal(parseSummaryRows([{ ...raw, relevance_filtered: false }]).jobs[0].score, 72);
 });

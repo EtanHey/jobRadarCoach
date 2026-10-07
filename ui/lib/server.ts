@@ -15,6 +15,7 @@ import { HttpError } from "./http";
 export interface ApiStore {
   listJobs(input: JobListQuery): Promise<JobSummary[]>;
   getJob(id: string): Promise<JobDetail | null>;
+  scoreAnyway?(id: string): Promise<JobDetail | null>;
   setStatus(input: StatusPatch & { posting_id: string }): Promise<StatusResult>;
   getProfile(): Promise<Profile>;
   updateProfile(input: ProfileEntry): Promise<Profile>;
@@ -33,6 +34,8 @@ const scoreSchema = summaryScoreSchema.extend({
   score_payload: z.unknown().nullable(), scored_at: z.string(),
 });
 const rawBaseSchema = z.object({
+  relevance_filtered: z.boolean().optional(),
+  relevance_gate: z.object({ rule: z.string().nullable().optional() }).passthrough().optional(),
   source: z.string(), last_seen_at: z.string(),
   list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
@@ -47,9 +50,9 @@ const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSche
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "relevance_filtered,relevance_gate,source,last_seen_at,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "relevance_filtered,relevance_gate,source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -73,21 +76,21 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 
 function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const base = checked(rawSummarySchema, row);
-  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, list_metadata, ...posting } = base;
+  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, list_metadata, relevance_gate, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   const payload = score?.score_payload;
   const fit = payload && typeof payload === "object" ? payload : null;
   return checked(JobSummarySchema, {
-    ...posting, url: postingUrl(posting.url),
+    ...posting, ...(relevance_gate ? { relevance_rule: relevance_gate.rule ?? null } : {}), url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
     stack: posting.stack.length ? posting.stack : list_metadata.stack,
     seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
     description_available: list_metadata.description_available,
     experience: list_metadata.experience, extraction_state: extraction ? "extracted" : "not-extracted",
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
-    score: score?.score ?? null,
-    fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
-    recommendation: fit && "recommendation" in fit ? fit.recommendation : null,
+    score: base.relevance_filtered ? null : score?.score ?? null,
+    fit_line: !base.relevance_filtered && fit && "fit_line" in fit ? fit.fit_line : null,
+    recommendation: !base.relevance_filtered && fit && "recommendation" in fit ? fit.recommendation : null,
     alive: typeof liveness?.alive === "boolean" ? liveness.alive : null,
   });
 }
@@ -114,8 +117,9 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
       ...(input.found_within ? { found_within: input.found_within } : {}),
     }).select(SUMMARY))).jobs;
   }
-  let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
-  if (input.filter !== "all") query = query.eq("posting_status.status", input.filter === "new-for-me" ? "new" : input.filter);
+  let query = db.from("postings").select(["all", "not-scored"].includes(input.filter) ? SUMMARY : STATUS_SUMMARY);
+  query = query.eq("relevance_filtered", input.filter === "not-scored");
+  if (!["all", "not-scored"].includes(input.filter)) query = query.eq("posting_status.status", input.filter === "new-for-me" ? "new" : input.filter);
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
@@ -157,6 +161,11 @@ export function getApiStore(): ApiStore {
         score_payload: score?.score_payload ?? null, brain: score?.brain ?? null,
         scored_at: score?.scored_at ?? null,
       });
+    },
+    async scoreAnyway(id) {
+      const changed = await data(client().rpc("score_anyway", { posting_id: id }));
+      if (changed !== true) return null;
+      return this.getJob(id);
     },
     async setStatus(input) {
       const db = client();

@@ -28,10 +28,13 @@ export function confirmListRead(client: QueryClient, jobs: JobSummary[], filter:
     jobs = updateJobStatus(jobs, id, result.status, result.reason);
     if (!automatic && statusMutationRemovesCard(filter, result.status)) jobs = jobs.filter(job => job.id !== id);
   }
-  return jobs;
+  const rescued = client.getQueryData<Record<string, number>>(["board-score-anyway"]) ?? {};
+  jobs = jobs.map(job => (rescued[job.id] ?? 0) > started ? { ...job, relevance_filtered: false } : job);
+  return jobs.filter(job => Boolean(job.relevance_filtered) === (filter === "not-scored"));
 }
 
 export function confirmDetailRead(client: QueryClient, job: JobDetail, started: number) {
+  if ((client.getQueryData<Record<string, number>>(["board-score-anyway"]) ?? {})[job.id] > started) job = { ...job, relevance_filtered: false };
   const confirmation = client.getQueryData<Confirmation>(["board-status", job.id]);
   return confirmation && confirmation.revision > started ? { ...job, status: confirmation.result.status, status_reason: confirmation.result.reason } : job;
 }
@@ -75,5 +78,20 @@ export function applyConfirmedStatus(client: QueryClient, id: string, result: St
       const remove = !automatic && statusMutationRemovesCard(key[1] as BoardFilter, result.status);
       return { ...current, jobs: remove ? jobs.filter(job => job.id !== id) : jobs };
     });
+  }
+}
+
+
+export function applyScoreAnyway(client: QueryClient, job: JobDetail) {
+  client.setQueryDefaults(["board-score-anyway"], { gcTime: Infinity });
+  const revision = confirmedStatusRevision(client) + 1;
+  client.setQueryData(["board-status-revision"], revision);
+  client.setQueryData<Record<string, number>>(["board-score-anyway"], ids => ({ ...ids, [job.id]: revision }));
+  client.setQueryData(["board-detail", job.id], job);
+  client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
+  for (const [key] of client.getQueriesData<CachedList>({ queryKey: ["board-list"], type: "active" })) {
+    client.setQueryData<CachedList>(key, current => current ? { ...current,
+      jobs: key[1] === "not-scored" ? current.jobs.filter(row => row.id !== job.id) : current.jobs,
+    } : current);
   }
 }
