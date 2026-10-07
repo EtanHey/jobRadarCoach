@@ -1457,6 +1457,42 @@ def test_year_hard_gate_ignores_optional_and_company_history(
     assert harvest._has_blocking_years_requirement(non_requirement) is False
 
 
+@pytest.mark.parametrize(
+    ("text", "blocked"),
+    [
+        ("Our ideal engineer has 8 years of experience building software", True),
+        ("Our engineers have 8 years of experience in Python", True),
+        ("You have 8 years of experience in Python", True),
+        ("Candidates with 8 years of experience in Python", True),
+        ("Our ideal Engineer has 8 years of experience", True),
+        ("Our Designers have 8 years of experience", True),
+        ("With 8 years of experience, Our Specialists provide software", True),
+        ("With 8 years of experience, our engineers build software", True),
+        ("With 8 years of experience, candidates build software", True),
+        ("Acme Corp has over 20 years of experience serving customers", False),
+        ("Acme Software Inc has over 20 years of experience serving customers", False),
+        ("A has 20 years of experience serving customers", False),
+        ("We have 20 years of experience serving customers", False),
+        ("Our team has 20 years of experience serving customers", False),
+        ("Our firm has 20 years of experience serving customers", False),
+        ("Our product has 20 years of experience serving customers", False),
+        ("With 25 years of experience, Acme provides software that helps candidates find jobs", False),
+        ("With 25 years of experience, Acme Corp provides software that helps candidates find jobs", False),
+        ("Acme Inc. has 20 years of experience helping applicants", False),
+        ("Founded 25 years ago", False),
+        ("7+ years of experience required", True),
+        ("Earnix builds on more than 25 years of experience in artificial intelligence risk", False),
+        ("Our company has 20 years of experience, candidates must have 8 years of experience", True),
+        ("Our company has 20 years of experience and candidates must have 8 years of experience", True),
+        ("Founded 25 years ago and candidates must have 8 years of experience", True),
+        ("With 25 years of experience, Acme helps candidates. You have 8 years of experience", True),
+    ],
+)
+def test_year_hard_gate_binds_history_to_organization_subject(text: str, blocked: bool) -> None:
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(text) is blocked
+
+
 def test_year_hard_gate_blocks_mandatory_requirement_clause() -> None:
     harvest = load_harvest_module()
 

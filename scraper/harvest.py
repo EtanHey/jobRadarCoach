@@ -108,13 +108,6 @@ YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
     r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
     re.I,
 )
-YEAR_COMPANY_HISTORY_PATTERN = re.compile(
-    r"\b(?:our|the|this)\s+(?:company|business|firm|organization|organisation)\s+"
-    r"(?:has|have)\b.*\b\d{1,2}\s*years?\b|"
-    r"\b\d{1,2}\s*years?\s+in\s+business\b|"
-    r"\bfounded\b.*\b\d{1,2}\s*years?\s+ago\b",
-    re.I,
-)
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
     (8, "8-9+ years", -10),
@@ -648,6 +641,55 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
     return None
 
 
+def _is_company_experience_subject(subject: str) -> bool:
+    """Recognize organization subjects, never a named candidate or employee role."""
+
+    if re.search(
+        r"\b(?:you|candidates?|applicants?|engineers?|developers?|employees?|"
+        r"professionals?|individuals?|hires?|managers?|designers?|architects?|"
+        r"analysts?|scientists?|specialists?|ideal|required|must|minimum)\b",
+        subject, re.I,
+    ):
+        return False
+    if re.fullmatch(
+        r"(?:we|(?:our|the|this)\s+(?:company|business|team|firm|"
+        r"organization|organisation|product))", subject, re.I,
+    ):
+        return True
+    if re.match(r"(?:our|the|this)\b", subject, re.I):
+        return False
+    # Names may have any number of tokens and legal suffixes (e.g. Acme Inc.).
+    return bool(re.fullmatch(
+        r"[A-Z][A-Za-z0-9&'.-]*(?:\s+(?:[A-Z][A-Za-z0-9&'.-]*|"
+        r"of|the|and|company|business|firm|product))*", subject,
+    ))
+
+
+def _is_company_history_occurrence(text: str, match: re.Match[str]) -> bool:
+    """Bind the history exemption to the subject of this particular year count."""
+
+    prefix = text[:match.start()]
+    prefix = re.split(r"[;\n•]|[.!?](?=\s+[A-Z])", prefix)[-1].strip()
+    verb = re.fullmatch(
+        r"(.+?)\s+(?:builds?\s+on|has|have(?:\s+been)?)\s*"
+        r"(?:(?:over|more\s+than)\s*)?", prefix, re.I,
+    )
+    if verb and _is_company_experience_subject(verb.group(1).strip()):
+        return True
+    # In 'With N years ..., Acme provides ...', the subject follows the comma.
+    if re.fullmatch(r"with", prefix, re.I):
+        remainder = text[match.end():]
+        subject = re.match(
+            r"[^,;\n.!?]*,\s*(.+?)\s+"
+            r"(?:builds?|has|have|offers?|provides?)\b", remainder, re.I,
+        )
+        return bool(subject and _is_company_experience_subject(subject.group(1).strip()))
+    return bool(
+        re.fullmatch(r"founded", prefix, re.I)
+        and re.match(r"\s+ago\b", text[match.end():], re.I)
+    )
+
+
 def _has_blocking_years_requirement(text: str) -> bool:
     """Block when any single stated experience minimum is seven years or higher."""
 
@@ -657,28 +699,7 @@ def _has_blocking_years_requirement(text: str) -> bool:
         item = _requirement_list_item(text, match.start(), match.end())
         if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
             continue
-        if YEAR_COMPANY_HISTORY_PATTERN.search(item):
-            continue
-        prefix = text[max(0, text.rfind("\n", 0, match.start()) + 1):match.start()]
-        prefix = re.split(r"[.!?;](?=\s)", prefix)[-1]
-        company_verb = re.search(
-            r"\b(?:company|business|we|our)\b.*\b(?:builds?\s+on|has|have)\s+(?:(?:over|more\s+than)\s+)?$",
-            prefix, re.I,
-        ) or re.fullmatch(
-            r"\s*[A-Z][A-Za-z0-9&.-]+\s+(?:builds?\s+on|has)\s+(?:(?:over|more\s+than)\s+)?", prefix,
-        )
-        sentence_end = re.search(r"[.!?;\n]", text[match.end():])
-        remainder = text[match.end():match.end()+sentence_end.start()] if sentence_end else text[match.end():]
-        candidate_context = re.search(
-            r"\b(?:required|must|minimum|requirements?|qualifications?|you|candidates?|applicants?)\b",
-            item + remainder, re.I,
-        )
-        history_preface = re.fullmatch(r"\s*with\s+", prefix, re.I) and re.search(
-            r",\s*(?:[A-Z][A-Za-z0-9&.-]+|(?:our|the) company|we)\s+(?:builds?|has|have|offers?|provides?)\b", item + remainder,
-        )
-        company_verb = company_verb and not candidate_context
-        history_preface = history_preface and not candidate_context
-        if company_verb or history_preface:
+        if _is_company_history_occurrence(text, match):
             continue
         if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(item):
             return True
