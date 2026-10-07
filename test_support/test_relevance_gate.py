@@ -17,8 +17,8 @@ def test_gate_persists_before_selection_and_override_and_jd_reset(stage):
             if field not in {'people','connectors'}:
                 db.execute('insert into profile(field,value) values(%s,%s::jsonb) on conflict(field) do update set value=excluded.value',(field,json.dumps(value)))
         ids=[str(uuid4()),str(uuid4())]
-        for id,title in zip(ids,['Principal Engineer','Frontend Engineer']):
-            db.execute("insert into postings(id,source,external_id,url,title,company,raw_jd) values(%s,'synthetic',%s,'https://example.test/job',%s,'Synthetic',repeat('Build product applications with React and TypeScript. ',8))",(id,id,title))
+        for index,(id,title) in enumerate(zip(ids,['Principal Engineer','Frontend Engineer'])):
+            db.execute("insert into postings(id,source,external_id,url,title,company,raw_jd,first_seen_at) values(%s,'synthetic',%s,'https://example.test/job',%s,'Synthetic',repeat('Build product applications with React and TypeScript. ',8),%s)",(id,id,title, '2020-01-01Z' if (index == 0) == (stage == 'extract') else '2021-01-01Z'))
             db.execute('insert into posting_status(posting_id) values(%s)',(id,))
         def selected(limit=1):
             if stage=='score':return list_scoring_candidates(db,limit=limit,posting_ids=ids)
