@@ -44,6 +44,29 @@ const logoDev = (src: string | undefined): URL => {
   return new URL(src);
 };
 
+test("Doit app evidence never inherits the DoiT International catalog mark", () => {
+  const input = { company: "Doit", applyUrl: "https://doit.app/careers/1" };
+  assert.equal(resolveCompanyLogo(input), null);
+  assert.equal(logoDev(resolveCompanyLogo(input, { logoDevKey: KEY })?.src).pathname, "/doit.app");
+});
+
+test("DoiT com evidence retains its curated logo, but a name alone does not", () => {
+  assert.deepEqual(resolveCompanyLogo({ company: "DoiT", applyUrl: "https://careers.doit.com/jobs/1" }),
+    { kind: "catalog", src: logoPathForCompany("DoiT") });
+  assert.equal(resolveCompanyLogo({ company: "Doit", url: "https://www.linkedin.com/jobs/view/1" }, { logoDevKey: KEY }), null);
+});
+
+test("conflicting company domains veto both catalog and domain lookup", () => {
+  assert.equal(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.com/jobs/1", url: "https://doit.app/jobs/1" }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.com/jobs/1", rawJd: "Our personal finance app is at https://doit.app." }, { logoDevKey: KEY }), null);
+});
+
+test("unqualified catalog, mapped and unseen names render initials", () => {
+  assert.equal(resolveCompanyLogo({ company: "MeeBoss" }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Acme Robotics" }, { logoDevKey: KEY, domainMap: { "acme robotics": "acmerobotics.ai" } }), null);
+  assert.equal(resolveCompanyLogo({ company: "Unseen Widgets" }, { logoDevKey: KEY, domainMap: {} }), null);
+});
+
 test("curated catalog wins over Logo.dev even when a key and a company domain exist", () => {
   const resolved = resolveCompanyLogo({ company: "Wix", applyUrl: "https://careers.wix.com/jobs/1" }, { logoDevKey: KEY });
   assert.deepEqual(resolved, { kind: "catalog", src: logoPathForCompany("Wix") });
@@ -75,15 +98,12 @@ test("ATS and job-board hosts are never used as the company domain", () => {
     "https://acme.bamboohr.com/careers/1", "https://acme.recruitee.com/o/1",
   ];
   for (const applyUrl of hosts) {
-    const url = logoDev(resolveCompanyLogo({ company: "Acme", applyUrl, url: applyUrl }, { logoDevKey: KEY })?.src);
-    assert.equal(url.pathname, "/name/Acme", applyUrl);
+    assert.equal(resolveCompanyLogo({ company: "Acme", applyUrl, url: applyUrl }, { logoDevKey: KEY }), null, applyUrl);
   }
 });
 
-test("a host that does not match the company name falls back to a name lookup", () => {
-  const url = logoDev(resolveCompanyLogo({ company: "Acme Robotics", applyUrl: "https://jobs.some-aggregator.com/acme/1" }, { logoDevKey: KEY })?.src);
-  assert.equal(url.pathname, `/name/${encodeURIComponent("Acme Robotics")}`);
-  assert.equal(url.searchParams.get("fallback"), "404");
+test("a host that does not match the company name renders initials", () => {
+  assert.equal(resolveCompanyLogo({ company: "Acme Robotics", applyUrl: "https://jobs.some-aggregator.com/acme/1" }, { logoDevKey: KEY }), null);
 });
 
 test("company domains need the company's own name in the registrable label", () => {
@@ -102,9 +122,9 @@ test("override map pins a bad match to initials, a curated file, or a known doma
     "gamma": { kind: "domain", domain: "gamma.app" },
   } as const;
   assert.equal(resolveCompanyLogo({ company: " ACME " }, { logoDevKey: KEY, overrides }), null);
-  assert.deepEqual(resolveCompanyLogo({ company: "Beta Labs" }, { logoDevKey: KEY, overrides }), { kind: "override", src: "/companies/wix-295a1f6f92.png" });
-  assert.equal(logoDev(resolveCompanyLogo({ company: "Gamma" }, { logoDevKey: KEY, overrides })?.src).pathname, "/gamma.app");
-  assert.equal(resolveCompanyLogo({ company: "Gamma" }, { overrides }), null, "a domain pin still needs the key");
+  assert.deepEqual(resolveCompanyLogo({ company: "Beta Labs", applyUrl: "https://beta.example/jobs/1" }, { logoDevKey: KEY, overrides, identities: { "beta labs": { domains: ["beta.example"] } } }), { kind: "override", src: "/companies/wix-295a1f6f92.png" });
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Gamma", applyUrl: "https://gamma.app/jobs/1" }, { logoDevKey: KEY, overrides })?.src).pathname, "/gamma.app");
+  assert.equal(resolveCompanyLogo({ company: "Gamma", applyUrl: "https://gamma.app/jobs/1" }, { overrides }), null, "a domain pin still needs the key");
 });
 
 test("placeholder employer names never hit a name lookup", () => {
@@ -115,7 +135,7 @@ test("placeholder employer names never hit a name lookup", () => {
 
 test("a domain override beats the curated catalog, and without a key it pins to initials", () => {
   const overrides = { wix: { kind: "domain", domain: "wix.example" } } as const;
-  assert.equal(logoDev(resolveCompanyLogo({ company: "Wix" }, { logoDevKey: KEY, overrides })?.src).pathname, "/wix.example");
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Wix", applyUrl: "https://wix.example/jobs/1" }, { logoDevKey: KEY, overrides })?.src).pathname, "/wix.example");
   assert.equal(resolveCompanyLogo({ company: "Wix" }, { overrides }), null, "a wrong catalog mark must not come back when the key is missing");
 });
 
@@ -135,9 +155,9 @@ test("every initials pin in the shipped override map beats Logo.dev and the cata
   }
 });
 
-test("confident domain map wins over name lookup and shares canonical matching", () => {
+test("corroborated domain map shares canonical matching", () => {
   const domainMap = { "acme robotics": "acmerobotics.ai" };
-  const resolved = resolveCompanyLogo({ company: "  ＡＣＭＥ\t Robotics " }, { logoDevKey: KEY, domainMap });
+  const resolved = resolveCompanyLogo({ company: "  ＡＣＭＥ\t Robotics ", applyUrl: "https://acmerobotics.ai/jobs/1" }, { logoDevKey: KEY, domainMap });
   const url = logoDev(resolved?.src);
   assert.equal(url.pathname, "/acmerobotics.ai");
   assert.equal(url.searchParams.get("size"), "128");
@@ -146,10 +166,10 @@ test("confident domain map wins over name lookup and shares canonical matching",
   assert.equal(url.searchParams.get("fallback"), "404");
 });
 
-test("mapped null means initials; absent companies alone can use name lookup", () => {
+test("mapped null and absent companies both need posting identity", () => {
   const options = { logoDevKey: KEY, domainMap: { "acme robotics": null } };
   assert.equal(resolveCompanyLogo({ company: "ACME Robotics" }, options), null);
-  assert.equal(logoDev(resolveCompanyLogo({ company: "Unseen Widgets" }, options)?.src).pathname, "/name/Unseen%20Widgets");
+  assert.equal(resolveCompanyLogo({ company: "Unseen Widgets" }, options), null);
 });
 
 test("override, catalog and trusted apply domain precede the domain map", () => {
@@ -220,4 +240,34 @@ test("UTF-8 company names match the shipped map instead of falling through to na
     const resolved = resolveCompanyLogo({ company }, { logoDevKey: KEY });
     if (resolved?.kind === "logo-dev") assert.ok(!logoDev(resolved.src).pathname.startsWith("/name/"), company);
   }
+});
+
+test("explicit unambiguous exceptions cannot override conflicting evidence", () => {
+  assert.equal(resolveCompanyLogo({ company: "Wix", rawJd: "Visit wix.app for this employer." }), null);
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Jeen.ai", applyUrl: "https://jeen.app/jobs/1" }, { logoDevKey: KEY })?.src).pathname, "/jeen.app");
+});
+
+test("a map cannot substitute another homonym domain for posting evidence", () => {
+  const domainMap = { doit: "doit.com" };
+  assert.equal(logoDev(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.app/jobs/1" }, { logoDevKey: KEY, domainMap })?.src).pathname, "/doit.app");
+});
+
+test("job-copy URLs, bare domains and email domains provide identity without generic technology names", () => {
+  for (const rawJd of ["Visit https://doit.com/about.", "Our site is doit.com.", "Recruiting: hiring@doit.com."]) {
+    assert.equal(resolveCompanyLogo({ company: "DoiT", rawJd })?.kind, "catalog", rawJd);
+  }
+  assert.equal(resolveCompanyLogo({ company: "Doit", rawJd: "We use Next.js and Node.js." }, { logoDevKey: KEY }), null);
+});
+
+test("prototype keys cannot select inherited logo entries", () => {
+  for (const company of ["constructor", "toString", "__proto__"]) {
+    assert.equal(resolveCompanyLogo({ company }, { logoDevKey: KEY }), null);
+  }
+});
+
+
+test("unambiguous name exceptions and catalog pins reject unrelated posting hosts", () => {
+  assert.equal(resolveCompanyLogo({ company: "Wix", applyUrl: "https://unrelated.example/jobs/1" }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Jeen.ai", applyUrl: "https://unrelated.example/jobs/1" }, { logoDevKey: KEY }), null);
+  assert.equal(resolveCompanyLogo({ company: "Doit", applyUrl: "https://doit.com/jobs/1", url: "https://unrelated.example/jobs/1" }, { logoDevKey: KEY }), null);
 });

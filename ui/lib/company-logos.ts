@@ -1,5 +1,6 @@
 import domainsJson from "./company-logo-domains.json";
 import catalogJson from "./company-logo-catalog.json";
+import identitiesJson from "./company-logo-identities.json";
 import { companyLogoOverrides, type CompanyLogoOverride } from "./company-logo-overrides";
 
 export type CompanyLogoDomainMap = Readonly<Record<string, string | null>>;
@@ -7,8 +8,10 @@ const domains: CompanyLogoDomainMap = domainsJson;
 const catalog = catalogJson as Record<string, string>;
 
 export type CompanyLogoSource = { kind: "catalog" | "override" | "logo-dev"; src: string };
-export type CompanyLogoInput = { company: string; applyUrl?: string | null; url?: string | null };
-export type CompanyLogoOptions = { logoDevKey?: string; domainMap?: CompanyLogoDomainMap; overrides?: Readonly<Record<string, CompanyLogoOverride>> };
+export type CompanyLogoInput = { company: string; applyUrl?: string | null; url?: string | null; rawJd?: string | null };
+export type CompanyLogoIdentity = { domains: readonly string[]; unambiguous?: boolean };
+const identities: Readonly<Record<string, CompanyLogoIdentity>> = identitiesJson;
+export type CompanyLogoOptions = { logoDevKey?: string; domainMap?: CompanyLogoDomainMap; overrides?: Readonly<Record<string, CompanyLogoOverride>>; identities?: Readonly<Record<string, CompanyLogoIdentity>> };
 
 // Rendered at up to 64 CSS px, so one 2x request serves every size and stays a single cache entry.
 const LOGO_DEV_SIZE = 128;
@@ -75,29 +78,50 @@ function logoDevUrl(path: string, key: string): string {
   return `https://img.logo.dev/${path}?${params}`;
 }
 
-/**
- * One resolution order for every logo in the app: override map, curated catalog, apply domain, confident map, then unseen names,
- * else null so the caller renders initials. Logo.dev only runs with a publishable (pk_) key.
- */
+/** Explicit domains in job copy corroborate identity only when they resemble the employer or an identity pin. */
+export function postingCompanyDomains(input: CompanyLogoInput, expected: readonly string[] = []): string[] {
+  const references = input.rawJd?.match(/(?:https?:\/\/)?(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"']*)?/gi) ?? [];
+  const urls = [input.applyUrl, input.url, ...references.map(raw => /^https?:\/\//i.test(raw) ? raw : `https://${raw}`)];
+  const found = new Set<string>();
+  for (const [index, url] of urls.entries()) {
+    if (!url) continue;
+    try {
+      const parsed = new URL(url);
+      if (!["https:", "http:"].includes(parsed.protocol)) continue;
+      const host = parsed.hostname.toLowerCase();
+      if (sharedJobHosts.some(shared => host === shared || host.endsWith(`.${shared}`))) continue;
+      const domain = registrableDomain(host);
+      if (domain && (index < 2 || expected.includes(domain) || companyDomain(input.company, [url]))) found.add(domain);
+    } catch { /* Invalid references provide no identity evidence. */ }
+  }
+  return [...found];
+}
+
+const own = <T,>(map: Readonly<Record<string, T>>, name: string): T | undefined => Object.hasOwn(map, name) ? map[name] : undefined;
+
+/** Identity-qualified overrides/catalog, then the posting's own domain; uncertainty renders initials. */
 export function resolveCompanyLogo(input: CompanyLogoInput, options: CompanyLogoOptions = {}): CompanyLogoSource | null {
   const name = canonicalCompanyName(input.company);
   const key = options.logoDevKey?.startsWith("pk_") ? options.logoDevKey : null;
-  const override = (options.overrides ?? companyLogoOverrides)[name];
-  if (override?.kind === "initials") return null;
-  if (override?.kind === "file") return { kind: "override", src: override.src };
-  // A domain pin says the catalog mark is wrong too, so without a key it falls to initials rather than the catalog.
-  if (override?.kind === "domain") return key ? { kind: "logo-dev", src: logoDevUrl(override.domain, key) } : null;
-  const curated = catalog[name];
-  if (curated) return { kind: "catalog", src: curated };
-  if (!key || !name) return null;
-  const domain = companyDomain(input.company, [input.applyUrl, input.url]);
-  if (domain) return { kind: "logo-dev", src: logoDevUrl(domain, key) };
-  const domainMap = options.domainMap ?? domains;
-  if (Object.hasOwn(domainMap, name)) {
-    const mapped = domainMap[name];
-    return mapped ? { kind: "logo-dev", src: logoDevUrl(mapped, key) } : null;
-  }
-  return { kind: "logo-dev", src: logoDevUrl(`name/${encodeURIComponent(input.company.trim())}`, key) };
+  const override = own(options.overrides ?? companyLogoOverrides, name);
+  if (override?.kind === "initials" || !name) return null;
+  const identity = own(options.identities ?? identities, name);
+  const mapped = own(options.domainMap ?? domains, name);
+  const expected = override?.kind === "domain" ? [override.domain] : identity?.domains ?? (mapped ? [mapped] : []);
+  const evidence = postingCompanyDomains(input, expected);
+  // Two competing employer domains cannot be resolved by URL order or by a name match.
+  if (evidence.length > 1) return null;
+  const domain = evidence[0];
+  const qualified = domain ? expected.includes(domain) : identity?.unambiguous === true && expected.every(candidate => identity.domains.includes(candidate));
+  if (override?.kind === "file") return qualified ? { kind: "override", src: override.src } : null;
+  if (override?.kind === "domain") return qualified && key ? { kind: "logo-dev", src: logoDevUrl(override.domain, key) } : null;
+  const curated = own(catalog, name);
+  if (curated && identity && qualified) return { kind: "catalog", src: curated };
+  if (!key) return null;
+  if (domain && (expected.includes(domain) || companyDomain(input.company, [`https://${domain}`]))) return { kind: "logo-dev", src: logoDevUrl(domain, key) };
+  // An explicit unambiguous ruling is required even for a previously audited domain map.
+  if (!domain && mapped && identity?.unambiguous && identity.domains.includes(mapped)) return { kind: "logo-dev", src: logoDevUrl(mapped, key) };
+  return null;
 }
 
 /** Next.js inlines NEXT_PUBLIC_* at build time; the pk_ key is publishable by design (docs.logo.dev). */

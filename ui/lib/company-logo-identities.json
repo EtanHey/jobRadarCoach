@@ -1,0 +1,10 @@
+{
+  "doit": { "domains": ["doit.com"] },
+  "jeen.ai": { "domains": ["jeen.ai"], "unambiguous": true },
+  "moveo group": { "domains": ["moveo.group"] },
+  "pagaya israel": { "domains": ["pagaya.com"] },
+  "real dev inc": { "domains": ["real.dev"] },
+  "shifters": { "domains": ["shiftersai.com"] },
+  "tomax think academy": { "domains": ["tomax.io"] },
+  "wix": { "domains": ["wix.com"], "unambiguous": true }
+}

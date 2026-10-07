@@ -30,6 +30,13 @@ test("unmapped companies render the initials tile without an image", () => {
   assert.doesNotMatch(html, /<img/);
 });
 
+test("the Doit app posting renders initials instead of the DoiT image", () => {
+  const html = render({ company: "Doit", applyUrl: "https://doit.app/careers/1" });
+  assert.match(html, /data-logo-state="unmapped"/);
+  assert.match(html, />D</);
+  assert.doesNotMatch(html, /<img|doit-1a4c4090b4/);
+});
+
 test("catalog logos render on the shared neutral frame and stay hidden until loaded", () => {
   const html = render({ company: "Wix" });
   assert.match(html, /data-logo-source="catalog"/);

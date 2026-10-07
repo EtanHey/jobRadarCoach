@@ -12,12 +12,13 @@ type CompanyLogoProps = {
   company: string;
   applyUrl?: string | null;
   url?: string | null;
+  rawJd?: string | null;
   size?: keyof typeof sizes;
   className?: string;
 };
 
-export function CompanyLogo({ company, applyUrl, url, size = "md", className }: CompanyLogoProps) {
-  const source = resolveCompanyLogo({ company, applyUrl, url }, { logoDevKey });
+export function CompanyLogo({ company, applyUrl, url, rawJd, size = "md", className }: CompanyLogoProps) {
+  const source = resolveCompanyLogo({ company, applyUrl, url, rawJd }, { logoDevKey });
   // Logo.dev bills misses too; one this device already saw renders initials without asking again.
   // Cards and the drawer only render client-side (after preferences load), so reading storage here cannot mismatch hydration.
   const misses = source?.kind === "logo-dev" ? browserLogoMissCache() : null;

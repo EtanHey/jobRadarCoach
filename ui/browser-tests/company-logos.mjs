@@ -15,23 +15,25 @@ const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const companies = [
   { company: "Wix", expect: { source: "catalog", state: "loaded" } },
   { company: "Acme Robotics", apply_url: "https://careers.acmerobotics.com/jobs/1", expect: { source: "logo-dev", state: "loaded" } },
-  { company: "Nowhere Widgets", apply_url: "https://job-boards.greenhouse.io/nowhere/jobs/1", expect: { source: "logo-dev", state: "load-failed", initials: "NW" } },
+  { company: "Nowhere Widgets", apply_url: "https://nowherewidgets.test/jobs/1", expect: { source: "logo-dev", state: "load-failed", initials: "NW" } },
   { company: "Confidential", expect: { state: "unmapped", initials: "C" } },
   { company: "Jeen.ai", expect: { source: "logo-dev", state: "loaded" } },
   { company: "TalentHop", expect: { state: "unmapped", initials: "T" } },
+  { company: "Doit", apply_url: "https://doit.app/jobs/1", expect: { source: "logo-dev", state: "load-failed", initials: "D" } },
+  { company: "DoiT", apply_url: "https://doit.com/jobs/1", expect: { source: "catalog", state: "loaded" } },
 ];
 const places = [["Rehovot, Israel", 34.8113, 31.8928], ["Berlin, Germany", 13.405, 52.52], ["Tel Aviv, Israel", 34.7818, 32.0853], ["London, United Kingdom", -0.1276, 51.5072], ["Paris, France", 2.3522, 48.8566], ["Rome, Italy", 12.4964, 41.9028]];
 const jobs = companies.map(({ company, apply_url = null }, n) => ({ id: id(n), title: `Fixture engineer ${n}`, company, source: "fixture",
   last_seen_at: "2026-10-04T00:00:00Z", experience: "3+ years", description_available: true, seniority_origin: "title",
-  extraction_state: "not-extracted", location: places[n][0], remote: false, seniority: "Junior", stack: ["React", "TypeScript"], salary: null,
-  url: "https://example.test/posting", apply_url, posted_at: null, first_seen_at: "2026-10-04T00:00:00Z", status: "new", status_reason: null,
-  score: 70 + n * 5, fit_line: null, recommendation: null }));
-const detail = job => ({ ...job, raw_jd: "Synthetic description for the logo fixture.", reasons: [], score_payload: null, brain: null, scored_at: null });
-const globe = { jobs, points: places.map(([, lng, lat], n) => ({ posting_id: id(n), lng, lat, precision: "city", source: "Synthetic fixture", resolved_at: "2026-10-04T00:00:00Z" })),
+  extraction_state: "not-extracted", location: places[n % places.length][0], remote: false, seniority: "Junior", stack: ["React", "TypeScript"], salary: null,
+  url: "https://www.linkedin.com/jobs/view/1", apply_url, posted_at: null, first_seen_at: "2026-10-04T00:00:00Z", status: "new", status_reason: null,
+  score: 70 + n * 3, fit_line: null, recommendation: null }));
+const detail = job => ({ ...job, raw_jd: `Synthetic description for the logo fixture.${job.company === "DoiT" ? " Our employer site is https://doit.app." : ""}`, reasons: [], score_payload: null, brain: null, scored_at: null });
+const globe = { jobs, points: jobs.map((_, n) => ({ posting_id: id(n), lng: places[n % places.length][1], lat: places[n % places.length][2], precision: "city", source: "Synthetic fixture", resolved_at: "2026-10-04T00:00:00Z" })),
   total_count: jobs.length, resolved_count: jobs.length, unresolved_count: 0, attribution: "© OpenStreetMap contributors" };
 const syntheticLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="64" cy="64" r="44" fill="#7c3aed"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">AR</text></svg>';
 
-const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+const browser = await chromium.launch({ headless: true, channel: "chromium-headless-shell", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const failures = [], passed = [], logoRequests = new Set(), logoRequestCounts = new Map();
 // Lookup paths whose requests fail at the network layer (route.abort), to prove a transport error is never cached as a miss.
 const abortedLogoPaths = new Set();
@@ -130,6 +132,24 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
         await page.keyboard.press("Escape");
         await drawer.waitFor({ state: "hidden" });
 
+        await page.getByRole("button", { name: "Open Fixture engineer 6 at Doit", exact: true }).click();
+        await drawer.getByText("Synthetic description for the logo fixture.").waitFor();
+        const [appLogo] = await logosIn(page, '[role="dialog"]');
+        assert.equal(appLogo.text, "D", `${name}: Doit app drawer uses initials`);
+        assert.equal(appLogo.image, null, `${name}: Doit app drawer never inherits the cloud logo`);
+        await shot(page, `${name}-doit-drawer`);
+        await page.keyboard.press("Escape");
+        await drawer.waitFor({ state: "hidden" });
+
+        await page.getByRole("button", { name: "Open Fixture engineer 7 at DoiT", exact: true }).click();
+        await drawer.getByText("Our employer site is https://doit.app.", { exact: false }).waitFor();
+        const [conflictLogo] = await logosIn(page, '[role="dialog"]');
+        assert.equal(conflictLogo.state, "unmapped", `${name}: loaded conflicting JD vetoes the catalog`);
+        assert.equal(conflictLogo.image, null, `${name}: conflicting drawer has no image`);
+        await shot(page, `${name}-conflict-drawer`);
+        await page.keyboard.press("Escape");
+        await drawer.waitFor({ state: "hidden" });
+
         await page.getByRole("button", { name: "Globe", exact: true }).click();
         await page.locator('[data-globe-section="visible"]').waitFor({ timeout: 30000 });
         await page.waitForFunction(count => document.querySelectorAll("#globe-rail [data-company-logo]").length === count, companies.length, { timeout: 30000 });
@@ -150,8 +170,8 @@ try {
   await open({ width: 1440, height: 900 }, "light", async page => {
     await settled(page, "main");
     // The miss is recorded after its 404 is confirmed, so wait for the entry before counting.
-    await page.waitForFunction(() => (localStorage.getItem("job-radar.logo-misses.v1") ?? "").includes("Nowhere%20Widgets"));
-    const before = logoRequestCounts.get("/name/Nowhere%20Widgets") ?? 0;
+    await page.waitForFunction(() => (localStorage.getItem("job-radar.logo-misses.v1") ?? "").includes("nowherewidgets.test"));
+    const before = logoRequestCounts.get("/nowherewidgets.test") ?? 0;
     assert.ok(before > 0, "the first visit asked Logo.dev once");
     await page.reload();
     await page.locator("[data-posting-id]").first().waitFor();
@@ -159,9 +179,9 @@ try {
     const nowhere = page.locator('[data-company-logo][aria-label="Nowhere Widgets logo unavailable"]');
     await nowhere.waitFor();
     assert.equal(await nowhere.getAttribute("data-logo-state"), "cached-miss", "the known miss renders initials at once");
-    assert.equal(logoRequestCounts.get("/name/Nowhere%20Widgets") ?? 0, before, "no second request for a known miss");
+    assert.equal(logoRequestCounts.get("/nowherewidgets.test") ?? 0, before, "no second request for a known miss");
     const stored = await page.evaluate(() => localStorage.getItem("job-radar.logo-misses.v1") ?? "");
-    assert.match(stored, /Nowhere%20Widgets/);
+    assert.match(stored, /nowherewidgets.test/);
     assert.doesNotMatch(stored, /pk_|token/, "the key never reaches storage");
     assert.equal(await page.locator('[data-company-logo][aria-label="Acme Robotics logo"]').getAttribute("data-logo-state"), "loaded", "hits are unaffected");
   });
@@ -190,8 +210,9 @@ try {
   assert.ok(logoRequests.has("/acmerobotics.com?404"), "trusted company domain went to Logo.dev with fallback=404");
   assert.ok(logoRequests.has("/jeen.ai?404"), "mapped company uses domain lookup");
   assert.ok(![...logoRequests].some(request => /name\/Jeen|TalentHop/i.test(request)), "mapped names and map-null companies never use name lookup");
-  assert.ok(logoRequests.has("/name/Nowhere%20Widgets?404"), "ATS-hosted posting fell back to a name lookup");
+  assert.ok(logoRequests.has("/nowherewidgets.test?404"), "company-site posting used its own domain");
   assert.ok(![...logoRequests].some(request => /greenhouse|confidential|wix/i.test(request)), "no ATS host, placeholder or catalog name reached Logo.dev");
+  assert.ok(![...logoRequests].some(request => request.startsWith("/name/")), "no company name alone reaches Logo.dev");
   passed.push("requests");
 } catch (error) { failures.push(`requests: ${error.message.split("\n")[0]}`); }
 finally { await browser.close(); }
