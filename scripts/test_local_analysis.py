@@ -190,7 +190,7 @@ def database_url():
     from test_support.postgres import DatabaseUnavailable, migrated_database
 
     try:
-        with migrated_database(MIGRATIONS, through=12) as url:
+        with migrated_database(MIGRATIONS, through=28) as url:
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))

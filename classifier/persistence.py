@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 
 from classifier import core, projection
+from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
 
 SCORER_VERSION = "1.1"
 PersistOutcome = Literal["stored", "unchanged", "stale", "failed"]
@@ -120,6 +121,14 @@ def _labels(annotation: Mapping[str, object]) -> dict[str, object]:
     }
 
 
+def _ack_score_request(connection: Connection, posting_id: object) -> None:
+    connection.execute(
+        "update public.postings set relevance_gate=relevance_gate-'score_requested' "
+        "where id=%s and relevance_gate->>'score_requested'='true'",
+        (posting_id,),
+    )
+
+
 def _store(
     connection: Connection, captured: _Inputs, result: core.ScoringResult
 ) -> PersistOutcome:
@@ -139,6 +148,7 @@ def _store(
             "where posting_id = %s", (captured.posting["id"],),
         ).fetchone()
         if current == desired:
+            _ack_score_request(connection, captured.posting["id"])
             return "unchanged"
         stored = connection.execute(
             "insert into public.posting_scores (posting_id, score, reasons, labels, brain, "
@@ -158,6 +168,7 @@ def _store(
         ).fetchone()
         if stored is None:
             raise RuntimeError("score persistence returned no posting identity")
+        _ack_score_request(connection, captured.posting["id"])
         return "stored"
 
 
@@ -190,6 +201,7 @@ def list_scoring_candidates(
     requested = list(dict.fromkeys(posting_ids))
     if claimable_stage not in (None, "score"):
         raise ValueError("claimable stage must be score")
+    refresh_gate(connection, posting_ids=requested)
     lease_filter = (
         "and not exists (select 1 from public.local_analysis_leases l "
         "where l.stage = %s and l.posting_id = p.id and "
@@ -204,12 +216,13 @@ def list_scoring_candidates(
         "and p.raw_jd is not null and char_length(regexp_replace(p.raw_jd, "
         "'(^[[:space:]]+|[[:space:]]+$)', '', 'g')) >= %s "
         "and (s.posting_id is null "
-        "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s)) "
+        "or (st.status in ('new','seen') and s.profile_sha256 is distinct from %s) "
+        "or p.relevance_gate->>'score_requested'='true') "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
-        + lease_filter
+        + SELECTION_GUARD + lease_filter
         + "order by (s.posting_id is null) desc, "
         "coalesce(p.posted_at, p.first_seen_at) desc, p.id limit %s",
-        (projection.MIN_JD_CHARS, profile_sha256, requested or None, requested or None)
+        (projection.MIN_JD_CHARS, profile_sha256, requested or None, requested or None, VERSION)
         + ((claimable_stage,) if claimable_stage else ()) + (limit,),
     ).fetchall()
     return [str(row[0]) for row in rows]

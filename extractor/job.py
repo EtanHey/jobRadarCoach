@@ -19,6 +19,7 @@ from extractor.core import (
 from extractor.evidence import ExtractionValidationError
 from extractor.persistence import persist_extraction
 from scraper.brain import provider_diagnostic_scope, run_brain
+from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
 from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import (
     BrainValidationError,
@@ -87,6 +88,7 @@ def select_postings(
     if claimable_stage not in (None, "extract"):
         raise ValueError("claimable stage must be extract")
     requested = list(dict.fromkeys(posting_ids)) or None
+    refresh_gate(connection, posting_ids=requested or ())
     lease_filter = (
         "and not exists (select 1 from public.local_analysis_leases l "
         "where l.stage = %s and l.posting_id = p.id and "
@@ -103,8 +105,8 @@ def select_postings(
         "and not exists (select 1 from public.posting_extractions e "
         "where e.posting_id = p.id) "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
-        + lease_filter + "order by p.first_seen_at, p.id limit %s",
-        (MIN_RAW_JD_CHARS, MAX_RAW_JD_BYTES, requested, requested)
+        + SELECTION_GUARD + lease_filter + "order by p.first_seen_at, p.id limit %s",
+        (MIN_RAW_JD_CHARS, MAX_RAW_JD_BYTES, requested, requested, VERSION)
         + ((claimable_stage,) if claimable_stage else ()) + (limit,),
     ).fetchall()
     selected = []
