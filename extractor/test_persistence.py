@@ -177,6 +177,40 @@ def protected_state(connection, posting_id: str) -> tuple[object, ...]:
     ).fetchone()
 
 
+@pytest.mark.parametrize("jd", [
+    "This job is based in Cedar Bay, with no option to work from our Harbor City headquarters.",
+    "This job is based in Cedar Bay; another position is based at our headquarters in Harbor City.",
+])
+def test_unoffered_location_cannot_replace_structured_location(connection, jd) -> None:
+    from extractor.evidence import ExtractionValidationError
+    from scraper.brain import BrainResult
+
+    raw_jd = jd + " Build reliable backend services with the engineering team."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update public.postings set location=%s where id=%s", ("Cedar Bay", posting_id),
+    )
+    before = durable_state(connection, posting_id)
+    candidate = {
+        field: {"value": None, "evidence_quote": None}
+        for field in ("location", "remote", "seniority", "salary")
+    }
+    candidate["stack"] = []
+    candidate["location"] = {"value": "Harbor City", "evidence_quote": "Harbor City"}
+
+    def runner(request, *_args, **_kwargs):
+        return BrainResult(candidate, "codex", "fixture-model", request=request)
+
+    try:
+        result = core.extract_posting(
+            {"raw_jd": raw_jd, "location": "Cedar Bay"}, {}, runner=runner,
+        )
+        persistence.persist_extraction(connection, posting_id, raw_jd, result)
+    except ExtractionValidationError as error:
+        assert (error.category, error.field) == ("location_context", "location")
+    assert durable_state(connection, posting_id) == before
+
+
 def test_success_updates_fields_and_preserves_identity_history_and_status(connection) -> None:
     posting_id = insert_posting(connection)
     protected = protected_state(connection, posting_id)

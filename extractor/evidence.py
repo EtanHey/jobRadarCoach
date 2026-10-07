@@ -181,7 +181,9 @@ _NON_ROLE_LOCATION_RE = re.compile(
 )
 
 _ROLE_LOCATION_PREFIX = (
-    r"\b(?:role|position|job)\s*,?\s+(?:(?:is|will\s+be)\s+)?"
+    r"\b(?:role|position|job)\s*,?\s+"
+    r"(?:(?:is|will\s+be|was|were|used\s+to\s+be)\s+)?"
+    r"(?:(?:not|never|no\s+longer)\s+)?"
     r"(?:based|located)\s+(?:in|at)\s+|"
     r"\b(?:this|the)\s+(?:role|position|job)\s+(?:is\s+)?"
     r"remote(?:ly)?\s+(?:within|in|from)\s+(?:the\s+)?|"
@@ -193,17 +195,67 @@ _OFFICE_LOCATION_PREFIX = (
     r"(?:(?:our|the|regional|global|corporate|company|main)\s+)*"
     r"(?:(?:office|headquarters|hq)\s+in\s+)?"
 )
+_LOCATION_NEGATION_RE = re.compile(
+    r"\b(?:no|never|without|cannot|can't|not(?!\s+only\b)|"
+    r"isn't|aren't|wasn't|weren't|won't|wouldn't|couldn't|"
+    r"unavailable|prohibited|forbidden|disallowed)\b",
+    re.IGNORECASE,
+)
+_OTHER_LOCATION_OWNER_RE = re.compile(
+    r"\b(?:another|other|different|previous|former|historical|past)\s+"
+    r"(?:[\w-]+\s+){0,3}(?:role|position|job|vacancy)\b|"
+    r"\b(?:previously|formerly|was|were|used\s+to)\b|"
+    r"\bonly\b[^,.!?;\n]{0,48}\b(?:corporate|staff|employees?)\b|"
+    r"\b(?:corporate\s+staff|staff|employees?)\s+only\b|"
+    r"\b(?:restricted|limited|reserved|exclusive)\s+(?:to|for)\b",
+    re.IGNORECASE,
+)
+_LOCATION_CLAUSE_BEFORE_RE = re.compile(
+    r"[.!?;\n]|\b(?:and|but|while|whereas|however)\b",
+    re.IGNORECASE,
+)
+_LOCATION_OWNER_BEFORE_RE = re.compile(
+    r"[.!?;\n]|\b(?:and|but|while|whereas|however)\s+"
+    r"(?=(?:this|our)\s+(?:role|position|job)\b)",
+    re.IGNORECASE,
+)
+_LOCATION_CLAUSE_AFTER_RE = re.compile(
+    r"[.!?;\n]|\b(?:and|but|while|whereas|however)\s+"
+    r"(?=(?:another|(?:a|the)\s+(?:different|other|previous|former)\s+"
+    r"(?:role|position|job)|parking|office\s+parking)\b)",
+    re.IGNORECASE,
+)
 
 
-def _supports_role_location(context: str, value: str) -> bool:
+def _role_location_support(context: str, value: str) -> bool | None:
+    """Return false for explicit unoffered/other-role wording, none if unstated."""
     # Markdown changes presentation, not the meaning of an already exact quote.
     context = re.sub(r"[*_`]", "", context)
-    return re.search(
+    matches = re.finditer(
         rf"(?:{_ROLE_LOCATION_PREFIX}){_OFFICE_LOCATION_PREFIX}"
         rf"(?<!\w){re.escape(value)}(?!\w)",
         context,
         re.IGNORECASE,
-    ) is not None
+    )
+    support = None
+    for match in matches:
+        # Keep qualifiers on both sides of the matched workplace. A city-only
+        # quote cannot erase denial, history, or restrictions in its source.
+        before = list(_LOCATION_CLAUSE_BEFORE_RE.finditer(context, 0, match.start()))
+        owner_before = [boundary for boundary in _LOCATION_OWNER_BEFORE_RE.finditer(context)
+                        if boundary.end() <= match.start()]
+        after = _LOCATION_CLAUSE_AFTER_RE.search(context, match.end())
+        end = after.start() if after else len(context)
+        clause = context[before[-1].end() if before else 0:end]
+        # Conjunctions do not change the owner of an office option or onsite
+        # requirement. Reset ownership only when a current role is introduced.
+        owner_clause = context[owner_before[-1].end() if owner_before else 0:end]
+        if (_LOCATION_NEGATION_RE.search(clause)
+                or _OTHER_LOCATION_OWNER_RE.search(owner_clause)):
+            support = False
+        else:
+            return True
+    return support
 
 
 def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
@@ -214,18 +266,19 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
     value = fact["value"]
     assert isinstance(value, str)
     offset = 0
-    company_geography = False
+    unsupported_location = False
     while (start := raw_jd.find(quote, offset)) >= 0:
         before = max(raw_jd.rfind(boundary, 0, start) for boundary in ".!?;\n")
         after = [position for boundary in ".!?;\n"
                  if (position := raw_jd.find(boundary, start + len(quote))) >= 0]
         context = raw_jd[before + 1:min(after, default=len(raw_jd))]
-        if _supports_role_location(context, value):
+        support = _role_location_support(context, value)
+        if support is True:
             return
-        if _NON_ROLE_LOCATION_RE.search(context):
-            company_geography = True
+        if support is False or _NON_ROLE_LOCATION_RE.search(context):
+            unsupported_location = True
         offset = start + len(quote)
-    if company_geography:
+    if unsupported_location:
         raise ExtractionValidationError(
             "company geography does not establish job location",
             category="location_context",
