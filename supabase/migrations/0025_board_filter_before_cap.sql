@@ -1,4 +1,6 @@
 begin;
+-- Abort a contended hosted apply instead of waiting indefinitely for table locks.
+set local lock_timeout = '5s';
 alter table public.posting_scores add column recommendation text
   generated always as (score_payload->>'recommendation') stored;
 alter table public.postings add column sort_posted_at timestamptz
@@ -24,7 +26,9 @@ returns integer language sql immutable security invoker set search_path = '' as 
     when (value collate "C") ~* 'mid|intermediate' then 2
     else 6 end from level
 $$;
-create collation public.board_title (provider = icu, locale = 'en-US');
+-- localeCompare treats canonically equivalent Unicode titles as equal. Keep
+-- ICU ties for first_seen_at/id rather than adding a bytewise title tie-break.
+create collation public.board_title (provider = icu, locale = 'en-US', deterministic = false);
 -- Date.parse compares milliseconds; preserve that tie semantics before the cap.
 create index postings_sort_posted_idx on public.postings
   (date_trunc('milliseconds',sort_posted_at,'UTC') desc, first_seen_at desc, id);
