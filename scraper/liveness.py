@@ -15,6 +15,7 @@ from urllib.request import Request, urlopen
 from scraper.sources import workday
 from scraper.sources import smartrecruiters
 from scraper.sources import ashby
+from scraper.linkedin_liveness import closed_phrase
 
 
 BROWSER_USER_AGENT = (
@@ -36,9 +37,6 @@ AUTH_PATH = re.compile(r"/(?:authwall|uas/login|login|checkpoint)(?:/|$)", re.I)
 # the visible-text pass. Only the text test sees the stripped body; storage is untouched.
 NON_VISIBLE_MARKUP = re.compile(
     r"<(script|style)\b[^>]*>.*?</\1\s*>", re.I | re.S
-)
-LINKEDIN_CLOSED = re.compile(
-    r"\b(?:no longer accepting applications|not currently accepting applications)\b", re.I
 )
 LINKEDIN_LOGIN = re.compile(
     r"<(?:title|h1)\b[^>]*>\s*(?:LinkedIn\s*[:|\-]\s*)?"
@@ -235,7 +233,8 @@ def _check_url_once(
         with opener(get, timeout=timeout) as response:
             status = int(response.getcode())
             final_url = str(response.geturl())
-            body = response.read(512_000).decode("utf-8", errors="replace")
+            raw_body = response.read(512_000)
+            body = raw_body.decode("utf-8", errors="replace")
         if _linkedin_host(url):
             # LinkedIn errors/redirects can be access restrictions, not closure.
             reason = f"http-{status}-uncertain"
@@ -244,11 +243,11 @@ def _check_url_once(
                 reason = "redirect-to-auth"
             elif (status == 200 and _linkedin_job_id(url)
                   and _linkedin_job_id(url) == _linkedin_job_id(final_url)):
-                phrase = LINKEDIN_CLOSED.search(_visible_text(body))
+                phrase = closed_phrase(raw_body, _linkedin_job_id(url))
             result = _result(False if phrase else None, status=status,
                              reason="closed-page-text" if phrase else reason, final_url=final_url)
             if phrase:
-                result["liveness_phrase"] = phrase.group(0).casefold()
+                result["liveness_phrase"] = phrase
             return result
         if status in DEAD_STATUS_CODES:
             return _result(False, status=status, reason=f"http-{status}", final_url=final_url)
