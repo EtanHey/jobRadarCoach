@@ -37,6 +37,16 @@ export const ScorePayloadSchema = z.object({
   luna_status: z.literal("ok"),
 }).strict();
 
+export const LinkedInClosedSignalSchema = z.object({
+  phrase: z.enum(["no longer accepting applications", "not currently accepting applications"]),
+  checked_at: z.iso.datetime({ offset: true }),
+  url: publicUrl.refine(value => {
+    const url = new URL(value);
+    return url.protocol === "https:" && (url.hostname === "linkedin.com" || url.hostname.endsWith(".linkedin.com"))
+      && !url.username && !url.password && (!url.port || url.port === "443");
+  }),
+}).strict();
+
 export const JobSummarySchema = z.object({
   id: JobIdSchema,
   title: text,
@@ -64,6 +74,7 @@ export const JobSummarySchema = z.object({
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
   alive: z.boolean().nullable().default(null),
+  linkedin_closed_signal: LinkedInClosedSignalSchema.nullable().optional(),
 }).strict();
 
 export const JobDetailSchema = JobSummarySchema.extend({

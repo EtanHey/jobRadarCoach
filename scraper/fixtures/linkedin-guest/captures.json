@@ -1,0 +1,38 @@
+[
+  {
+    "job_id": "4469662667",
+    "endpoint": "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4469662667",
+    "captured_date": "2026-10-07",
+    "status": 200,
+    "raw_bytes": 60600,
+    "raw_sha256": "ede229e65ae045d9cb3eb301d6d7a4989df34ad88b29463f431fe07f380b8986",
+    "closed": true
+  },
+  {
+    "job_id": "4462954347",
+    "endpoint": "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4462954347",
+    "captured_date": "2026-10-07",
+    "status": 200,
+    "raw_bytes": 16392,
+    "raw_sha256": "cd5d0357d8cdf7fced820c46e68bc90377bdfae4d41d556f42f2231bcd0f4d2b",
+    "closed": false
+  },
+  {
+    "job_id": "4476383841",
+    "endpoint": "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4476383841",
+    "captured_date": "2026-10-07",
+    "status": 200,
+    "raw_bytes": 18861,
+    "raw_sha256": "c6d9bf7faba849ea6a738a45e3b4fa78d58b6d5f8d2c1dc020ce274196ed8eff",
+    "closed": true
+  },
+  {
+    "job_id": "4461128829",
+    "endpoint": "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/4461128829",
+    "captured_date": "2026-10-07",
+    "status": 200,
+    "raw_bytes": 19065,
+    "raw_sha256": "e3de0e8068ad33760445ba2e64893b7dce7897ac77912a1c384384d3734f7627",
+    "closed": false
+  }
+]

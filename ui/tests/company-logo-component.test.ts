@@ -30,6 +30,13 @@ test("unmapped companies render the initials tile without an image", () => {
   assert.doesNotMatch(html, /<img/);
 });
 
+test("the Doit app posting renders initials instead of the DoiT image", () => {
+  const html = render({ company: "Doit", applyUrl: "https://doit.app/careers/1" });
+  assert.match(html, /data-logo-state="unmapped"/);
+  assert.match(html, />D</);
+  assert.doesNotMatch(html, /<img|doit-1a4c4090b4/);
+});
+
 test("catalog logos render on the shared neutral frame and stay hidden until loaded", () => {
   const html = render({ company: "Wix" });
   assert.match(html, /data-logo-source="catalog"/);
@@ -60,7 +67,7 @@ test("card, drawer and globe rail all use the one shared CompanyLogo", () => {
   const drawer = source("components/job-drawer.tsx");
   assert.match(drawer, /import \{ CompanyLogo \} from "\.\/company-logo"/);
   assert.doesNotMatch(drawer, /<img|DrawerCompanyLogo|logoPathForCompany/);
-  assert.match(source("components/job-card.tsx"), /<CompanyLogo company=\{job\.company\} applyUrl=\{job\.apply_url\} url=\{job\.url\} size=\{logoSize\}/);
+  assert.match(source("components/job-card.tsx"), /<CompanyLogo company=\{job\.company\} applyUrl=\{job\.apply_url\} url=\{job\.url\} postingId=\{job\.id\} size=\{logoSize\}/);
   assert.match(source("components/job-cards.tsx"), /logoSize=\{sections \? "sm" : "md"\}/);
   assert.doesNotMatch(source("components/company-logo.tsx"), /from ["']next/);
 });

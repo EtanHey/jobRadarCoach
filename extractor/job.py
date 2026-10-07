@@ -18,7 +18,7 @@ from extractor.core import (
 )
 from extractor.evidence import ExtractionValidationError
 from extractor.persistence import persist_extraction
-from scraper.brain import run_brain
+from scraper.brain import provider_diagnostic_scope, run_brain
 from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
 from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import (
@@ -161,7 +161,8 @@ def run_batch(
         posting_id = str(posting["id"])
         raw_jd = str(posting["raw_jd"])
         try:
-            result = extractor(posting, profile, timeout_seconds=timeout_seconds)
+            with provider_diagnostic_scope(lambda event: _log(event="provider_request", **event)):
+                result = extractor(posting, profile, timeout_seconds=timeout_seconds)
             outcome = persister(connection, posting_id, raw_jd, result)
             if outcome == "stale":
                 failed += 1
