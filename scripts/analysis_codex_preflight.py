@@ -5,8 +5,58 @@ import os
 from pathlib import Path
 import plistlib
 import re
+import selectors
+import signal
 import subprocess
 import sys
+import time
+
+
+MAX_VERSION_BYTES = 1024
+VERSION_TIMEOUT = 10
+
+
+def _stop_group(process):
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    finally:
+        process.wait()
+
+
+def _probe_version(binary):
+    command = [str(binary), '--version']
+    deadline = time.monotonic() + VERSION_TIMEOUT
+    output = bytearray()
+    with subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL, start_new_session=True) as process:
+        cleanup_started = False
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(process.stdout, selectors.EVENT_READ)
+                while selector.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise subprocess.TimeoutExpired(command, VERSION_TIMEOUT)
+                    for _key, _events in selector.select(min(remaining, 0.05)):
+                        # One excess byte detects overflow without retaining it.
+                        chunk = os.read(process.stdout.fileno(), MAX_VERSION_BYTES + 1 - len(output))
+                        if len(output) + len(chunk) > MAX_VERSION_BYTES:
+                            raise RuntimeError('pinned Codex exceeded bounded version output; installation refused')
+                        if not chunk:
+                            selector.unregister(process.stdout)
+                        else:
+                            output.extend(chunk)
+                    if not cleanup_started and process.poll() is not None:
+                        # A successful parent may leave descendants holding stdout open.
+                        cleanup_started = True
+                        _stop_group(process)
+            process.wait(timeout=max(0, deadline - time.monotonic()))
+            return subprocess.CompletedProcess(command, process.returncode, stdout=bytes(output))
+        finally:
+            if not cleanup_started:
+                _stop_group(process)
 
 
 def check_pin(binary, expected, standalone):
@@ -20,7 +70,7 @@ def check_pin(binary, expected, standalone):
     if not binary.is_file() or not os.access(binary, os.X_OK):
         raise RuntimeError('pinned Codex binary is missing or not executable; installation refused')
     try:
-        result = subprocess.run([str(binary), '--version'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
+        result = _probe_version(binary)
     except (OSError, subprocess.TimeoutExpired):
         raise RuntimeError('pinned Codex version probe failed; installation refused') from None
     if result.returncode or result.stdout.strip() != expected.encode():

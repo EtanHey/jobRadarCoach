@@ -1,8 +1,97 @@
 from pathlib import Path
+import os
+import subprocess
+import sys
+import time
 
 import pytest
 
 from scripts.analysis_codex_preflight import check_pin
+from scripts import analysis_codex_preflight as preflight
+
+
+def synthetic_binary(tmp_path, body):
+    path = tmp_path / 'synthetic-codex'
+    path.write_text(f'#!{sys.executable}\n' + body)
+    path.chmod(0o755)
+    return path
+
+
+def running(pid):
+    status = subprocess.run(['ps', '-p', str(pid), '-o', 'stat='], capture_output=True, text=True).stdout.strip()
+    return bool(status) and not status.startswith('Z')
+
+
+def test_version_stdout_is_bounded_while_reading(tmp_path, monkeypatch):
+    pinned = synthetic_binary(tmp_path, 'import os,time\nos.write(1,b"x"*1048576)\ntime.sleep(60)\n')
+    read_sizes = []
+    stdout_fd = None
+    original = os.read
+    original_popen = subprocess.Popen
+
+    def popen(*args, **kwargs):
+        nonlocal stdout_fd
+        process = original_popen(*args, **kwargs)
+        stdout_fd = process.stdout.fileno()
+        return process
+
+    def read(fd, size):
+        if fd == stdout_fd:
+            read_sizes.append(size)
+        return original(fd, size)
+
+    monkeypatch.setattr(preflight.os, 'read', read)
+    monkeypatch.setattr(preflight.subprocess, 'Popen', popen)
+    started = time.monotonic()
+    with pytest.raises(RuntimeError, match='bounded version output'):
+        check_pin(pinned, 'codex-cli 0.153.4', tmp_path)
+    assert time.monotonic() - started < 2
+    assert read_sizes and max(read_sizes) <= 1025
+
+
+@pytest.mark.parametrize('mode', ['success', 'success_inherited_stdout', 'nonzero', 'overflow', 'timeout'])
+def test_version_probe_kills_descendants_and_reaps_parent(tmp_path, monkeypatch, mode):
+    pidfile = tmp_path / 'child.pid'
+    actions = {
+        'success': 'print("codex-cli 0.153.4",flush=True)',
+        'success_inherited_stdout': 'print("codex-cli 0.153.4",flush=True)',
+        'nonzero': 'sys.exit(2)',
+        'overflow': 'os.write(1,b"x"*1048576)',
+        'timeout': 'time.sleep(60)',
+    }
+    child_stdout = 'None' if mode == 'success_inherited_stdout' else 'subprocess.DEVNULL'
+    pinned = synthetic_binary(tmp_path, 'import os,subprocess,sys,time\nfrom pathlib import Path\n'
+        'child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(60)"],'
+        f'stdout={child_stdout},stderr=subprocess.DEVNULL)\n'
+        f'Path({str(pidfile)!r}).write_text(str(child.pid))\n' + actions[mode] + '\n')
+    parents = []
+    original = subprocess.Popen
+
+    def popen(*args, **kwargs):
+        process = original(*args, **kwargs)
+        parents.append(process)
+        return process
+
+    monkeypatch.setattr(preflight.subprocess, 'Popen', popen)
+    # Allow interpreter startup under the shared queue's system load.
+    monkeypatch.setattr(preflight, 'VERSION_TIMEOUT', 2, raising=False)
+    try:
+        if mode.startswith('success'):
+            check_pin(pinned, 'codex-cli 0.153.4', tmp_path)
+        else:
+            with pytest.raises(RuntimeError):
+                check_pin(pinned, 'codex-cli 0.153.4', tmp_path)
+        child = int(pidfile.read_text())
+        deadline = time.monotonic() + 2
+        while running(child) and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert not running(child), f'{mode} left a version-probe descendant running'
+        assert parents[0].returncode is not None
+        with pytest.raises(ChildProcessError):
+            os.waitpid(parents[0].pid, os.WNOHANG)
+    finally:
+        if pidfile.exists() and running(int(pidfile.read_text())):
+            os.kill(int(pidfile.read_text()), 9)
 
 
 def binary(path, version):
@@ -49,7 +138,9 @@ def test_wrapper_refuses_missing_pin_before_backend(tmp_path):
     plist = tmp_path / 'Library/LaunchAgents/com.jobradarcoach.local-analysis.plist'
     plist.parent.mkdir(parents=True)
     plist.write_bytes(plistlib.dumps({'EnvironmentVariables': {'CODEX': str(pinned)}}))
-    cmd = ['bash', str(tmp_path / 'scripts/install-local-analysis.sh'), 'master', '--repo', str(Path.cwd())]
+    # Hosted PR checkouts need not fetch origin/master. Use the concrete tested source.
+    sha = subprocess.run(['git', 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
+    cmd = ['bash', str(tmp_path / 'scripts/install-local-analysis.sh'), sha, '--repo', str(Path.cwd())]
     env = dict(os.environ, HOME=str(tmp_path))
     failed = subprocess.run(cmd, env=env, capture_output=True, text=True)
     assert failed.returncode and not marker.exists() and 'CODEX_PIN BLOCKED' in failed.stderr

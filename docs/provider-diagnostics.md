@@ -25,3 +25,6 @@ installation. An unavailable inventory warns that freshness is unknown. Nothing
 is auto-upgraded. Copy the preflight to `docs.local/tools/analysis-codex-preflight.py`
 and add `python3 "$(dirname "$0")/analysis-codex-preflight.py" "$@"` before the local
 wrapper's existing installer exec. Keep these operator-local files out of Git.
+The version probe retains at most 1 KiB of stdout, rejects overflow immediately,
+and owns a process group that it kills and reaps on every exit, including success.
+Its 10-second deadline also covers descendants that keep stdout open.
