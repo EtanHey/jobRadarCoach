@@ -42,6 +42,8 @@ try {
         const jobs = url.searchParams.has("since") ? [] : ids
           ? ids.includes(job.id) ? [{ ...job }] : []
           : url.searchParams.get("filter") === "new-for-me" && job.status !== "new" ? [] : [{ ...job }];
+        // Exercise the slim list contract; detail below still has drawer metadata.
+        for (const row of jobs) for (const field of ["salary", "description_available", "seniority_origin", "extraction_state"]) delete row[field];
         return route.fulfill({ json: { jobs } });
       }
       if (url.pathname === `/api/jobs/${job.id}/status`) {
@@ -58,8 +60,11 @@ try {
     assert.equal(reads[0].sort, "found");
     assert.equal(reads[0].fit, "good");
     assert.equal(reads[0].found_within, "7d");
+    await page.screenshot({ path: `${output}/slim-card-${leave ? "after-all" : "same-cohort"}.png` });
     await page.getByRole("button", { name: "Open Reset engineer at Example", exact: true }).click();
     await expect.poll(() => job.status).toBe("seen");
+    await expect(page.getByRole("dialog").getByText("Synthetic description", { exact: true })).toBeVisible();
+    await page.screenshot({ path: `${output}/full-detail-${leave ? "after-all" : "same-cohort"}.png` });
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
     await expect(page.locator("article[data-posting-id]")).toHaveCount(1);
