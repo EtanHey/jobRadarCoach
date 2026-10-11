@@ -97,6 +97,12 @@ export type FoundWithin = z.infer<typeof FoundWithinSchema>;
 
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 const filterStatus = JobStatusSchema.exclude(["skipped"]);
+export const JobSourcesQuerySchema = z.object({
+  filter: z.enum(["all", "new-for-me", "not-scored", ...filterStatus.options]).default("all"),
+  availability: AvailabilitySchema.default("active"),
+}).strict();
+export const JobSourcesResponseSchema = z.object({ sources: z.array(text) });
+
 export const JobListQuerySchema = z.object({
   filter: z.enum(["all", "new-for-me", "not-scored", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),

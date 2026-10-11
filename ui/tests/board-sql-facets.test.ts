@@ -24,3 +24,24 @@ test("SQL facets travel through request, schema and RPC", async () => {
     assert.equal((await handler(new Request(`https://example.test/api/jobs?filter=all&${query}`))).status, 400, query);
   }
 });
+
+test("source vocabulary request is independent of narrowing facets", async () => {
+  const calls: { path: string; input: unknown }[] = [];
+  const db = createClient("https://database.example.test", "synthetic", { global: { fetch: async (url, init) => {
+    calls.push({ path: new URL(String(url)).pathname, input: JSON.parse(String(init?.body)) });
+    return Response.json(["fixture-a", "fixture-b"]);
+  } } });
+  const { makeGetSources } = await import("../app/api/jobs/sources/route");
+  const { selectSources } = await import("../lib/server");
+  const handler = makeGetSources({ listSources: input => selectSources(db, input) });
+  const reply = await handler(new Request("https://example.test/api/jobs/sources?filter=seen&availability=inactive"));
+  assert.equal(reply.status, 200);
+  assert.deepEqual(await reply.json(), { sources: ["fixture-a", "fixture-b"] });
+  assert.deepEqual(calls, [{ path: "/rest/v1/rpc/board_sources", input: { filter: "seen", availability: "inactive" } }]);
+  for (const query of ["source=fixture-a", "work_mode=remote", "location=israel", "seniority=Senior", "fit=good", "statuses=applied", "sort=fit", "found_within=24h", "limit=1000", "filter=invalid", "availability=invalid"]) {
+    assert.equal((await handler(new Request(`https://example.test/api/jobs/sources?${query}`))).status, 400, query);
+  }
+  assert.equal(calls.length, 1);
+  const unavailable = makeGetSources({ listSources: async () => { throw new Error("private database details"); } });
+  assert.equal((await unavailable(new Request("https://example.test/api/jobs/sources"))).status, 500);
+});

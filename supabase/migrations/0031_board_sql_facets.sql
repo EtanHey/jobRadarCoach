@@ -79,5 +79,25 @@ $$;
 revoke all on function public.board_postings(text,text,text,text[],text,integer,text,text,text,text,text,boolean) from public,anon,authenticated;
 grant execute on function public.board_postings(text,text,text,text[],text,integer,text,text,text,text,text,boolean) to service_role;
 
+-- Scalar array avoids the PostgREST row cap; vocabulary ignores every narrowing facet.
+create function public.board_sources(filter text default 'all', availability text default 'active') returns text[]
+language plpgsql stable security invoker set search_path = '' as $$
+begin
+  if $1 is null or $1 not in ('all','new-for-me','not-scored','new','seen','worth_checking','applied','screen','interview_technical','interview_final','offer','contract','rejected','archived','not_relevant')
+    or $2 is null or $2 not in ('all','active','inactive') then
+    raise exception using errcode='22023', message='Invalid source filters';
+  end if;
+  return array(select distinct p.source from public.postings p
+    left join public.posting_status s on s.posting_id=p.id
+    where p.relevance_filtered=($1='not-scored')
+      and ($1 in ('all','not-scored') or coalesce(s.status,'new')=case when $1='new-for-me' then 'new' else $1 end)
+      and ($2='all' or ($2='active' and p.liveness->'alive' is distinct from 'false'::jsonb)
+        or ($2='inactive' and p.liveness->'alive'='false'::jsonb))
+    order by p.source);
+end
+$$;
+revoke all on function public.board_sources(text,text) from public,anon,authenticated;
+grant execute on function public.board_sources(text,text) to service_role;
+
 notify pgrst, 'reload schema';
 commit;

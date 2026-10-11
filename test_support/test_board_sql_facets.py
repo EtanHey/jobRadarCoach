@@ -59,3 +59,24 @@ def test_board_facets_rollback_restores_existing_rpc():
             assert db.execute("select has_function_privilege(%s,'public.board_postings(text,text,text,text[],text,integer,text)','execute')", (role,)).fetchone() == (role == "service_role",)
         db.execute("set local role service_role")
         assert db.execute("select count(*) from board_postings()").fetchone() == (0,)
+
+
+def test_source_vocabulary_is_uncapped_and_scoped_to_tab_and_availability():
+    with migrated_database(ROOT / "supabase/migrations", through=31) as url, psycopg.connect(url) as db:
+        db.execute("insert into postings(source,external_id,url,title,company,first_seen_at) select 'noise',i::text,'https://example.test','Engineer','Synthetic noise',now() from generate_series(1,1005) i")
+        db.execute("insert into postings(source,external_id,url,title,company,first_seen_at,relevance_gate,liveness) values ('older','old','https://example.test','Engineer','Synthetic old','2020-01-01','{}','{}'),('inactive','inactive','https://example.test','Engineer','Synthetic inactive',now(),'{}','{\"alive\":false}'),('archive','archive','https://example.test','Engineer','Synthetic archive',now(),'{\"rule\":\"synthetic\"}','{}')")
+        db.execute("insert into posting_status(posting_id,status) select id,'seen' from postings where source='older'")
+        db.execute("set local role service_role")
+        assert db.execute("select board_sources('all','active')").fetchone() == (["noise", "older"],)
+        assert db.execute("select board_sources('seen','active')").fetchone() == (["older"],)
+        assert db.execute("select board_sources('new-for-me','active')").fetchone() == (["noise"],)
+        assert db.execute("select board_sources('all','inactive')").fetchone() == (["inactive"],)
+        assert db.execute("select board_sources('not-scored','active')").fetchone() == (["archive"],)
+        assert db.execute("select board_sources('applied','all')").fetchone() == ([],)
+        assert db.execute("select count(*) from board_postings(location=>'israel')").fetchone() == (0,)
+        assert db.execute("select board_sources('all','all')").fetchone() == (["inactive", "noise", "older"],)
+        for role in ("anon", "authenticated", "service_role"):
+            assert db.execute("select has_function_privilege(%s,'public.board_sources(text,text)','execute')", (role,)).fetchone() == (role == "service_role",)
+        db.execute("reset role")
+        db.execute((ROOT / "supabase/rollbacks/0031_board_sql_facets.sql").read_text())
+        assert db.execute("select to_regprocedure('public.board_sources(text,text)')").fetchone() == (None,)

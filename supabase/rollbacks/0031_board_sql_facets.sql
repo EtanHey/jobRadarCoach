@@ -1,5 +1,6 @@
 -- Revert the frontend facet consumers before applying this rollback.
 begin;
+drop function public.board_sources(text,text);
 drop function public.board_postings(text,text,text,text[],text,integer,text,text,text,text,text,boolean);
 drop function public.board_location_group(text);
 -- Extend the board query with the Not scored archive.

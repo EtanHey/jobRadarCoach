@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, JobSourcesQuerySchema, JobSourcesResponseSchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -14,6 +14,7 @@ import { HttpError } from "./http";
 
 export interface ApiStore {
   listJobs(input: JobListQuery): Promise<JobSummary[]>;
+  listSources(input: z.infer<typeof JobSourcesQuerySchema>): Promise<string[]>;
   getJob(id: string): Promise<JobDetail | null>;
   scoreAnyway?(id: string): Promise<JobDetail | null>;
   setStatus(input: StatusPatch & { posting_id: string }): Promise<StatusResult>;
@@ -175,9 +176,14 @@ async function readProfile(db: SupabaseClient): Promise<Profile> {
   });
 }
 
+export async function selectSources(db: SupabaseClient, input: z.infer<typeof JobSourcesQuerySchema>): Promise<string[]> {
+  return checked(JobSourcesResponseSchema.shape.sources, await data(db.rpc("board_sources", input)));
+}
+
 export function getApiStore(): ApiStore {
   return {
     listJobs: (input) => selectSummaries(client(), input),
+    listSources: (input) => selectSources(client(), input),
     async getJob(id) {
       const db = client();
       const row = await readDetail(db, id);

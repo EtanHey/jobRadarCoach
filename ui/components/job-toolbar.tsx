@@ -3,13 +3,12 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
-import type { JobSummary } from "@/lib/contracts";
 import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filters";
 import { AppSelect, type SelectOption } from "@/components/ui/select";
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
-export function JobToolbar({ jobs, options, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
-  jobs: JobSummary[]; options: ViewOptions; onChange: (next: ViewOptions) => void;
+export function JobToolbar({ sources, options, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
+  sources: string[]; options: ViewOptions; onChange: (next: ViewOptions) => void;
   onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
   filtersCollapsed?: boolean; onFiltersCollapsedChange?: (collapsed: boolean) => void;
 }) {
@@ -19,7 +18,7 @@ export function JobToolbar({ jobs, options, onChange, onReset, canReset = false,
   const active = [options.work_mode !== undefined || options.remote !== undefined, options.source, options.location, options.seniority, options.fit, options.statuses.length > 0, options.availability !== "active", options.sort !== "fit", options.found_within].filter(Boolean).length;
   const fields: { key: "work_mode" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
     { key: "work_mode", label: "Work mode", choices: [{ value: "", label: "Any work mode" }, { value: "remote", label: "Remote" }, { value: "hybrid", label: "Hybrid" }, { value: "on-site", label: "On-site" }] },
-    { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(jobs, options.source).map((source) => ({value: source, label: source}))] },
+    { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(sources.map(source => ({ source })), options.source).map((source) => ({value: source, label: source}))] },
     { key: "location", label: "Location", choices: [{value: "", label: "All locations"}, {value: "israel", label: "Israel"}, {value: "united-states", label: "United States"}, {value: "other", label: "Other"}] },
     { key: "seniority", label: "Seniority", choices: [{value: "", label: "All levels"}, {value: "non-senior", label: "Hide senior+ (keep unknown)"}, ...levelOrder.map((level) => ({value: level, label: level}))] },
     { key: "fit", label: "Fit", choices: [{value: "", label: "Any fit"}, {value: "recommended", label: "Worth considering"}, {value: "skip", label: "Suggested skip"}, {value: "good", label: "60+ fit score"}, {value: "scored", label: "Scored"}, {value: "unscored", label: "Not scored"}] },

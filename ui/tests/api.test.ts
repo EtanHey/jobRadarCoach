@@ -82,6 +82,7 @@ const profile = {
 function store(overrides: Partial<ApiStore> = {}): ApiStore {
   return {
     listJobs: () => Promise.resolve([summary]),
+    listSources: () => Promise.resolve([summary.source]),
     getJob: () => Promise.resolve(detail),
     setStatus: (input) => Promise.resolve({
       status: input.status,

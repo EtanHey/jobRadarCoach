@@ -1,7 +1,7 @@
 -- Synthetic data only. Executed exclusively by db.mjs after --local reset.
 insert into public.postings (id, source, external_id, url, title, company, location, remote, work_mode, work_mode_source, seniority, stack, raw_jd, liveness)
 select ('12000000-0000-4000-8000-' || lpad(n::text,12,'0'))::uuid,
-  'fixture', 'p12-' || n, 'https://example.test/jobs/' || n,
+  (array['fixture','fixture-b','fixture-c'])[n], 'p12-' || n, 'https://example.test/jobs/' || n,
   (array['Frontend Engineer','Platform Engineer','UI Engineer'])[n],
   'Synthetic P12 Studio ' || n, 'Tel Aviv, Israel', false, 'on-site', 'structured', 'Junior',
   array['TypeScript','React'], 'Synthetic local-only job description for testing the real drawer and database routes.', '{"alive":true}'::jsonb
