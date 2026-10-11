@@ -1966,6 +1966,7 @@ def test_enabled_source_config_error_never_kills_linkedin_feed(
 
     assert result["new_count"] == 1
     assert result["warning_count"] >= 1
+    assert result["source_warning_count"] >= 1
     assert "Keeping LinkedIn feed after source config" in caplog.text
 
 

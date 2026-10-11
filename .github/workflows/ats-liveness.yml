@@ -30,10 +30,8 @@ jobs:
         run: |
           if [[ -f ats-liveness-receipt.json ]]; then
             cat ats-liveness-receipt.json >> "$GITHUB_STEP_SUMMARY"
-            if jq -e '.alerts > 0' ats-liveness-receipt.json > /dev/null; then
-              echo "::warning::ATS liveness has new uncertainty or tenant list errors; inspect the receipt"
-            fi
           fi
+          python -m scraper.run_alerts --kind liveness --receipt ats-liveness-receipt.json
       - name: Preserve receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

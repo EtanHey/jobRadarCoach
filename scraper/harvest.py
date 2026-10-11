@@ -2431,6 +2431,7 @@ def run_pipeline(  # skipcq: PY-R1000
     else:
         result["new_published_count"] = len(scored)
     if enabled_sources:
+        result["source_warning_count"] = len(source_config_warnings) + source_warnings
         result["source_counts"] = source_counts
         result["source_fetch_counts"] = source_fetch_counts
         result["source_match_counts"] = source_match_counts
