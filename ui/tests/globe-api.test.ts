@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeGetGlobe } from "../app/api/jobs/globe/route";
-import { GlobeQuerySchema } from "../lib/globe-contract";
+import { GlobeJobSchema, GlobeQuerySchema } from "../lib/globe-contract";
 import { getGlobeStore, globeResponse, type GlobeStore } from "../lib/globe-server";
 import { classifyAuthPath } from "../lib/auth/boundary";
 import type { JobSummary } from "../lib/contracts";
@@ -22,7 +22,7 @@ const store: GlobeStore = {
 };
 test("complete snapshot keeps all jobs and counts beyond provider row caps", async () => {
   const response = await globeResponse(store, GlobeQuerySchema.parse({}));
-  assert.deepEqual(response.jobs, jobs);
+  assert.deepEqual(response.jobs, jobs.map(job => GlobeJobSchema.parse(job)));
   assert.equal(response.total_count, 1007);
   assert.equal(response.resolved_count, jobs.filter(j => Number(j.id.slice(-12)) % 3).length);
   assert.equal(response.unresolved_count + response.resolved_count, jobs.length);
@@ -69,8 +69,8 @@ test("one RPC fixes deletion/reordering and new-for-me cutoff for the entire req
     posting_status: {status: "new", reason: null}, posting_scores: null, posting_extractions: null }));
   let calls = 0;
   const db = { rpc: async (name: string, args: unknown) => {
-    assert.equal(++calls, 1); assert.equal(name, "get_globe_snapshot");
-    assert.deepEqual(args, { filter: "new-for-me", availability: "active" });
+    assert.equal(++calls, 1); assert.equal(name, "get_globe_markers");
+    assert.deepEqual(args, { filter: "new-for-me", availability: "active", found_within: "" });
     const captured = structuredClone(raw);
     raw.shift(); raw.reverse(); // Later deletion/reordering cannot shift a second page.
     return { data: {jobs: captured, geo: []}, error: null };

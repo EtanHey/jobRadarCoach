@@ -1,26 +1,25 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { JobSummary } from "./contracts";
-import { GlobePointSchema, type GlobePoint, type GlobeQuery, type GlobeResponse } from "./globe-contract";
-import { client, data, parseSummaryRows } from "./server";
+import { GlobeJobSchema, type GlobeJob, GlobePointSchema, type GlobePoint, type GlobeQuery, type GlobeResponse } from "./globe-contract";
+import { client, data } from "./server";
 import { HttpError } from "./http";
 
 export interface GlobeStore {
-  snapshot(input: GlobeQuery): Promise<{ jobs: JobSummary[]; geo: unknown[] }>;
+  snapshot(input: GlobeQuery): Promise<{ jobs: GlobeJob[]; geo: unknown[] }>;
 }
 export function getGlobeStore(db: SupabaseClient = client()): GlobeStore {
   return { async snapshot(input) {
     // Jobs, visit cutoff and geo share one SQL statement snapshot, even for empty results.
-    const raw = await data(db.rpc("get_globe_snapshot", { filter: input.filter, availability: input.availability }));
+    const raw = await data(db.rpc("get_globe_markers", { filter: input.filter, availability: input.availability, found_within: input.found_within ?? "" }));
     if (!raw || typeof raw !== "object" || !("jobs" in raw) || !("geo" in raw) || !Array.isArray(raw.geo)) {
       throw new HttpError(503, "Geographic data unavailable.");
     }
-    return { jobs: parseSummaryRows(raw.jobs).jobs, geo: raw.geo };
+    return { jobs: GlobeJobSchema.array().parse(raw.jobs), geo: raw.geo };
   } };
 }
 export async function globeResponse(store: GlobeStore, input: GlobeQuery): Promise<GlobeResponse> {
   const snapshot = await store.snapshot(input);
-  const jobs = snapshot.jobs;
+  const jobs = snapshot.jobs.map(row => GlobeJobSchema.parse(row));
   const ids = new Set(jobs.map((job) => job.id));
   if (ids.size !== jobs.length) throw new HttpError(503, "Invalid geographic snapshot.");
   const points: GlobePoint[] = [];

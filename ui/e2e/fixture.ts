@@ -1,4 +1,8 @@
 import type { Browser } from '@e2e-dev/web';
+import { countNewRoleCards, NEW_ROLES_LIMIT } from '../lib/new-roles';
+import { NewRolesQuerySchema, NewRolesProbeSchema } from '../lib/new-roles-contract';
+import { GlobeJobSchema } from '../lib/globe-contract';
+import { normalizedIdentity } from '../lib/job-dedup';
 export const role = { id: '00000000-0000-4000-8000-000000000001', title: 'Pilot engineer', company: 'Synthetic Labs',
   source: 'fixture', last_seen_at: '2026-10-04T00:00:00Z', first_seen_at: '2026-10-04T00:00:00Z',
   posted_at: '2026-09-01T00:00:00Z', last_published_at: '2026-10-03T00:00:00Z', experience: null,
@@ -15,6 +19,22 @@ export async function installFixture(browser: { addInitScript(script: string): P
     const url = new URL(route.request.url);
     if (url.origin !== origin) return route.abort();
     if (!url.pathname.startsWith('/api/')) return route.continue();
+    if (url.pathname === '/api/jobs/new-roles') {
+      state.pollReads++;
+      const rows = [{ ...role, status }, ...(state.addRole ? [{ ...role,
+        id: '00000000-0000-4000-8000-000000000002', title: 'Incoming engineer',
+        first_seen_at: '2026-10-05T00:00:00Z', status: 'new' }] : [])].map(row => GlobeJobSchema.parse(row));
+      if (route.request.method === 'GET') {
+        const incoming = rows.filter(row => row.first_seen_at > (url.searchParams.get('since') ?? '')).slice(0,101);
+        return route.fulfill({ json: NewRolesProbeSchema.parse({ count:incoming.length,
+          truncated:incoming.length > NEW_ROLES_LIMIT, incoming_ids:incoming.map(row=>row.id),
+          companies:[...new Set(incoming.map(row=>normalizedIdentity(row.company)))] }) });
+      }
+      const input = NewRolesQuerySchema.parse(JSON.parse(route.request.postData ?? '{}'));
+      const incoming = rows.filter(row=>input.incoming_ids.includes(row.id));
+      return route.fulfill({ json: { count:countNewRoleCards(rows.filter(row=>input.ids.includes(row.id)),
+        incoming.slice(0,NEW_ROLES_LIMIT), input.view), truncated:input.incoming_ids.length > NEW_ROLES_LIMIT } });
+    }
     if (url.pathname === '/api/jobs') {
       const since = url.searchParams.get('since');
       if (since) state.pollReads++; else state.listReads++;

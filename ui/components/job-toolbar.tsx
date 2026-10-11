@@ -3,7 +3,7 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
-import type { JobSummary } from "@/lib/contracts";
+import type { GlobeJob } from "@/lib/globe-contract";
 import { foundWithinOptions, fitOptions, sortOptions } from "@/lib/view-options";
 import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filters";
 import { AppSelect, type SelectOption } from "@/components/ui/select";
@@ -12,7 +12,7 @@ import { DEFAULT_BOARD_PREFERENCES, preferencesForBoardFilter, viewForBoardQuery
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
 export function JobToolbar({ jobs, options, effectiveOptions = options, filter = DEFAULT_BOARD_PREFERENCES.filter, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
-  jobs: JobSummary[]; options: ViewOptions; effectiveOptions?: ViewOptions; filter?: BoardFilter; onChange: (next: ViewOptions) => void;
+  jobs: GlobeJob[]; options: ViewOptions; effectiveOptions?: ViewOptions; filter?: BoardFilter; onChange: (next: ViewOptions) => void;
   onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
   filtersCollapsed?: boolean; onFiltersCollapsedChange?: (collapsed: boolean) => void;
 }) {

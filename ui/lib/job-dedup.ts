@@ -4,9 +4,10 @@ import type { JobSummary } from "./contracts";
 import { createRepostLocationMatcher } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
 
-export type DuplicateJobGroup = { job: JobSummary & ListingPublicationEvidence; alternates: JobSummary[] };
+import type { GlobeJob } from "./globe-contract";
+export type DuplicateJobGroup<T extends GlobeJob = JobSummary> = { job: T & ListingPublicationEvidence; alternates: T[] };
 
-function normalizedIdentity(value: string): string {
+export function normalizedIdentity(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/gu, " ").toLowerCase();
 }
 
@@ -36,25 +37,25 @@ function roleKey(value: string | null): string | null {
   return null;
 }
 
-function roleKeys(job: JobSummary): string[] {
+function roleKeys(job: GlobeJob): string[] {
   return [...new Set([roleKey(job.apply_url), roleKey(job.url)].filter((key): key is string => key !== null))];
 }
 
-type PreparedJob = { job: JobSummary; company: string; title: string; keys: string[] };
+type PreparedJob<T extends GlobeJob = GlobeJob> = { job: T; company: string; title: string; keys: string[] };
 function sameRole(a: PreparedJob, b: PreparedJob, locationsMatch: ReturnType<typeof createRepostLocationMatcher>): boolean {
   if (!a.company || a.company !== b.company) return false;
   if (!locationsMatch(a.job.location, b.job.location)) return false;
   return a.keys.some(key => b.keys.includes(key)) || Boolean(a.title && a.title === b.title);
 }
 
-function newestFirst(a: JobSummary, b: JobSummary): number {
+function newestFirst(a: GlobeJob, b: GlobeJob): number {
   const timeA = timestamp(a.posted_at) ?? timestamp(a.first_seen_at) ?? -Infinity;
   const timeB = timestamp(b.posted_at) ?? timestamp(b.first_seen_at) ?? -Infinity;
   return (timeA === timeB ? 0 : timeA > timeB ? -1 : 1)
     || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
-export function linkedPublicationDates(jobs: JobSummary[]): Pick<JobSummary, "posted_at" | "last_published_at"> {
+export function linkedPublicationDates(jobs: GlobeJob[]): Pick<JobSummary, "posted_at" | "last_published_at"> {
   const originals = jobs.map(job => job.posted_at).filter((date): date is string => timestamp(date) !== null);
   const publications = jobs.flatMap(job => [job.posted_at, job.last_published_at])
     .filter((date): date is string => timestamp(date) !== null);
@@ -63,8 +64,8 @@ export function linkedPublicationDates(jobs: JobSummary[]): Pick<JobSummary, "po
   return { posted_at: originals[0] ?? null, last_published_at: publications[0] ?? null };
 }
 
-export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
-  const buckets = new Map<string, PreparedJob[]>();
+export function groupDuplicateJobs<T extends GlobeJob>(jobs: T[]): DuplicateJobGroup<T>[] {
+  const buckets = new Map<string, PreparedJob<T>[]>();
   const locationsMatch = createRepostLocationMatcher();
   for (const job of uniqueJobsById(jobs)) {
     const key = normalizedIdentity(job.company);
@@ -73,7 +74,7 @@ export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
     if (bucket) bucket.push(prepared); else buckets.set(key, [prepared]);
   }
   return [...buckets.values()].flatMap(bucket => {
-    const groups: PreparedJob[][] = [];
+    const groups: PreparedJob<T>[][] = [];
     // Complete linkage prevents missing-location bridges from merging different cities.
     for (const job of bucket.sort((a, b) => a.job.id.localeCompare(b.job.id))) {
       const group = groups.find(members => members.every(member => sameRole(member, job, locationsMatch)));
@@ -91,8 +92,8 @@ export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
 }
 
 export function relatedDuplicateJobs(
-  jobs: JobSummary[], selectedId: string, loadedDetail: JobSummary | null,
-): JobSummary[] {
+  jobs: GlobeJob[], selectedId: string, loadedDetail: GlobeJob | null,
+): GlobeJob[] {
   const selected = loadedDetail?.id === selectedId ? loadedDetail : jobs.find(job => job.id === selectedId);
   if (!selected) return [];
   const group = groupDuplicateJobs([...jobs.filter(job => job.id !== selectedId), selected])

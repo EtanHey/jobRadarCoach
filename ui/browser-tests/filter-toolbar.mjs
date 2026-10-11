@@ -47,6 +47,7 @@ try {
     await page.route('**/*', route => {
       const url = new URL(route.request().url());
       if (url.origin !== base) return route.abort();
+      if(url.pathname==="/api/jobs/new-roles"){return route.fulfill({json:{count:0,truncated:false,...(route.request().method()==="GET"?{companies:[],incoming_ids:[]}: {})}});}
       if (url.pathname === '/api/jobs') return route.fulfill({ json: { jobs: url.searchParams.has("since") ? [] : [role] } });
       if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 404, json: { error: 'Synthetic fixture only' } });
       return route.continue();
