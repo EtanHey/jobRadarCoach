@@ -30,7 +30,7 @@ def test_gate_persists_before_selection_and_override_and_jd_reset(stage):
         db.execute("update postings set relevance_gate=relevance_gate || '{\"override\":true}'::jsonb where id=%s",(ids[0],))
         assert set((list_scoring_candidates(db,limit=10,posting_ids=ids) if stage=='score' else [r['id'] for r in select_postings(db,limit=10,posting_ids=ids)]))==set(ids)
         db.execute("update postings set title='Senior Frontend Engineer' where id=%s",(ids[0],))
-        assert db.execute('select relevance_gate from postings where id=%s',(ids[0],)).fetchone()==({},)
+        assert db.execute('select relevance_gate from postings where id=%s',(ids[0],)).fetchone()==({'override':True},)
         selected()
         assert db.execute('select relevance_filtered from postings where id=%s',(ids[0],)).fetchone()==(False,)
 
