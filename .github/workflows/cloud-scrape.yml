@@ -58,6 +58,12 @@ jobs:
               echo "- Commit: \`${GITHUB_SHA}\`"
             } >> "${GITHUB_STEP_SUMMARY}"
           fi
+      - name: Surface source failures
+        if: always()
+        run: python -m scraper.run_alerts --kind scrape --receipt cloud-scrape-receipt.json
+      - name: Surface availability failures
+        if: always()
+        run: python -m scraper.run_alerts --kind liveness --receipt recheck-receipt.json
       - name: Preserve run evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

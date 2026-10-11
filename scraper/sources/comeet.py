@@ -99,5 +99,12 @@ def fetch(
             "jd_fetched": bool(jd_text),
             "jd_text": jd_text,
         }
+        workplace = position.get("workplace_type")
+        mode = {"On-site": "on-site", "Hybrid": "hybrid", "Remote": "remote"}.get(
+            workplace if isinstance(workplace, str) else ""
+        )
+        if mode:
+            posting["work_mode"] = mode
+            posting["remote"] = {"remote": True, "on-site": False}.get(mode)
         postings.append(posting)
     return postings
