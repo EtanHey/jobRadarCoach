@@ -1,5 +1,6 @@
 """Conclusive ATS availability from complete, unfiltered public tenant boards."""
 
+import http.client
 import json
 import ipaddress
 import re
@@ -208,7 +209,8 @@ def _snapshot_ids(source, tenant, url, fetcher, detail_paths=None):
         try:
             rows = list(workday.active_list(query, fetcher=fetcher, first_page=bootstrap))
         finally:
-            # Partial presence is only a candidate for an authenticated detail control.
+            # Validated bootstrap membership survives partial traversal and slug changes.
+            # Only absence requires a complete list or an authenticated detail control.
             if detail_paths is not None:
                 detail_paths.update((workday.JOB_PATH.fullmatch(row["externalPath"])[1].casefold(),
                                      row["externalPath"]) for row in bootstrap)
@@ -283,9 +285,16 @@ class BoardChecker:
                                     search=workday.JOB_PATH.fullmatch(path)[1]))
                         present = any(workday.JOB_PATH.fullmatch(row["externalPath"])[1].casefold()
                                       == job for row in rows)
-                        alive, status = (True, 200) if present else controlled_detail(
-                            posting, key, job, self, opener=pinned_open, sleep=time.sleep)
-                    except (OSError, ValueError, KeyError, TypeError):
+                        if present:
+                            alive, status = True, 200
+                        elif job in self.detail_paths.get(key, {}):
+                            # An empty search cannot erase positive bootstrap evidence.
+                            alive, status = None, None
+                            reason = "workday-bootstrap-search-conflict"
+                        else:
+                            alive, status = controlled_detail(
+                                posting, key, job, self, opener=pinned_open, sleep=time.sleep)
+                    except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
                         alive, status = None, None
                     if alive is not None:
                         reason = "workday-detail-present" if alive else "workday-detail-missing"
