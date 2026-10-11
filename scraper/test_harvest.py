@@ -2075,7 +2075,8 @@ def test_append_jsonl_schema_and_latest_summary(tmp_path: Path) -> None:
             "core_stack_present", "ai_bonus_gated", "employer_class",
             "employer_class_note", "source", "source_tenant", "alive",
             "liveness_status", "liveness_reason", "liveness_final_url",
-            "liveness_checked_at", "linkedin_closed_signal", "linkedin_closed_signal_cleared_at",
+            "liveness_checked_at", "linkedin_reposted_signal",
+            "linkedin_closed_signal", "linkedin_closed_signal_cleared_at",
         }
     summary = (tmp_path / "latest-summary.md").read_text(encoding="utf-8")
     assert "Harvested cards: 4" in summary
@@ -2091,6 +2092,7 @@ def test_append_jsonl_schema_and_latest_summary(tmp_path: Path) -> None:
     assert row["jd_chars"] == 0
     assert row["fetch_method"] == ""
     assert row["employer_class_note"] == ""
+    assert row["linkedin_reposted_signal"] is None
 
 
 def test_append_jsonl_defaults_new_enrichment_fields(tmp_path: Path) -> None:
