@@ -56,6 +56,9 @@ def _detail(source, tenant, identifier, paths, *, opener, sleep):
 
 def controlled_detail(posting, key, job, board, *, opener, sleep):
     ids, error, _ = board.cache.get(key, (None, None, None))
+    if key[0] == "workday" and error == "board-too-large":
+        # A validated first-page sibling can authenticate details, never absence.
+        ids, error = set(board.detail_paths.get(key, {})) - {job}, None
     if not ids or error is not None or job in ids:
         return None, None
     source, tenant = key
