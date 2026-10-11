@@ -67,6 +67,14 @@ def refresh_gate(connection, *, posting_ids=(), limit: int = 1000, at_write: boo
     """Classify backlog or a cloud write batch before its transaction commits."""
     if at_write and not posting_ids:
         return  # An empty harvest must never turn into a backlog scan.
+    # set_status locks the posting before changing its status. Hold the same
+    # lock through classification, including on autocommit worker connections,
+    # so a stale statement snapshot cannot re-hide a concurrent Pursue.
+    with connection.transaction():
+        _refresh_gate_locked(connection, posting_ids=posting_ids, limit=limit, at_write=at_write)
+
+
+def _refresh_gate_locked(connection, *, posting_ids, limit, at_write):
     rows = connection.execute(
         "select p.id::text,p.title,p.raw_jd,exists(select 1 from public.posting_scores gs where gs.posting_id=p.id) from public.postings p "
         "where (%s::boolean or p.relevance_gate->>'version' is distinct from %s) "
@@ -74,7 +82,7 @@ def refresh_gate(connection, *, posting_ids=(), limit: int = 1000, at_write: boo
         "and (%s::boolean or (p.raw_jd is not null and length(trim(p.raw_jd))>=80)) "
         "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or p.raw_jd ilike '%%already%%') "
         "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status not in ('new','seen')) "
-        "and (%s::uuid[] is null or p.id=any(%s::uuid[])) order by p.first_seen_at,p.id limit %s",
+        "and (%s::uuid[] is null or p.id=any(%s::uuid[])) order by p.first_seen_at,p.id limit %s for update of p",
         (at_write, VERSION, at_write, list(posting_ids) or None, list(posting_ids) or None, limit),
     ).fetchall()
     for posting_id, title, jd, has_score in rows:

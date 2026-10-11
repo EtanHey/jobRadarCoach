@@ -1,6 +1,9 @@
 """A user's pipeline decision wins over automated relevance filtering."""
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from queue import Queue
+import time
 from uuid import uuid4
 
 import psycopg
@@ -135,3 +138,29 @@ def test_migration_repairs_existing_pursued_rows_only():
         for pid in ids[len(PURSUED):]:
             assert db.execute('select relevance_filtered from postings where id=%s', (pid,)).fetchone() == (True,)
         assert db.execute('select count(*) from posting_status_history').fetchone()[0] == 23
+
+
+def test_pursue_wins_when_gate_waits_for_posting_lock(db):
+    pid = posting(db, 'Build React products. ' * 20)
+    db.commit()
+    db.execute('select id from postings where id=%s for update', (pid,))
+    backend = Queue()
+    def gate_worker():
+        with psycopg.connect(db.info.dsn, autocommit=True) as worker:
+            backend.put(worker.info.backend_pid)
+            refresh_gate(worker, posting_ids=[pid])
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(gate_worker)
+        worker_pid = backend.get(timeout=5)
+        try:
+            deadline = time.monotonic() + 5
+            while db.execute('select wait_event_type from pg_stat_activity where pid=%s', (worker_pid,)).fetchone() != ('Lock',):
+                assert time.monotonic() < deadline, 'gate did not reach the posting lock'
+                db.execute('select pg_stat_clear_snapshot()')
+                time.sleep(0.01)
+            pursue(db, pid, 'worth_checking')
+            db.commit()
+        finally:
+            db.rollback()
+        future.result(timeout=5)
+    assert_visible(db, pid, 'worth_checking')
