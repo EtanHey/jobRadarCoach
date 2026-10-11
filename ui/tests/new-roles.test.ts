@@ -58,6 +58,43 @@ test("the pill counts cards Show will add under the current view, not raw postin
   assert.equal(countNewRoleCards(current, [role(6), role(7, { score: 20, recommendation: "skip" })], { ...view, fit: "" }), 2);
 });
 
+function permutations<T>(rows: T[]): T[][] {
+  if (rows.length === 0) return [[]];
+  return rows.flatMap((row, index) => permutations(rows.filter((_, i) => i !== index))
+    .map(rest => [row, ...rest]));
+}
+
+test("unordered RPC current markers give the same new-card count for every permutation", () => {
+  const current = [role(0), role(1, { title: "Engineer 0", company: "Company 0" }),
+    role(2, { score: 20, recommendation: "skip" }), role(3, { status: "applied" })];
+  const incoming = [role(0, { status: "seen" }),
+    role(4, { title: "Engineer 0", company: "Company 0" }), role(5, { status: "applied" }),
+    role(6, { title: "Engineer 5", company: "Company 5" }),
+    role(7, { score: 20, recommendation: "skip" })];
+  const view = { ...defaultBoardPreferences().view, fit: "recommended" };
+  for (const order of permutations(current)) {
+    assert.equal(countNewRoleCards(order, incoming, view), 1, "only the new recommended card counts");
+    assert.equal(countNewRoleCards(order, incoming, { ...view, fit: "" }), 2, "unfiltered fit also counts the new skip card");
+    assert.equal(countNewRoleCards(order, incoming, { ...view, statuses: ["applied"] }), 1, "status filtering preserves the count");
+    assert.equal(countNewRoleCards(order, incoming, { ...view, search: "nothing matches" }), 0);
+  }
+});
+
+test("status reconciliation applies the same mutations regardless of current-marker order", () => {
+  const current = [role(0), role(1), role(2), role(3, { status: "applied" })];
+  const mutations = new Map([
+    [role(0).id, { status: "seen" as const, reason: "Reviewed", remove: false }],
+    [role(1).id, { status: "applied" as const, reason: null, remove: true }],
+  ]);
+  const expected = [role(0, { status: "seen", status_reason: "Reviewed" }), current[2], current[3]];
+  for (const order of permutations(current)) {
+    const settled = reconcileStatusMutations(order, mutations);
+    assert.deepEqual(settled, order.filter(job => job.id !== role(1).id)
+      .map(job => job.id === role(0).id ? expected[0] : job), "reconciliation preserves the supplied list order");
+    assert.deepEqual([...settled].sort((a, b) => a.id.localeCompare(b.id)), expected);
+  }
+});
+
 test("a confirmed status PATCH is reconciled into a list read that may predate it", () => {
   const read = [role(0), role(1), role(2)];
   const mutations = new Map([
