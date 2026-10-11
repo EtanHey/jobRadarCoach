@@ -73,30 +73,29 @@ def refresh_gate(connection, *, posting_ids=(), limit: int = 1000, at_write: boo
         "and not coalesce((p.relevance_gate->>'override')::boolean,false) "
         "and (%s::boolean or (p.raw_jd is not null and length(trim(p.raw_jd))>=80)) "
         "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or p.raw_jd ilike '%%already%%') "
-        "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status='applied') "
+        "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status not in ('new','seen')) "
         "and (%s::uuid[] is null or p.id=any(%s::uuid[])) order by p.first_seen_at,p.id limit %s",
         (at_write, VERSION, at_write, list(posting_ids) or None, list(posting_ids) or None, limit),
     ).fetchall()
     for posting_id, title, jd, has_score in rows:
-        # Owner's explicit rejection wins over an automated score proxy. Applied
-        # rows and every other already-scored role keep their original protection.
+        # Explicit residency wins over a score proxy, never a pipeline decision.
         rule = ('already-us-resident' if already_us_resident(jd) else None) if has_score else gate_rule(title, jd)
         connection.execute(
             "update public.postings p set relevance_gate=jsonb_build_object('version',%s::text,'rule',%s::text) "
             "where p.id=%s and p.title=%s and p.raw_jd is not distinct from %s "
             "and not coalesce((p.relevance_gate->>'override')::boolean,false) "
             "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or %s::boolean) "
-            "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status='applied')",
+            "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status not in ('new','seen'))",
             (VERSION, rule, posting_id, title, jd, has_score or rule in (None, 'already-us-resident')),
         )
 
 
-# Unexamined backlog waits for the next bounded pass. Existing scored/applied
-# history is protected except the owner-confirmed explicit US-residency rule.
+# Unexamined backlog waits for the next bounded pass. Pipeline choices always
+# win; scored discovery rows still honor explicit US-residency rejection.
 SELECTION_GUARD = (
     "and not p.relevance_filtered "
     "and (p.relevance_gate->>'version' = %s "
     "or coalesce((p.relevance_gate->>'override')::boolean,false) "
     "or exists(select 1 from public.posting_scores gs where gs.posting_id=p.id) "
-    "or exists(select 1 from public.posting_status gst where gst.posting_id=p.id and gst.status='applied')) "
+    "or exists(select 1 from public.posting_status gst where gst.posting_id=p.id and gst.status not in ('new','seen'))) "
 )
