@@ -1,3 +1,4 @@
+import type { GlobeJob } from "./globe-contract";
 import { timestamp } from "./job-time";
 import type { Availability, FoundWithin, JobSummary } from "./contracts";
 import { groupDuplicateJobs, type DuplicateJobGroup } from "./job-dedup";
@@ -53,7 +54,7 @@ export function levelGroup(value: string | null): string {
   if (/mid|intermediate/i.test(value)) return "Mid-level";
   return "Unknown";
 }
-function matchesView(job: JobSummary, options: ViewOptions, needle: string, cutoff: number | null): boolean {
+function matchesView(job: GlobeJob, options: ViewOptions, needle: string, cutoff: number | null): boolean {
   return (
     (cutoff === null || (timestamp(job.first_seen_at) ?? -Infinity) >= cutoff) &&
     (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
@@ -66,7 +67,7 @@ function matchesView(job: JobSummary, options: ViewOptions, needle: string, cuto
     matchesFit(job, options.fit)
   );
 }
-function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
+function compareJobs(a: GlobeJob, b: GlobeJob, sort: JobSort): number {
     if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1)
       || (timestamp(b.posted_at ?? b.first_seen_at) ?? 0) - (timestamp(a.posted_at ?? a.first_seen_at) ?? 0)
       || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -74,7 +75,7 @@ function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
     if (sort === "posted") return (timestamp(b.posted_at ?? b.first_seen_at) ?? 0) - (timestamp(a.posted_at ?? a.first_seen_at) ?? 0);
     return (timestamp(b.first_seen_at) ?? 0) - (timestamp(a.first_seen_at) ?? 0);
 }
-export function filterJobGroups(jobs: JobSummary[], options: ViewOptions): DuplicateJobGroup[] {
+export function filterJobGroups<T extends GlobeJob>(jobs: T[], options: ViewOptions): DuplicateJobGroup<T>[] {
   const needle = options.search.trim().toLocaleLowerCase();
   const cutoff = foundWithinCutoff(options.found_within);
   return groupDuplicateJobs(jobs.filter((job) => matchesView(job, options, needle, cutoff)))

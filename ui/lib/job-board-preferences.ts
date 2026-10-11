@@ -39,7 +39,7 @@ const viewSchema = z.object({
 }).strict();
 const pipelineStatusSchema = z.enum(pipelineStatusValues);
 const availabilitySchema = z.enum(["active", "inactive", "all"]);
-const storedPreferencesSchema = z.object({
+export const storedPreferencesSchema = z.object({
   version: z.literal(BOARD_PREFERENCES_VERSION),
   filtersCollapsed: z.boolean().optional(),
   filter: z.enum(["all", "new-for-me", "seen", "not-scored"]),

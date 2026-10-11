@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { JobSummary } from "../lib/contracts";
 import { reconcileStatusMutations } from "../lib/job-board-state";
 import { defaultBoardPreferences } from "../lib/job-board-preferences";
-import { countNewRoleCards, NEW_ROLES_LIMIT, newRolesNotice, newRolesRequestPath, newRolesSince } from "../lib/new-roles";
+import { countNewRoleCards, newRolesNotice, newRolesRequestPath, newRolesSince } from "../lib/new-roles";
 
 test("the cutoff is the newest loaded first_seen_at, verbatim, so the newest loaded role is never counted as new", () => {
   const jobs = [
@@ -20,11 +20,11 @@ test("an empty view counts every matching role, since nothing of it is loaded", 
   assert.equal(newRolesSince([]), "1970-01-01T00:00:00.000Z");
 });
 
-test("the poll asks the list endpoint for a bounded page of roles newer than the cutoff", () => {
+test("the poll asks the count endpoint for a count of roles newer than the cutoff", () => {
   const path = newRolesRequestPath({ filter: "new-for-me", availability: "active", since: "2026-10-05T10:00:00.123456+00:00" });
   const url = new URL(path, "http://localhost");
-  assert.equal(url.pathname, "/api/jobs");
-  assert.deepEqual(Object.fromEntries(url.searchParams), { filter: "new-for-me", availability: "active", limit: String(NEW_ROLES_LIMIT + 1), since: "2026-10-05T10:00:00.123456+00:00" });
+  assert.equal(url.pathname, "/api/jobs/new-roles");
+  assert.deepEqual(Object.fromEntries(url.searchParams), { filter: "new-for-me", availability: "active", since: "2026-10-05T10:00:00.123456+00:00" });
 });
 
 test("the notice is singular for one role, marks a truncated page, and is absent when nothing is new", () => {

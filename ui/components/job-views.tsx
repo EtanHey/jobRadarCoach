@@ -3,7 +3,7 @@ import type { DuplicateJobGroup } from "@/lib/job-dedup";
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import type { JobSummary } from "@/lib/contracts";
+import type { GlobeJob } from "@/lib/globe-contract";
 import { Button } from "@/components/ui/button";
 import type { BoardFilter } from "@/lib/job-board-preferences";
 import { JobCards } from "./job-cards";
@@ -13,7 +13,7 @@ export { JobDrawer } from "./job-drawer";
 export type Filter = BoardFilter;
 const filters: Record<Filter, string> = { all: "All roles", "new-for-me": "New for me", seen: "Seen", "not-scored": "Not scored" };
 type Opener = RefObject<HTMLButtonElement | null>;
-type ListProps = { prefetchDetail?: (id: string) => void; notice?: ReactNode; bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void; visiblePostingIds?: readonly string[]; globe?: ReactNode; globeMeta?: ReactNode; globeOpen?: boolean; selectedId?: string | null; openDetail?: (id: string) => void; filter: Filter; search: string; jobs: JobSummary[]; groups: DuplicateJobGroup[]; loading: boolean; error: string; openerRef: Opener; selectJob: (id: string | null) => void; chooseFilter: (filter: Filter) => void; setSearch: (value: string) => void; reload: () => void; toolbar?: ReactNode; resultLimit: number; sortLabel?: string };
+type ListProps = { prefetchDetail?: (id: string) => void; notice?: ReactNode; bubble?: { ids: string[]; place: string } | null; clearBubble?: () => void; onWholeWorld?: () => void; visiblePostingIds?: readonly string[]; globe?: ReactNode; globeMeta?: ReactNode; globeOpen?: boolean; selectedId?: string | null; openDetail?: (id: string) => void; filter: Filter; search: string; jobs: GlobeJob[]; groups: DuplicateJobGroup<GlobeJob>[]; loading: boolean; error: string; openerRef: Opener; selectJob: (id: string | null) => void; chooseFilter: (filter: Filter) => void; setSearch: (value: string) => void; reload: () => void; toolbar?: ReactNode; resultLimit: number; sortLabel?: string };
 
 export function BoardHeader({children}: {children?: ReactNode}) { return <header className="border-b bg-background/90 backdrop-blur"><div className="flex w-full items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"><Link href="/" className="flex items-center gap-3 font-semibold tracking-tight"><span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-foreground/10 text-foreground">J</span>Job Radar <span className="hidden font-normal text-muted-foreground sm:inline">/ Coach</span></Link><div className="flex items-center gap-2">{children}<ThemeToggle /></div></div></header> }
 

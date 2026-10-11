@@ -1,4 +1,5 @@
-import type { Availability, FoundWithin, JobSummary } from "./contracts";
+import type { Availability, FoundWithin } from "./contracts";
+import type { GlobeJob } from "./globe-contract";
 import { uniqueJobsById } from "./job-board-state";
 import { filterJobGroups, type ViewOptions } from "./job-filters";
 
@@ -22,14 +23,14 @@ export function newRolesSince(jobs: readonly { first_seen_at: string }[]): strin
 }
 
 export function newRolesRequestPath(input: { filter: string; availability: Availability; since: string; found_within?: FoundWithin }): string {
-  const params = new URLSearchParams({ filter: input.filter, availability: input.availability, limit: String(NEW_ROLES_LIMIT + 1), since: input.since });
+  const params = new URLSearchParams({ filter: input.filter, availability: input.availability, since: input.since });
   if (input.found_within) params.set("found_within", input.found_within);
-  return `/api/jobs?${params}`;
+  return `/api/jobs/new-roles?${params}`;
 }
 
 // The pill's number is the cards Show would add: the board's own view filters and
 // duplicate grouping run over the loaded list with and without the newer postings.
-export function countNewRoleCards(current: JobSummary[], incoming: JobSummary[], view: ViewOptions): number {
+export function countNewRoleCards(current: GlobeJob[], incoming: GlobeJob[], view: ViewOptions): number {
   if (incoming.length === 0) return 0;
   const visible = new Set(filterJobGroups(current, view).flatMap(group => [group.job, ...group.alternates].map(job => job.id)));
   return filterJobGroups(uniqueJobsById([...current, ...incoming]), view)

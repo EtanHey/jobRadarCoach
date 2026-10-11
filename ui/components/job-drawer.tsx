@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
-import type { JobDetail, JobSummary } from "@/lib/contracts";
+import type { JobDetail } from "@/lib/contracts";
+import type { GlobeJob } from "@/lib/globe-contract";
 import { linkedPublicationDates, shortListingId } from "@/lib/job-dedup";
 import { statusLabels } from "@/lib/job-status";
 import { AssessmentSheet } from "./assessment-sheet";
@@ -21,11 +22,11 @@ export type JobDrawerProps = {
   detail: JobDetail | null;
   detailError: string;
   openerRef: Opener;
-  relatedJobs?: JobSummary[];
+  relatedJobs?: GlobeJob[];
   retryDetail: () => void;
   retryDisabled?: boolean;
   selected: string | null;
-  selectedJob?: JobSummary;
+  selectedJob?: GlobeJob;
   selectJob: (id: string | null) => void;
 };
 
@@ -43,7 +44,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
         <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} postingId={heading.id} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {heading && <div className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} lastPublishedAt={heading.last_published_at} firstSeenAt={heading.first_seen_at} /></div>}
-        {heading && <LinkedInClosureBadge job={heading} />}
+        {detail && <LinkedInClosureBadge job={detail} />}
         {detail && <>
           <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground"><span>{detail.location ?? "Location unspecified"}</span><span aria-hidden="true">·</span><WorkModeIcon job={detail} showLabel /></p>
           <p className="mt-1 text-sm text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
