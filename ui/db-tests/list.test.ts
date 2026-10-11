@@ -51,7 +51,7 @@ test("SQL metadata matches the current UI heuristics for the synthetic corpus", 
 });
 
 test("globe summaries also omit descriptions", async () => {
-  const {data, error} = await rest.rpc("get_globe_snapshot", {filter: "all", availability: "all"});
+  const {data, error} = await rest.rpc("get_globe_markers", {filter: "all", availability: "all"});
   assert.equal(error, null);
   assert.equal(data.jobs.length, 3);
   for (const row of data.jobs) assert.equal("raw_jd" in row, false);
