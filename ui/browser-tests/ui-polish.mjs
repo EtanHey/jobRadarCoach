@@ -116,9 +116,10 @@ try {
         await expect(page.getByRole('button', { name: 'Not scored', exact: true })).toHaveAttribute('aria-pressed', 'true');
         await expect.poll(() => archiveUrl).toBeTruthy();
         const chips = await toolbar.getByRole('button', { name: /^Clear / }).filter({ visible: true }).allTextContents();
-        assert.ok(!chips.some(label => label.startsWith('Found:')), 'archive ignores found_within but displays it as an active filter');
-        await expect(toggle).toHaveText('Filters1 active');
-        assert.deepEqual(chips, ['Location: Israel']);
+        assert.equal(new URL(archiveUrl).searchParams.get('found_within'), '7d');
+        assert.equal(new URL(archiveUrl).searchParams.get('availability'), 'all');
+        await expect(toggle).toHaveText('Filters2 active');
+        assert.deepEqual(chips, ['Location: Israel', 'Found: past 7 days']);
       });
       await page.getByRole('button', { name: 'All roles', exact: true }).click();
       await check(`${width} independent clear`, async () => {
@@ -139,12 +140,12 @@ try {
         else await toggle.click();
         await expect(toggle).toHaveText('Filters3 active');
         await page.getByRole('button', { name: 'Not scored', exact: true }).click();
-        await expect(toggle).toHaveText('Filters1 active');
+        await expect(toggle).toHaveText('Filters2 active');
         const activeChips = toolbar.getByRole('button', { name: /^Clear / }).filter({ visible: true });
-        await expect(activeChips).toHaveCount(1);
-        await expect(activeChips).toHaveText('Location: Israel');
-        await activeChips.click();
-        await expect(toggle).toHaveText('Filters');
+        await expect(activeChips).toHaveCount(2);
+        await toolbar.getByRole('button', { name: 'Clear Location: Israel', exact: true }).filter({ visible: true }).click();
+        await expect(toggle).toHaveText('Filters1 active');
+        await expect(toolbar.getByRole('button', { name: 'Clear Found: past 7 days', exact: true }).filter({ visible: true })).toBeVisible();
         const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('job-radar.board-preferences')));
         assert.equal(saved.view.availability, 'inactive');
         assert.equal(saved.view.found_within, '7d');
@@ -177,7 +178,13 @@ try {
         assert.equal(saved.view.fit, 'recommended');
       });
       if (width === 1440) await check('headless globe renders synthetic point without WebGL errors', async () => {
+        await page.getByRole('button', { name: 'Not scored', exact: true }).click();
+        await toggle.click();
+        await controls.getByRole('group', { name: 'Found in the past' }).getByRole('button', { name: '7 d', exact: true }).click();
+        await toggle.click();
+        const globeRead = page.waitForRequest(req => new URL(req.url()).pathname === '/api/jobs/globe' && new URL(req.url()).searchParams.get('filter') === 'not-scored');
         await page.getByRole('button', { name: 'Globe', exact: true }).click();
+        assert.equal(new URL((await globeRead).url()).searchParams.get('found_within'), '7d');
         await expect(page.locator('[data-projection="globe"]')).toBeVisible({ timeout: 30000 });
         await expect(page.locator('.maplibregl-canvas')).toBeVisible();
         await expect(page.locator('#globe-visible-heading')).toHaveText('On screen');
