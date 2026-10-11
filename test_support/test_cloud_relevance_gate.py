@@ -6,6 +6,7 @@ import psycopg
 import pytest
 
 from scraper.database import persist_postings_with_disposition
+from scraper.description_backfill import backfill
 from scraper.relevance import VERSION
 from test_support.postgres import migrated_database
 
@@ -14,6 +15,7 @@ from test_support.postgres import migrated_database
 def db():
     with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=30) as url:
         with psycopg.connect(url, autocommit=True) as connection:
+            connection.execute((Path(__file__).parents[1] / 'supabase/migrations/0033_preserve_relevance_owner_intent.sql').read_text())
             yield connection
 
 
@@ -87,3 +89,72 @@ def test_cloud_gate_covers_entire_batch_and_empty_harvest_does_not_scan_backlog(
     db.execute("update postings set relevance_gate='{}'::jsonb")
     assert persist_postings_with_disposition(db, [], '2026-10-11T06:00:00Z')['observed_posting_ids'] == []
     assert db.execute('select count(*) from postings where relevance_filtered').fetchone() == (0,)
+
+
+@pytest.mark.parametrize('status', ['new', 'seen'])
+@pytest.mark.parametrize('title,jd,rule', [
+    pytest.param('Principal Engineer', 'Build React and TypeScript products. ' * 20, 'leadership-title-strict', id='leadership'),
+    pytest.param('Frontend Engineer', 'Applicants must already live in the US. ' * 20, 'already-us-resident', id='residency'),
+])
+def test_backfill_commits_gate_before_board_and_poll_reads(db, status, title, jd, rule):
+    row = {**observation(title, None), 'source': 'lever',
+           'url': 'https://jobs.lever.co/synthetic/cloud-gate'}
+    [pid] = write(db, row)['inserted_posting_ids']
+    db.execute('select set_status(%s,%s)', (pid, status))
+    assert backfill(db, fetcher=lambda _: jd)['stored'] == 1
+    assert db.execute('select raw_jd,relevance_filtered,relevance_gate from postings where id=%s',
+                      (pid,)).fetchone() == (jd, True, dict(version=VERSION, rule=rule))
+    for view in ['all', 'new-for-me', 'seen', 'not-scored']:
+        assert bool(db.execute('select id from board_postings(filter=>%s)', (view,)).fetchall()) == (view == 'not-scored')
+        snapshot = db.execute("select get_new_roles_snapshot(%s,'active','2026-10-11T05:00:00Z')", (view,)).fetchone()[0]
+        assert bool(snapshot['incoming']) == (view == 'not-scored')
+
+
+@pytest.mark.parametrize('change', ['title', 'jd_text', 'both'])
+def test_text_changing_upsert_preserves_score_anyway(db, change):
+    row = observation()
+    [pid] = write(db, row)['inserted_posting_ids']
+    assert db.execute('select score_anyway(%s)', (pid,)).fetchone() == (True,)
+    changed = {**row}
+    if change in ('title', 'both'):
+        changed['title'] = 'Staff Engineer'
+    if change in ('jd_text', 'both'):
+        changed['jd_text'] += ' More role details.'
+    write(db, changed)
+    filtered, gate = db.execute('select relevance_filtered,relevance_gate from postings where id=%s', (pid,)).fetchone()
+    assert filtered is False and gate == dict(override=True, score_requested=True)
+
+
+def test_backfill_preserves_score_anyway(db):
+    row = {**observation(jd=None), 'source': 'lever',
+           'url': 'https://jobs.lever.co/synthetic/cloud-gate'}
+    [pid] = write(db, row)['inserted_posting_ids']
+    db.execute('select score_anyway(%s)', (pid,))
+    backfill(db, fetcher=lambda _: 'Build React and TypeScript products. ' * 20)
+    assert db.execute('select relevance_filtered,relevance_gate from postings where id=%s',
+                      (pid,)).fetchone() == (False, dict(override=True, score_requested=True))
+
+
+def test_backfill_gate_failure_rolls_back_description_and_fetch_metadata(db, monkeypatch):
+    from scraper import relevance
+    row = {**observation(jd=None), 'source': 'lever',
+           'url': 'https://jobs.lever.co/synthetic/cloud-gate'}
+    [pid] = write(db, row)['inserted_posting_ids']
+    before = db.execute('select raw_jd,liveness,relevance_gate from postings where id=%s', (pid,)).fetchone()
+    def fail(*args, **kwargs):
+        raise RuntimeError('synthetic gate failure')
+    monkeypatch.setattr(relevance, 'refresh_gate', fail)
+    with pytest.raises(RuntimeError, match='synthetic gate failure'):
+        backfill(db, fetcher=lambda _: 'Build React and TypeScript products. ' * 20)
+    assert db.execute('select raw_jd,liveness,relevance_gate from postings where id=%s', (pid,)).fetchone() == before
+
+
+def test_text_invalidation_preserves_false_owner_keys_and_refresh_keeps_request(db):
+    from scraper.relevance import refresh_gate
+    [pid] = write(db, observation())['inserted_posting_ids']
+    db.execute("update postings set relevance_gate=relevance_gate || %s::jsonb where id=%s",
+               (json.dumps(dict(override=False, score_requested=True, synthetic_computed='stale')), pid))
+    db.execute("update postings set title='Frontend Engineer' where id=%s", (pid,))
+    assert db.execute('select relevance_gate from postings where id=%s', (pid,)).fetchone() == (dict(override=False, score_requested=True),)
+    refresh_gate(db, posting_ids=[pid], at_write=True)
+    assert db.execute('select relevance_gate from postings where id=%s', (pid,)).fetchone() == (dict(override=False, score_requested=True, version=VERSION, rule=None),)

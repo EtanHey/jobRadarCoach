@@ -10,9 +10,11 @@ import json
 import os
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.error import HTTPError
 from urllib.request import Request
 
 from scraper.jd_fetch import BROWSER_USER_AGENT, MIN_PLAUSIBLE_JD_CHARS, extract_full_jd
+from scraper import relevance
 from scraper.public_https import pinned_open
 from scraper.recheck import public_job_url
 from scraper.sources import ashby, smartrecruiters
@@ -96,11 +98,11 @@ def _fetch(url: str, *, opener=None, timeout: int = 12) -> str:
     return description
 
 
-def backfill(connection, *, limit: int = MAX_ITEMS, fetcher=_fetch) -> dict[str, int]:
+def backfill(connection, *, limit: int = MAX_ITEMS, fetcher=_fetch) -> dict:
     if not 1 <= limit <= MAX_ITEMS:
         raise ValueError("limit must be 1..12")
     rows = connection.execute(SELECT, (MIN_PLAUSIBLE_JD_CHARS, limit)).fetchall()
-    receipt = {"attempted": 0, "stored": 0, "failed": 0, "unsupported": 0}
+    receipt = {"attempted": 0, "stored": 0, "failed": 0, "unsupported": 0, "reasons": {}}
     for posting_id, url in rows:
         now = datetime.now(timezone.utc).isoformat()
         description = None
@@ -111,11 +113,17 @@ def backfill(connection, *, limit: int = MAX_ITEMS, fetcher=_fetch) -> dict[str,
             reason = str(error) if isinstance(error, ValueError) else type(error).__name__
             reason = reason if reason in {"unsupported-public-url", "compressed-body-too-large",
                 "body-too-large", "description-missing-or-short"} else type(error).__name__
+            if isinstance(error, HTTPError):
+                reason = f"http-{error.code}"
             receipt["unsupported" if reason == "unsupported-public-url" else "failed"] += 1
+        receipt["reasons"][reason] = receipt["reasons"].get(reason, 0) + 1
         metadata = {"description_fetch_attempt_at": now,
                     "description_fetch_attempt_reason": reason}
-        connection.execute(UPDATE, (description, MIN_PLAUSIBLE_JD_CHARS, description,
-                                    json.dumps(metadata), posting_id, url))
+        with connection.transaction():
+            connection.execute(UPDATE, (description, MIN_PLAUSIBLE_JD_CHARS, description,
+                                        json.dumps(metadata), posting_id, url))
+            if description is not None:
+                relevance.refresh_gate(connection, posting_ids=[posting_id], limit=1, at_write=True)
         receipt["attempted"] += 1
         if description is not None:
             receipt["stored"] += 1

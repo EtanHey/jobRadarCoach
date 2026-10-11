@@ -89,7 +89,7 @@ def _refresh_gate_locked(connection, *, posting_ids, limit, at_write):
         # Explicit residency wins over a score proxy, never a pipeline decision.
         rule = ('already-us-resident' if already_us_resident(jd) else None) if has_score else gate_rule(title, jd)
         connection.execute(
-            "update public.postings p set relevance_gate=jsonb_build_object('version',%s::text,'rule',%s::text) "
+            "update public.postings p set relevance_gate=p.relevance_gate || jsonb_build_object('version',%s::text,'rule',%s::text) "
             "where p.id=%s and p.title=%s and p.raw_jd is not distinct from %s "
             "and not coalesce((p.relevance_gate->>'override')::boolean,false) "
             "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or %s::boolean) "

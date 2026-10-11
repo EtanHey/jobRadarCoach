@@ -67,6 +67,9 @@ def test_exhausts_pages_even_when_target_is_on_first_page(source, broken):
 @pytest.mark.parametrize('source', SOURCES)
 @pytest.mark.parametrize('kind', ('error', 'invalid', 'duplicate', 'cap'))
 def test_uncertain_snapshots_are_cached_unknown(source, kind, monkeypatch):
+    import scraper.ats_liveness as module
+    monkeypatch.setattr(module, 'pinned_open', lambda request, **_: (_ for _ in ()).throw(
+        HTTPError(request.full_url, 429, 'synthetic', {}, None)))
     from scraper.sources import smartrecruiters, workday
     monkeypatch.setattr(smartrecruiters, 'MAX_PAGES', 1)
     monkeypatch.setattr(workday, 'MAX_PAGES', 1)
@@ -147,7 +150,11 @@ def test_transport_sends_honest_bounded_json_get_or_post(monkeypatch, data):
 
 
 @pytest.mark.parametrize('total', (501, 2000))
-def test_oversized_workday_board_fetches_once_per_run_and_alerts_once(db, total):
+def test_oversized_workday_board_fetches_once_per_run_and_alerts_once(db, total, monkeypatch):
+    import scraper.ats_liveness as module
+    monkeypatch.setattr(module.time, 'sleep', lambda _: None)
+    monkeypatch.setattr(module, 'pinned_open', lambda request, **_: (_ for _ in ()).throw(
+        HTTPError(request.full_url, 429, 'synthetic', {}, None)))
     row = posting('workday')
     db.execute('update postings set source=%s,external_id=%s,url=%s',
                (row['source'], row['external_id'], row['url']))
@@ -169,7 +176,7 @@ def test_oversized_workday_board_fetches_once_per_run_and_alerts_once(db, total)
         assert state(db)['ats_miss_count'] == 0
         assert state(db)['last_attempt_verdict'] == 'unknown'
         alerts.append(receipt['alerts'])
-    assert calls == [0, 0]
+    assert calls == [0, 0, 0, 0]  # One bootstrap and one bounded target search per run.
     assert alerts == [1, 0]
     assert state(db)['ats_alert_count'] == 1
 
