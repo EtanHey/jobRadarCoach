@@ -52,9 +52,6 @@ def test_repost_and_closure_can_coexist():
     assert evidence['linkedin_closed_signal']['phrase'] == 'no longer accepting applications'
 
 
-from scraper.test_database import connection, migrated_database_url
-
-
 def test_real_persistence_and_recheck_keep_seen_repost_on_unknown(connection, monkeypatch):
     from scraper import recheck
     row = {'source': 'linkedin', 'id': '1234567890', 'url': URL, 'title': 'Synthetic Engineer', 'company': 'Synthetic'}
