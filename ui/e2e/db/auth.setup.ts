@@ -5,6 +5,7 @@ test('sign in through real owner recovery and callback', async ({ page, request 
   await page.goto('/');
   await expect(page).toHaveURL(/\/login/);
   expect((await request.get('/api/jobs')).status()).toBe(401);
+  expect((await request.get('/api/jobs/sources')).status()).toBe(401);
   await request.delete('http://127.0.0.1:55434/api/v1/messages');
   const recovery = page.waitForResponse(response => new URL(response.url()).pathname === '/auth/recovery');
   await page.getByRole('button', { name: 'Send setup or recovery link' }).click();
