@@ -63,17 +63,19 @@ def gate_rule(title: str, jd: str) -> str | None:
     return None
 
 
-def refresh_gate(connection, *, posting_ids=(), limit: int = 1000) -> None:
-    """Classify backlog; only explicit US residency overrides a prior score."""
+def refresh_gate(connection, *, posting_ids=(), limit: int = 1000, at_write: bool = False) -> None:
+    """Classify backlog or a cloud write batch before its transaction commits."""
+    if at_write and not posting_ids:
+        return  # An empty harvest must never turn into a backlog scan.
     rows = connection.execute(
         "select p.id::text,p.title,p.raw_jd,exists(select 1 from public.posting_scores gs where gs.posting_id=p.id) from public.postings p "
-        "where p.relevance_gate->>'version' is distinct from %s "
+        "where (%s::boolean or p.relevance_gate->>'version' is distinct from %s) "
         "and not coalesce((p.relevance_gate->>'override')::boolean,false) "
-        "and p.raw_jd is not null and length(trim(p.raw_jd))>=80 "
+        "and (%s::boolean or (p.raw_jd is not null and length(trim(p.raw_jd))>=80)) "
         "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or p.raw_jd ilike '%%already%%') "
         "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status='applied') "
         "and (%s::uuid[] is null or p.id=any(%s::uuid[])) order by p.first_seen_at,p.id limit %s",
-        (VERSION, list(posting_ids) or None, list(posting_ids) or None, limit),
+        (at_write, VERSION, at_write, list(posting_ids) or None, list(posting_ids) or None, limit),
     ).fetchall()
     for posting_id, title, jd, has_score in rows:
         # Owner's explicit rejection wins over an automated score proxy. Applied
@@ -81,7 +83,7 @@ def refresh_gate(connection, *, posting_ids=(), limit: int = 1000) -> None:
         rule = ('already-us-resident' if already_us_resident(jd) else None) if has_score else gate_rule(title, jd)
         connection.execute(
             "update public.postings p set relevance_gate=jsonb_build_object('version',%s::text,'rule',%s::text) "
-            "where p.id=%s and p.title=%s and p.raw_jd=%s "
+            "where p.id=%s and p.title=%s and p.raw_jd is not distinct from %s "
             "and not coalesce((p.relevance_gate->>'override')::boolean,false) "
             "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or %s::boolean) "
             "and not exists(select 1 from public.posting_status st where st.posting_id=p.id and st.status='applied')",

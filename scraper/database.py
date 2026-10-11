@@ -13,11 +13,12 @@ from typing import Protocol, cast
 try:
     from scraper.ats_sources import ATS_SOURCES
     from scraper.annotate import _load_safe_profile_contract, posting_mode
-    from scraper import linkedin_liveness
+    from scraper import linkedin_liveness, relevance
 except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
     from ats_sources import ATS_SOURCES
     from annotate import _load_safe_profile_contract, posting_mode
     import linkedin_liveness
+    import relevance
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
 UNKNOWN_TEXT_VALUES = frozenset(
@@ -448,6 +449,9 @@ def _persist_postings(
                 "on conflict (posting_id) do nothing",
                 (posting_id,),
             )
+        # Classify the effective stored title/JD, including retained conflict
+        # values, while writes are still invisible to board and poll readers.
+        relevance.refresh_gate(connection, posting_ids=posting_ids, limit=len(posting_ids), at_write=True)
     return posting_ids, inserted_ids
 
 

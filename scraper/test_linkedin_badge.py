@@ -14,7 +14,7 @@ ATTACKS += [TOP + '<a href="' + href + '">' + STATUS + '</a></section>' for href
 @pytest.fixture(scope='module')
 def migrated_database_url():
     # Exercise the current production board RPC, not just an equivalent predicate.
-    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=26) as url:
+    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=28) as url:
         yield url
 
 @pytest.mark.parametrize('body', ATTACKS)
