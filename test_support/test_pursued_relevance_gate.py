@@ -7,13 +7,14 @@ import time
 from uuid import uuid4
 
 import psycopg
+from psycopg.conninfo import make_conninfo
 import pytest
 
 from classifier.persistence import list_scoring_candidates
 from classifier.test_core import profile_snapshot
 from extractor.job import select_postings
 from scraper.relevance import refresh_gate
-from test_support.postgres import migrated_database
+from test_support.postgres import database_url, migrated_database
 
 MIGRATIONS = Path(__file__).parents[1] / 'supabase/migrations'
 PURSUED = ['worth_checking', 'applied', 'screen', 'interview_technical',
@@ -146,7 +147,8 @@ def test_pursue_wins_when_gate_waits_for_posting_lock(db):
     db.execute('select id from postings where id=%s for update', (pid,))
     backend = Queue()
     def gate_worker():
-        with psycopg.connect(db.info.dsn, autocommit=True) as worker:
+        # info.dsn strips credentials; retain the disposable server's auth.
+        with psycopg.connect(make_conninfo(database_url(), dbname=db.info.dbname), autocommit=True) as worker:
             backend.put(worker.info.backend_pid)
             refresh_gate(worker, posting_ids=[pid])
     with ThreadPoolExecutor(max_workers=1) as pool:
