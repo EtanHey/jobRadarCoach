@@ -68,14 +68,14 @@ test("unordered RPC current markers give the same new-card count for every permu
   const current = [role(0), role(1, { title: "Engineer 0", company: "Company 0" }),
     role(2, { score: 20, recommendation: "skip" }), role(3, { status: "applied" })];
   const incoming = [role(0, { status: "seen" }),
-    role(4, { title: "Engineer 0", company: "Company 0" }), role(5),
+    role(4, { title: "Engineer 0", company: "Company 0" }), role(5, { status: "applied" }),
     role(6, { title: "Engineer 5", company: "Company 5" }),
     role(7, { score: 20, recommendation: "skip" })];
   const view = { ...defaultBoardPreferences().view, fit: "recommended" };
   for (const order of permutations(current)) {
     assert.equal(countNewRoleCards(order, incoming, view), 1, "only the new recommended card counts");
     assert.equal(countNewRoleCards(order, incoming, { ...view, fit: "" }), 2, "unfiltered fit also counts the new skip card");
-    assert.equal(countNewRoleCards(order, incoming, { ...view, statuses: ["new"] }), 1, "status filtering preserves the count");
+    assert.equal(countNewRoleCards(order, incoming, { ...view, statuses: ["applied"] }), 1, "status filtering preserves the count");
     assert.equal(countNewRoleCards(order, incoming, { ...view, search: "nothing matches" }), 0);
   }
 });
