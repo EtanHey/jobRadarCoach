@@ -9,7 +9,7 @@ import pytest
 from extractor import core, job, persistence
 from extractor.evidence import ExtractionValidationError, validate_facts
 from extractor.test_core import facts, runner_for
-from extractor.test_persistence import connection, insert_posting, migrated_database_url
+from extractor.test_persistence import insert_posting
 from scraper.brain_contract import BrainValidationError
 
 ROWS = json.loads((Path(__file__).parent / "testdata/location_fallback.json").read_text())
