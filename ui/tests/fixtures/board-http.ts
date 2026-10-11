@@ -47,6 +47,8 @@ async function main() {
   assert.ok(!window.some(row => row.id === rows[0].id), "old highest-fit row is excluded before cap");
   const poll = await selectSummaries(db, { filter: "all", availability: "all", limit: 101, since: "1970-01-01T00:00:00Z", found_within: "24h" });
   assert.ok(poll.every(row => Date.parse(row.first_seen_at) >= Date.now() - 86400000 - 1000));
-  process.stdout.write(JSON.stringify({ first: rows[0].id, count: rows.length, pipeline: true, window: true, poll: true }));
+  const facets = await selectSummaries(db, { filter: "all", availability: "all", limit: 1000, source: "synthetic", work_mode: "hybrid", location: "israel", seniority: "Junior" });
+  assert.deepEqual(facets.map(row => row.id), [rows[0].id]);
+  process.stdout.write(JSON.stringify({ first: rows[0].id, count: rows.length, pipeline: true, window: true, poll: true, facets: true }));
 }
 void main();

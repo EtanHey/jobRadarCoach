@@ -7,8 +7,8 @@ import { loadJobDetail } from "./job-detail-request";
 import type { ViewOptions } from "./job-filters";
 
 export type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
-export const boardListKey = (filter: BoardFilter, availability: Availability, view?: Pick<ViewOptions, "fit" | "statuses" | "sort" | "found_within">) =>
-  ["board-list", filter, availability, view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit", view?.found_within ?? ""] as const;
+export const boardListKey = (filter: BoardFilter, availability: Availability, view?: Partial<Pick<ViewOptions, "fit" | "statuses" | "sort" | "found_within" | "source" | "work_mode" | "remote" | "location" | "seniority">>) =>
+  ["board-list", filter, availability, view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit", view?.found_within ?? "", view?.source ?? "", view?.work_mode ?? "", view?.work_mode ? null : view?.remote ?? null, view?.location ?? "", view?.seniority ?? ""] as const;
 // Facet-specific snapshots still belong to one New-for-me visit. Keep settled
 // cards when a sort/fit change creates a new query, and hydrate them by ID.
 export function cachedVisitCohort(client: QueryClient, availability: Availability, foundWithin: ViewOptions["found_within"] = ""): JobSummary[] | null {

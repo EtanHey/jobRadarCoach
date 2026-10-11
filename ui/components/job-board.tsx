@@ -95,7 +95,7 @@ function Board() {
     queryFn: async ({ signal }) => {
       const started = confirmedStatusRevision(client);
       const previous = filter === "new-for-me" ? cachedVisitCohort(client, view.availability, view.found_within) : null;
-      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: queryView.availability, limit: 1000, fit: queryView.fit, statuses: queryView.statuses, sort: queryView.sort, found_within: queryView.found_within }), { signal })).jobs);
+      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: queryView.availability, limit: 1000, fit: queryView.fit, statuses: queryView.statuses, sort: queryView.sort, found_within: queryView.found_within, source: queryView.source, work_mode: queryView.work_mode, remote: queryView.remote, location: queryView.location, seniority: queryView.seniority }), { signal })).jobs);
       const read = filter === "new-for-me" ? await refreshVisitCohort(previous, next, async ids => {
         const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
         return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal })).jobs;

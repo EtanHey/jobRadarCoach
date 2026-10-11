@@ -109,9 +109,14 @@ export const JobListQuerySchema = z.object({
   statuses: z.string().transform(value => value === "" ? [] : value.split(","))
     .pipe(z.array(z.enum(pipelineStatusValues)).max(pipelineStatusValues.length)).optional(),
   sort: z.enum(["found", "posted", "fit", "seniority"]).optional(),
+  source: z.string().max(200).optional(),
+  work_mode: WorkModeSchema.optional(),
+  remote: z.enum(["true", "false"]).transform(value => value === "true").optional(),
+  location: z.enum(["", "israel", "united-states", "other"]).optional(),
+  seniority: z.enum(["", "non-senior", "Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"]).optional(),
 }).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since && !query.found_within), {
   message: "ID lookup requires all statuses and availability, without a cursor.",
-}).refine(query => !(query.ids || query.since) || (query.fit === undefined && query.statuses === undefined && query.sort === undefined), {
+}).refine(query => !(query.ids || query.since) || (query.fit === undefined && query.statuses === undefined && query.sort === undefined && query.source === undefined && query.work_mode === undefined && query.remote === undefined && query.location === undefined && query.seniority === undefined), {
   message: "ID and poll reads do not accept board facets.",
 });
 

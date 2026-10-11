@@ -19,6 +19,25 @@ test('real database board, drawer, durable status and globe', async ({ page }) =
   const detail = await page.request.get('/api/jobs/12000000-0000-4000-8000-000000000001');
   expect((await detail.json()).job.status).toBe('applied');
   await page.keyboard.press('Escape');
+  // Real toolbar -> Next route -> PostgREST -> SQL, including reverse transitions.
+  for (const [label, value, option, count] of [
+    ['Work mode', 'remote', 'Remote', 0], ['Work mode', 'on-site', 'On-site', 3],
+    ['Source', 'fixture', 'fixture', 3], ['Location', 'united-states', 'United States', 0],
+    ['Location', 'israel', 'Israel', 3], ['Seniority', 'Senior', 'Senior', 0],
+    ['Seniority', 'Junior', 'Junior', 3],
+  ] as const) {
+    const response = page.waitForResponse(r => {
+      const url = new URL(r.url());
+      return url.pathname === '/api/jobs' && url.searchParams.get(label === 'Work mode' ? 'work_mode' : label.toLowerCase()) === value;
+    });
+    await page.getByRole('combobox', { name: label, exact: true }).click();
+    await page.getByRole('option', { name: option, exact: true }).click();
+    const reply = await response;
+    expect(reply.status()).toBe(200);
+    expect((await reply.json()).jobs).toHaveLength(count);
+    await expect(page.getByRole('button', { name: /^Open .* at Synthetic P12 Studio/ })).toHaveCount(count);
+  }
+  await page.screenshot({ path: '.e2e/db-results/facets.png', fullPage: true });
   const globe = page.waitForResponse(r => new URL(r.url()).pathname === '/api/jobs/globe');
   await page.getByRole('button', { name: 'Globe', exact: true }).click();
   const response = await globe;

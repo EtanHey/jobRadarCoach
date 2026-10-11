@@ -237,3 +237,11 @@ test("an override defeats a held archive read but a later JD verdict stays autho
   assert.deepEqual(confirmListRead(client, [filtered], "not-scored", confirmedStatusRevision(client)), [filtered]);
   client.clear();
 });
+
+
+test("server facets partition snapshots, including legacy remote", () => {
+  const base = { fit: "", statuses: [], sort: "fit" as const, found_within: "" as const };
+  for (const [name, value] of Object.entries({ source: "synthetic", work_mode: "hybrid", location: "israel", seniority: "Junior", remote: false })) {
+    assert.notDeepEqual(boardListKey("all", "all", base), boardListKey("all", "all", { ...base, [name]: value }));
+  }
+});

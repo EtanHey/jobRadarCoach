@@ -54,7 +54,9 @@ def _migration_paths(migrations: Path, through: int) -> list[Path]:
     paths = sorted(migrations.glob("[0-9][0-9][0-9][0-9]_*.sql"))
     selected = [path for path in paths if int(path.name[:4]) <= through]
     numbers = [int(path.name[:4]) for path in selected]
-    if numbers != list(range(1, through + 1)):
+    # 0030 belongs to open PR #458; P4f must use 0031 on master.
+    expected = [n for n in range(1, through + 1) if n != 30 or 30 in numbers or through == 30]
+    if numbers != expected:
         raise ValueError(f"expected exactly migrations 0001 through {through:04d}")
     return selected
 

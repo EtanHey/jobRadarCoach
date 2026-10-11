@@ -132,10 +132,15 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   if (input.ids) {
     return parseListRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
-  if ((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined) {
+  if ((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined || input.source !== undefined || input.work_mode !== undefined || input.remote !== undefined || input.location !== undefined || input.seniority !== undefined) {
     return parseListRows(await data(db.rpc("board_postings", {
       filter: input.filter, availability: input.availability, fit: input.fit ?? "",
       statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.work_mode !== undefined ? { work_mode: input.work_mode } : {}),
+      ...(input.remote !== undefined ? { remote: input.remote } : {}),
+      ...(input.location !== undefined ? { location: input.location } : {}),
+      ...(input.seniority !== undefined ? { seniority: input.seniority } : {}),
       ...(input.found_within ? { found_within: input.found_within } : {}),
     }).select(SUMMARY))).jobs;
   }
