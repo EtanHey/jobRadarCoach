@@ -289,7 +289,7 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
     if (_nonblank(posting.get("source")) or "linkedin") == "linkedin":
         signal = posting.get("linkedin_closed_signal")
         if (isinstance(signal, dict) and signal.get("phrase") in
-                {"no longer accepting applications", "not currently accepting applications"}
+                linkedin_liveness.CLOSURE_PHRASES
                 and _timestamp(signal.get("checked_at")) is not None
                 and isinstance(signal.get("url"), str)
                 and signal["url"] == posting.get("url")):

@@ -120,6 +120,13 @@ YEAR_SECTION_HEADING_PATTERN = re.compile(
     r"((?-i:[A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|and|of|the|we|are)){0,7}|"
     r"[A-Z][A-Z /]{2,60}))\s*$)", re.I,
 )
+YEAR_ALTERNATIVE_PATTERN = re.compile(r"\bor\b(?!\s+(?:more|higher|greater)\b)", re.I)
+YEAR_INLINE_HEADING_PATTERN = re.compile(r"(?:requirements?|qualifications?):\s*", re.I)
+YEAR_NONREQUIREMENT_PATTERN = re.compile(r"\b(?:not\s+required|isn['’]t\s+required)\b", re.I)
+YEAR_BULLET_PREFIX_PATTERN = re.compile(r"\s*[-•]\s*")
+YEAR_CLAUSE_BOUNDARY_PATTERN = re.compile(r"[;•]|\n(?![ \t]+(?![-•]|\d+[.)]\s)\S)|[.!?](?=\s|$)")
+YEAR_SKILL_SUFFIX_PATTERN = re.compile(r"\s+of\s+(?:Python|Java|JavaScript|TypeScript|React)\b", re.I)
+YEAR_REQUIRED_HEADINGS = frozenset({"requirement", "requirements", "qualification", "qualifications"})
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
     (8, "8-9+ years", -10),
@@ -669,23 +676,19 @@ def _has_blocking_years_requirement(text: str) -> bool:
         if int(match.group("minimum")) < 7:
             continue
         item = _requirement_list_item(text, match.start(), match.end())
-        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item) or re.search(
-            r"\b(?:not\s+required|isn['’]t\s+required)\b", item, re.I
-        ):
+        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item) or YEAR_NONREQUIREMENT_PATTERN.search(item):
             continue
         offset = item.index(match.group(0))
         prefix = item[:offset].strip().lstrip("- ")
         suffix = item[offset + len(match.group(0)):]
         experience = YEAR_EXPERIENCE_PATTERN.match(suffix)
-        section = False
+        required_section = False
         optional_section = False
         for line in text[:match.start()].splitlines():
             heading = YEAR_SECTION_HEADING_PATTERN.match(line)
             if heading:
                 title = next(group for group in heading.groups() if group).strip().casefold()
-                section = title in {
-                    "requirement", "requirements", "qualification", "qualifications"
-                }
+                required_section = title in YEAR_REQUIRED_HEADINGS
                 optional_section = bool(YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(title))
         if optional_section:
             continue
@@ -694,26 +697,22 @@ def _has_blocking_years_requirement(text: str) -> bool:
         # continuation lines belong to the current item; new bullets do not.
         clause_boundaries = [
             boundary.start()
-            for boundary in re.finditer(
-                r"[;•]|\n(?![ \t]+(?![-•]|\d+[.)]\s)\S)|[.!?](?=\s|$)", text
-            )
+            for boundary in YEAR_CLAUSE_BOUNDARY_PATTERN.finditer(text)
         ]
         left = max((index for index in clause_boundaries if index < match.start()), default=-1)
         right = min(
             (index for index in clause_boundaries if index >= match.end()), default=len(text)
         )
         clause = text[left + 1:right]
-        if re.search(r"\bor\b(?!\s+(?:more|higher|greater)\b)", clause, re.I):
+        if YEAR_ALTERNATIVE_PATTERN.search(clause):
             continue
-        inline = re.fullmatch(r"(?:requirements?|qualifications?):\s*", prefix, re.I)
+        inline = YEAR_INLINE_HEADING_PATTERN.fullmatch(prefix)
         bare = not prefix or bool(inline)
         # An explicit section list can name the skill without the word experience.
         line_prefix = text[:match.start()].rsplit("\n", 1)[-1]
-        listed = bool(re.fullmatch(r"\s*[-•]\s*", line_prefix))
-        if bare and section and ("+" in match.group(0) or inline or listed) and (
-            experience or re.match(
-                r"\s+of\s+(?:Python|Java|JavaScript|TypeScript|React)\b", suffix, re.I
-            )
+        listed = bool(YEAR_BULLET_PREFIX_PATTERN.fullmatch(line_prefix))
+        if bare and required_section and ("+" in match.group(0) or inline or listed) and (
+            experience or YEAR_SKILL_SUFFIX_PATTERN.match(suffix)
         ):
             return True
         if not experience:

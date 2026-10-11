@@ -6,7 +6,8 @@ from urllib.parse import unquote, urlparse
 
 BODY_LIMIT = 512_000
 REQUEST_INTERVAL = 2.0
-PHRASE = re.compile(r'^(no longer accepting applications|not currently accepting applications)$', re.I)
+CLOSURE_PHRASES = frozenset({'no longer accepting applications', 'not currently accepting applications'})
+PHRASE = re.compile('^(' + '|'.join(map(re.escape, sorted(CLOSURE_PHRASES))) + ')$', re.I)
 VOID = frozenset('area base br col embed hr img input link meta param source track wbr'.split())
 NONVISIBLE = frozenset('script style template noscript svg canvas textarea select iframe object'.split())
 EXCLUDED = NONVISIBLE | {'aside', 'nav', 'footer'}
@@ -216,7 +217,3 @@ def guest_observation(body, identity):
     text = ' '.join(''.join(parser.statuses[0]).split())
     match = PHRASE.fullmatch(text)
     return (match.group(1).lower() if match else None), False
-
-
-def closure_phrase(body, identity):
-    return guest_observation(body, identity)[0]
