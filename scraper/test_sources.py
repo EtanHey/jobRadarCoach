@@ -9,7 +9,7 @@ import socket
 import subprocess
 import sys
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -533,8 +533,13 @@ def test_source_registry_is_checked_in_and_separate_from_linkedin_searches() -> 
         "enabled",
     }
     assert all(required <= set(entry) for entry in registry["tenants"])
+    # Registry shape is independent of when this test runs.
+    reference_date = max(
+        datetime.fromisoformat(entry["last_verified_at"].replace("Z", "+00:00")).date()
+        for entry in registry["tenants"]
+    )
     report = registry_module.load_registry(
-        REGISTRY_PATH, as_of=datetime.now(timezone.utc).date(), max_age_days=10_000
+        REGISTRY_PATH, as_of=reference_date, max_age_days=10_000
     )
     assert report.invalid == []
     assert report.stale == []

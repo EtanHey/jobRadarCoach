@@ -47,10 +47,17 @@ const rawBaseSchema = z.object({
   posting_status: z.object({ status: z.string(), reason: z.string().nullable() }).nullable(),
 });
 const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSchema.nullable() });
+const rawListSchema = rawBaseSchema.omit({
+  salary: true, list_metadata: true, liveness: true, relevance_gate: true, posting_extractions: true,
+}).extend({
+  list_stack: z.array(z.string()), experience: z.string().nullable(),
+  relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
+  posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
+});
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "relevance_filtered,relevance_gate,source,last_seen_at,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const SUMMARY = "relevance_filtered,relevance_rule:relevance_gate->rule,source,last_seen_at,list_stack:list_metadata->stack,experience:list_metadata->experience,alive:liveness->alive,linkedin_closed_signal:liveness->linkedin_closed_signal,id,title,company,location,remote,work_mode,seniority,stack,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,recommendation:score_payload->recommendation,fit_line:score_payload->fit_line)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
 const DETAIL = "relevance_filtered,relevance_gate,source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
@@ -74,26 +81,40 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
   return parsed.data;
 }
 
-function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
-  const base = checked(rawSummarySchema, row);
-  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, list_metadata, relevance_gate, ...posting } = base;
+function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
+  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
-  const payload = score?.score_payload;
-  const fit = payload && typeof payload === "object" ? payload : null;
   return checked(JobSummarySchema, {
-    ...posting, ...(relevance_gate ? { relevance_rule: relevance_gate.rule ?? null } : {}), url: postingUrl(posting.url),
+    ...posting, url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
-    stack: posting.stack.length ? posting.stack : list_metadata.stack,
-    seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
-    description_available: list_metadata.description_available,
-    experience: list_metadata.experience, extraction_state: extraction ? "extracted" : "not-extracted",
+    stack: posting.stack.length ? posting.stack : list_stack,
+    seniority: level,
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
     score: base.relevance_filtered ? null : score?.score ?? null,
-    fit_line: !base.relevance_filtered && fit && "fit_line" in fit ? fit.fit_line : null,
-    recommendation: !base.relevance_filtered && fit && "recommendation" in fit ? fit.recommendation : null,
-    alive: typeof liveness?.alive === "boolean" ? liveness.alive : null,
-    linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(liveness?.linkedin_closed_signal).data ?? null,
+    fit_line: base.relevance_filtered ? null : score?.fit_line ?? null,
+    recommendation: base.relevance_filtered ? null : score?.recommendation ?? null,
+    alive: typeof alive === "boolean" ? alive : null,
+    linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(linkedin_closed_signal).data ?? null,
   });
+}
+
+function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
+  const { salary, posting_extractions, liveness, list_metadata, relevance_gate, posting_scores, ...posting } = checked(rawSummarySchema, row);
+  const payload = posting_scores?.score_payload;
+  const fit = payload && typeof payload === "object" ? payload : null;
+  const job = listSummary({ ...posting, list_stack: list_metadata.stack, experience: list_metadata.experience,
+    relevance_rule: relevance_gate?.rule ?? null, alive: liveness?.alive ?? null,
+    linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,
+    posting_scores: posting_scores ? { score: posting_scores.score,
+      fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
+      recommendation: fit && "recommendation" in fit ? fit.recommendation : null } : null });
+  return { ...job, salary, description_available: list_metadata.description_available,
+    seniority_origin: row.seniority ? "extracted" : titleSeniority(row.title) ? "title" : "unknown",
+    extraction_state: posting_extractions ? "extracted" : "not-extracted" };
+}
+
+function parseListRows(value: unknown): { jobs: JobSummary[] } {
+  return { jobs: checked(z.array(rawListSchema), value).map(listSummary) };
 }
 
 export function availabilityPredicate(availability: Availability) {
@@ -109,10 +130,10 @@ export function parseSummaryRows(value: unknown): { jobs: JobSummary[] } {
 
 export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
   if (input.ids) {
-    return parseSummaryRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
+    return parseListRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
   if ((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined) {
-    return parseSummaryRows(await data(db.rpc("board_postings", {
+    return parseListRows(await data(db.rpc("board_postings", {
       filter: input.filter, availability: input.availability, fit: input.fit ?? "",
       statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
       ...(input.found_within ? { found_within: input.found_within } : {}),
@@ -128,7 +149,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   if (cutoff !== null) query = query.gte("first_seen_at", new Date(cutoff).toISOString());
   if (input.since) query = query.gt("first_seen_at", input.since);
   query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
-  return parseSummaryRows(await data(query)).jobs;
+  return parseListRows(await data(query)).jobs;
 }
 
 async function readDetail(db: SupabaseClient, id: string): Promise<z.infer<typeof rawDetailSchema> | null> {
