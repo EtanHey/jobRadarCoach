@@ -1,3 +1,4 @@
+import { fitOptions, sortOptions } from "./view-options";
 import { z } from "zod";
 import { WorkModeSchema, FoundWithinSchema } from "./contracts";
 import type { ViewOptions } from "./job-filters";
@@ -34,12 +35,12 @@ const viewSchema = z.object({
   source: z.string().max(200),
   location: z.enum(["", "israel", "united-states", "other"]),
   seniority: z.enum(["", "non-senior", "Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"]),
-  fit: z.enum(["", "recommended", "skip", "good", "scored", "unscored"]),
-  sort: z.enum(["found", "posted", "fit", "seniority"]),
+  fit: z.enum(fitOptions.map(option => option.value)),
+  sort: z.enum(sortOptions.map(option => option.value)),
 }).strict();
 const pipelineStatusSchema = z.enum(pipelineStatusValues);
 const availabilitySchema = z.enum(["active", "inactive", "all"]);
-const storedPreferencesSchema = z.object({
+export const storedPreferencesSchema = z.object({
   version: z.literal(BOARD_PREFERENCES_VERSION),
   filtersCollapsed: z.boolean().optional(),
   filter: z.enum(["all", "new-for-me", "seen", "not-scored"]),

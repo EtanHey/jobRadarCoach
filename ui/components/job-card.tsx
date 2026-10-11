@@ -5,7 +5,7 @@ import { Recycle } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
 import { scoreCss } from "@/lib/globe-model";
 import { relevanceLabel } from "@/lib/relevance-label";
-import { repostNote } from "@/lib/job-display";
+import { repostNote, repostTooltip } from "@/lib/job-display";
 import { statusDimsCard, statusLabels, type JobStatus } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
 import { CompanyLogo } from "./company-logo";
@@ -44,9 +44,9 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} postingId={job.id} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
-        <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-          <p className="truncate">{job.company}</p>
-          {repost && <InfoTip data-repost-marker label={repost} tip={repost} className="shrink-0"><Recycle aria-hidden="true" size={13} /><span className="ml-1 text-xs">{repost}</span></InfoTip>}
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+          <p className={cn("truncate", repost && "min-w-0 max-w-full flex-[1_1_8rem]")}>{job.company}</p>
+          {repost && <InfoTip data-repost-marker label={repostTooltip(job) ?? repost} tip={repostTooltip(job) ?? repost} wrap className="min-w-0 max-w-full text-left"><Recycle aria-hidden="true" size={13} className="shrink-0" /><span className="ml-1 min-w-0 break-words text-xs">{repost}</span></InfoTip>}
         </div>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
       </div>

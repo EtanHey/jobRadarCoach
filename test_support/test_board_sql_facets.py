@@ -33,6 +33,20 @@ def test_board_sql_facets_match_typescript():
         for case, ids in zip(cases, expected, strict=True):
             actual = db.execute("select id from board_postings(filter=>'all',availability=>'all',sort=>'found',source=>%s,work_mode=>%s,location=>%s,seniority=>%s,remote=>%s)", (case["source"], case["work_mode"] or "", case["location"], case["seniority"], case.get("remote"))).fetchall()
             assert [str(row[0]) for row in actual] == ids, case
+        # Applied 0030 stays marker-only. Its TS view must agree with 0031 SQL
+        # facets for both the full globe and the pinned, bounded poll cohort.
+        globe = db.execute("select get_globe_markers('all','all')").fetchone()[0]["jobs"]
+        poll = db.execute("select get_new_roles_snapshot('all','all','2026-09-01Z')").fetchone()[0]["incoming"]
+        def marker_ids(markers):
+            return json.loads(subprocess.run(
+                ["node", "--import", "tsx", "tests/fixtures/board-golden.ts"],
+                cwd=ROOT / "ui", input=json.dumps(dict(rows=markers, cases=cases)),
+                text=True, capture_output=True, check=True,
+            ).stdout)
+        assert marker_ids(globe) == expected
+        incoming_ids = {row["id"] for row in poll}
+        assert len(incoming_ids) == 101
+        assert marker_ids(poll) == [[id for id in ids if id in incoming_ids] for ids in expected]
         # More than 1,000 newer nonmatching rows cannot conceal an old match.
         db.execute("reset role")
         db.execute("insert into postings(source,external_id,url,title,company,location,seniority,work_mode,work_mode_source,first_seen_at) select 'noise',i::text,'https://example.test','Senior Engineer',i::text,'London, UK','Senior','on-site','structured',now() from generate_series(1,1005) i")

@@ -1,3 +1,4 @@
+import type { GlobeJob } from "./globe-contract";
 import type { DuplicateJobGroup } from "./job-dedup";
 import type { GlobePoint } from "./globe-model";
 
@@ -63,16 +64,16 @@ export function viewportPostingIds(points: GlobePoint[], width: number, height: 
   return visible;
 }
 // A role is visible when any available listing in its existing dedup group is on screen.
-export function partitionGlobeGroups(groups: DuplicateJobGroup[], visiblePostingIds: readonly string[]) {
+export function partitionGlobeGroups<T extends GlobeJob>(groups: DuplicateJobGroup<T>[], visiblePostingIds: readonly string[]) {
   const ids = new Set(visiblePostingIds);
-  const visible: DuplicateJobGroup[] = [], outside: DuplicateJobGroup[] = [];
+  const visible: DuplicateJobGroup<T>[] = [], outside: DuplicateJobGroup<T>[] = [];
   for (const group of groups) {
     const onScreen = [group.job, ...group.alternates].some(job => job.alive !== false && ids.has(job.id));
     (onScreen ? visible : outside).push(group);
   }
   return { visible, outside };
 }
-export function countGlobeRoles(groups: DuplicateJobGroup[], points: GlobePoint[]) {
+export function countGlobeRoles(groups: DuplicateJobGroup<GlobeJob>[], points: GlobePoint[]) {
   const mappedIds = new Set(points.map(point => point.posting_id));
   const mapped = groups.filter(group => [group.job, ...group.alternates].some(job => mappedIds.has(job.id))).length;
   return { total: groups.length, mapped, unmapped: groups.length - mapped };

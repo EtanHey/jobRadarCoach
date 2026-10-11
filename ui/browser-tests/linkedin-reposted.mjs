@@ -107,6 +107,7 @@ try {
     await page.getByRole("button", {name:"Open Explicit repost at Fixture",exact:true}).click();
     await page.getByRole("dialog").waitFor();
     assert.equal(await page.getByRole("dialog").locator("[data-repost-marker]").innerText(), "Reposted 2 weeks ago");
+    assert.equal(await page.getByRole("dialog").locator("[data-repost-marker]").getAttribute("title"), "LinkedIn: Reposted 2 weeks ago · checked 2026-10-04");
     await page.screenshot({path:resolve(output, `explicit-drawer-${width}.png`),fullPage:true,animations:"disabled"});
     await page.keyboard.press("Escape");
     await page.getByRole("dialog").waitFor({state:"hidden"});

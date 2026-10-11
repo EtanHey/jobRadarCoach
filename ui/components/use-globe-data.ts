@@ -1,14 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GlobeResponseSchema, type GlobeResponse } from "@/lib/globe-contract";
+import { GlobeResponseSchema, type GlobeResponse, GlobeJobSchema } from "@/lib/globe-contract";
 import { retainGlobeCohort } from "@/lib/globe-cohort";
 import { reconcileStatusMutations, type StatusMutation } from "@/lib/job-board-state";
-import type { Availability, JobSummary, StatusResult } from "@/lib/contracts";
+import type { Availability, FoundWithin, JobSummary, StatusResult } from "@/lib/contracts";
 import type { BoardFilter } from "@/lib/job-board-preferences";
-export function useGlobeData(open: boolean, filter: BoardFilter, availability: Availability, revision: number, retained: JobSummary[]) {
+export function useGlobeData(open: boolean, filter: BoardFilter, availability: Availability, revision: number, retained: JobSummary[], found_within?: FoundWithin) {
   const retainedRef = useRef(retained);
   useEffect(() => { retainedRef.current = retained; }, [retained]);
-  const key = `${filter}/${availability}`;
+  const key = `${filter}/${availability}/${found_within ?? ""}`;
   const cohort = useRef<{ key: string; data: GlobeResponse } | null>(null);
   const [result, setResult] = useState<{ key: string; data: GlobeResponse } | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
     let active = true;
     queueMicrotask(() => { if (active) setFailure(null); });
     const mutations = inflight.current = new Map();
-    fetch(`/api/jobs/globe?${new URLSearchParams({ filter, availability })}`, { cache: "no-store", signal: controller.signal })
+    fetch(`/api/jobs/globe?${new URLSearchParams({ filter, availability, ...(found_within ? { found_within } : {}) })}`, { cache: "no-store", signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error("Globe unavailable");
         let incoming = GlobeResponseSchema.parse(await response.json());
@@ -36,7 +36,7 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
         if (filter === "new-for-me") {
           const incomingIds = new Set(incoming.jobs.map(job => job.id));
           const previous = cohort.current?.key === key ? cohort.current.data : null;
-          const retainedJobs = [...(previous?.jobs ?? []), ...retainedRef.current];
+          const retainedJobs = [...(previous?.jobs ?? []), ...retainedRef.current.map(job => GlobeJobSchema.parse(job))];
           const missing = new Set(retainedJobs.filter(job => !incomingIds.has(job.id)).map(job => job.id));
           if (missing.size) {
             // Hydrate retained list and globe IDs, including newly inactive roles.
@@ -59,7 +59,7 @@ export function useGlobeData(open: boolean, filter: BoardFilter, availability: A
       }).catch(() => { if (active) setFailure("The globe is unavailable. Your list is still here."); })
       .finally(() => { clearTimeout(timeout); if (inflight.current === mutations) inflight.current = null; });
     return () => { active = false; clearTimeout(timeout); controller.abort(); if (inflight.current === mutations) inflight.current = null; };
-  }, [open, filter, availability, revision, key]);
+  }, [open, filter, availability, revision, key, found_within]);
   const patchStatus = useCallback((id: string, status: StatusResult, remove: boolean) => {
     inflight.current?.set(id, { status: status.status, reason: status.reason, remove });
     const current = cohort.current;

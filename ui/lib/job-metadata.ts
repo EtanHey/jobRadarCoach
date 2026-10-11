@@ -8,6 +8,7 @@ export function postingUrl(value: string): string {
   return url.toString();
 }
 
+// Mirrored in SQL public.board_level_rank (0025); update its parity fixtures when changing these regexes.
 export function titleSeniority(title: string): string | null {
   if (/\b(intern|internship)\b/i.test(title)) return "Intern";
   if (/\b(junior|jr\.?|graduate|entry[- ]level)\b/i.test(title)) return "Junior";

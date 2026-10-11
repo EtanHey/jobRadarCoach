@@ -24,6 +24,8 @@ const companies = [
   { company: "Anthropic", expect: { source: "catalog", state: "loaded" } },
   { company: "DOIT", expect: { state: "unmapped", initials: "D" } },
   { company: "Shifters", posting_id: "19839819-cb9b-4368-bce4-e83eea9f0682", expect: { source: "catalog", state: "loaded" } },
+  { company: "1Password", posting_id: "ec8775dd-3e89-4ee1-b5e4-636688b734f2", apply_url: "https://www.linkedin.com/jobs/view/developer-web-extension-at-1password-4466437607", expect: { source: "logo-dev", state: "loaded" } },
+  { company: "1PASSWORD", expect: { state: "unmapped", initials: "1" } },
 ];
 const places = [["Rehovot, Israel", 34.8113, 31.8928], ["Berlin, Germany", 13.405, 52.52], ["Tel Aviv, Israel", 34.7818, 32.0853], ["London, United Kingdom", -0.1276, 51.5072], ["Paris, France", 2.3522, 48.8566], ["Rome, Italy", 12.4964, 41.9028]];
 const jobs = companies.map(({ company, apply_url = null, posting_id }, n) => ({ id: posting_id ?? id(n), title: `Fixture engineer ${n}`, company, source: "fixture",
@@ -36,7 +38,7 @@ const globe = { jobs, points: jobs.map((_, n) => ({ posting_id: jobs[n].id, lng:
   total_count: jobs.length, resolved_count: jobs.length, unresolved_count: 0, attribution: "© OpenStreetMap contributors" };
 const syntheticLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" fill="#fff"/><circle cx="64" cy="64" r="44" fill="#7c3aed"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" fill="#fff" text-anchor="middle">AR</text></svg>';
 
-const browser = await chromium.launch({ headless: true, channel: "chromium-headless-shell", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+const browser = await chromium.launch({ headless: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const failures = [], passed = [], logoRequests = new Set(), logoRequestCounts = new Map();
 // Lookup paths whose requests fail at the network layer (route.abort), to prove a transport error is never cached as a miss.
 const abortedLogoPaths = new Set();
@@ -61,7 +63,7 @@ async function open(viewport, colorScheme, body) {
         logoRequests.add(`${url.pathname}?${url.searchParams.get("fallback")}`);
         logoRequestCounts.set(url.pathname, (logoRequestCounts.get(url.pathname) ?? 0) + 1);
         if (abortedLogoPaths.has(url.pathname)) return route.abort("failed");
-        return ["/acmerobotics.com", "/jeen.ai"].includes(url.pathname) ? route.fulfill({ contentType: "image/svg+xml", headers: cors, body: syntheticLogo }) : route.fulfill({ status: 404, headers: cors, body: "" });
+        return ["/acmerobotics.com", "/jeen.ai", "/1password.com"].includes(url.pathname) ? route.fulfill({ contentType: "image/svg+xml", headers: cors, body: syntheticLogo }) : route.fulfill({ status: 404, headers: cors, body: "" });
       }
       if (url.hostname !== "127.0.0.1") return url.hostname.endsWith(".cartocdn.com") ? route.continue() : route.abort();
       if (!url.pathname.startsWith("/api/")) return route.continue();
@@ -142,6 +144,15 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
         await page.keyboard.press("Escape");
         await drawer.waitFor({ state: "hidden" });
 
+        await page.getByRole("button", { name: "Open Fixture engineer 11 at 1Password", exact: true }).click();
+        await drawer.getByText("Synthetic description for the logo fixture.").waitFor();
+        const [restoredLogo] = await logosIn(page, '[role="dialog"]');
+        assert.equal(restoredLogo.state, "loaded", `${name}: restored posting binding survives detail loading`);
+        assert.equal(restoredLogo.image.src, grid[11].image.src, `${name}: restored drawer uses the same verified source`);
+        await shot(page, `${name}-restored-drawer`);
+        await page.keyboard.press("Escape");
+        await drawer.waitFor({ state: "hidden" });
+
         await page.getByRole("button", { name: "Open Fixture engineer 6 at Doit", exact: true }).click();
         await drawer.getByText("Synthetic description for the logo fixture.").waitFor();
         const [appLogo] = await logosIn(page, '[role="dialog"]');
@@ -181,7 +192,7 @@ for (const [vpName, viewport] of [["desktop", { width: 1440, height: 900 }], ["3
         await shot(page, `${name}-rail`);
       });
       passed.push(name);
-    } catch (error) { failures.push(`${name}: ${error.message.split("\n")[0]}`); }
+    } catch (error) { failures.push(`${name}: ${error.stack ?? error.message}`); }
   }
 }
 // A Logo.dev miss is billed like a hit and has no cache headers: after one 404 a reload must not ask again.
@@ -228,6 +239,7 @@ try {
 try {
   assert.ok(logoRequests.has("/acmerobotics.com?404"), "trusted company domain went to Logo.dev with fallback=404");
   assert.ok(logoRequests.has("/jeen.ai?404"), "mapped company uses domain lookup");
+  assert.ok(logoRequests.has("/1password.com?404"), "restored company requires a verified domain");
   assert.ok(![...logoRequests].some(request => /name\/Jeen|TalentHop/i.test(request)), "mapped names and map-null companies never use name lookup");
   assert.ok(logoRequests.has("/nowherewidgets.test?404"), "company-site posting used its own domain");
   assert.ok(![...logoRequests].some(request => /greenhouse|confidential|wix/i.test(request)), "no ATS host, placeholder or catalog name reached Logo.dev");

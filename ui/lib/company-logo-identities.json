@@ -8,6 +8,15 @@
       "linkedin:180engineering"
     ]
   },
+  "1password": {
+    "domains": [
+      "1password.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:1password"
+    ],
+    "collision": true
+  },
   "acceler8 talent": {
     "domains": [],
     "postingIds": [
@@ -16,6 +25,42 @@
     "sourceCompanies": [
       "linkedin:acceler8-talent"
     ]
+  },
+  "actai": {
+    "domains": [
+      "actai.company"
+    ],
+    "sourceCompanies": [
+      "linkedin:actai"
+    ],
+    "collision": true
+  },
+  "agilegrid solutions": {
+    "domains": [
+      "agilegridsolutions.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:agilegrid-solutions"
+    ],
+    "collision": true
+  },
+  "agoda": {
+    "domains": [
+      "careersatagoda.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:agoda"
+    ],
+    "collision": true
+  },
+  "aidoc": {
+    "domains": [
+      "aidoc.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:aidoc"
+    ],
+    "collision": true
   },
   "air apps": {
     "domains": [],
@@ -26,6 +71,24 @@
       "linkedin:airapps"
     ]
   },
+  "akamai technologies": {
+    "domains": [
+      "akamai.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:akamai-technologies"
+    ],
+    "collision": true
+  },
+  "alteryx": {
+    "domains": [
+      "alteryx.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:alteryx"
+    ],
+    "collision": true
+  },
   "amawaterways river cruises": {
     "domains": [],
     "postingIds": [
@@ -34,6 +97,15 @@
     "sourceCompanies": [
       "linkedin:amawaterways"
     ]
+  },
+  "amentum": {
+    "domains": [
+      "amentum.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:amentumcorp"
+    ],
+    "collision": true
   },
   "anthropic": {
     "domains": [],
@@ -53,6 +125,42 @@
     "sourceCompanies": [
       "greenhouse:apiiro"
     ]
+  },
+  "appdome": {
+    "domains": [
+      "appdome.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:appdome"
+    ],
+    "collision": true
+  },
+  "applied materials - israel": {
+    "domains": [
+      "appliedmaterials.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:applied-materials-israel"
+    ],
+    "collision": true
+  },
+  "april": {
+    "domains": [
+      "getapril.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:apriltax"
+    ],
+    "collision": true
+  },
+  "arad technologies": {
+    "domains": [
+      "aradtec.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:arad-technologies"
+    ],
+    "collision": true
   },
   "armis security": {
     "domains": [],
@@ -81,6 +189,15 @@
       "linkedin:arrows-group"
     ]
   },
+  "ascertain": {
+    "domains": [
+      "ascertain.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ascertain-ai"
+    ],
+    "collision": true
+  },
   "ashby": {
     "domains": [],
     "postingIds": [
@@ -100,6 +217,24 @@
       "linkedin:astera-labs"
     ]
   },
+  "atera": {
+    "domains": [
+      "atera.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:atera-networks"
+    ],
+    "collision": true
+  },
+  "augury": {
+    "domains": [
+      "augury.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:augury-systems"
+    ],
+    "collision": true
+  },
   "autofleet": {
     "domains": [],
     "postingIds": [
@@ -109,6 +244,42 @@
       "workable:autofleet"
     ]
   },
+  "axon pulse": {
+    "domains": [
+      "axon-pulse.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:axon-pulse"
+    ],
+    "collision": true
+  },
+  "back market": {
+    "domains": [
+      "backmarket.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:back-market"
+    ],
+    "collision": true
+  },
+  "bagira": {
+    "domains": [
+      "bagirasys.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:bagira-systems"
+    ],
+    "collision": true
+  },
+  "balance": {
+    "domains": [
+      "getbalance.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:getbalance"
+    ],
+    "collision": true
+  },
   "beaconfire inc.": {
     "domains": [],
     "postingIds": [
@@ -117,6 +288,24 @@
     "sourceCompanies": [
       "linkedin:beaconfireinc"
     ]
+  },
+  "bjak": {
+    "domains": [
+      "bjak.my"
+    ],
+    "sourceCompanies": [
+      "linkedin:bjak"
+    ],
+    "collision": true
+  },
+  "bluebird aero systems ltd.": {
+    "domains": [
+      "bluebird-uav.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:bluebird-aero-systems-ltd-"
+    ],
+    "collision": true
   },
   "bluevine": {
     "domains": [],
@@ -136,6 +325,15 @@
       "greenhouse:bluevineisrael"
     ]
   },
+  "brandlight": {
+    "domains": [
+      "brandlight.ai"
+    ],
+    "sourceCompanies": [
+      "linkedin:brandlightai"
+    ],
+    "collision": true
+  },
   "brg": {
     "domains": [],
     "postingIds": [
@@ -144,6 +342,24 @@
     "sourceCompanies": [
       "linkedin:berkeley-research-group-llc"
     ]
+  },
+  "bright data": {
+    "domains": [
+      "brightdata.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:bright-data"
+    ],
+    "collision": true
+  },
+  "buildots": {
+    "domains": [
+      "buildots.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:buildots"
+    ],
+    "collision": true
   },
   "camunda": {
     "domains": [],
@@ -172,6 +388,15 @@
       "linkedin:capital-one"
     ]
   },
+  "catapult": {
+    "domains": [
+      "catapult.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:catapultsports"
+    ],
+    "collision": true
+  },
   "cellebrite": {
     "domains": [],
     "postingIds": [
@@ -190,6 +415,60 @@
       "linkedin:cerberus-capital-management"
     ]
   },
+  "cerby": {
+    "domains": [
+      "cerby.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:cerby"
+    ],
+    "collision": true
+  },
+  "chainalysis": {
+    "domains": [
+      "chainalysis.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:chainalysis"
+    ],
+    "collision": true
+  },
+  "check point software": {
+    "domains": [
+      "checkpoint.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:check-point-software-technologies"
+    ],
+    "collision": true
+  },
+  "cheq": {
+    "domains": [
+      "cheq.ai"
+    ],
+    "sourceCompanies": [
+      "linkedin:cheq-ai"
+    ],
+    "collision": true
+  },
+  "cisco": {
+    "domains": [
+      "cisco.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:cisco"
+    ],
+    "collision": true
+  },
+  "clear street": {
+    "domains": [
+      "clearstreet.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:clear-street"
+    ],
+    "collision": true
+  },
   "clearstory": {
     "domains": [],
     "postingIds": [
@@ -198,6 +477,60 @@
     "sourceCompanies": [
       "linkedin:clearstory-build"
     ]
+  },
+  "clickhouse": {
+    "domains": [
+      "clickhouse.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:clickhouseinc"
+    ],
+    "collision": true
+  },
+  "close": {
+    "domains": [
+      "close.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:close-crm"
+    ],
+    "collision": true
+  },
+  "cloudinary": {
+    "domains": [
+      "cloudinary.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:cloudinary"
+    ],
+    "collision": true
+  },
+  "clover security": {
+    "domains": [
+      "clover.security"
+    ],
+    "sourceCompanies": [
+      "linkedin:clover-security"
+    ],
+    "collision": true
+  },
+  "coapp": {
+    "domains": [
+      "coapp.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:co_app"
+    ],
+    "collision": true
+  },
+  "codeoasis ltd.": {
+    "domains": [
+      "codeoasis.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:codeoasis-ltd-"
+    ],
+    "collision": true
   },
   "cohere": {
     "domains": [],
@@ -217,6 +550,15 @@
       "linkedin:coinbase"
     ]
   },
+  "comblack": {
+    "domains": [
+      "comblack.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:comblack"
+    ],
+    "collision": true
+  },
   "commit": {
     "domains": [],
     "postingIds": [
@@ -226,6 +568,15 @@
       "linkedin:comm-it"
     ]
   },
+  "conveyor": {
+    "domains": [
+      "conveyor.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:conveyorhq"
+    ],
+    "collision": true
+  },
   "coralogix": {
     "domains": [],
     "postingIds": [
@@ -234,6 +585,15 @@
     "sourceCompanies": [
       "linkedin:coralogix"
     ]
+  },
+  "crossing hurdles": {
+    "domains": [
+      "crossinghurdles.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:crossinghurdles"
+    ],
+    "collision": true
   },
   "crown equipment corporation": {
     "domains": [],
@@ -253,6 +613,51 @@
       "linkedin:cyabra"
     ]
   },
+  "dappas": {
+    "domains": [
+      "dappas.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:dappas"
+    ],
+    "collision": true
+  },
+  "deloitte": {
+    "domains": [
+      "deloitte.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:deloitte"
+    ],
+    "collision": true
+  },
+  "directeam": {
+    "domains": [
+      "directeam.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:directeam-cloud"
+    ],
+    "collision": true
+  },
+  "discern": {
+    "domains": [
+      "discern.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:discernhq"
+    ],
+    "collision": true
+  },
+  "discount bank בנק דיסקונט": {
+    "domains": [
+      "discountbank.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:discount-bank"
+    ],
+    "collision": true
+  },
   "doit": {
     "domains": [
       "doit.com"
@@ -265,6 +670,60 @@
     "postingIds": [
       "0ac718b9-5d1e-4d5f-9c39-838d2e1e82e1"
     ]
+  },
+  "dot compliance": {
+    "domains": [
+      "dotcompliance.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:dot-compliance"
+    ],
+    "collision": true
+  },
+  "doubleverify": {
+    "domains": [
+      "doubleverify.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:doubleverify-inc"
+    ],
+    "collision": true
+  },
+  "dream": {
+    "domains": [
+      "dreamgroup.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:dreamsecurity"
+    ],
+    "collision": true
+  },
+  "duve": {
+    "domains": [
+      "duve.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:duve"
+    ],
+    "collision": true
+  },
+  "earnix": {
+    "domains": [
+      "earnix.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:earnix"
+    ],
+    "collision": true
+  },
+  "ecoplant": {
+    "domains": [
+      "ecoplant.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ecoplant-technological-innovation-ltd"
+    ],
+    "collision": true
   },
   "effectivbiz": {
     "domains": [],
@@ -284,11 +743,29 @@
       "linkedin:elbit-systems-ltd"
     ]
   },
+  "eleos health": {
+    "domains": [
+      "eleos.health"
+    ],
+    "sourceCompanies": [
+      "linkedin:eleoshealth"
+    ],
+    "collision": true
+  },
   "empathy": {
     "domains": [],
     "postingIds": [
       "c68db1a2-d1b2-41c7-bcd0-14e63c0ba161"
     ]
+  },
+  "engradar": {
+    "domains": [
+      "engradar.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:engradar"
+    ],
+    "collision": true
   },
   "eni-one ltd": {
     "domains": [],
@@ -308,6 +785,15 @@
       "linkedin:we-are-enlighten"
     ]
   },
+  "equalweb": {
+    "domains": [
+      "equalweb.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:equalweb"
+    ],
+    "collision": true
+  },
   "erp logic israel, sap partner": {
     "domains": [],
     "postingIds": [
@@ -326,6 +812,15 @@
       "linkedin:esentire"
     ]
   },
+  "ethosia": {
+    "domains": [
+      "ethosia.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:ethosia"
+    ],
+    "collision": true
+  },
   "evlo ai": {
     "domains": [],
     "postingIds": [
@@ -334,6 +829,60 @@
     "sourceCompanies": [
       "linkedin:evlo-ai"
     ]
+  },
+  "experis": {
+    "domains": [
+      "experis.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:experis"
+    ],
+    "collision": true
+  },
+  "expertvoice": {
+    "domains": [
+      "expertvoice.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:expertvoice"
+    ],
+    "collision": true
+  },
+  "eyeviation": {
+    "domains": [
+      "eyeviation.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:eyeviation-ai"
+    ],
+    "collision": true
+  },
+  "faye": {
+    "domains": [
+      "withfaye.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:fayetravelinsurance"
+    ],
+    "collision": true
+  },
+  "fayrix": {
+    "domains": [
+      "fayrix.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:fayrix"
+    ],
+    "collision": true
+  },
+  "final": {
+    "domains": [
+      "final.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:finalisrael"
+    ],
+    "collision": true
   },
   "finch": {
     "domains": [],
@@ -344,6 +893,15 @@
       "linkedin:finchapi"
     ]
   },
+  "fiverr": {
+    "domains": [
+      "fiverr.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:fiverr-com"
+    ],
+    "collision": true
+  },
   "forter": {
     "domains": [],
     "postingIds": [
@@ -352,6 +910,15 @@
     "sourceCompanies": [
       "greenhouse:forter"
     ]
+  },
+  "frame security": {
+    "domains": [
+      "framesecurity.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:framesecurity"
+    ],
+    "collision": true
   },
   "franklin fitch": {
     "domains": [],
@@ -371,11 +938,38 @@
       "linkedin:fullstack-labs"
     ]
   },
+  "g-stat": {
+    "domains": [
+      "g-stat.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:g-stat"
+    ],
+    "collision": true
+  },
+  "gac solutions": {
+    "domains": [
+      "gacsol.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:gacsol"
+    ],
+    "collision": true
+  },
   "gambit security": {
     "domains": [],
     "postingIds": [
       "375437ff-30e9-419e-accc-df56bd09cd97"
     ]
+  },
+  "garantiemax gmbh": {
+    "domains": [
+      "garantiemax.de"
+    ],
+    "sourceCompanies": [
+      "linkedin:garantiemax-gmbh"
+    ],
+    "collision": true
   },
   "ge healthcare": {
     "domains": [],
@@ -386,6 +980,24 @@
       "linkedin:gehealthcare"
     ]
   },
+  "general motors": {
+    "domains": [
+      "gm.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:general-motors"
+    ],
+    "collision": true
+  },
+  "gifthealth": {
+    "domains": [
+      "gifthealth.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:gifthealth"
+    ],
+    "collision": true
+  },
   "gitkraken": {
     "domains": [],
     "postingIds": [
@@ -394,6 +1006,24 @@
     "sourceCompanies": [
       "linkedin:gitkraken"
     ]
+  },
+  "glassix": {
+    "domains": [
+      "glassix.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:glassix"
+    ],
+    "collision": true
+  },
+  "gloat": {
+    "domains": [
+      "gloat.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:gloat"
+    ],
+    "collision": true
   },
   "goarc": {
     "domains": [],
@@ -412,6 +1042,15 @@
     "sourceCompanies": [
       "linkedin:google"
     ]
+  },
+  "gotfriends": {
+    "domains": [
+      "gotfriends.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:gotfriends"
+    ],
+    "collision": true
   },
   "grove collaborative": {
     "domains": [],
@@ -450,6 +1089,15 @@
       "linkedin:wearehaystack"
     ]
   },
+  "hello heart": {
+    "domains": [
+      "helloheart.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:helloheart"
+    ],
+    "collision": true
+  },
   "hendrickson": {
     "domains": [],
     "postingIds": [
@@ -458,6 +1106,15 @@
     "sourceCompanies": [
       "linkedin:hendrickson"
     ]
+  },
+  "hibob": {
+    "domains": [
+      "hibob.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:hibob"
+    ],
+    "collision": true
   },
   "hightouch": {
     "domains": [],
@@ -468,6 +1125,15 @@
       "linkedin:hightouchio"
     ]
   },
+  "honeycomb insurance": {
+    "domains": [
+      "honeycombinsurance.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:honeycombinsurance"
+    ],
+    "collision": true
+  },
   "howmet aerospace": {
     "domains": [],
     "postingIds": [
@@ -476,6 +1142,15 @@
     "sourceCompanies": [
       "linkedin:howmet-aerospace"
     ]
+  },
+  "human": {
+    "domains": [
+      "humansecurity.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:humansecurityinc"
+    ],
+    "collision": true
   },
   "hunter bond": {
     "domains": [],
@@ -504,6 +1179,24 @@
       "linkedin:icemarkets"
     ]
   },
+  "infinidat": {
+    "domains": [
+      "infinidat.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:infinidat"
+    ],
+    "collision": true
+  },
+  "innovid": {
+    "domains": [
+      "innovid.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:innovid"
+    ],
+    "collision": true
+  },
   "instawork": {
     "domains": [],
     "postingIds": [
@@ -514,6 +1207,60 @@
       "linkedin:instawork"
     ]
   },
+  "integra lifesciences": {
+    "domains": [
+      "integralife.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:integra-lifesciences"
+    ],
+    "collision": true
+  },
+  "intel": {
+    "domains": [
+      "intel.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:intel-corporation"
+    ],
+    "collision": true
+  },
+  "interex group": {
+    "domains": [
+      "interex-group.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:interex-group"
+    ],
+    "collision": true
+  },
+  "intuit": {
+    "domains": [
+      "intuit.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:intuit"
+    ],
+    "collision": true
+  },
+  "ironscales": {
+    "domains": [
+      "ironscales.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ironscales"
+    ],
+    "collision": true
+  },
+  "javelin venture partners": {
+    "domains": [
+      "javelinvp.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:javelin-venture-partners"
+    ],
+    "collision": true
+  },
   "jll": {
     "domains": [],
     "postingIds": [
@@ -522,6 +1269,15 @@
     "sourceCompanies": [
       "linkedin:jll"
     ]
+  },
+  "jobgether": {
+    "domains": [
+      "jobgether.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:jobgether"
+    ],
+    "collision": true
   },
   "jobright.ai": {
     "domains": [],
@@ -541,6 +1297,24 @@
       "linkedin:jobsseek"
     ]
   },
+  "kobotoolbox": {
+    "domains": [
+      "kobotoolbox.org"
+    ],
+    "sourceCompanies": [
+      "linkedin:kobotoolbox"
+    ],
+    "collision": true
+  },
+  "ladders": {
+    "domains": [
+      "theladders.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ladders"
+    ],
+    "collision": true
+  },
   "larson design group": {
     "domains": [],
     "postingIds": [
@@ -559,6 +1333,15 @@
       "linkedin:lemonade-inc-"
     ]
   },
+  "linx security": {
+    "domains": [
+      "linx.security"
+    ],
+    "sourceCompanies": [
+      "linkedin:linx-security"
+    ],
+    "collision": true
+  },
   "liveramp": {
     "domains": [],
     "postingIds": [
@@ -567,6 +1350,15 @@
     "sourceCompanies": [
       "linkedin:liveramp"
     ]
+  },
+  "locusview": {
+    "domains": [
+      "locusview.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:locusview"
+    ],
+    "collision": true
   },
   "luxoft": {
     "domains": [],
@@ -577,6 +1369,42 @@
       "linkedin:luxoft"
     ]
   },
+  "magos systems": {
+    "domains": [
+      "magossystems.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:magosys-systems"
+    ],
+    "collision": true
+  },
+  "mastercard": {
+    "domains": [
+      "mastercard.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:mastercard"
+    ],
+    "collision": true
+  },
+  "matia": {
+    "domains": [
+      "matia.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:matia-data"
+    ],
+    "collision": true
+  },
+  "mckinsey & company": {
+    "domains": [
+      "mckinsey.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:mckinsey"
+    ],
+    "collision": true
+  },
   "meeboss": {
     "domains": [],
     "postingIds": [
@@ -586,6 +1414,24 @@
       "linkedin:meeboss"
     ]
   },
+  "melio": {
+    "domains": [
+      "melio.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:meliopayments"
+    ],
+    "collision": true
+  },
+  "mentee robotics": {
+    "domains": [
+      "menteebot.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:mentee-robotics"
+    ],
+    "collision": true
+  },
   "merck healthcare": {
     "domains": [],
     "postingIds": [
@@ -594,6 +1440,15 @@
     "sourceCompanies": [
       "linkedin:merck-healthcare"
     ]
+  },
+  "meta": {
+    "domains": [
+      "metacareers.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:meta"
+    ],
+    "collision": true
   },
   "microai": {
     "domains": [],
@@ -622,11 +1477,29 @@
       "linkedin:millennium-partners"
     ]
   },
+  "mindsize": {
+    "domains": [
+      "mindsize.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:mindsize"
+    ],
+    "collision": true
+  },
   "minimus": {
     "domains": [],
     "postingIds": [
       "e1e3a118-b2c0-4078-9ace-f70166700fba"
     ]
+  },
+  "mobile group ltd.": {
+    "domains": [
+      "mobilegroup-sw.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:mobile-group-ltd"
+    ],
+    "collision": true
   },
   "mobileye": {
     "domains": [],
@@ -655,6 +1528,15 @@
       "linkedin:mongodbinc"
     ]
   },
+  "moon active": {
+    "domains": [
+      "moonactive.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:moon-active"
+    ],
+    "collision": true
+  },
   "moov": {
     "domains": [],
     "postingIds": [
@@ -663,6 +1545,15 @@
     "sourceCompanies": [
       "linkedin:joinmoov"
     ]
+  },
+  "motorola solutions": {
+    "domains": [
+      "motorolasolutions.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:motorolasolutions"
+    ],
+    "collision": true
   },
   "moveo group": {
     "domains": [
@@ -678,6 +1569,15 @@
       "linkedin:moveo-source"
     ]
   },
+  "navan": {
+    "domains": [
+      "navan.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:navan"
+    ],
+    "collision": true
+  },
   "nerdwallet": {
     "domains": [],
     "postingIds": [
@@ -686,6 +1586,24 @@
     "sourceCompanies": [
       "linkedin:nerdwallet"
     ]
+  },
+  "netapp": {
+    "domains": [
+      "netapp.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:netapp"
+    ],
+    "collision": true
+  },
+  "netflix": {
+    "domains": [
+      "netflix.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:netflix"
+    ],
+    "collision": true
   },
   "netspend": {
     "domains": [],
@@ -696,6 +1614,24 @@
       "linkedin:netspend"
     ]
   },
+  "newfold digital": {
+    "domains": [
+      "newfold.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:newfold"
+    ],
+    "collision": true
+  },
+  "nextsilicon": {
+    "domains": [
+      "nextsilicon.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:nextsilicon"
+    ],
+    "collision": true
+  },
   "nike": {
     "domains": [],
     "postingIds": [
@@ -704,6 +1640,15 @@
     "sourceCompanies": [
       "linkedin:nike"
     ]
+  },
+  "nisha pro": {
+    "domains": [
+      "nishapro.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:nishapro"
+    ],
+    "collision": true
   },
   "norwood medical": {
     "domains": [],
@@ -732,6 +1677,15 @@
       "linkedin:oakwell-hampton"
     ]
   },
+  "okta": {
+    "domains": [
+      "okta.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:okta-inc-"
+    ],
+    "collision": true
+  },
   "openai": {
     "domains": [],
     "postingIds": [
@@ -740,6 +1694,33 @@
     "sourceCompanies": [
       "linkedin:openai"
     ]
+  },
+  "orca ai": {
+    "domains": [
+      "orca-ai.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:orca-ai"
+    ],
+    "collision": true
+  },
+  "orca security": {
+    "domains": [
+      "orca.security"
+    ],
+    "sourceCompanies": [
+      "linkedin:orca-security"
+    ],
+    "collision": true
+  },
+  "ourritual": {
+    "domains": [
+      "ourritual.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ritual-relationships"
+    ],
+    "collision": true
   },
   "ovative group": {
     "domains": [],
@@ -787,6 +1768,15 @@
     "sourceCompanies": [
       "linkedin:palo-alto-networks"
     ]
+  },
+  "papaya global": {
+    "domains": [
+      "papayaglobal.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:papaya-global"
+    ],
+    "collision": true
   },
   "paperless parts": {
     "domains": [],
@@ -839,6 +1829,24 @@
       "linkedin:persado"
     ]
   },
+  "personetics": {
+    "domains": [
+      "personetics.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:personetics"
+    ],
+    "collision": true
+  },
+  "pilot": {
+    "domains": [
+      "pilot.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:pilothq"
+    ],
+    "collision": true
+  },
   "plaee": {
     "domains": [],
     "postingIds": [
@@ -848,6 +1856,24 @@
       "linkedin:plaee"
     ]
   },
+  "play perfect": {
+    "domains": [
+      "play-perfect.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:play-perfect"
+    ],
+    "collision": true
+  },
+  "pointfive": {
+    "domains": [
+      "pointfive.co"
+    ],
+    "sourceCompanies": [
+      "linkedin:pointfive-us"
+    ],
+    "collision": true
+  },
   "pplied": {
     "domains": [],
     "postingIds": [
@@ -856,6 +1882,24 @@
     "sourceCompanies": [
       "linkedin:pplied"
     ]
+  },
+  "prestiga": {
+    "domains": [
+      "prestiga.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:prestiga"
+    ],
+    "collision": true
+  },
+  "priority software": {
+    "domains": [
+      "priority-software.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:prioritysoftware"
+    ],
+    "collision": true
   },
   "prophecy": {
     "domains": [],
@@ -874,6 +1918,33 @@
     "sourceCompanies": [
       "linkedin:proto-labs"
     ]
+  },
+  "q-nomy": {
+    "domains": [
+      "qnomy.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:q-nomy"
+    ],
+    "collision": true
+  },
+  "quantum integrators": {
+    "domains": [
+      "quantumintegrators.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:quantum-integrators-group-llc"
+    ],
+    "collision": true
+  },
+  "rad": {
+    "domains": [
+      "rad.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:rad-data-communications"
+    ],
+    "collision": true
   },
   "ramp": {
     "domains": [],
@@ -903,6 +1974,15 @@
     "sourceCompanies": [
       "workable:real-dev-inc"
     ]
+  },
+  "reddit, inc.": {
+    "domains": [
+      "redditinc.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:reddit-com"
+    ],
+    "collision": true
   },
   "resilience": {
     "domains": [],
@@ -940,6 +2020,33 @@
       "linkedin:rubrik-inc"
     ]
   },
+  "runpod": {
+    "domains": [
+      "runpod.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:runpod-io"
+    ],
+    "collision": true
+  },
+  "salesforce": {
+    "domains": [
+      "salesforce.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:salesforce"
+    ],
+    "collision": true
+  },
+  "samsung semiconductor": {
+    "domains": [
+      "samsung.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:samsungsemiconductor"
+    ],
+    "collision": true
+  },
   "sardine": {
     "domains": [],
     "postingIds": [
@@ -957,6 +2064,15 @@
     "sourceCompanies": [
       "lever:sauce"
     ]
+  },
+  "sciplay": {
+    "domains": [
+      "sciplay.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:sciplaygames"
+    ],
+    "collision": true
   },
   "senai": {
     "domains": [],
@@ -982,6 +2098,24 @@
       "linkedin:sentinelone"
     ]
   },
+  "sentra": {
+    "domains": [
+      "sentra.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:sentra-io"
+    ],
+    "collision": true
+  },
+  "sharegain": {
+    "domains": [
+      "sharegain.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:sharegain"
+    ],
+    "collision": true
+  },
   "shifters": {
     "domains": [
       "shiftersai.com"
@@ -993,6 +2127,15 @@
       "workable:shifters-ai"
     ]
   },
+  "sightful": {
+    "domains": [
+      "sightful.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:heysightful"
+    ],
+    "collision": true
+  },
   "signet jewelers": {
     "domains": [],
     "postingIds": [
@@ -1001,6 +2144,24 @@
     "sourceCompanies": [
       "linkedin:signetjewelers"
     ]
+  },
+  "silverfort": {
+    "domains": [
+      "silverfort.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:silverfort"
+    ],
+    "collision": true
+  },
+  "simplex 3d": {
+    "domains": [
+      "simplex3d.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:simplex3d"
+    ],
+    "collision": true
   },
   "singular": {
     "domains": [],
@@ -1019,6 +2180,24 @@
     "sourceCompanies": [
       "linkedin:skyde-drones"
     ]
+  },
+  "smartleaf": {
+    "domains": [
+      "smartleaf.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:smartleaf"
+    ],
+    "collision": true
+  },
+  "soho square solutions": {
+    "domains": [
+      "sohosquaresolutions.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:sohosquaresolutions"
+    ],
+    "collision": true
   },
   "solomon page": {
     "domains": [],
@@ -1047,6 +2226,15 @@
       "linkedin:soni-resources-group"
     ]
   },
+  "soundcloud": {
+    "domains": [
+      "soundcloud.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:soundcloud"
+    ],
+    "collision": true
+  },
   "spacex": {
     "domains": [],
     "postingIds": [
@@ -1065,6 +2253,33 @@
       "linkedin:usespeak"
     ]
   },
+  "speria": {
+    "domains": [
+      "speria.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:speria-part-of-munters"
+    ],
+    "collision": true
+  },
+  "sqlink group": {
+    "domains": [
+      "sqlink.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:sqlink"
+    ],
+    "collision": true
+  },
+  "ss&c technologies": {
+    "domains": [
+      "ssctech.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ss-c-technologies"
+    ],
+    "collision": true
+  },
   "stackadapt": {
     "domains": [],
     "postingIds": [
@@ -1075,6 +2290,15 @@
       "linkedin:stackadapt"
     ]
   },
+  "stampli": {
+    "domains": [
+      "stampli.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:stampli"
+    ],
+    "collision": true
+  },
   "startingup": {
     "domains": [],
     "postingIds": [
@@ -1083,6 +2307,15 @@
     "sourceCompanies": [
       "linkedin:startingup-io"
     ]
+  },
+  "stigg": {
+    "domains": [
+      "stigg.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:getstigg"
+    ],
+    "collision": true
   },
   "stripe": {
     "domains": [],
@@ -1110,6 +2343,15 @@
     "sourceCompanies": [
       "linkedin:taboola"
     ]
+  },
+  "tailor brands": {
+    "domains": [
+      "tailorbrands.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:tailor-brands"
+    ],
+    "collision": true
   },
   "talencio": {
     "domains": [],
@@ -1180,6 +2422,15 @@
       "linkedin:teradyne"
     ]
   },
+  "thales": {
+    "domains": [
+      "thalesgroup.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:thales"
+    ],
+    "collision": true
+  },
   "the depository trust & clearing corporation (dtcc)": {
     "domains": [],
     "postingIds": [
@@ -1208,6 +2459,24 @@
       "linkedin:the-restaurant-store"
     ]
   },
+  "themarker": {
+    "domains": [
+      "themarker.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:themarker"
+    ],
+    "collision": true
+  },
+  "tlvtech": {
+    "domains": [
+      "tlvtech.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:tlvtech"
+    ],
+    "collision": true
+  },
   "tomax think academy": {
     "domains": [
       "tomax.io"
@@ -1219,6 +2488,15 @@
       "workable:tomax"
     ]
   },
+  "torentify": {
+    "domains": [
+      "torentify.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:torentify-official"
+    ],
+    "collision": true
+  },
   "trace3": {
     "domains": [],
     "postingIds": [
@@ -1228,6 +2506,15 @@
       "linkedin:trace3"
     ]
   },
+  "traild": {
+    "domains": [
+      "traildsoftware.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:traild"
+    ],
+    "collision": true
+  },
   "trm labs": {
     "domains": [],
     "postingIds": [
@@ -1236,6 +2523,15 @@
     "sourceCompanies": [
       "linkedin:trmlabs"
     ]
+  },
+  "trust in soda": {
+    "domains": [
+      "trustinsoda.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:trust-in-soda"
+    ],
+    "collision": true
   },
   "unframe": {
     "domains": [],
@@ -1247,6 +2543,42 @@
       "linkedin:unframe-ai"
     ]
   },
+  "unilink ltd.": {
+    "domains": [
+      "unilink.co.il"
+    ],
+    "sourceCompanies": [
+      "linkedin:unilink-ltd."
+    ],
+    "collision": true
+  },
+  "upwind security": {
+    "domains": [
+      "upwind.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:upwindsecurity"
+    ],
+    "collision": true
+  },
+  "uveye": {
+    "domains": [
+      "uveye.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:uveye"
+    ],
+    "collision": true
+  },
+  "uvision group": {
+    "domains": [
+      "uvisionuav.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:uvision-group"
+    ],
+    "collision": true
+  },
   "vanguard": {
     "domains": [],
     "postingIds": [
@@ -1255,6 +2587,15 @@
     "sourceCompanies": [
       "linkedin:vanguard"
     ]
+  },
+  "varonis": {
+    "domains": [
+      "varonis.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:varonis"
+    ],
+    "collision": true
   },
   "venture up": {
     "domains": [],
@@ -1274,6 +2615,51 @@
       "linkedin:versigent"
     ]
   },
+  "via": {
+    "domains": [
+      "ridewithvia.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:ridewithvia"
+    ],
+    "collision": true
+  },
+  "virtualitics": {
+    "domains": [
+      "virtualitics.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:virtualitics"
+    ],
+    "collision": true
+  },
+  "voyantis": {
+    "domains": [
+      "voyantis.ai"
+    ],
+    "sourceCompanies": [
+      "linkedin:voyantis"
+    ],
+    "collision": true
+  },
+  "vybs": {
+    "domains": [
+      "vybs.co"
+    ],
+    "sourceCompanies": [
+      "linkedin:vybs"
+    ],
+    "collision": true
+  },
+  "warner music group": {
+    "domains": [
+      "wmg.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:warner-music-group"
+    ],
+    "collision": true
+  },
   "wedev": {
     "domains": [],
     "postingIds": [
@@ -1282,6 +2668,51 @@
     "sourceCompanies": [
       "greenhouse:wedev"
     ]
+  },
+  "weka": {
+    "domains": [
+      "weka.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:weka-io"
+    ],
+    "collision": true
+  },
+  "weski": {
+    "domains": [
+      "weski.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:weski"
+    ],
+    "collision": true
+  },
+  "wilson brown": {
+    "domains": [
+      "wilsonbrown.io"
+    ],
+    "sourceCompanies": [
+      "linkedin:wilson-brown"
+    ],
+    "collision": true
+  },
+  "wiraa": {
+    "domains": [
+      "sundayy.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:sundayyworld"
+    ],
+    "collision": true
+  },
+  "wittix": {
+    "domains": [
+      "wittix.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:wittix"
+    ],
+    "collision": true
   },
   "wix": {
     "domains": [
@@ -1296,6 +2727,51 @@
     "sourceCompanies": [
       "linkedin:wizsecurity"
     ]
+  },
+  "worldquant": {
+    "domains": [
+      "worldquant.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:worldquant"
+    ],
+    "collision": true
+  },
+  "yahoo": {
+    "domains": [
+      "yahooinc.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:yahoo"
+    ],
+    "collision": true
+  },
+  "yotpo": {
+    "domains": [
+      "yotpo.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:yotpo"
+    ],
+    "collision": true
+  },
+  "zadara": {
+    "domains": [
+      "zadara.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:zadara"
+    ],
+    "collision": true
+  },
+  "zealot": {
+    "domains": [
+      "zealotlabs.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:zealotcyber"
+    ],
+    "collision": true
   },
   "zendesk": {
     "domains": [],
@@ -1314,6 +2790,24 @@
     "sourceCompanies": [
       "linkedin:zenitysec"
     ]
+  },
+  "zero networks": {
+    "domains": [
+      "zeronetworks.com"
+    ],
+    "sourceCompanies": [
+      "linkedin:zeronetworks"
+    ],
+    "collision": true
+  },
+  "zipher": {
+    "domains": [
+      "zipher.ai"
+    ],
+    "sourceCompanies": [
+      "linkedin:zipher"
+    ],
+    "collision": true
   },
   "zocdoc": {
     "domains": [],

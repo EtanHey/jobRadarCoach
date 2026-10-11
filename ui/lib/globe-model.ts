@@ -1,11 +1,11 @@
-import type { JobSummary } from "./contracts";
+import type { GlobeJob } from "./globe-contract";
 import type { DuplicateJobGroup } from "./job-dedup";
 
 export type PostingPoint = { posting_id: string; lat: number; lng: number; precision: "city" | "region" | "country" | "hq"; source: string; resolved_at: string };
-export type GlobePoint = PostingPoint & { job: JobSummary; rowId: string };
+export type GlobePoint = PostingPoint & { job: GlobeJob; rowId: string };
 export const FALLBACK_CENTER: [number, number] = [34.8113, 31.8928];
-export function globePoints(groups: DuplicateJobGroup[], coordinates: PostingPoint[]): GlobePoint[] {
-  const rows = new Map<string, { job: JobSummary; rowId: string }>();
+export function globePoints(groups: DuplicateJobGroup<GlobeJob>[], coordinates: PostingPoint[]): GlobePoint[] {
+  const rows = new Map<string, { job: GlobeJob; rowId: string }>();
   for (const group of groups) for (const job of [group.job, ...group.alternates]) rows.set(job.id, { job, rowId: group.job.id });
   return coordinates.flatMap(point => {
     const row = rows.get(point.posting_id);
