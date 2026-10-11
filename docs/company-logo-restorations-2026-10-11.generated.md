@@ -235,8 +235,8 @@ H&R Block’s employer heading is verified, but the existing reader retains `&am
 
 ## Verification and limits
 
-- Failing-first unit receipts retained; final UI suites: 319 passed, zero failed/skipped/cancelled. Typechecks and scoped lint pass. Default Turbopack production builds pass in the source worktree and isolated QA copy.
-- Final sequential capped browser suite: seven passed, zero failed; peak RSS 823 MB, elapsed 42 seconds (3 GB / 600-second caps). Desktop 1440 and mobile 390, light/dark cover grid, drawer and globe rail. Screenshots inspected for restored posting-bound marks and initials.
+- Failing-first unit receipts retained; final integrated UI suites: 333 passed, zero failed/skipped/cancelled. Typechecks and scoped lint pass. Default Turbopack production builds pass in the original source worktree and isolated QA copy; the integrated QA copy also builds after merging the shared-pin refactor from master.
+- Final sequential capped browser suite: seven passed, zero failed; peak RSS 852 MB, elapsed 37 seconds (3 GB / 600-second caps). Desktop 1440 and mobile 390, light/dark cover grid, drawer and globe rail. Screenshots inspected for restored posting-bound marks and initials.
 - Providers: existing local catalog plus intercepted synthetic Logo.dev images. Reverse checks cover unbound namesakes, conflicting identities, JD-only evidence, provider misses, miss caching and uncached transport failure. No live artwork acceptance.
 - Connection: the real Next standalone binary served loopback requests; fixture API reads/writes were intercepted. QA-only auth-proxy omission and dependency-root adjustment are recorded in docs.local/p7/qa-provenance.md. Production analysis service and hosted data untouched.
 - Contracts: 166 positive-proof identity pins, 308 additional bindings, 500 total bindings, all 192 prior bindings preserved. Documentation records all 196 decisions and six partially bound companies.
