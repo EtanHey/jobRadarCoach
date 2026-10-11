@@ -4,6 +4,7 @@ import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
 import type { JobSummary } from "@/lib/contracts";
+import { foundWithinOptions, fitOptions, sortOptions } from "@/lib/view-options";
 import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filters";
 import { AppSelect, type SelectOption } from "@/components/ui/select";
 import { statusLabels } from "@/lib/job-status";
@@ -23,14 +24,14 @@ export function JobToolbar({ jobs, options, effectiveOptions = options, filter =
     { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(jobs, options.source).map((source) => ({value: source, label: source}))] },
     { key: "location", label: "Location", choices: [{value: "", label: "All locations"}, {value: "israel", label: "Israel"}, {value: "united-states", label: "United States"}, {value: "other", label: "Other"}] },
     { key: "seniority", label: "Seniority", choices: [{value: "", label: "All levels"}, {value: "non-senior", label: "Hide senior+ (keep unknown)"}, ...levelOrder.map((level) => ({value: level, label: level}))] },
-    { key: "fit", label: "Fit", choices: [{value: "", label: "Any fit"}, {value: "recommended", label: "Worth considering"}, {value: "skip", label: "Suggested skip"}, {value: "good", label: "60+ fit score"}, {value: "scored", label: "Scored"}, {value: "unscored", label: "Not scored"}] },
+    { key: "fit", label: "Fit", choices: [...fitOptions] },
     { key: "availability", label: "Availability", choices: [{value: "active", label: "Active"}, {value: "inactive", label: "Inactive"}, {value: "all", label: "All"}] },
-    { key: "sort", label: "Sort", choices: [{value: "found", label: "Recently found"}, {value: "posted", label: "Recently posted"}, {value: "fit", label: "Best fit first"}, {value: "seniority", label: "Seniority: junior first"}] },
+    { key: "sort", label: "Sort", choices: [...sortOptions] },
   ] as const;
   const valueFor = (key: typeof fields[number]["key"], view = options) => key === "work_mode"
     ? view.work_mode ?? (view.remote === true ? "remote" : view.remote === false ? "on-site" : "")
     : String(view[key] ?? "");
-  const windows = [["", "Any time"], ["24h", "24 h"], ["3d", "3 d"], ["7d", "7 d"], ["30d", "30 d"]] as const;
+  const windows = foundWithinOptions.map(({ value, label }) => [value, label] as const);
   // Summaries describe the query; clear actions edit saved options so archive
   // overrides never overwrite the ordinary view preferences.
   const defaults = viewForBoardQuery(preferencesForBoardFilter(DEFAULT_BOARD_PREFERENCES, filter));
