@@ -48,22 +48,32 @@ def _seed(db):
                now()-interval '1 hour',now() from generate_series(1000,1102) n""")
 
 
+def _poll_output(db, arguments):
+    ordered_output, current = db.execute("""select
+        (snapshot - 'current')::text, snapshot->'current'
+        from (select public.get_new_roles_snapshot(
+            %s,%s,%s::timestamptz,%s,%s::uuid[],%s::uuid[]) as snapshot) poll""",
+        arguments).fetchone()
+    # Incoming stays byte-identical. Only current is an unordered collection;
+    # compare every marker field after sorting by its unique posting ID.
+    return ordered_output, sorted(current, key=lambda marker: marker["id"])
+
+
 def _snapshots(db):
     result = []
+    since = db.execute("select now()-interval '50 days'").fetchone()[0]
     for view, availability, window in product(
-        ("all", "not-scored", "new-for-me", "seen", "worth_checking", "applied", "screen"),
+        ("all", "not-scored", "new-for-me", "seen", "worth_checking", "applied", "screen", "archived"),
         ("all", "active", "inactive"), ("", "24h", "3d", "7d", "30d"),
     ):
         result.append(db.execute("select public.get_globe_markers(%s,%s,%s)::text",
                                  (view, availability, window)).fetchone()[0])
         for cohort in (None, [], IDS[1:5]):
-            result.append(db.execute("""select public.get_new_roles_snapshot(
-                %s,%s,now()-interval '50 days',%s,%s::uuid[],%s::uuid[])::text""",
-                (view, availability, window, IDS, cohort)).fetchone()[0])
+            result.append(_poll_output(db, (view, availability, since, window, IDS, cohort)))
     return result
 
 
-def test_marker_rpc_output_is_byte_identical_after_upgrade():
+def test_ordered_rpc_outputs_and_canonical_current_match_after_upgrade():
     with migrated_database(MIGRATIONS, through=30) as url, psycopg.connect(url) as db:
         _seed(db)
         db.execute("set local role service_role")
@@ -74,6 +84,27 @@ def test_marker_rpc_output_is_byte_identical_after_upgrade():
         _upgrade(db)
         db.execute("set local role service_role")
         assert _snapshots(db) == before
+
+
+def test_sparse_current_markers_match_after_descending_insert_upgrade():
+    with migrated_database(MIGRATIONS, through=31) as url, psycopg.connect(url) as db:
+        db.execute("""insert into public.postings
+            (id,source,external_id,url,title,company,first_seen_at,last_seen_at)
+            select lpad(to_hex(n),32,'0')::uuid,'fixture',n::text,
+                   'https://example.test','Engineer','Synthetic',
+                   timestamptz '2020-01-01Z',timestamptz '2026-10-11Z'
+            from generate_series(5000,1,-1) n""")
+        for table in ("postings", "posting_status", "posting_scores"):
+            db.execute(sql.SQL("analyze public.{}").format(sql.Identifier(table)))
+        ids = [str(UUID(int=n)) for n in (1, 1001, 2001, 3001, 4001)]
+        arguments = ("all", "all", "2026-10-10Z", "", ids, [])
+        db.execute("set local role service_role")
+        before = _poll_output(db, arguments)
+        assert [marker["id"] for marker in before[1]] == ids
+        db.execute("reset role")
+        _upgrade(db)
+        db.execute("set local role service_role")
+        assert _poll_output(db, arguments) == before
 
 
 def _nodes(plan):
