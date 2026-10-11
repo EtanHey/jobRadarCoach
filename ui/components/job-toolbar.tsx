@@ -3,7 +3,6 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "./ui/sheet";
-import type { GlobeJob } from "@/lib/globe-contract";
 import { foundWithinOptions, fitOptions, sortOptions } from "@/lib/view-options";
 import { levelOrder, sourceFilterValues, type ViewOptions } from "@/lib/job-filters";
 import { AppSelect, type SelectOption } from "@/components/ui/select";
@@ -11,8 +10,8 @@ import { statusLabels } from "@/lib/job-status";
 import { DEFAULT_BOARD_PREFERENCES, preferencesForBoardFilter, viewForBoardQuery, type BoardFilter } from "@/lib/job-board-preferences";
 import { PipelineStatusFilter } from "./pipeline-status-filter";
 
-export function JobToolbar({ jobs, options, effectiveOptions = options, filter = DEFAULT_BOARD_PREFERENCES.filter, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
-  jobs: GlobeJob[]; options: ViewOptions; effectiveOptions?: ViewOptions; filter?: BoardFilter; onChange: (next: ViewOptions) => void;
+export function JobToolbar({ sources, options, effectiveOptions = options, filter = DEFAULT_BOARD_PREFERENCES.filter, onChange, onReset, canReset = false, actions, globeOpen = false, filtersCollapsed = false, onFiltersCollapsedChange }: {
+  sources: string[]; options: ViewOptions; effectiveOptions?: ViewOptions; filter?: BoardFilter; onChange: (next: ViewOptions) => void;
   onReset?: () => void; canReset?: boolean; actions?: ReactNode; globeOpen?: boolean;
   filtersCollapsed?: boolean; onFiltersCollapsedChange?: (collapsed: boolean) => void;
 }) {
@@ -21,7 +20,7 @@ export function JobToolbar({ jobs, options, effectiveOptions = options, filter =
   const opener = useRef<HTMLButtonElement | null>(null);
   const fields: { key: "work_mode" | "source" | "location" | "seniority" | "fit" | "availability" | "sort"; label: string; choices: SelectOption[] }[] = [
     { key: "work_mode", label: "Work mode", choices: [{ value: "", label: "Any work mode" }, { value: "remote", label: "Remote" }, { value: "hybrid", label: "Hybrid" }, { value: "on-site", label: "On-site" }] },
-    { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(jobs, options.source).map((source) => ({value: source, label: source}))] },
+    { key: "source", label: "Source", choices: [{value: "", label: "All sources"}, ...sourceFilterValues(sources.map(source => ({ source })), options.source).map((source) => ({value: source, label: source}))] },
     { key: "location", label: "Location", choices: [{value: "", label: "All locations"}, {value: "israel", label: "Israel"}, {value: "united-states", label: "United States"}, {value: "other", label: "Other"}] },
     { key: "seniority", label: "Seniority", choices: [{value: "", label: "All levels"}, {value: "non-senior", label: "Hide senior+ (keep unknown)"}, ...levelOrder.map((level) => ({value: level, label: level}))] },
     { key: "fit", label: "Fit", choices: [...fitOptions] },
