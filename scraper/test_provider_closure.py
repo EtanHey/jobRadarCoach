@@ -160,6 +160,14 @@ def test_foreign_or_mismatched_ashby_url_never_fetches(monkeypatch, url):
 
 @pytest.mark.parametrize('source', ['ashby', 'workday'])
 def test_disposable_postgres_persists_first_miss_then_controlled_closure(db, monkeypatch, source):
+    class Clock(datetime):
+        current = datetime(2026, 10, 11, tzinfo=timezone.utc)
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.current
+
+    monkeypatch.setattr(ats, 'datetime', Clock)
     transport(monkeypatch, source)
     posting = row(source)
     db.execute('update postings set source=%s,external_id=%s,url=%s',
@@ -167,8 +175,9 @@ def test_disposable_postgres_persists_first_miss_then_controlled_closure(db, mon
     assert recheck(db, board_checker=board(source))['closed'] == 0
     state = db.execute('select liveness from postings').fetchone()[0]
     assert state['ats_miss_count'] == 1 and state.get('alive') is not False
-    state['ats_first_miss_at'] = (ats.datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
-    db.execute('update postings set liveness=%s::jsonb', (json.dumps(state),))
+    assert recheck(db, board_checker=board(source))['closed'] == 0
+    assert db.execute('select liveness from postings').fetchone()[0]['last_attempt_verdict'] == 'duplicate-snapshot'
+    Clock.current += timedelta(hours=1)
     assert recheck(db, board_checker=board(source))['closed'] == 1
     assert db.execute('select liveness from postings').fetchone()[0]['alive'] is False
     assert db.execute('select status from posting_status').fetchone() == ('saved',)
