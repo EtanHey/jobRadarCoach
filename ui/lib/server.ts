@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  JobListItemSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  JobListItemSchema, LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -51,7 +51,7 @@ const rawListSchema = rawBaseSchema.omit({
   salary: true, list_metadata: true, liveness: true, relevance_gate: true, posting_extractions: true,
 }).extend({
   list_stack: z.array(z.string()), experience: z.string().nullable(),
-  relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
+  relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_reposted_signal: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
   posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
 });
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
@@ -63,7 +63,7 @@ const boardScoreFields = "posting_scores(score,recommendation:score_payload->rec
 export const BOARD_FIELD_ALIASES = {
   relevance_filtered: "relevance_filtered", relevance_rule: "relevance_rule:relevance_gate->rule",
   source: "source", last_seen_at: "last_seen_at", experience: "experience:list_metadata->experience",
-  alive: "alive:liveness->alive", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
+  alive: "alive:liveness->alive", linkedin_reposted_signal: "linkedin_reposted_signal:liveness->linkedin_reposted_signal", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
   id: "id", title: "title", company: "company", location: "location", remote: "remote", work_mode: "work_mode",
   seniority: "seniority", stack: "stack,list_stack:list_metadata->stack", url: "url", apply_url: "apply_url",
   posted_at: "posted_at", last_published_at: "last_published_at", first_seen_at: "first_seen_at",
@@ -95,7 +95,7 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
-  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_closed_signal, ...posting } = base;
+  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   return checked(JobSummarySchema, {
     ...posting, url: postingUrl(posting.url),
@@ -107,6 +107,7 @@ function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
     fit_line: base.relevance_filtered ? null : score?.fit_line ?? null,
     recommendation: base.relevance_filtered ? null : score?.recommendation ?? null,
     alive: typeof alive === "boolean" ? alive : null,
+    linkedin_reposted_signal: LinkedInRepostedSignalSchema.safeParse(linkedin_reposted_signal).data ?? null,
     linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(linkedin_closed_signal).data ?? null,
   });
 }
@@ -117,6 +118,7 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const fit = payload && typeof payload === "object" ? payload : null;
   const job = listSummary({ ...posting, list_stack: list_metadata.stack, experience: list_metadata.experience,
     relevance_rule: relevance_gate?.rule ?? null, alive: liveness?.alive ?? null,
+    linkedin_reposted_signal: liveness?.linkedin_reposted_signal ?? null,
     linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,
     posting_scores: posting_scores ? { score: posting_scores.score,
       fit_line: fit && "fit_line" in fit ? fit.fit_line : null,

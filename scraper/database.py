@@ -287,13 +287,21 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
         return {}
     # LinkedIn observations are advisory, including legacy alive=false input.
     if (_nonblank(posting.get("source")) or "linkedin") == "linkedin":
+        evidence = {}
+        repost = posting.get("linkedin_reposted_signal")
+        if (isinstance(repost, dict) and isinstance(repost.get("label"), str)
+                and linkedin_liveness.REPOST.fullmatch(repost["label"])
+                and _timestamp(repost.get("checked_at")) is not None
+                and linkedin_liveness.guest_url(posting.get("url", "")) is not None
+                and repost.get("url") == posting.get("url")):
+            evidence = {"linkedin_reposted_signal": repost, "liveness_checked_at": repost["checked_at"]}
         signal = posting.get("linkedin_closed_signal")
         if (isinstance(signal, dict) and signal.get("phrase") in
                 {"no longer accepting applications", "not currently accepting applications"}
                 and _timestamp(signal.get("checked_at")) is not None
                 and isinstance(signal.get("url"), str)
                 and signal["url"] == posting.get("url")):
-            return {"linkedin_closed_signal": signal, "liveness_checked_at": signal["checked_at"]}
+            return {**evidence, "linkedin_closed_signal": signal, "liveness_checked_at": signal["checked_at"]}
         cleared_at = posting.get("linkedin_closed_signal_cleared_at")
         if ("linkedin_closed_signal" in posting and signal is None
                 and posting.get("liveness_reason") == "linkedin-open-signal"
@@ -302,9 +310,9 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
                 and posting.get("liveness_final_url") == linkedin_liveness.guest_url(posting.get("url", ""))
                 and _timestamp(cleared_at) is not None
                 and cleared_at == posting.get("liveness_checked_at")):
-            return {"linkedin_closed_signal": None, "linkedin_closed_signal_cleared_at": cleared_at,
+            return {**evidence, "linkedin_closed_signal": None, "linkedin_closed_signal_cleared_at": cleared_at,
                     "liveness_checked_at": cleared_at}
-        return {}
+        return evidence
     alive = posting.get("alive")
     status = posting.get("liveness_status")
     reason = _known_text(posting.get("liveness_reason"))

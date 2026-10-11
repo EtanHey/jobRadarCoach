@@ -15,11 +15,12 @@ const bundle = await build({ write: false, bundle: true, format: 'iife', jsx: 'a
 import { createRoot } from 'react-dom/client';
 import { useRef } from 'react';
 import { JobCard } from './components/job-card';
-const job = { id: '00000000-0000-4000-8000-000000000001', company: 'Synthetic employer', title: 'Frontend engineer', source: 'linkedin',
+const job = { id: '00000000-0000-4000-8000-000000000001', company: 'Synthetic applicant tracking employer with a deliberately long company name', title: 'Frontend engineer', source: new URLSearchParams(location.search).get('source') ?? 'greenhouse',
   location: 'Tel Aviv', remote: null, seniority: null, stack: [], salary: null, experience: null,
-  url: 'https://example.test', apply_url: null, score: 70, status: 'new', status_reason: null, alive: false,
-  fit_line: null, recommendation: 'review', last_seen_at: '2026-10-11T00:30:00Z', first_seen_at: '2026-10-10T12:00:00Z', posted_at: null,
+  url: 'https://www.linkedin.com/jobs/view/123', apply_url: null, score: 70, status: 'new', status_reason: null, alive: false,
+  fit_line: null, recommendation: 'review', last_seen_at: '2026-10-11T00:30:00Z', first_seen_at: '2026-10-10T12:00:00Z', posted_at: '2026-10-01T00:00:00Z', last_published_at: '2026-10-10T00:00:00Z',
   description_available: false, seniority_origin: 'unknown', extraction_state: 'not-extracted',
+  linkedin_reposted_signal: { label: 'Reposted 2 weeks ago', checked_at: '2026-10-11T00:30:00Z', url: 'https://www.linkedin.com/jobs/view/123' },
   linkedin_closed_signal: { phrase: 'no longer accepting applications', checked_at: '2026-10-11T00:30:00Z', url: 'https://www.linkedin.com/jobs/view/123' } };
 function App() { const ref = useRef(null); return <main className='mx-auto max-w-xl p-4'><JobCard job={job} openerRef={ref} selectJob={() => {}}>{null}</JobCard></main>; }
 createRoot(document.getElementById('root')).render(<App/>);` } });
@@ -35,12 +36,12 @@ let browser;
 const receipts = [];
 try {
   browser = await chromium.launch({ headless: true });
-  for (const [zone, date] of [['America/Los_Angeles', '2026-10-10'], ['Asia/Jerusalem', '2026-10-11']]) for (const width of [1280, 390]) {
+  for (const [zone, date] of [['America/Los_Angeles', '2026-10-10'], ['Asia/Jerusalem', '2026-10-11']]) for (const source of ['greenhouse', 'linkedin']) for (const width of [1280, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 650 }, timezoneId: zone });
     const page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/?source=${source}`);
     const badge = page.locator('[data-linkedin-closed-signal]');
     await expect(badge).toHaveAttribute('title', `LinkedIn: no longer accepting applications · checked ${date}`);
     await expect(badge.locator('time')).toHaveText(date);
@@ -51,11 +52,20 @@ try {
       return { left: box.left, right: box.right, clipped: node.scrollWidth > node.clientWidth }; });
     assert.ok(layout.left >= 0 && layout.right <= width && !layout.clipped, JSON.stringify(layout));
     assert.deepEqual(errors, []);
-    await page.screenshot({ path: `${output}/${zone.split('/')[1]}-${width}.png` });
-    receipts.push({ zone, width, date, layout, errors });
+    const company = page.locator('article p').first();
+    assert.ok((await company.boundingBox()).width > 80, 'repost marker must leave room for the company name');
+    const marker = page.locator('[data-repost-marker]');
+    await marker.focus();
+    const tip = page.getByRole('tooltip').filter({ hasText: 'Reposted' });
+    await expect(tip).toBeVisible();
+    if (source === 'linkedin') await expect(tip).toHaveText(`LinkedIn: Reposted 2 weeks ago · checked ${date}`);
+    const tipBox = await tip.boundingBox();
+    assert.ok(tipBox && tipBox.x >= 0 && tipBox.x + tipBox.width <= width, `repost tooltip exceeds ${width}px: ${JSON.stringify(tipBox)}`);
+    await page.screenshot({ path: `${output}/${zone.split('/')[1]}-${width}-${source}.png` });
+    receipts.push({ zone, width, source, date, layout, errors });
     await context.close();
   }
-  console.log(`PASS ${receipts.length} badge cases: local midnight, evidence link, keyboard focus and viewport bounds`);
+  console.log(`PASS ${receipts.length} badge cases: local midnight, evidence link, keyboard focus, long-company/repost tooltip and viewport bounds`);
 } finally {
   if (browser) await browser.close();
   await new Promise(resolve => server.close(resolve));

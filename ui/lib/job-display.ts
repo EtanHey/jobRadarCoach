@@ -1,3 +1,5 @@
+import type { JobSummary } from "./contracts";
+
 /** Inflect the noun only; callers retain their existing count and sentence format. */
 export const plural = (count: number, singular: string, multiple = `${singular}s`) => count === 1 ? singular : multiple;
 
@@ -63,12 +65,27 @@ export function postingDates(postedAt: string | null, firstSeenAt: string | null
   return dates;
 }
 
-export function repostNote(postedAt: string | null, lastPublishedAt: string | null | undefined, earlierListings: number, timeZone?: string): string | null {
-  const latest = parsedTime(lastPublishedAt);
-  const notes = [];
-  if (latest !== null && isRepublished(parsedTime(postedAt), latest)) notes.push(`republished ${calendarStamp(latest, timeZone, false)}`);
-  if (earlierListings > 0) notes.push(`${earlierListings} earlier ${plural(earlierListings, "listing")} of this role`);
-  return notes.length ? `Reposted: ${notes.join(" · ")}` : null;
+// Client-only evidence retained before group display dates are aggregated.
+export type ListingPublicationEvidence = {
+  listing_publication_dates?: { posted_at: string | null; last_published_at?: string | null };
+};
+
+export function repostNote(job: { source: string; url: string; posted_at: string | null; last_published_at?: string | null;
+  linkedin_reposted_signal?: { label: string; url: string } | null } & ListingPublicationEvidence, timeZone?: string): string | null {
+  if (job.source === "linkedin") {
+    const signal = job.linkedin_reposted_signal;
+    return signal?.url === job.url ? signal.label : null;
+  }
+  const publication = job.listing_publication_dates ?? job;
+  const latest = parsedTime(publication.last_published_at);
+  return latest !== null && isRepublished(parsedTime(publication.posted_at), latest)
+    ? `Reposted: republished ${calendarStamp(latest, timeZone, false)}` : null;
+}
+
+export function repostTooltip(job: Pick<JobSummary, "source" | "url" | "posted_at" | "last_published_at" | "linkedin_reposted_signal"> & ListingPublicationEvidence, timeZone?: string): string | null {
+  const note = repostNote(job, timeZone);
+  return note && job.source === "linkedin" && job.linkedin_reposted_signal
+    ? `LinkedIn: ${note} · checked ${localCalendarDate(job.linkedin_reposted_signal.checked_at, timeZone)}` : note;
 }
 
 export type WorkModeKind = "remote" | "on-site" | "hybrid" | "unknown";

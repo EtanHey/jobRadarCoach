@@ -71,6 +71,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install chromium --only-shell --with-deps
       - run: npm run test:e2e
+      - name: Headless globe smoke and UI polish
+        run: npm run test:ui-polish
 
   logged-in-db:
     runs-on: ubuntu-24.04

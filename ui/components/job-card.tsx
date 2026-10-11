@@ -5,7 +5,7 @@ import { Recycle } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
 import { scoreCss } from "@/lib/globe-model";
 import { relevanceLabel } from "@/lib/relevance-label";
-import { repostNote } from "@/lib/job-display";
+import { repostNote, repostTooltip } from "@/lib/job-display";
 import { statusDimsCard, statusLabels, type JobStatus } from "@/lib/job-status";
 import { cn } from "@/lib/utils";
 import { CompanyLogo } from "./company-logo";
@@ -17,8 +17,6 @@ import { WorkModeIcon } from "./work-mode-icon";
 type Props = {
   job: JobSummary;
   alternateCount?: number;
-  /** Alternates demonstrably listed before this one; drives the repost marker. */
-  earlierListings?: number;
   selected?: boolean;
   /** Set in "New for me" when this kept card's status no longer qualifies; marks the card settled. */
   keptStatus?: JobStatus | null;
@@ -31,9 +29,9 @@ type Props = {
   children: ReactNode;
 };
 
-export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, earlierListings = 0, openerRef, selectJob, prefetchIntent, children }: Props) {
+export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, openerRef, selectJob, prefetchIntent, children }: Props) {
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
-  const repost = repostNote(job.posted_at, job.last_published_at, earlierListings);
+  const repost = repostNote(job);
   const location = job.location ?? "Location unspecified";
   // Every view names a non-new status under the score; terminal statuses (and Seen, kept in New for me) dim the
   // content, never the frame, so hover border and focus ring stay full strength.
@@ -46,19 +44,19 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
       <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} postingId={job.id} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
-        <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-          <p className="truncate">{job.company}</p>
-          {repost && <InfoTip data-repost-marker label={repost} tip={repost} className="shrink-0"><Recycle aria-hidden="true" size={13} /></InfoTip>}
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+          <p className={cn("truncate", repost && "min-w-0 max-w-full flex-[1_1_8rem]")}>{job.company}</p>
+          {repost && <InfoTip data-repost-marker label={repostTooltip(job) ?? repost} tip={repostTooltip(job) ?? repost} wrap className="min-w-0 max-w-full text-left"><Recycle aria-hidden="true" size={13} className="shrink-0" /><span className="ml-1 min-w-0 break-words text-xs">{repost}</span></InfoTip>}
         </div>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>
       </div>
-      {/* The score sizes this column; the chip takes exactly its width (w-0 + min-w-full adds none of its own), so the
-          title keeps its width. Long labels wrap to a second line inside the header's fixed height. */}
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
+      {/* A small minimum keeps status words readable beside single-digit scores. The chip uses the
+          column width and wraps to its full height. */}
+      <div className="flex min-w-[4.75rem] shrink-0 flex-col items-end gap-1.5">
         <span style={job.score === null ? { border: "2px solid var(--globe-unscored-ring)" } : { backgroundColor: scoreCss(job.score), color: "#08111c" }} aria-label={job.score === null ? "Not scored" : `Fit score ${job.score} out of 100`} className={cn(job.score === null ? "rounded-lg px-2 py-1 text-xs text-muted-foreground" : "rounded-lg px-2 py-1", dim)}>
           {job.score === null ? job.relevance_filtered ? "Not scored (filtered)" : "Unscored" : <><strong className="text-base tabular-nums">{job.score}</strong><span className="text-[10px]">/100</span></>}
         </span>
-        {chip && <span id={chipId} data-card-status={job.status} title={chip} className={cn("line-clamp-2 w-0 min-w-full rounded-md border px-1 py-0.5 text-center text-[10px] font-medium leading-3 [overflow-wrap:anywhere]", job.status === "seen" ? "text-muted-foreground" : "bg-muted text-foreground", dim)}>{chip}</span>}
+        {chip && <span id={chipId} data-card-status={job.status} title={chip} className={cn("w-0 min-w-full rounded-md border px-1 py-0.5 text-center text-[10px] font-medium leading-3 [overflow-wrap:anywhere]", job.status === "seen" ? "text-muted-foreground" : "bg-muted text-foreground", dim)}>{chip}</span>}
       </div>
     </div>
     <p className={cn("pointer-events-none flex h-5 min-w-0 items-center gap-1.5 text-sm text-muted-foreground", dim)}>
