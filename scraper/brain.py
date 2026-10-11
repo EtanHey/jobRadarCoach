@@ -21,7 +21,9 @@ from scraper.annotate import (
     _isolated_codex_environment,
     _subscription_auth_path,
 )
+from scraper.stage_config import EXTRACTOR_MODEL, SCORER_MODEL
 from scraper.codex_process import (
+    STDERR_CATEGORY_MARKERS,
     run_codex_process as _run_codex_process,
     verify_codex_version as _verify_codex_version,
 )
@@ -108,8 +110,8 @@ def _load_json(raw: bytes, label: str) -> object:
         raise BrainResponseError(f"Ollama returned invalid {label} JSON") from error
 
 _PROVIDER_DIAGNOSTIC = ContextVar("provider_diagnostic", default=None)
-_TRANSPORT_CATEGORIES = frozenset({"transport_error", "nonzero_exit", "timeout", "launch_error", "auth", "quota", "model_access"})
-_PUBLIC_MODELS = frozenset({"gpt-5.6", "gpt-5.6-luna", "gpt-5.6-terra"})
+_TRANSPORT_CATEGORIES = frozenset({"transport_error", "nonzero_exit", "timeout", "launch_error"}) | STDERR_CATEGORY_MARKERS.keys()
+_PUBLIC_MODELS = frozenset({DEFAULT_CODEX_MODEL, EXTRACTOR_MODEL, SCORER_MODEL})
 
 
 @contextmanager

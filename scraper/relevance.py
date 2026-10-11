@@ -11,6 +11,9 @@ NEGATED_REQUIREMENT = (
 )
 
 
+CLAUSE_BOUNDARY = r'\n|[;•]|(?<=[.!?])\s+(?=[A-Z])'
+
+
 def matches(pattern: str, text: str) -> bool:
     return bool(re.search(pattern, text, re.I))
 
@@ -19,7 +22,7 @@ def already_us_resident(jd: str) -> bool:
     """Require explicit existing applicant residency, not future relocation."""
     text = re.sub(r'[*_`]', '', jd or '')
     pattern = r'\b(?:must|(?:candidates?|applicants?|you)\s+(?:must|should|need to|are required to))\s+already\s+(?:live|reside|be based|be living|be residing)\s+in\s+(?:the\s+)?(?:us|usa|united states)\b'
-    for clause in re.split(r'\n|[;•]|(?<=[.!?])\s+(?=[A-Z])', text):
+    for clause in re.split(CLAUSE_BOUNDARY, text):
         if matches(OPTIONAL, clause) or matches(r'\bor\b.{0,35}\b(?:relocat\w*|move|moving)\b', clause):
             continue
         if matches(pattern, clause):
@@ -45,7 +48,7 @@ def gate_rule(title: str, jd: str) -> str | None:
     if matches(r'(?:\bjava\b|\bangular\b|c\+\+|c#|\.net\b)\s+(?:software\s+)?(?:developer|engineer)\b|\b(?:developer|engineer)\s*[-–(]\s*(?:java\b|angular\b|c\+\+|c#|\.net\b)', title):
         return 'incompatible-stack-title'
     # Profile-role removal and Data-family rules remain OFF pending rulings #2/#3.
-    for clause in (c.strip() for c in re.split(r'\n|[;•]|(?<=[.!?])\s+(?=[A-Z])', text)):
+    for clause in (c.strip() for c in re.split(CLAUSE_BOUNDARY, text)):
         if matches(OPTIONAL + '|' + NEGATED_REQUIREMENT, clause):
             continue
         if matches(r'\bequity[ -]only\b', clause) and not matches(r'\bnot\s+(?:(?:an?|purely|solely)\s+)?equity[ -]only\b', clause):

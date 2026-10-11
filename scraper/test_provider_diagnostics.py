@@ -164,3 +164,23 @@ def test_parent_exit_tears_down_group_once(monkeypatch, tmp_path):
     finally:
         if pidfile.exists() and running(int(pidfile.read_text())):
             os.kill(int(pidfile.read_text()), 9)
+
+
+@pytest.mark.parametrize('stage', ['extractor', 'scorer'])
+def test_receipt_allowlist_follows_stage_policy_in_fresh_process(stage):
+    # A stage default update must reach receipts; arbitrary configured models stay private.
+    code = '''
+import json
+from scraper import stage_config
+setattr(stage_config, STAGE.upper() + '_MODEL', 'synthetic-public-default')
+from scraper import brain
+brain._run_brain = lambda *a, **k: None
+events = []
+with brain.provider_diagnostic_scope(events.append):
+    for model in ['synthetic-public-default', 'PRIVATE_CUSTOM_MODEL', brain.DEFAULT_CODEX_MODEL]:
+        brain.run_brain(None, env={'BRAIN': 'codex', 'CODEX_MODEL': model})
+print(json.dumps([event['model'] for event in events]))
+'''.replace('STAGE', repr(stage))
+    completed = subprocess.run([sys.executable, '-c', code], check=True,
+                               capture_output=True, text=True)
+    assert json.loads(completed.stdout) == ['synthetic-public-default', 'configured', brain.DEFAULT_CODEX_MODEL]

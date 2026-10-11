@@ -23,7 +23,7 @@ const raw = {
 const slim = () => {
   const { relevance_gate, list_metadata, liveness, posting_scores, ...rest } = raw;
   const projected: Record<string, unknown> = { ...rest, relevance_rule: relevance_gate.rule, list_stack: list_metadata.stack,
-    experience: list_metadata.experience, alive: liveness.alive, linkedin_closed_signal: signal,
+    experience: list_metadata.experience, alive: liveness.alive, linkedin_reposted_signal: null, linkedin_closed_signal: signal,
     posting_scores: { score: posting_scores.score, recommendation: "apply", fit_line: "Synthetic fit" } };
   delete projected.salary;
   delete projected.posting_extractions;
