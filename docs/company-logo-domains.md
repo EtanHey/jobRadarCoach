@@ -32,3 +32,17 @@ Provide `LOGO_DEV_SECRET_KEY` in the environment through your normal secret mana
 Existing entries, including null, are never queried or changed. Duplicate canonical names are queried once. Requests run sequentially, with one second between the previous response and the next request. An HTTP/network/invalid-response failure stops the refresh without replacing the output. A successful refresh replaces the map atomically. No refresh runs in CI, and the browser never receives the search secret.
 
 A confident identity is not proof that its CDN image exists or that its artwork is correct; the miss cache and initials fallback still apply. Release QA must inspect real company marks. Coverage counts should separate identity-qualified catalog/domain selections from initials. A resolved URL does not establish artwork correctness.
+
+## Evidence-backed restorations (Oct 11)
+
+The [generated ownership report](company-logo-restorations-2026-10-11.generated.md) accounts for all 196 previously nulled domains: 166 restored, 30 still initials. The frozen fixture gains 308 source selections with zero previous losses; six company names retain some unverified rows. These are identity-qualified selections, not live artwork counts.
+
+`scripts/company-logo-restorations.json` contains **reviewed** employer-profile Website pins, public source URLs, posting IDs and page hashes. Verify the linked profile’s explicit Website field before adding a pin; the offline builder validates recorded fields and source hashes, and cannot independently authenticate a claimed Website field. A profile Website subdomain establishes its parent registrable domain; a separately verified HTTPS redirect can establish a destination domain. The report records corrections to the old unproven candidates.
+
+Reproduce the additive restoration from the retained SELECT-only snapshot, homepage receipts and exact posting/guest-page bytes (never JD or name guesses):
+
+```sh
+node --import tsx ../scripts/build-logo-source-bindings.ts --restore /path/to/snapshot.json ../scripts/company-logo-restorations.json /path/to/homepage-receipts /path/to/posting-pages
+```
+
+This mode validates the entire batch before writing. It refuses conflicting existing identities/domains/bindings and preserves prior generated records. The default full binding rebuild also includes these reviewed positive-proof pins; supply all prior source-page directories when replacing the full binding inventory. New pins set `collision: true` to require positive identity even when no homonym has been observed. Unknown rows and conflicting employers keep initials.
