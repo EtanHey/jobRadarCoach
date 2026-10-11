@@ -34,7 +34,8 @@ def test_linkedin_discovered_urls_never_hide_application_state():
             return {"alive": False, "liveness_reason": "closed-page-text"}
         return {"alive": None, "liveness_reason": "http-429-uncertain"}
     receipt = recheck(db, limit=2, checker=check)
-    assert receipt == {"checked": 2, "closed": 0, "alive": 0, "unknown": 2, "unsupported": 0, "alerts": 0}
+    assert receipt == {"checked": 2, "closed": 0, "alive": 0, "unknown": 2, "unsupported": 0, "alerts": 0,
+                       "observations": {"closed-page-text": 1, "http-429-uncertain": 1}}
     assert "alive" not in json.loads(db.writes[0][1][0])
     unknown = json.loads(db.writes[1][1][0])
     assert "alive" not in unknown and "liveness_reason" not in unknown
@@ -116,3 +117,19 @@ def test_unknown_ats_result_preserves_prior_closure_and_attempt_rotation():
     assert receipt["unknown"] == 1 and receipt["closed"] == 0
     update = json.loads(db.writes[0][1][0])
     assert "last_attempt_at" in update and "alive" not in update
+
+
+def test_receipt_distinguishes_advisory_signals_from_transport_uncertainty():
+    db = Database([(str(i), f"https://www.linkedin.com/jobs/view/{i}") for i in range(3)])
+    reasons = iter(["linkedin-open-signal", "linkedin-closed-signal", "http-404-uncertain"])
+    receipt = recheck(db, checker=lambda _: {"alive": None, "liveness_reason": next(reasons)})
+    assert receipt["unknown"] == 3 and receipt["closed"] == receipt["alive"] == 0
+    assert receipt["observations"] == {
+        "linkedin-open-signal": 1, "linkedin-closed-signal": 1, "http-404-uncertain": 1}
+
+
+def test_receipt_does_not_echo_checker_exception_messages():
+    db = Database([("one", "https://www.linkedin.com/jobs/view/1")])
+    def check(_):
+        raise TimeoutError("private URL and credential")
+    assert recheck(db, checker=check)["observations"] == {"TimeoutError": 1}

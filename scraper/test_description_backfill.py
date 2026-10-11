@@ -31,7 +31,8 @@ def test_failure_does_not_starve_later_success_and_records_attempts():
             raise TimeoutError("secret detail")
         return complete
     assert backfill(db, limit=2, fetcher=fetch) == {
-        "attempted": 2, "stored": 1, "failed": 1, "unsupported": 0}
+        "attempted": 2, "stored": 1, "failed": 1, "unsupported": 0,
+        "reasons": {"TimeoutError": 1, "stored": 1}}
     assert db.writes[0][0] is None
     assert json.loads(db.writes[0][3])["description_fetch_attempt_reason"] == "TimeoutError"
     assert db.writes[1][0] == complete == db.writes[1][2]
@@ -85,3 +86,19 @@ def test_fetch_bounds_gzip_decompression():
     with pytest.raises(ValueError, match="body-too-large"):
         _fetch("https://jobs.linkedin.com/job/1",
                opener=lambda *_a, **_k: Response(body, "gzip"))
+
+
+def test_receipt_reports_http_codes_and_safe_failure_reasons():
+    from urllib.error import HTTPError
+    db = Database([(str(i), f"https://www.linkedin.com/jobs/view/{i}") for i in range(4)])
+    errors = iter([HTTPError("private", 429, "secret", {}, None),
+                   HTTPError("private", 404, "secret", {}, None),
+                   ValueError("description-missing-or-short"), ValueError("secret")])
+    def fetch(_):
+        raise next(errors)
+    receipt = backfill(db, fetcher=fetch)
+    assert receipt["failed"] == 4 and receipt["stored"] == 0
+    assert receipt["reasons"] == {"http-429": 1, "http-404": 1,
+                                  "description-missing-or-short": 1, "ValueError": 1}
+    assert json.loads(db.writes[0][3])["description_fetch_attempt_reason"] == "http-429"
+    assert "secret" not in json.dumps(receipt) + json.dumps(db.writes)

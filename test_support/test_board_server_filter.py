@@ -41,7 +41,7 @@ def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
                          source="synthetic", status=["new", "worth_checking", "applied"][i % 3],
                          status_reason=None, score=score, recommendation=recommendation, fit_line=None))
     # Old, highest-fit role is outside the newest 1,000; missing status means new.
-    rows[0].update(score=100, recommendation="review", first_seen_at="2020-01-01T00:00:00Z")
+    rows[0].update(location="Tel Aviv, Israel", work_mode="hybrid", seniority="Junior", score=100, recommendation="review", first_seen_at="2020-01-01T00:00:00Z")
     rows[1].update(score=99, posted_at="2026-09-01T00:00:00.000100Z")
     rows[2].update(score=99, posted_at="2026-09-01T00:00:00.000900Z")
     rows[7].update(seniority=None, title="Senior Engineer")
@@ -75,13 +75,14 @@ def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
                 db.execute("insert into posting_scores(posting_id,score,brain,model,scorer_version,posting_sha256,profile_sha256,history_sha256,score_payload,labels,reasons) "
                            "values (%s,%s,'synthetic','synthetic','1',%s,%s,%s,%s,%s,%s)",
                            (row["id"], row["score"], *(["a" * 64] * 3), Jsonb(payload), Jsonb(labels), Jsonb(reasons)))
+        db.execute("update postings set location='Tel Aviv, Israel',work_mode='hybrid',work_mode_source='structured',seniority='Junior' where id=%s", (rows[0]["id"],))
         db.execute("set local role service_role")
         for case, ids in zip(cases, expected, strict=True):
             actual = db.execute("select id from public.board_postings('all','all',%s,%s,%s,1000)",
                                 (case["fit"], case["statuses"], case["sort"])).fetchall()
             assert [str(row[0]) for row in actual] == ids, case
         assert db.execute("select id from board_postings('new-for-me','all','recommended','{}','fit',1000) limit 1").fetchone()[0] == UUID(rows[0]["id"])
-        assert db.execute("select has_function_privilege('anon','public.board_postings(text,text,text,text[],text,integer,text)','execute')").fetchone() == (False,)
+        assert db.execute("select has_function_privilege('anon','public.board_postings(text,text,text,text[],text,integer,text,text,text,text,text,boolean)','execute')").fetchone() == (False,)
         # Opt-in real PostgREST/Supabase-client leg; SQL parity always runs in CI.
         if binary := os.environ.get("JOBRADAR_POSTGREST_BIN") or shutil.which("postgrest"):
             db.commit()
@@ -107,7 +108,7 @@ def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
                                             cwd=ROOT / "ui", text=True, capture_output=True, timeout=60,
                                             env={**os.environ, "JOBRADAR_TEST_REST_URL": endpoint})
                     assert result.returncode == 0, result.stderr
-                    assert json.loads(result.stdout) == dict(first=rows[0]["id"], count=1000, pipeline=True, window=True, poll=True)
+                    assert json.loads(result.stdout) == dict(first=rows[0]["id"], count=1000, pipeline=True, window=True, poll=True, facets=True)
                 finally:
                     process.terminate()
                     process.wait(timeout=10)
