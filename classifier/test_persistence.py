@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import nullcontext
 from pathlib import Path
 import re
 from uuid import UUID, uuid4
@@ -380,6 +381,8 @@ def test_candidate_query_keeps_eligibility_leases_and_priority_order() -> None:
     class Connection:
         candidate_sql = ""
         candidate_params = ()
+        def transaction(self):
+            return nullcontext()
         def execute(self, sql, params=()):
             if "from public.profile" in sql:
                 return Result(list(profile_snapshot().items()))
