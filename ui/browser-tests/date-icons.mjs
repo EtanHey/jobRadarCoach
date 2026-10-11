@@ -19,7 +19,7 @@ import { JobCard } from "./components/job-card";
 import { JobDrawer } from "./components/job-drawer";
 import { PostingDates } from "./components/posting-dates";
 import { filterJobGroups } from "./lib/job-filters";
-import { earlierListingCount } from "./lib/job-dedup";
+
 const base = { company: "Fixture", source: "fixture", location: "Tel Aviv, Israel", remote: true,
   seniority: null, stack: [], salary: null, url: "https://example.test", apply_url: null,
   score: 80, status: "new", status_reason: null, alive: null, fit_line: null, recommendation: null,
@@ -49,7 +49,7 @@ function App() {
   useEffect(() => { const timer = setTimeout(() => setLoaded(selected), 150); return () => clearTimeout(timer); }, [selected]);
   return <main className="mx-auto min-h-screen max-w-5xl bg-background p-4 text-foreground"><h1 className="mb-4 text-xl font-semibold">Best Fit · date icons fixture</h1>
     <section className="grid gap-4 sm:grid-cols-2">{filterJobGroups(rows, options).map(({job, alternates}) =>
-      <JobCard key={job.id} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob}>{null}</JobCard>)}</section>
+      <JobCard key={job.id} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob}>{null}</JobCard>)}</section>
     <section data-compare className="mt-6 grid gap-2 rounded-xl border bg-card p-4 text-xs text-muted-foreground">
       <p className="font-medium text-foreground">Posted icon: plus vs calendar-plus</p>
       <div data-compare-variant="plus" className="flex items-center gap-3"><span className="w-28">plus (shipped)</span><PostingDates postedAt={compare.posted_at} lastPublishedAt={compare.last_published_at} firstSeenAt={compare.first_seen_at} /></div>
@@ -103,16 +103,15 @@ try {
     await old.getByRole("button", { name: "Republished 2026-10-03, 1 day ago" }).waitFor();
     await old.getByRole("button", { name: "Found by JRC 2026-10-04 13:00, 2 hours ago" }).waitFor();
     assert.doesNotMatch(await old.innerText(), /ago/);
-    // Repost marker: later republish (old) or the linked group's republish (relisted); none on a fresh original.
+    // Only single-posting publication evidence counts; linked date ranges do not.
     assert.equal(await old.locator("[data-repost-marker]").count(), 1);
-    assert.equal(await relisted.locator("[data-repost-marker]").count(), 1);
+    assert.equal(await relisted.locator("[data-repost-marker]").count(), 0);
     assert.equal(await fresh.locator("[data-repost-marker]").count(), 0);
     // Same-instant twins are alternative listings, not evidence of a repost.
     const twins = page.locator("article").filter({ has: page.getByRole("heading", { name: "Simultaneous twin role" }) });
     assert.equal(await twins.count(), 1);
     assert.equal(await twins.locator("[data-repost-marker]").count(), 0);
     assert.match(await twins.innerText(), /2 listings/);
-    await relisted.getByRole("button", { name: "Reposted: republished 2026-09-28" }).waitFor();
     // The experience text is never truncated and nothing overflows the viewport.
     const clipped = await page.locator("[data-experience]").evaluateAll(nodes => nodes.filter(node => node.scrollWidth > node.clientWidth + 1).map(node => node.textContent));
     assert.deepEqual(clipped, []);

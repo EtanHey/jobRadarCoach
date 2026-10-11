@@ -542,7 +542,7 @@ export default function JobGlobe({ active, dataReady, points, selected, selectio
       </div>}
       {!ready && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">{dataReady ? "Preparing the globe…" : "Loading map…"}</p>}
       {ready && showDragHint && <p className="pointer-events-none absolute left-4 top-4 rounded-md bg-slate-950/80 px-2 py-1 text-xs text-slate-200">Drag to spin · scroll to zoom</p>}
-      {hoveredBubble && <div className="pointer-events-none absolute bottom-16 left-3 z-10 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" role="tooltip">{hoveredBubble.count} roles near {hoveredBubble.place.replace(/^Near /, "")}<p className="mt-1 text-muted-foreground">Click to list them</p></div>}
+      {hoveredBubble && <div className="pointer-events-none absolute bottom-16 left-3 z-10 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" role="tooltip">{hoveredBubble.count} {hoveredBubble.count === 1 ? "role" : "roles"} near {hoveredBubble.place.replace(/^Near /, "")}<p className="mt-1 text-muted-foreground">Click to list them</p></div>}
       {focused && !hoveredBubble && !(hiddenFocusedSelection?.selected === selected && hiddenFocusedSelection.request === selectionRequest) && <div className="absolute bottom-16 left-3 z-10 max-w-64 rounded-xl border bg-card/95 p-3 text-xs shadow-lg" data-globe-posting={focused.posting_id} data-globe-hover={hovered?.posting_id} aria-live="polite"><p>{focused.job.company} · {focused.job.score === null ? "Unscored" : `${focused.job.score} fit`}</p><p className="mt-1 font-medium">{focused.job.title}</p><p className="mt-1">{pointLabel(focused)}</p><p className="mt-1 break-all">Source: {focused.source}</p></div>}
     </div>
   </section>;
