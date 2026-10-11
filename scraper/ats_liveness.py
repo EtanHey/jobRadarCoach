@@ -204,7 +204,14 @@ def _snapshot_ids(source, tenant, url, fetcher, detail_paths=None):
     if source == "workday":
         query, _ = workday.coordinates("https://" + tenant)
         # Israel facets are for discovery only. Membership must cover the entire site.
-        rows = list(workday.active_list(query, fetcher=fetcher))
+        bootstrap = []
+        try:
+            rows = list(workday.active_list(query, fetcher=fetcher, first_page=bootstrap))
+        finally:
+            # Partial presence is only a candidate for an authenticated detail control.
+            if detail_paths is not None:
+                detail_paths.update((workday.JOB_PATH.fullmatch(row["externalPath"])[1].casefold(),
+                                     row["externalPath"]) for row in bootstrap)
         ids = [workday.JOB_PATH.fullmatch(row["externalPath"])[1].casefold() for row in rows]
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate Workday posting identity")
@@ -215,13 +222,14 @@ def _snapshot_ids(source, tenant, url, fetcher, detail_paths=None):
 
 
 class BoardChecker:
-    """Cache one complete snapshot per tenant; partial/failed boards stay unknown."""
+    """Cache complete tenant snapshots; oversized Workday uses controlled targets."""
     def __init__(self, fetcher=None):
         self.fetcher = fetcher or public_get()
         self.cache = {}
         self.greenhouse_controls = {}
         self.detail_paths = {}
         self.detail_controls = {}
+        self.large_results = {}
 
     def greenhouse_control(self, posting, canonical_url):
         """One listed sibling must serve 200 on this host; cache success or failure."""
@@ -253,21 +261,46 @@ class BoardChecker:
                 try:
                     paths = {}
                     ids = _snapshot_ids(source, tenant, url, self.fetcher, paths)
-                    self.detail_paths[key] = paths
                 except workday.BoardTooLarge:
                     ids, error = None, "board-too-large"
                 except Exception as exc:
                     ids, error = None, f"board-unknown:{type(exc).__name__}"
+                self.detail_paths[key] = paths
                 self.cache[key] = ids, error, checked_at
             ids, error, checked_at = self.cache[key]
             if ids is not None:
                 alive, reason, status = job in ids, "ats-active-list-present" if job in ids else "ats-active-list-absent", 200
             else:
                 reason = error
+                if source == "workday" and error == "board-too-large":
+                    target_key = key, posting["url"]
+                    if target_key in self.large_results:
+                        return self.large_results[target_key]
+                    query, path = workday.coordinates(posting["url"])
+                    try:
+                        # Requisition membership survives renamed title/location slugs.
+                        rows = list(workday.active_list(query, fetcher=self.fetcher,
+                                    search=workday.JOB_PATH.fullmatch(path)[1]))
+                        present = any(workday.JOB_PATH.fullmatch(row["externalPath"])[1].casefold()
+                                      == job for row in rows)
+                        alive, status = (True, 200) if present else controlled_detail(
+                            posting, key, job, self, opener=pinned_open, sleep=time.sleep)
+                    except (OSError, ValueError, KeyError, TypeError):
+                        alive, status = None, None
+                    if alive is not None:
+                        reason = "workday-detail-present" if alive else "workday-detail-missing"
+                        url = workday.base(query) + ("/jobs" if present else path)
+                        if present:
+                            reason = "workday-targeted-list-present"
+                    # Detail observations are per posting, not the cached board's timestamp.
+                    checked_at = datetime.now(timezone.utc).isoformat()
         except (KeyError, TypeError, ValueError):
             pass
-        return {"alive": alive, "liveness_reason": reason, "liveness_status": status,
-                "liveness_final_url": url, "liveness_checked_at": checked_at}
+        result = {"alive": alive, "liveness_reason": reason, "liveness_status": status,
+                  "liveness_final_url": url, "liveness_checked_at": checked_at}
+        if reason != "invalid-ats-identity" and source == "workday" and error == "board-too-large":
+            self.large_results[target_key] = result
+        return result
 
 
 REDIRECT_CODES = {301, 302, 303, 307, 308}
