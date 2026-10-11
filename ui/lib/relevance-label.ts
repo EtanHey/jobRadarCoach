@@ -1,3 +1,4 @@
+// Keys are persisted relevance-gate rule slugs, not display text; keep unknown slugs visible for new rules.
 const labels: Record<string, string> = {
   "leadership-title-strict": "Leadership or staff-level role",
   "incompatible-stack-title": "Role requires a different primary stack",

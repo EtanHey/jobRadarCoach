@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { foundWithinOptions, fitOptions, sortOptions } from "./view-options";
 import { pipelineStatusValues } from "./pipeline-status-values";
 
 const text = z.string();
@@ -97,7 +98,7 @@ export const JobDetailSchema = JobSummarySchema.extend({
   scored_at: nullableText,
 }).strict();
 
-export const FoundWithinSchema = z.enum(["", "24h", "3d", "7d", "30d"]);
+export const FoundWithinSchema = z.enum(foundWithinOptions.map(option => option.value));
 export type FoundWithin = z.infer<typeof FoundWithinSchema>;
 
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
@@ -107,15 +108,15 @@ export const JobListQuerySchema = z.object({
   availability: AvailabilitySchema.default("active"),
   limit,
   ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
-  // Strictly-newer cursor for the board's new-roles poll.
   found_within: FoundWithinSchema.optional(),
+  // Strictly-newer cursor for the board's new-roles poll.
   since: z.iso.datetime({ offset: true }).optional(),
-  fit: z.enum(["", "recommended", "skip", "good", "scored", "unscored"]).optional(),
+  fit: z.enum(fitOptions.map(option => option.value)).optional(),
   statuses: z.string().transform(value => value === "" ? [] : value.split(","))
     .pipe(z.array(z.enum(pipelineStatusValues)).max(pipelineStatusValues.length)).optional(),
-  sort: z.enum(["found", "posted", "fit", "seniority"]).optional(),
+  sort: z.enum(sortOptions.map(option => option.value)).optional(),
 }).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since && !query.found_within), {
-  message: "ID lookup requires all statuses and availability, without a cursor.",
+  message: "ID lookup requires all statuses and availability, without a cursor or found-within window.",
 }).refine(query => !(query.ids || query.since) || (query.fit === undefined && query.statuses === undefined && query.sort === undefined), {
   message: "ID and poll reads do not accept board facets.",
 });

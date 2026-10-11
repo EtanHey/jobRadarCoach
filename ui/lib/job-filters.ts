@@ -4,13 +4,11 @@ import { groupDuplicateJobs, type DuplicateJobGroup } from "./job-dedup";
 import { matchesFit } from "./job-fit";
 import type { PipelineStatus } from "./job-status";
 
-export type JobSort = "found" | "posted" | "fit" | "seniority";
+export { foundWithinCutoff } from "./view-options";
+import { foundWithinCutoff, type JobSort } from "./view-options";
+export type { JobSort } from "./view-options";
 export type LocationFilter = "" | "israel" | "united-states" | "other";
 export type LocationGroup = Exclude<LocationFilter, ""> | "unknown";
-export function foundWithinCutoff(window: FoundWithin | undefined, now = Date.now()): number | null {
-  const days = { "24h": 1, "3d": 3, "7d": 7, "30d": 30 };
-  return window ? now - days[window] * 86_400_000 : null;
-}
 export type ViewOptions = { found_within?: FoundWithin; work_mode?: "hybrid" | "remote" | "on-site"; remote?: boolean; search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
 export const levelOrder = ["Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"];
 export function sourceFilterValues(jobs: Pick<JobSummary, "source">[], selected: string): string[] {
@@ -43,6 +41,7 @@ export function locationGroup(value: string | null): LocationGroup {
   if (UNITED_STATES_LOCATION.test(location) || knownUnitedStatesCity(location) || UNITED_STATES_METRO.test(location)) return "united-states";
   return "other";
 }
+// Mirrored in SQL public.board_level_rank (0025), after titleSeniority fallback.
 export function levelGroup(value: string | null): string {
   if (!value) return "Unknown";
   if (/intern/i.test(value)) return "Intern";
