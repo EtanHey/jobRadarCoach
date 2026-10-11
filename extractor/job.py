@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import AbstractContextManager
 from functools import partial
 from typing import Protocol
 from uuid import UUID
@@ -38,6 +39,7 @@ class Result(Protocol):
 
 class Connection(Protocol):
     def execute(self, query: str, params: tuple[object, ...] = ()) -> Result: ...
+    def transaction(self) -> AbstractContextManager[object]: ...
 
 
 def _log(**fields: object) -> None:
