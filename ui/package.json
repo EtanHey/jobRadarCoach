@@ -15,7 +15,8 @@
     "test:db:up": "node e2e/db/db.mjs up",
     "test:db:seed": "node e2e/db/db.mjs seed",
     "test:db:down": "node e2e/db/db.mjs down",
-    "test:db": "sh e2e/cap.sh e2e/db/run-capped.mjs 3072 600"
+    "test:db": "sh e2e/cap.sh e2e/db/run-capped.mjs 3072 600",
+    "test:ui-polish": "sh e2e/cap.sh browser-tests/ui-polish.mjs 3072 600"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

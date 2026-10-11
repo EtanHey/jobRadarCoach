@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { globePoints } from "../lib/globe-model";
 import { JobSummarySchema, type JobSummary } from "../lib/contracts";
-import { earlierListingCount, groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
+import { groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
 import { repostNote } from "../lib/job-display";
 
 function job(id: number, overrides: Partial<JobSummary> = {}): JobSummary {
@@ -218,84 +218,27 @@ test("grouping prepares identity and location evidence once instead of per pair"
   assert.ok(counts.url <= rows.length * 2, "each listing URL must be parsed at most once per grouping call");
 });
 
-test("only demonstrably earlier alternates count as earlier listings", () => {
-  const at = "2026-10-02T12:00:00Z";
-  const simultaneous = groupDuplicateJobs([job(20, { posted_at: at, first_seen_at: at }), job(21, { posted_at: at, first_seen_at: at })])[0];
-  assert.equal(simultaneous.alternates.length, 1);
-  assert.equal(earlierListingCount(simultaneous.job, simultaneous.alternates), 0);
-
-  const current = job(22, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" });
-  const older = job(23, { posted_at: "2026-08-20T12:00:00Z", first_seen_at: "2026-08-20T13:00:00Z" });
-  const samePostedLaterSeen = job(24, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-27T13:00:00Z" });
-  const unknownPosted = job(25, { posted_at: null, first_seen_at: "2026-08-01T00:00:00Z" });
-  assert.equal(earlierListingCount(current, [older]), 1);
-  assert.equal(earlierListingCount(current, [samePostedLaterSeen]), 0);
-  assert.equal(earlierListingCount(current, [unknownPosted]), 0);
-  assert.equal(earlierListingCount(current, [older, samePostedLaterSeen, unknownPosted]), 1);
-
-  const seenOnly = job(26, { posted_at: null, first_seen_at: "2026-09-10T00:00:00Z" });
-  const seenEarlier = job(27, { posted_at: null, first_seen_at: "2026-09-01T00:00:00Z" });
-  assert.equal(earlierListingCount(seenOnly, [seenEarlier]), 1);
-  assert.equal(earlierListingCount(seenOnly, [job(28, { posted_at: null, first_seen_at: "2026-09-10T00:00:00Z" })]), 0);
-  assert.equal(earlierListingCount(job(29, { posted_at: "invalid", first_seen_at: "invalid" }), [older]), 0);
+test("LinkedIn grouping keeps dates and alternates without inferring a repost", () => {
+  for (const posted_at of [null, "2026-09-28T12:00:00Z"]) {
+    const groups = groupDuplicateJobs([
+      job(30, {posted_at,first_seen_at:"2026-09-28T13:00:00Z"}),
+      job(31, {posted_at:posted_at ? "2026-08-20T12:00:00Z" : null,first_seen_at:"2026-08-20T13:00:00Z"}),
+    ].map(row => JobSummarySchema.parse(row)));
+    assert.equal(groups.length, 1);
+    assert.equal(groups[0].alternates.length, 1);
+    assert.equal(repostNote(groups[0].job), null);
+  }
 });
 
-test("linked groups mark reposts by republished date; earlier-listing counts only without publication dates", () => {
-  const marker = ({ job: row, alternates }: ReturnType<typeof groupDuplicateJobs>[number]) =>
-    repostNote(row.posted_at, row.last_published_at, earlierListingCount(row, alternates), "UTC");
-  const dated = groupDuplicateJobs([
-    job(30, { posted_at: "2026-09-28T12:00:00Z", last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
-    job(31, { posted_at: "2026-08-20T12:00:00Z", last_published_at: "2026-08-20T12:00:00Z", first_seen_at: "2026-08-20T13:00:00Z" }),
-  ]);
-  assert.equal(dated.length, 1);
-  assert.equal(dated[0].job.posted_at, "2026-08-20T12:00:00Z");
-  assert.equal(earlierListingCount(dated[0].job, dated[0].alternates), 0);
-  assert.equal(marker(dated[0]), "Reposted: republished 2026-09-28");
 
-  const mixed = groupDuplicateJobs([
-    job(32, { posted_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
-    job(33, { posted_at: null, first_seen_at: "2026-08-01T00:00:00Z" }),
-  ]);
-  assert.equal(mixed.length, 1);
-  assert.equal(earlierListingCount(mixed[0].job, mixed[0].alternates), 0);
-
-  const undated = groupDuplicateJobs([
-    job(34, { posted_at: null, last_published_at: null, first_seen_at: "2026-09-10T00:00:00Z" }),
-    job(35, { posted_at: null, last_published_at: null, first_seen_at: "2026-09-01T00:00:00Z" }),
-  ]);
-  assert.equal(undated.length, 1);
-  assert.equal(marker(undated[0]), "Reposted: 1 earlier listing of this role");
-});
-
-test("a known latest publication blocks the discovery fallback even without original dates", () => {
-  const marker = ({ job: row, alternates }: ReturnType<typeof groupDuplicateJobs>[number]) =>
-    repostNote(row.posted_at, row.last_published_at, earlierListingCount(row, alternates), "UTC");
-  // R13 scratch case: schema-valid twins share one known latest publication but were found weeks apart.
-  const latestOnly = groupDuplicateJobs([
-    job(40, { posted_at: null, last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
-    job(41, { posted_at: null, last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-01T13:00:00Z" }),
-  ].map(row => JobSummarySchema.parse(row)));
-  assert.equal(latestOnly.length, 1);
-  assert.equal(latestOnly[0].job.posted_at, null);
-  assert.equal(latestOnly[0].job.last_published_at, "2026-09-28T12:00:00Z");
-  assert.equal(earlierListingCount(latestOnly[0].job, latestOnly[0].alternates), 0);
-  assert.equal(marker(latestOnly[0]), null);
-
-  // Differing latest dates without a known original are still not "later than the original".
-  const latestDiffers = groupDuplicateJobs([
-    job(42, { posted_at: null, last_published_at: "2026-09-28T12:00:00Z", first_seen_at: "2026-09-28T13:00:00Z" }),
-    job(43, { posted_at: null, last_published_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T13:00:00Z" }),
-  ]);
-  assert.equal(latestDiffers.length, 1);
-  assert.equal(earlierListingCount(latestDiffers[0].job, latestDiffers[0].alternates), 0);
-  assert.equal(marker(latestDiffers[0]), null);
-
-  // One member's latest publication dates the whole group.
-  const partlyDated = groupDuplicateJobs([
-    job(44, { posted_at: null, last_published_at: null, first_seen_at: "2026-09-28T13:00:00Z" }),
-    job(45, { posted_at: null, last_published_at: "2026-09-01T12:00:00Z", first_seen_at: "2026-09-01T13:00:00Z" }),
-  ]);
-  assert.equal(partlyDated.length, 1);
-  assert.equal(earlierListingCount(partlyDated[0].job, partlyDated[0].alternates), 0);
-  assert.equal(marker(partlyDated[0]), null);
+test("ATS grouping preserves each listing's republish evidence separately from group dates", () => {
+  const ats = job(200, { source: "greenhouse", posted_at: "2026-09-01T12:00:00Z", last_published_at: "2026-10-03T12:00:00Z" });
+  const alternate = job(201, { posted_at: "2026-08-01T12:00:00Z", last_published_at: "2026-10-04T12:00:00Z" });
+  const [group] = groupDuplicateJobs([ats, alternate]);
+  assert.equal(group.job.id, ats.id);
+  assert.equal(group.job.posted_at, alternate.posted_at);
+  assert.equal(group.job.last_published_at, alternate.last_published_at);
+  assert.equal(repostNote(group.job, "UTC"), "Reposted: republished 2026-10-03");
+  const [ordinary] = groupDuplicateJobs([{ ...ats, last_published_at: ats.posted_at }, alternate]);
+  assert.equal(repostNote(ordinary.job, "UTC"), null, "aggregate dates alone are not evidence");
 });

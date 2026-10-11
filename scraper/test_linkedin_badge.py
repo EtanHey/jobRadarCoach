@@ -1,7 +1,6 @@
 """Known r2 false positives remain advisory, through real persistence."""
 import pytest
 from scraper import database, recheck, liveness
-from scraper.test_database import connection
 from pathlib import Path
 from test_support.postgres import migrated_database
 from scraper.test_linkedin_guest import TOP, STATUS, URL, Response, classify

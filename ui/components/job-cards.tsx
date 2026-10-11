@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { createPrefetchIntent } from "@/lib/detail-prefetch";
-import { earlierListingCount, type DuplicateJobGroup } from "@/lib/job-dedup";
+import { type DuplicateJobGroup } from "@/lib/job-dedup";
 import { partitionGlobeGroups } from "@/lib/globe-viewport";
 import { keptCardStatus } from "@/lib/job-status";
 import type { GlobeJob } from "@/lib/globe-contract";
@@ -27,7 +27,7 @@ export function JobCards({ groups, globeOpen, filter = "", visiblePostingIds, se
   const cards = (rows: DuplicateJobGroup<GlobeJob>[]) => rows.map(({job, alternates}) => {
     return <div key={job.id} data-globe-card={job.id} data-globe-selected={selectedId === job.id || undefined}>
     <BoardCard actions={globeOpen && selectedId === job.id ? <Button variant="outline" className="w-full" onClick={event => { openerRef.current = event.currentTarget; openDetail?.(job.id); }}>View job details</Button> : undefined}
-      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} logoSize={sections ? "sm" : "md"} job={job} alternateCount={alternates.length} earlierListings={earlierListingCount(job, alternates)} openerRef={openerRef} selectJob={selectJob} prefetchIntent={prefetchIntent}>
+      selected={globeOpen ? selectedId === job.id : undefined} keptStatus={keptCardStatus(filter, job.status)} logoSize={sections ? "sm" : "md"} job={job} alternateCount={alternates.length} openerRef={openerRef} selectJob={selectJob} prefetchIntent={prefetchIntent}>
       <TechnologyChips names={job.stack} presentation="card" />
     </BoardCard>
   </div>;

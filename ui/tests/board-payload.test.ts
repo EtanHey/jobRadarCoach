@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { spawnSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import { JobListItemSchema, JobListResponseSchema, type JobListQuery } from "../lib/contracts";
-import { getApiStore, parseSummaryRows, selectSummaries } from "../lib/server";
+import { BOARD_FIELD_ALIASES, getApiStore, parseSummaryRows, selectSummaries } from "../lib/server";
 import { filterJobGroups, type ViewOptions } from "../lib/job-filters";
 
 const id = "00000000-0000-4000-8000-000000000001";
@@ -23,7 +23,7 @@ const raw = {
 const slim = () => {
   const { relevance_gate, list_metadata, liveness, posting_scores, ...rest } = raw;
   const projected: Record<string, unknown> = { ...rest, relevance_rule: relevance_gate.rule, list_stack: list_metadata.stack,
-    experience: list_metadata.experience, alive: liveness.alive, linkedin_closed_signal: signal,
+    experience: list_metadata.experience, alive: liveness.alive, linkedin_reposted_signal: null, linkedin_closed_signal: signal,
     posting_scores: { score: posting_scores.score, recommendation: "apply", fit_line: "Synthetic fit" } };
   delete projected.salary;
   delete projected.posting_extractions;
@@ -125,4 +125,8 @@ test("detail by ID retains full score and drawer metadata", async () => {
       if (value === undefined) delete process.env[name!]; else process.env[name!] = value;
     }
   }
+});
+
+test("every optional and required list field has an explicit database alias", () => {
+  assert.deepEqual(Object.keys(BOARD_FIELD_ALIASES).sort(), Object.keys(JobListItemSchema.shape).sort());
 });

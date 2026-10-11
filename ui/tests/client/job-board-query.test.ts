@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { JobDetail, JobSummary } from "../../lib/contracts";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
-import { applyScoreAnyway, applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
+import { applyScoreAnyway, applyConfirmedStatus, boardListKey, boardListPrefix, cachedVisitCohort, confirmedStatusRevision, confirmDetailRead, confirmListRead, DETAIL_STALE_MS, jobDetailQueryOptions, patchCachedDetailStatus } from "../../lib/job-board-query";
 
 test("server facet changes retain the New-for-me visit cohort across query keys", () => {
   const client = new QueryClient();
@@ -235,5 +235,23 @@ test("an override defeats a held archive read but a later JD verdict stays autho
   applyScoreAnyway(client, { ...filtered, relevance_filtered: false } as JobDetail);
   assert.deepEqual(confirmListRead(client, [filtered], "not-scored", 0), []);
   assert.deepEqual(confirmListRead(client, [filtered], "not-scored", confirmedStatusRevision(client)), [filtered]);
+  client.clear();
+});
+
+// Prefix eviction must cover every facet without removing adjacent visits.
+test("list prefix clears all facets only for the selected visit", () => {
+  const client = new QueryClient();
+  for (const filter of ["new-for-me", "all"] as const) {
+    for (const availability of ["active", "inactive"] as const) {
+      for (const found_within of ["", "7d"] as const) {
+        client.setQueryData(boardListKey(filter, availability, { fit: "good", statuses: [], sort: "found", found_within }), { jobs: [row] });
+      }
+    }
+  }
+  client.removeQueries({ queryKey: boardListPrefix("new-for-me", "active") });
+  assert.equal(client.getQueriesData({ queryKey: boardListPrefix("new-for-me", "active") }).length, 0);
+  assert.equal(client.getQueriesData({ queryKey: boardListPrefix("all", "active") }).length, 2);
+  assert.equal(client.getQueriesData({ queryKey: boardListPrefix("new-for-me", "inactive") }).length, 2);
+  assert.equal(client.getQueriesData({ queryKey: boardListPrefix() }).length, 6);
   client.clear();
 });
