@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 
 import pytest
 
@@ -37,6 +38,9 @@ class Connection:
         self.brain = brain
         self.extracted: set[str] = set()
         self.queries: list[str] = []
+
+    def transaction(self):
+        return nullcontext()
 
     def execute(self, query, params=()):
         self.queries.append(query)
