@@ -59,6 +59,7 @@ const summary: JobSummary = {
 };
 const detail: JobDetail = {
   ...summary,
+  salary: null, description_available: true, seniority_origin: "unknown", extraction_state: "not-extracted",
   raw_jd: "Full public description",
   reasons: [],
   score_payload: null,
@@ -115,7 +116,9 @@ test("job list exposes a bounded nullable unscored contract without raw JD", asy
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.deepEqual(received, { filter: "all", availability: "active", limit: 250 });
-  assert.deepEqual(body, { jobs: [summary] });
+  const listItem = Object.fromEntries(Object.entries(summary).filter(([field]) =>
+    !["salary", "description_available", "seniority_origin", "extraction_state"].includes(field)));
+  assert.deepEqual(body, { jobs: [listItem] });
   assert.equal("raw_jd" in body.jobs[0], false);
   assert.match(response.headers.get("x-request-id") ?? "", /^[0-9a-f-]{36}$/);
   assert.match(response.headers.get("server-timing") ?? "", /^app;dur=\d+$/);

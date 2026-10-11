@@ -58,15 +58,16 @@ export const JobSummarySchema = z.object({
   source: text,
   last_seen_at: text,
   experience: nullableText,
-  description_available: z.boolean(),
-  seniority_origin: z.enum(["extracted", "title", "unknown"]),
-  extraction_state: z.enum(["not-extracted", "extracted"]),
+  // Optional for legacy cached summaries; list responses omit drawer metadata.
+  description_available: z.boolean().optional(),
+  seniority_origin: z.enum(["extracted", "title", "unknown"]).optional(),
+  extraction_state: z.enum(["not-extracted", "extracted"]).optional(),
   location: nullableText,
   remote: z.boolean().nullable(),
   work_mode: WorkModeSchema.nullable().optional(),
   seniority: nullableText,
   stack: z.array(text),
-  salary: nullableText,
+  salary: nullableText.optional(),
   url: publicUrl,
   apply_url: publicUrl.nullable(),
   posted_at: nullableText,
@@ -85,6 +86,10 @@ export const JobSummarySchema = z.object({
 }).strict();
 
 export const JobDetailSchema = JobSummarySchema.extend({
+  description_available: z.boolean(),
+  seniority_origin: z.enum(["extracted", "title", "unknown"]),
+  extraction_state: z.enum(["not-extracted", "extracted"]),
+  salary: nullableText,
   raw_jd: nullableText,
   reasons: z.array(ScoreReasonSchema),
   score_payload: ScorePayloadSchema.nullable(),
@@ -149,7 +154,10 @@ export const ProfileSchema = z.object({
   "runtime.brain": z.enum(["ollama", "codex"]),
 }).strict();
 
-export const JobListResponseSchema = z.object({ jobs: z.array(JobSummarySchema).max(1000) }).strict();
+export const JobListItemSchema = JobSummarySchema.omit({
+  salary: true, description_available: true, seniority_origin: true, extraction_state: true,
+}).strip();
+export const JobListResponseSchema = z.object({ jobs: z.array(JobListItemSchema).max(1000) }).strict();
 export const JobDetailResponseSchema = z.object({ job: JobDetailSchema }).strict();
 export const StatusResultSchema = z.object({
   status: JobStatusSchema,
