@@ -12,7 +12,8 @@ test('globe projection retains filter identity but drops card/detail fields', ()
   const slim = GlobeJobSchema.parse(full);
   assert.ok(!('fit_line' in slim)); assert.ok(!('salary' in slim)); assert.equal(slim.title,row.title);
 });
-test('poll returns count only and uses narrow SQL snapshot with view and loaded ids', async () => {
+test('poll returns count only and uses narrow SQL snapshot with view and loaded ids', async t => {
+  const clock = t.mock.method(Date, 'now', () => Date.parse('2026-10-07T12:00:00Z'));
   let body: unknown;
   const db = createClient('https://database.example.test','synthetic',{global:{fetch: async (_url,init) => {
     body=JSON.parse(String(init?.body));
@@ -24,6 +25,10 @@ test('poll returns count only and uses narrow SQL snapshot with view and loaded 
   assert.equal(response.status,200); assert.deepEqual(await response.json(),{count:1,truncated:false});
   assert.match(response.headers.get('cache-control') ?? '',/no-store/);
   assert.deepEqual(body,{filter:'all',availability:'inactive',since:requestBody.since,found_within:'24h',ids:[id],incoming_ids:[id]});
+  clock.mock.mockImplementation(() => Date.parse('2026-10-09T12:00:00Z'));
+  const expired = await handler(new Request('https://example.test/api/jobs/new-roles',{method:'POST',
+    headers:{'content-type':'application/json'},body:JSON.stringify(requestBody)}));
+  assert.deepEqual(await expired.json(),{count:0,truncated:false},'the 24-hour window still excludes older roles');
   assert.equal((await handler(new Request('https://example.test/api/jobs/new-roles',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...requestBody,found_within:'2d'})}))).status,400);
   for (const incoming_ids of [undefined, Array(102).fill(id), ['invalid']]) {
     assert.equal((await handler(new Request('https://example.test/api/jobs/new-roles', {method:'POST',
