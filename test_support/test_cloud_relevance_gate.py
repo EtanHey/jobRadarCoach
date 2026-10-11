@@ -13,9 +13,8 @@ from test_support.postgres import migrated_database
 
 @pytest.fixture
 def db():
-    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=30) as url:
+    with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=33) as url:
         with psycopg.connect(url, autocommit=True) as connection:
-            connection.execute((Path(__file__).parents[1] / 'supabase/migrations/0033_preserve_relevance_owner_intent.sql').read_text())
             yield connection
 
 
