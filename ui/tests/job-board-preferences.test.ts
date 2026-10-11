@@ -184,7 +184,7 @@ test("leaving Not scored preserves availability and found-within before and afte
   }
 });
 
-test("archive query includes older and inactive roles without persisting its overrides", () => {
+test("archive query applies found-within while including inactive roles without persisting overrides", () => {
   const storage = memoryStorage();
   const prior: BoardPreferences = {
     filter: "all", view: { ...defaultBoardPreferences().view, found_within: "24h" },
@@ -192,14 +192,16 @@ test("archive query includes older and inactive roles without persisting its ove
   const archive = preferencesForBoardFilter(prior, "not-scored");
   const queryView = viewForBoardQuery(archive);
   assert.equal(queryView.availability, "all");
-  assert.equal(queryView.found_within, "");
+  assert.equal(queryView.found_within, "24h");
   const path = jobListRequestPath({ filter: archive.filter, ...queryView, limit: 1000 });
   assert.match(path, /availability=all/);
-  assert.doesNotMatch(path, /found_within=/);
+  assert.match(path, /found_within=24h/);
   const oldRole = { id: "old", title: "Engineer", company: "Synthetic", source: "fixture",
     first_seen_at: "2000-01-01T00:00:00Z", location: null, seniority: null, stack: [],
     score: null, status: "new", relevance_filtered: true, alive: false } as unknown as JobSummary;
-  assert.equal(filterJobGroups([oldRole], queryView).length, 1);
+  assert.equal(filterJobGroups([oldRole], queryView).length, 0);
+  const recentRole = { ...oldRole, id: "recent", first_seen_at: new Date().toISOString() };
+  assert.equal(filterJobGroups([recentRole], queryView).length, 1);
   assert.equal(filterJobGroups([oldRole], archive.view).length, 0);
   writeBoardPreferences(storage, archive);
   assert.deepEqual(readBoardPreferences(storage), archive);
@@ -207,4 +209,17 @@ test("archive query includes older and inactive roles without persisting its ove
   assert.equal(readBoardPreferences(storage).view.found_within, "24h");
   const returned = preferencesForBoardFilter(readBoardPreferences(storage), "new-for-me");
   assert.deepEqual(viewForBoardQuery(returned), returned.view);
+});
+
+test("every cohort applies and restores each saved found-within window", () => {
+  for (const filter of ["all", "new-for-me", "seen", "not-scored"] as const) {
+    for (const found_within of ["", "24h", "3d", "7d", "30d"] as const) {
+      const storage = memoryStorage();
+      const preferences = preferencesForBoardFilter({ ...defaultBoardPreferences(),
+        view: { ...defaultBoardPreferences().view, found_within } }, filter);
+      writeBoardPreferences(storage, preferences);
+      const restored = readBoardPreferences(storage);
+      assert.equal(viewForBoardQuery(restored).found_within ?? "", found_within);
+    }
+  }
 });
