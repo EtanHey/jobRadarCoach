@@ -1,5 +1,6 @@
 import json
 import gzip
+from contextlib import nullcontext
 from email.message import Message
 
 import pytest
@@ -11,6 +12,8 @@ class Database:
     def __init__(self, rows):
         self.rows = rows
         self.writes = []
+    def transaction(self):
+        return nullcontext()
     def execute(self, sql, params=()):
         if sql == UPDATE:
             self.writes.append(params)
@@ -20,6 +23,12 @@ class Database:
         return self
     def fetchall(self):
         return self.rows
+
+
+@pytest.fixture(autouse=True)
+def stub_gate_for_query_only_double(monkeypatch):
+    from scraper import relevance
+    monkeypatch.setattr(relevance, 'refresh_gate', lambda *_args, **_kwargs: None)
 
 
 def test_failure_does_not_starve_later_success_and_records_attempts():

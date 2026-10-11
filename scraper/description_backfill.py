@@ -14,6 +14,7 @@ from urllib.error import HTTPError
 from urllib.request import Request
 
 from scraper.jd_fetch import BROWSER_USER_AGENT, MIN_PLAUSIBLE_JD_CHARS, extract_full_jd
+from scraper import relevance
 from scraper.public_https import pinned_open
 from scraper.recheck import public_job_url
 from scraper.sources import ashby, smartrecruiters
@@ -118,8 +119,11 @@ def backfill(connection, *, limit: int = MAX_ITEMS, fetcher=_fetch) -> dict:
         receipt["reasons"][reason] = receipt["reasons"].get(reason, 0) + 1
         metadata = {"description_fetch_attempt_at": now,
                     "description_fetch_attempt_reason": reason}
-        connection.execute(UPDATE, (description, MIN_PLAUSIBLE_JD_CHARS, description,
-                                    json.dumps(metadata), posting_id, url))
+        with connection.transaction():
+            connection.execute(UPDATE, (description, MIN_PLAUSIBLE_JD_CHARS, description,
+                                        json.dumps(metadata), posting_id, url))
+            if description is not None:
+                relevance.refresh_gate(connection, posting_ids=[posting_id], limit=1, at_write=True)
         receipt["attempted"] += 1
         if description is not None:
             receipt["stored"] += 1
