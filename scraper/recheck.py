@@ -73,7 +73,8 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
         return check_posting_url(posting, board_checker=board_checker)
     board_checker = board_checker or BoardChecker()
     rows = connection.execute(SELECT_STALE, (["linkedin", *ATS_SOURCES], scope, scope, limit)).fetchall()
-    receipt = {"checked": 0, "closed": 0, "alive": 0, "unknown": 0, "unsupported": 0, "alerts": 0}
+    receipt = {"checked": 0, "closed": 0, "alive": 0, "unknown": 0, "unsupported": 0, "alerts": 0,
+               "observations": {}}
     for posting_id, url, source, external_id, state in rows:
         posting = {"source": source, "external_id": external_id, "url": url, "liveness": state}
         if source in ATS_SOURCES:
@@ -97,6 +98,8 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
             # dedicated ATS gate owns hiding; LinkedIn rows keep advisory evidence.
             if source == "linkedin":
                 update.update(database_evidence({**result, "source": source, "url": url}))
+        reason = update["last_attempt_reason"]
+        receipt["observations"][reason] = receipt["observations"].get(reason, 0) + 1
         written = connection.execute(UPDATE_RESULT, (json.dumps(update), posting_id, url, source,
                                                      external_id, json.dumps(state)))
         receipt["checked"] += 1
