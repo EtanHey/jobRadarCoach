@@ -13,6 +13,7 @@ import pytest
 from classifier.persistence import list_scoring_candidates
 from classifier.test_core import profile_snapshot
 from extractor.job import select_postings
+from scraper.description_backfill import backfill
 from scraper.relevance import refresh_gate
 from test_support.postgres import database_url, migrated_database
 
@@ -23,8 +24,8 @@ PURSUED = ['worth_checking', 'applied', 'screen', 'interview_technical',
 
 @pytest.fixture
 def db():
-    with migrated_database(MIGRATIONS, through=30) as url, psycopg.connect(url) as connection:
-        connection.execute((MIGRATIONS / '0033_pursued_relevance_gate.sql').read_text())
+    with migrated_database(MIGRATIONS, through=33) as url, psycopg.connect(url) as connection:
+        connection.execute((MIGRATIONS / '0034_pursued_relevance_gate.sql').read_text())
         for field, value in profile_snapshot().items():
             if field not in {'people', 'connectors'}:
                 connection.execute('insert into profile(field,value) values(%s,%s::jsonb) on conflict(field) do update set value=excluded.value', (field, json.dumps(value)))
@@ -40,6 +41,11 @@ def posting(db, jd=None):
 
 def pursue(db, pid, status):
     db.execute('select set_status(%s,%s,%s)', (pid, status, 'Synthetic employer rejection' if status == 'rejected' else None))
+
+
+def fill_description(db, pid, jd):
+    db.execute("update postings set source='lever',url='https://jobs.lever.co/synthetic/pursued' where id=%s", (pid,))
+    assert backfill(db, fetcher=lambda _: jd)['stored'] == 1
 
 
 def assert_visible(db, pid, status):
@@ -58,7 +64,7 @@ def assert_visible(db, pid, status):
 def test_pursued_before_description_backfill_survives_gate_and_selection(db, status, stage):
     pid = posting(db)
     pursue(db, pid, status)
-    db.execute("update postings set raw_jd=repeat('Build React products. ',20) where id=%s", (pid,))
+    fill_description(db, pid, 'Build React products. ' * 20)
     selected = (list_scoring_candidates(db, limit=10, posting_ids=[pid]) if stage == 'score'
                 else [r['id'] for r in select_postings(db, limit=10, posting_ids=[pid])])
     assert selected == [pid]
@@ -80,7 +86,7 @@ def test_applied_to_screen_remains_visible_after_backfill(db):
     pid = posting(db)
     pursue(db, pid, 'applied')
     pursue(db, pid, 'screen')
-    db.execute("update postings set raw_jd=repeat('Applicants must already live in the US. ',5) where id=%s", (pid,))
+    fill_description(db, pid, 'Applicants must already live in the US. ' * 20)
     refresh_gate(db, posting_ids=[pid])
     assert_visible(db, pid, 'screen')
 
@@ -126,14 +132,14 @@ def test_service_role_direct_status_insert_clears_gate(db):
 
 
 def test_migration_repairs_existing_pursued_rows_only():
-    with migrated_database(MIGRATIONS, through=30) as url, psycopg.connect(url) as db:
+    with migrated_database(MIGRATIONS, through=33) as url, psycopg.connect(url) as db:
         ids = []
         for status in PURSUED + ['new', 'seen']:
             pid = posting(db, 'Build React products. ' * 20)
             pursue(db, pid, status)
             db.execute("update postings set relevance_gate='{\"version\":\"synthetic\",\"rule\":\"leadership-title-strict\"}'::jsonb where id=%s", (pid,))
             ids.append(pid)
-        db.execute((MIGRATIONS / '0033_pursued_relevance_gate.sql').read_text())
+        db.execute((MIGRATIONS / '0034_pursued_relevance_gate.sql').read_text())
         for pid in ids[:len(PURSUED)]:
             assert db.execute('select relevance_filtered from postings where id=%s', (pid,)).fetchone() == (False,)
         for pid in ids[len(PURSUED):]:
