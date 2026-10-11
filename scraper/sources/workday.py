@@ -75,13 +75,15 @@ def _israel_facets(facets):
     return {}
 
 
-def active_list(query, *, fetcher, before_request=lambda: None, facets=None, search=''):
+def active_list(query, *, fetcher, before_request=lambda: None, facets=None, search='', first_page=None):
     offset, expected, seen = 0, None, set()
     for _ in range(MAX_PAGES):
         before_request()
         data = json.dumps({'appliedFacets': facets or {}, 'limit': 20, 'offset': offset, 'searchText': search}).encode()
         page = _page(fetcher(base(query) + '/jobs', data=data), offset)
         jobs, total = page['jobPostings'], page['total'] or (expected if offset else 0)
+        if offset == 0 and first_page is not None:
+            first_page.extend(jobs)
         if offset == 0 and total > MAX_PAGES * 20:
             raise BoardTooLarge('Workday board exceeds traversal cap')
         if expected is not None and expected != total:
