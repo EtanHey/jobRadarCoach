@@ -16,7 +16,7 @@ def test_archive_exclusion_and_score_anyway():
             if filter == 'seen':db.execute("update posting_status set status='seen'")
             rows = db.execute("select id::text from board_postings(%s,'all','','{}','found',1,'')",(filter,)).fetchall()
             assert rows == [(ids[0] if filter == 'not-scored' else ids[1],)]
-            globe = db.execute("select get_globe_snapshot(%s,'all')",(filter,)).fetchone()[0]
+            globe = db.execute("select get_globe_markers(%s,'all')",(filter,)).fetchone()[0]
             assert [r['id'] for r in globe['jobs']] == [ids[0] if filter == 'not-scored' else ids[1]]
         for _ in range(2):
             assert db.execute('select score_anyway(%s)',(ids[0],)).fetchone() == (True,)
