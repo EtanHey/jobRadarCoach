@@ -13,7 +13,7 @@ case variations, and separator forms. Conflicting labels stay unknown.
 Legacy word-boundary remote inference is retained for multi-location ATS strings
 that do not yield one canonical mode. An existing canonical mode keeps its
 compatibility boolean when such a rescrape supplies no new mode.
-Lever supplies its structured `workplaceType`; the other current adapters reach
+Lever supplies its structured `workplaceType` and Comeet its `workplace_type`; other adapters reach
 the shared location parser through posting persistence. No Hebrew mode labels
 were present in the measured data.
 
@@ -53,3 +53,5 @@ The API carries an optional nullable `work_mode` for older-response compatibilit
 The board and Globe accept separate Hybrid, Remote and On-site filters. Saved
 legacy boolean filters retain their meaning, and an explicit work-mode filter
 takes precedence. P2 supplies the human-visible mode icons.
+
+Comeet supplies `workplace_type` as `On-site`, `Hybrid`, or `Remote` ([provider reference](https://developers.comeet.com/reference/careers-position-model)). The anonymous adapter maps these to the canonical structured mode before persistence; missing or unsupported values add no structured claim. Hybrid leaves the legacy `remote` boolean null. This uses the existing columns and requires no new migration or historical backfill.

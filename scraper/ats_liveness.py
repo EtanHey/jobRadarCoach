@@ -15,6 +15,7 @@ from scraper.source_registry import detect_supported_ats
 from scraper.sources.comeet import POSITIONS_PATTERN
 from scraper.sources.workable import DETAIL_PATTERN
 from scraper.sources import ashby, smartrecruiters, workday
+from scraper.ats_detail import controlled_detail
 
 USER_AGENT = "JobRadarCoach/1.0 (+https://jobradarcoach.vercel.app)"
 IDENTIFIER = re.compile(r"[A-Za-z0-9_.-]{1,200}")
@@ -107,7 +108,7 @@ def _workday_identity(posting):
             or not path or path.rsplit("/", 1)[-1] != job):
         raise ValueError("Workday identity mismatch")
     tenant = f"{account}.{query['cluster']}.myworkdayjobs.com/{site}"
-    return "workday", tenant, job.casefold(), workday.base(query) + "/jobs"
+    return "workday", tenant, workday.JOB_PATH.fullmatch(path)[1].casefold(), workday.base(query) + "/jobs"
 
 
 def board_identity(posting):
@@ -196,7 +197,7 @@ def active_ids(source, body, tenant=None):
     return ids
 
 
-def _snapshot_ids(source, tenant, url, fetcher):
+def _snapshot_ids(source, tenant, url, fetcher, detail_paths=None):
     # Exhaust generators: a present ID on page one cannot hide a failed later page.
     if source == "smartrecruiters":
         return {row["id"] for row in smartrecruiters.active_list(tenant, fetcher=fetcher)}
@@ -204,9 +205,11 @@ def _snapshot_ids(source, tenant, url, fetcher):
         query, _ = workday.coordinates("https://" + tenant)
         # Israel facets are for discovery only. Membership must cover the entire site.
         rows = list(workday.active_list(query, fetcher=fetcher))
-        ids = [row["externalPath"].rsplit("/", 1)[-1].casefold() for row in rows]
+        ids = [workday.JOB_PATH.fullmatch(row["externalPath"])[1].casefold() for row in rows]
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate Workday posting identity")
+        if detail_paths is not None:
+            detail_paths.update(zip(ids, (row["externalPath"] for row in rows)))
         return set(ids)
     return active_ids(source, fetcher(url), tenant)
 
@@ -217,6 +220,8 @@ class BoardChecker:
         self.fetcher = fetcher or public_get()
         self.cache = {}
         self.greenhouse_controls = {}
+        self.detail_paths = {}
+        self.detail_controls = {}
 
     def greenhouse_control(self, posting, canonical_url):
         """One listed sibling must serve 200 on this host; cache success or failure."""
@@ -246,7 +251,9 @@ class BoardChecker:
             if key not in self.cache:
                 ids, error = None, None
                 try:
-                    ids = _snapshot_ids(source, tenant, url, self.fetcher)
+                    paths = {}
+                    ids = _snapshot_ids(source, tenant, url, self.fetcher, paths)
+                    self.detail_paths[key] = paths
                 except workday.BoardTooLarge:
                     ids, error = None, "board-too-large"
                 except Exception as exc:
@@ -375,6 +382,30 @@ def _greenhouse_posting_context(posting):
 
 def check_posting_url(posting, *, board_checker=None):
     """Try stored evidence, then a Greenhouse canonical page if inconclusive."""
+    if posting["source"] in {"ashby", "workday"}:
+        result = {"alive": None, "liveness_status": None, "liveness_reason": "provider-detail-unknown",
+                  "liveness_final_url": posting["url"],
+                  "liveness_checked_at": datetime.now(timezone.utc).isoformat()}
+        try:
+            _posting_request(posting["url"])
+            source, tenant, job, _ = board_identity(posting)
+            parsed = urlparse(posting["url"])
+            if source == "ashby" and (parsed.hostname != "jobs.ashbyhq.com"
+                                     or parsed.path.rstrip("/") != f"/{tenant}/{job}"):
+                return result
+            if isinstance(board_checker, BoardChecker):
+                alive, status = controlled_detail(posting, (source, tenant), job, board_checker,
+                                                  opener=pinned_open, sleep=time.sleep)
+                result["liveness_status"] = status
+                if alive is False:
+                    result.update(alive=False, liveness_status=status, liveness_reason=f"{source}-detail-missing")
+                    query, path = workday.coordinates(posting["url"]) if source == "workday" else (None, None)
+                    result.update(liveness_final_url=workday.base(query) + path if query else
+                                  "https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiJobPosting",
+                                  ats_detail_job_id=job, ats_detail_tenant=tenant)
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        return result
     url = posting["url"]
     canonical_url, greenhouse_hosted = _greenhouse_posting_context(posting)
     result = _check_posting_url(posting, url, canonical=greenhouse_hosted)
@@ -438,7 +469,9 @@ def _confirm_absence(posting, state, update, direct_checker, current):
     update["last_attempt_reason"] = direct.get("liveness_reason", "posting-url-unknown")
     update["ats_url_last_attempt_at"] = current.isoformat()
     if direct.get("alive") is False and (direct.get("liveness_status") in (404, 410)
-            or direct.get("liveness_reason") == "ats-generic-careers-redirect"):
+            or direct.get("liveness_reason") == "ats-generic-careers-redirect"
+            or (posting["source"] == "ashby" and direct.get("liveness_status") == 200
+                and direct.get("liveness_reason") == "ashby-detail-missing")):
         update.update(direct)
         update.update(last_attempt_verdict="gone", ats_unknown_reason=None,
                       ats_url_unknown_count=0, ats_url_next_check_at=None)
