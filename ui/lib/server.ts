@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -51,13 +51,13 @@ const rawListSchema = rawBaseSchema.omit({
   salary: true, list_metadata: true, liveness: true, relevance_gate: true, posting_extractions: true,
 }).extend({
   list_stack: z.array(z.string()), experience: z.string().nullable(),
-  relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
+  relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_reposted_signal: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
   posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
 });
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "relevance_filtered,relevance_rule:relevance_gate->rule,source,last_seen_at,list_stack:list_metadata->stack,experience:list_metadata->experience,alive:liveness->alive,linkedin_closed_signal:liveness->linkedin_closed_signal,id,title,company,location,remote,work_mode,seniority,stack,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,recommendation:score_payload->recommendation,fit_line:score_payload->fit_line)";
+const SUMMARY = "relevance_filtered,relevance_rule:relevance_gate->rule,source,last_seen_at,list_stack:list_metadata->stack,experience:list_metadata->experience,alive:liveness->alive,linkedin_reposted_signal:liveness->linkedin_reposted_signal,linkedin_closed_signal:liveness->linkedin_closed_signal,id,title,company,location,remote,work_mode,seniority,stack,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,recommendation:score_payload->recommendation,fit_line:score_payload->fit_line)";
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
 const DETAIL = "relevance_filtered,relevance_gate,source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
@@ -82,7 +82,7 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
-  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_closed_signal, ...posting } = base;
+  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   return checked(JobSummarySchema, {
     ...posting, url: postingUrl(posting.url),
@@ -94,6 +94,7 @@ function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
     fit_line: base.relevance_filtered ? null : score?.fit_line ?? null,
     recommendation: base.relevance_filtered ? null : score?.recommendation ?? null,
     alive: typeof alive === "boolean" ? alive : null,
+    linkedin_reposted_signal: LinkedInRepostedSignalSchema.safeParse(linkedin_reposted_signal).data ?? null,
     linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(linkedin_closed_signal).data ?? null,
   });
 }
@@ -104,6 +105,7 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const fit = payload && typeof payload === "object" ? payload : null;
   const job = listSummary({ ...posting, list_stack: list_metadata.stack, experience: list_metadata.experience,
     relevance_rule: relevance_gate?.rule ?? null, alive: liveness?.alive ?? null,
+    linkedin_reposted_signal: liveness?.linkedin_reposted_signal ?? null,
     linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,
     posting_scores: posting_scores ? { score: posting_scores.score,
       fit_line: fit && "fit_line" in fit ? fit.fit_line : null,

@@ -97,8 +97,6 @@ def recheck(connection, *, limit: int = 60, checker=None, board_checker=None, sc
             # dedicated ATS gate owns hiding; LinkedIn rows keep advisory evidence.
             if source == "linkedin":
                 update.update(database_evidence({**result, "source": source, "url": url}))
-            elif result.get("alive") is False:
-                update.update(result)
         written = connection.execute(UPDATE_RESULT, (json.dumps(update), posting_id, url, source,
                                                      external_id, json.dumps(state)))
         receipt["checked"] += 1

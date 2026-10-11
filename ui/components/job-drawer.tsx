@@ -3,6 +3,7 @@
 import type { ReactNode, RefObject } from "react";
 import type { JobDetail, JobSummary } from "@/lib/contracts";
 import { linkedPublicationDates, shortListingId } from "@/lib/job-dedup";
+import { repostNote } from "@/lib/job-display";
 import { statusLabels } from "@/lib/job-status";
 import { AssessmentSheet } from "./assessment-sheet";
 import { CompanyLogo } from "./company-logo";
@@ -36,6 +37,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
   const selectedHeading = detail ?? selectedJob;
   const heading = selectedHeading && relatedJobs.length
     ? { ...selectedHeading, ...linkedPublicationDates([selectedHeading, ...relatedJobs]) } : selectedHeading;
+  const repost = selectedHeading && repostNote(selectedHeading);
   // Open on the description, never the first tabbable: header date icons would pop a tooltip and swallow the first Escape.
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent initialFocus={() => document.querySelector<HTMLElement>("[data-job-description]")} finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
@@ -43,6 +45,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
         <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} postingId={heading.id} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {heading && <div className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} lastPublishedAt={heading.last_published_at} firstSeenAt={heading.first_seen_at} /></div>}
+        {repost && <p data-repost-marker className="mt-1 text-xs text-muted-foreground">{repost}</p>}
         {heading && <LinkedInClosureBadge job={heading} />}
         {detail && <>
           <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground"><span>{detail.location ?? "Location unspecified"}</span><span aria-hidden="true">·</span><WorkModeIcon job={detail} showLabel /></p>
