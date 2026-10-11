@@ -101,7 +101,8 @@ def test_canonical_fallback_is_greenhouse_only(monkeypatch, source):
     calls = transport(monkeypatch, 404)
     result = module.check_posting_url(row(source=source, external_id=f'{source}:acme:1'))
     assert result['alive'] is None
-    assert calls == ['https://careers.acme.example/jobs/1']
+    # Ashby/Workday require a bound provider identity and complete tenant control.
+    assert calls == ([] if source in {'ashby', 'workday'} else ['https://careers.acme.example/jobs/1'])
 
 
 @pytest.mark.parametrize('status,location,gone', [(302, '/acme?error=true', True),
