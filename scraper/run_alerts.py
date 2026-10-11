@@ -19,9 +19,13 @@ def main(argv=None):
         if receipt["status"] == "failure":
             message = "run failed"
         else:
-            result = receipt.get("result", {})
-            count = (result.get("source_warning_count", 0) if args.kind == "scrape"
-                     and isinstance(result, dict) else receipt.get("alerts", 0))
+            if args.kind == "scrape":
+                result = receipt.get("result")
+                if not isinstance(result, dict):
+                    raise ValueError("invalid scrape result")
+                count = result.get("source_warning_count")
+            else:
+                count = receipt.get("alerts")
             if type(count) is not int or count < 0:
                 raise ValueError("invalid alert count")
             if count:
