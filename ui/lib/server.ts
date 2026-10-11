@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, JobSourcesQuerySchema, JobSourcesResponseSchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -14,6 +14,7 @@ import { HttpError } from "./http";
 
 export interface ApiStore {
   listJobs(input: JobListQuery): Promise<JobSummary[]>;
+  listSources(input: z.infer<typeof JobSourcesQuerySchema>): Promise<string[]>;
   getJob(id: string): Promise<JobDetail | null>;
   scoreAnyway?(id: string): Promise<JobDetail | null>;
   setStatus(input: StatusPatch & { posting_id: string }): Promise<StatusResult>;
@@ -134,10 +135,15 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   if (input.ids) {
     return parseListRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
-  if ((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined) {
+  if ((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined || input.source !== undefined || input.work_mode !== undefined || input.remote !== undefined || input.location !== undefined || input.seniority !== undefined) {
     return parseListRows(await data(db.rpc("board_postings", {
       filter: input.filter, availability: input.availability, fit: input.fit ?? "",
       statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.work_mode !== undefined ? { work_mode: input.work_mode } : {}),
+      ...(input.remote !== undefined ? { remote: input.remote } : {}),
+      ...(input.location !== undefined ? { location: input.location } : {}),
+      ...(input.seniority !== undefined ? { seniority: input.seniority } : {}),
       ...(input.found_within ? { found_within: input.found_within } : {}),
     }).select(SUMMARY))).jobs;
   }
@@ -172,9 +178,14 @@ async function readProfile(db: SupabaseClient): Promise<Profile> {
   });
 }
 
+export async function selectSources(db: SupabaseClient, input: z.infer<typeof JobSourcesQuerySchema>): Promise<string[]> {
+  return checked(JobSourcesResponseSchema.shape.sources, await data(db.rpc("board_sources", input)));
+}
+
 export function getApiStore(): ApiStore {
   return {
     listJobs: (input) => selectSummaries(client(), input),
+    listSources: (input) => selectSources(client(), input),
     async getJob(id) {
       const db = client();
       const row = await readDetail(db, id);

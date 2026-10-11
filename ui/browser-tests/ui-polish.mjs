@@ -50,6 +50,7 @@ try {
       if (url.pathname.endsWith('/style.json')) return route.fulfill({ json: { version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#143047' } }] } });
       if (url.origin !== base) return route.fulfill({ status: 200, body: '' });
       if (url.pathname === '/api/jobs/globe') return route.fulfill({ json: { jobs: [role], points: [{ posting_id: role.id, lat: 31.8928, lng: 34.8113, precision: 'city', source: 'fixture', resolved_at: '2026-10-07T00:00:00Z' }], total_count: 1, resolved_count: 1, unresolved_count: 0, attribution: 'Synthetic fixture' } });
+      if (url.pathname === '/api/jobs/sources') return route.fulfill({ json: { sources: [role.source] } });
       if (url.pathname === '/api/jobs') return route.fulfill({ json: { jobs: url.searchParams.has('since') ? [] : [role] } });
       if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 200, json: {} });
       return route.continue();

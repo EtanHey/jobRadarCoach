@@ -42,7 +42,7 @@ test("private pages and APIs deny unauthenticated callers without trusting a coo
     "https://jobs.example.com/login?next=%2F%3Fview%3Dall",
   );
 
-  for (const path of ["/api/jobs", "/api/profile"]) {
+  for (const path of ["/api/jobs", "/api/jobs/sources", "/api/profile"]) {
     const result = await authorizeOwnerRequest(
       request(path),
       configuredEnvironment,
@@ -143,7 +143,7 @@ test("every current page and route file is covered by the default-private policy
     "/",
     "/api/jobs",
     "/api/jobs/example",
-    "/api/jobs/example/score-anyway", "/api/jobs/example/status", "/api/jobs/globe",
+    "/api/jobs/example/score-anyway", "/api/jobs/example/status", "/api/jobs/globe", "/api/jobs/sources",
     "/api/profile",
     "/auth/callback",
     "/auth/passkeys",

@@ -11,7 +11,7 @@ import { countGlobeRoles } from "@/lib/globe-viewport";
 import { loadGlobeStyle } from "@/lib/globe-style";
 import { Button } from "./ui/button";
 import { ArrowUpRight, Globe } from "lucide-react";
-import { JobDetailSchema, JobListResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
+import { JobDetailSchema, JobListResponseSchema, JobSourcesResponseSchema, StatusResultSchema, type JobDetail, type StatusPatch } from "@/lib/contracts";
 import { jobListRequestPath, refreshVisitCohort, uniqueJobsById } from "@/lib/job-board-state";
 import { applyScoreAnyway, applyConfirmedStatus, boardListKey, cachedVisitCohort, confirmedStatusRevision, confirmListRead, jobDetailQueryOptions, patchCachedDetailStatus } from "@/lib/job-board-query";
 import { boardPreferenceStorage, clearBoardPreferences, defaultBoardPreferences, isDefaultBoardPreferences, preferencesForBoardFilter, preferencesForPipelineStatuses, readBoardPreferences, viewForBoardQuery, writeBoardPreferences } from "@/lib/job-board-preferences";
@@ -95,7 +95,7 @@ function Board() {
     queryFn: async ({ signal }) => {
       const started = confirmedStatusRevision(client);
       const previous = filter === "new-for-me" ? cachedVisitCohort(client, view.availability, view.found_within) : null;
-      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: queryView.availability, limit: 1000, fit: queryView.fit, statuses: queryView.statuses, sort: queryView.sort, found_within: queryView.found_within }), { signal })).jobs);
+      const next = uniqueJobsById(JobListResponseSchema.parse(await request(jobListRequestPath({ filter, availability: queryView.availability, limit: 1000, fit: queryView.fit, statuses: queryView.statuses, sort: queryView.sort, found_within: queryView.found_within, source: queryView.source, work_mode: queryView.work_mode, remote: queryView.remote, location: queryView.location, seniority: queryView.seniority }), { signal })).jobs);
       const read = filter === "new-for-me" ? await refreshVisitCohort(previous, next, async ids => {
         const query = new URLSearchParams({ filter: "all", availability: "all", limit: "100", ids: ids.join(",") });
         return JobListResponseSchema.parse(await request(`/api/jobs?${query}`, { signal })).jobs;
@@ -103,6 +103,14 @@ function Board() {
       signal.throwIfAborted();
       const jobs = confirmListRead(client, read, filter, started);
       return { jobs, loadedUpdatedAt: jobs.reduce<string | null>((last, job) => !last || job.last_seen_at > last ? job.last_seen_at : last, null) };
+    },
+  });
+  // Source choices belong to the tab/availability vocabulary, never its filtered cards.
+  const sourcesQuery = useQuery({
+    queryKey: ["board-sources", filter, queryView.availability], enabled: preferencesReady,
+    queryFn: async ({ signal }) => {
+      const query = new URLSearchParams({ filter, availability: queryView.availability });
+      return JobSourcesResponseSchema.parse(await request(`/api/jobs/sources?${query}`, { signal })).sources;
     },
   });
   const jobs = useMemo(() => listQuery.data?.jobs ?? [], [listQuery.data]);
@@ -177,6 +185,7 @@ function Board() {
     client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
     void client.invalidateQueries({ queryKey: ["board-list"], type: "active", refetchType: "none" });
     void refetchList();
+    void client.invalidateQueries({ queryKey: ["board-sources"] });
     setRevision(value => value + 1);
   }, [client, refetchList]);
   const retry = useCallback(() => { void client.resetQueries({ queryKey: ["board-list"], type: "active" }); setRevision(value => value + 1); }, [client]);
@@ -188,6 +197,7 @@ function Board() {
     onSuccess: (result, { id, patch }) => {
       const automatic = "automatic" in patch && Boolean(patch.automatic);
       applyConfirmedStatus(client, id, result, automatic);
+      void client.invalidateQueries({ queryKey: ["board-sources"] });
       patchCachedDetailStatus(client, id, result);
       patchGlobeStatus(id, result, !automatic && statusMutationRemovesCard(filterRef.current, result.status));
     },
@@ -226,6 +236,7 @@ function Board() {
     void markSeen({ id: selected, signal: controller.signal }).then(result => {
       if (controller.signal.aborted) return;
       applyConfirmedStatus(client, selected, result, true);
+      void client.invalidateQueries({ queryKey: ["board-sources"] });
       patchCachedDetailStatus(client, selected, result);
       patchGlobeStatus(selected, result, false);
     }).catch(cause => {
@@ -384,7 +395,8 @@ function Board() {
     <BoardHeader><ProfileDrawer onUpdated={requestRefresh} /></BoardHeader>
     <main className="board-main w-full px-4 py-3 sm:px-6 lg:px-8">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"><h1 ref={headingRef} tabIndex={-1} className="mr-auto text-lg font-semibold text-foreground outline-none">Your roles</h1>{globeActive && <span className="board-mobile-globe-counts">{globeMeta}</span>}<span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1">{groups.length} {groups.length === 1 ? "role" : "roles"}</span>{relativeAge(loadedUpdatedAt) && <span className="board-heading-regular-meta rounded-full bg-muted px-2 py-1" title="Last time a role in this view was observed">Updated {relativeAge(loadedUpdatedAt)}</span>}</div>
-      <JobsPanel prefetchDetail={prefetchDetail} notice={<NewRolesPill count={newRoleCount} truncated={newRoles.truncated} onShow={showNewRoles} />} {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={Boolean(globe.data)} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar filtersCollapsed={preferences.filtersCollapsed ?? false} onFiltersCollapsedChange={filtersCollapsed => setPreferences(current => ({ ...current, filtersCollapsed }))} globeOpen={globeActive} jobs={displayJobs} options={view} effectiveOptions={queryView} filter={filter} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
+      <JobsPanel prefetchDetail={prefetchDetail} notice={<NewRolesPill count={newRoleCount} truncated={newRoles.truncated} onShow={showNewRoles} />} {...{visiblePostingIds, filter, groups, openerRef, chooseFilter, setSearch, sortLabel, globeMeta, bubble}} clearBubble={() => setBubble(null)} onWholeWorld={() => { setBubble(null); setCameraAction(current => ({ kind: "location", id: current.id + 1 })); }} error={globeActive ? "" : error} jobs={displayJobs} loading={globeActive ? !globe.data || !visiblePostingIds : loading} selectJob={globeActive ? focusGlobeRow : selectJob} openDetail={id => selectJob(activeGlobeSelection ?? id)} selectedId={globeActive ? selectedGlobeGroup?.job.id : null} globeOpen={globeActive} globe={globeMounted && <GlobeBoundary onFailure={failGlobe}><JobGlobe active={globeActive} dataReady={Boolean(globe.data)} points={points} selected={activeGlobeSelection} selectionRequest={globeSelectionRequest} arrivalRequest={arrivalRequest} selectionSource={globeSelectionSource} location={view.location} cameraAction={cameraAction} onCameraAwayChange={setCameraAway} onViewportChange={updateViewport} onSelect={openGlobeJob} onBubble={(ids, place) => setBubble({ ids, place })} bubbleIds={bubble?.ids ?? []} onClearBubble={() => setBubble(null)} onFailure={failGlobe} /></GlobeBoundary>} search={view.search} reload={retry} resultLimit={globeActive ? Infinity : 1000} toolbar={<JobToolbar filtersCollapsed={preferences.filtersCollapsed ?? false} onFiltersCollapsedChange={filtersCollapsed => setPreferences(current => ({ ...current, filtersCollapsed }))} globeOpen={globeActive} sources={sourcesQuery.data ?? []} options={view} effectiveOptions={queryView} filter={filter} onChange={changeView} onReset={resetView} canReset={!isDefaultBoardPreferences(preferences) || (globeActive && cameraAway)} actions={globeToggle} />} />
+      {sourcesQuery.error && <p role="status" className="mt-4 text-xs text-muted-foreground">Source choices could not refresh. <Button variant="link" onClick={() => { void sourcesQuery.refetch(); }}>Retry sources</Button></p>}
       {refreshWarning && <p role="status" className="mt-4 text-xs text-muted-foreground">{refreshWarning}</p>}
       {!globeActive && <LogoDevAttribution />}
     </main>

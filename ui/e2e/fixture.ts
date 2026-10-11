@@ -15,6 +15,7 @@ export async function installFixture(browser: { addInitScript(script: string): P
     const url = new URL(route.request.url);
     if (url.origin !== origin) return route.abort();
     if (!url.pathname.startsWith('/api/')) return route.continue();
+    if (url.pathname === '/api/jobs/sources') return route.fulfill({ json: { sources: [role.source] } });
     if (url.pathname === '/api/jobs') {
       const since = url.searchParams.get('since');
       if (since) state.pollReads++; else state.listReads++;
