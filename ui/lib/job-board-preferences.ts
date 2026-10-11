@@ -146,6 +146,6 @@ export function preferencesForPipelineStatuses(preferences: BoardPreferences, st
 // Archive query overrides must never enter the persisted board preferences.
 export function viewForBoardQuery(preferences: BoardPreferences): ViewOptions {
   return preferences.filter === "not-scored"
-    ? { ...preferences.view, availability: "all", found_within: "" }
+    ? { ...preferences.view, availability: "all" }
     : preferences.view;
 }
