@@ -1,9 +1,10 @@
+import type { ListingPublicationEvidence } from "./job-display";
 import { timestamp } from "./job-time";
 import type { JobSummary } from "./contracts";
 import { createRepostLocationMatcher } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
 
-export type DuplicateJobGroup = { job: JobSummary; alternates: JobSummary[] };
+export type DuplicateJobGroup = { job: JobSummary & ListingPublicationEvidence; alternates: JobSummary[] };
 
 function normalizedIdentity(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/gu, " ").toLowerCase();
@@ -62,21 +63,6 @@ export function linkedPublicationDates(jobs: JobSummary[]): Pick<JobSummary, "po
   return { posted_at: originals[0] ?? null, last_published_at: publications[0] ?? null };
 }
 
-function isEarlier(alternate: JobSummary, job: JobSummary, discoveryFallback: boolean): boolean {
-  const posted = [timestamp(alternate.posted_at), timestamp(job.posted_at)];
-  if (posted[0] !== null && posted[1] !== null) return posted[0] < posted[1];
-  if (!discoveryFallback) return false; // mixed or unparseable chronology is not evidence
-  const seen = [timestamp(alternate.first_seen_at), timestamp(job.first_seen_at)];
-  return seen[0] !== null && seen[1] !== null && seen[0] < seen[1];
-}
-
-// Alternates that were demonstrably published (or, when no listing has any publish date, found) before `job`.
-// Same-instant twins and unknown chronology are alternative listings, not evidence of a repost.
-export function earlierListingCount(job: JobSummary, alternates: JobSummary[]): number {
-  const discoveryFallback = [job, ...alternates].every(listing => listing.posted_at === null && (listing.last_published_at ?? null) === null);
-  return alternates.filter(alternate => isEarlier(alternate, job, discoveryFallback)).length;
-}
-
 export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
   const buckets = new Map<string, PreparedJob[]>();
   const locationsMatch = createRepostLocationMatcher();
@@ -96,7 +82,10 @@ export function groupDuplicateJobs(jobs: JobSummary[]): DuplicateJobGroup[] {
     return groups.map(members => {
       const listings = members.map(member => member.job).sort(newestFirst);
       const [job, ...alternates] = listings;
-      return { job: alternates.length ? { ...job, ...linkedPublicationDates(listings) } : job, alternates };
+      return { job: alternates.length ? { ...job,
+        listing_publication_dates: {
+          posted_at: job.posted_at, last_published_at: job.last_published_at,
+        }, ...linkedPublicationDates(listings) } : job, alternates };
     });
   });
 }
