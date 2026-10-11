@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
-import { selectSummaries } from "../../lib/server";
+import { selectSources, selectSummaries } from "../../lib/server";
 import { parseSummaryRows } from "../../lib/server";
 import { JobListResponseSchema } from "../../lib/contracts";
 import { writeFile } from "node:fs/promises";
@@ -19,6 +19,8 @@ async function main() {
   } });
   const rows = await selectSummaries(db, { filter: "all", availability: "all", fit: "", statuses: [], sort: "fit", limit: 1000 });
   const afterDb = dbBytes;
+  assert.deepEqual(await selectSources(db, { filter: "all", availability: "all" }), ["synthetic"]);
+  assert.deepEqual(await selectSources(db, { filter: "seen", availability: "all" }), []);
   // Freeze the old projection here so the reduction is measured over the same
   // actual PostgREST rows/order, rather than estimated from a hand-built object.
   const beforeSelect = "relevance_filtered,relevance_gate,source,last_seen_at,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
@@ -47,6 +49,8 @@ async function main() {
   assert.ok(!window.some(row => row.id === rows[0].id), "old highest-fit row is excluded before cap");
   const poll = await selectSummaries(db, { filter: "all", availability: "all", limit: 101, since: "1970-01-01T00:00:00Z", found_within: "24h" });
   assert.ok(poll.every(row => Date.parse(row.first_seen_at) >= Date.now() - 86400000 - 1000));
-  process.stdout.write(JSON.stringify({ first: rows[0].id, count: rows.length, pipeline: true, window: true, poll: true }));
+  const facets = await selectSummaries(db, { filter: "all", availability: "all", limit: 1000, source: "synthetic", work_mode: "hybrid", location: "israel", seniority: "Junior" });
+  assert.deepEqual(facets.map(row => row.id), [rows[0].id]);
+  process.stdout.write(JSON.stringify({ first: rows[0].id, count: rows.length, pipeline: true, window: true, poll: true, facets: true }));
 }
 void main();
