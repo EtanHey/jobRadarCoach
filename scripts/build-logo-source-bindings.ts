@@ -4,20 +4,12 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { canonicalCompanyName, postingSourceCompanies } from "../ui/lib/company-logos";
+import { companyLogoIdentityPins } from "../ui/lib/company-logo-identity-pins";
 import manifest from "../ui/public/companies/manifest.json";
 import domains from "../ui/lib/company-logo-domains.json";
 import type { CompanyLogoIdentity } from "../ui/lib/company-logos";
 
 type Row = { id: string; company: string; url: string | null; apply_url: string | null };
-const pins: Record<string, CompanyLogoIdentity> = {
-  doit: { domains: ["doit.com"], collision: true, sourceCompanies: ["linkedin:doitintl", "greenhouse:doitintl"] },
-  "moveo group": { domains: ["moveo.group"] },
-  "pagaya israel": { domains: ["pagaya.com"] },
-  "real dev inc": { domains: ["real.dev"] },
-  shifters: { domains: ["shiftersai.com"] },
-  "tomax think academy": { domains: ["tomax.io"] },
-  wix: { domains: ["wix.com"] },
-};
 
 export function buildLogoBindings(rows: Row[], pageDirs: string[]) {
   const bindings: Record<string, string> = {};
@@ -41,7 +33,7 @@ export function buildLogoBindings(rows: Row[], pageDirs: string[]) {
     bindings[row.id] = company;
     sourcePages[row.id] = { sha256, company };
   }
-  const identities: Record<string, CompanyLogoIdentity> = { ...pins };
+  const identities: Record<string, CompanyLogoIdentity> = { ...companyLogoIdentityPins };
   for (const entry of manifest.entries) {
     const name = entry.canonicalName;
     const mapped = (domains as Record<string, string | null>)[name];
@@ -51,7 +43,7 @@ export function buildLogoBindings(rows: Row[], pageDirs: string[]) {
     const companies = new Set(identity.sourceCompanies);
     if (pid && bindings[pid]) companies.add(bindings[pid]);
     // Existing unambiguous catalog names may bind their snapshot's structured ATS tenants.
-    // Known collisions require the reviewed pins above or verified employer-heading pages.
+    // Known collisions require the reviewed identity pins or verified employer-heading pages.
     if (!identity.collision) for (const row of rows.filter(row => canonicalCompanyName(row.company) === name)) {
       for (const company of postingSourceCompanies({ company: row.company, url: row.url, applyUrl: row.apply_url })) companies.add(company);
     }
