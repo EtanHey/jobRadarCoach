@@ -59,6 +59,7 @@ const summary: JobSummary = {
 };
 const detail: JobDetail = {
   ...summary,
+  salary: null, description_available: true, seniority_origin: "unknown", extraction_state: "not-extracted",
   raw_jd: "Full public description",
   reasons: [],
   score_payload: null,
@@ -115,7 +116,9 @@ test("job list exposes a bounded nullable unscored contract without raw JD", asy
   assert.equal(response.status, 200);
   const body = await response.json();
   assert.deepEqual(received, { filter: "all", availability: "active", limit: 250 });
-  assert.deepEqual(body, { jobs: [summary] });
+  const listItem = Object.fromEntries(Object.entries(summary).filter(([field]) =>
+    !["salary", "description_available", "seniority_origin", "extraction_state"].includes(field)));
+  assert.deepEqual(body, { jobs: [listItem] });
   assert.equal("raw_jd" in body.jobs[0], false);
   assert.match(response.headers.get("x-request-id") ?? "", /^[0-9a-f-]{36}$/);
   assert.match(response.headers.get("server-timing") ?? "", /^app;dur=\d+$/);
@@ -151,6 +154,11 @@ test("unknown and malformed liveness remain visible as unknown summary data", ()
   assert.equal(parseSummaryRows([raw]).jobs[0].alive, null);
   const signal = {phrase: "no longer accepting applications", checked_at: "2026-10-07T13:00:00Z", url: "https://www.linkedin.com/jobs/view/1234567890"};
   const advisory = parseSummaryRows([{ ...raw, source: "linkedin", liveness: { linkedin_closed_signal: signal } }]).jobs[0];
+  const repost = {label:"Reposted 2 weeks ago",url:signal.url,checked_at:"2026-10-07T13:00:00Z"};
+  const withRepost = parseSummaryRows([{...raw, url:signal.url, source:"linkedin", liveness:{linkedin_reposted_signal:repost}}]).jobs[0];
+  assert.deepEqual(withRepost.linkedin_reposted_signal, repost);
+  assert.equal(withRepost.alive, null);
+  assert.equal(parseSummaryRows([{...raw,liveness:{linkedin_reposted_signal:{...repost,label:"2 weeks ago"}}}]).jobs[0].linkedin_reposted_signal, null);
   assert.equal(advisory.alive, null);
   assert.deepEqual(advisory.linkedin_closed_signal, signal);
   const cleared = parseSummaryRows([{ ...raw, source: "linkedin", liveness: {

@@ -202,11 +202,15 @@ def _check_linkedin(url, opener, timeout):
         with opener(request, timeout=timeout) as response:
             status, final = int(response.getcode()), str(response.geturl())
             body = linkedin_liveness.read_guest_body(response)
-        phrase, opened = None, False
+        phrase, opened, repost = None, False, None
         if status == 200 and final == endpoint and len(body) <= linkedin_liveness.BODY_LIMIT:
-            phrase, opened = linkedin_liveness.guest_observation(body.decode("utf-8"), linkedin_liveness.job_id(endpoint))
+            decoded, identity = body.decode("utf-8"), linkedin_liveness.job_id(endpoint)
+            phrase, opened = linkedin_liveness.guest_observation(decoded, identity)
+            repost = linkedin_liveness.repost_label(decoded, identity)
         result = _result(None, status=status,
                          reason="linkedin-closed-signal" if phrase else "linkedin-open-signal" if opened else f"http-{status}-uncertain", final_url=final)
+        if repost:
+            result["linkedin_reposted_signal"] = {"label": repost, "checked_at": result["liveness_checked_at"], "url": url}
         if phrase:
             result["linkedin_closed_signal"] = {"phrase": phrase, "checked_at": result["liveness_checked_at"], "url": url}
         elif opened:

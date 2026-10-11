@@ -1,3 +1,8 @@
+import type { JobSummary } from "./contracts";
+
+/** Inflect the noun only; callers retain their existing count and sentence format. */
+export const plural = (count: number, singular: string, multiple = `${singular}s`) => count === 1 ? singular : multiple;
+
 export function relativeAge(value: string | null, now = Date.now()): string | null {
   if (!value) return null;
   const time = Date.parse(value);
@@ -24,7 +29,7 @@ function spokenAge(time: number, now: number): string {
   const hours = Math.max(0, Math.floor((now - time) / 3_600_000));
   if (hours < 1) return "just now";
   const [count, unit] = hours < 24 ? [hours, "hour"] : [Math.floor(hours / 24), "day"];
-  return `${count} ${unit}${count === 1 ? "" : "s"} ago`;
+  return `${count} ${plural(count, unit)} ago`;
 }
 
 // ISO-style calendar date (and optional 24h time) in the viewer's zone, or `timeZone` when given.
@@ -33,6 +38,11 @@ function calendarStamp(time: number, timeZone: string | undefined, withTime: boo
     ...(withTime ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" } : {}) }).formatToParts(time).map(part => [part.type, part.value]));
   const date = `${parts.year}-${parts.month}-${parts.day}`;
   return withTime ? `${date} ${parts.hour}:${parts.minute}` : date;
+}
+
+export function localCalendarDate(value: string, timeZone?: string): string | null {
+  const time = parsedTime(value);
+  return time === null ? null : calendarStamp(time, timeZone, false);
 }
 
 function isRepublished(posted: number | null, latest: number | null): boolean {
@@ -55,12 +65,27 @@ export function postingDates(postedAt: string | null, firstSeenAt: string | null
   return dates;
 }
 
-export function repostNote(postedAt: string | null, lastPublishedAt: string | null | undefined, earlierListings: number, timeZone?: string): string | null {
-  const latest = parsedTime(lastPublishedAt);
-  const notes = [];
-  if (latest !== null && isRepublished(parsedTime(postedAt), latest)) notes.push(`republished ${calendarStamp(latest, timeZone, false)}`);
-  if (earlierListings > 0) notes.push(`${earlierListings} earlier listing${earlierListings === 1 ? "" : "s"} of this role`);
-  return notes.length ? `Reposted: ${notes.join(" · ")}` : null;
+// Client-only evidence retained before group display dates are aggregated.
+export type ListingPublicationEvidence = {
+  listing_publication_dates?: { posted_at: string | null; last_published_at?: string | null };
+};
+
+export function repostNote(job: { source: string; url: string; posted_at: string | null; last_published_at?: string | null;
+  linkedin_reposted_signal?: { label: string; url: string } | null } & ListingPublicationEvidence, timeZone?: string): string | null {
+  if (job.source === "linkedin") {
+    const signal = job.linkedin_reposted_signal;
+    return signal?.url === job.url ? signal.label : null;
+  }
+  const publication = job.listing_publication_dates ?? job;
+  const latest = parsedTime(publication.last_published_at);
+  return latest !== null && isRepublished(parsedTime(publication.posted_at), latest)
+    ? `Reposted: republished ${calendarStamp(latest, timeZone, false)}` : null;
+}
+
+export function repostTooltip(job: Pick<JobSummary, "source" | "url" | "posted_at" | "last_published_at" | "linkedin_reposted_signal"> & ListingPublicationEvidence, timeZone?: string): string | null {
+  const note = repostNote(job, timeZone);
+  return note && job.source === "linkedin" && job.linkedin_reposted_signal
+    ? `LinkedIn: ${note} · checked ${localCalendarDate(job.linkedin_reposted_signal.checked_at, timeZone)}` : note;
 }
 
 export type WorkModeKind = "remote" | "on-site" | "hybrid" | "unknown";

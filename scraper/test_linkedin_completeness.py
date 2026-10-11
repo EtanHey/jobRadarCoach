@@ -7,7 +7,6 @@ import pytest
 
 from scraper import database, liveness, recheck
 from scraper.public_https import _Response
-from scraper.test_database import connection, migrated_database_url
 from scraper.test_linkedin_guest import CLOSED, GUEST, STATUS, TOP, URL, Response, classify
 
 
@@ -21,7 +20,9 @@ HIDDEN = ['<dialog>{}</dialog>', '<details><summary>Other</summary>{}</details>'
 
 @pytest.mark.parametrize('wrapper', HIDDEN)
 def test_native_nonrendered_status_unknown(wrapper):
-    assert classify(TOP + wrapper.format(STATUS) + '</section>')['alive'] is None
+    result = classify(TOP + wrapper.format(STATUS) + '</section>')
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 
 @pytest.mark.parametrize('wrapper', ['<dialog open>{}</dialog>', '<details open>{}</details>',
@@ -34,7 +35,9 @@ def test_native_visible_status_control(wrapper):
 
 @pytest.mark.parametrize('tail', ['<', '<div', '<!-- unfinished'])
 def test_unfinished_html_token_unknown_across_python_versions(tail):
-    assert classify(CLOSED + tail)['alive'] is None
+    result = classify(CLOSED + tail)
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 
 @pytest.mark.parametrize('identity,expected', [('9999999999', None), ('1234567890', False)])
@@ -51,7 +54,9 @@ def test_encoded_job_link_identity(identity, expected, shape):
 @pytest.mark.parametrize('href', ['/jobs/view/%2539%2539', '/jobs/view/%zz',
     '/%6Aobs/%76iew/9999999999/', '/jobs/view/9999999999/extra'])
 def test_ambiguous_or_encoded_foreign_job_paths_unknown(href):
-    assert classify(TOP + f'<a href="{href}">' + STATUS + '</a></section>')['alive'] is None
+    result = classify(TOP + f'<a href="{href}">' + STATUS + '</a></section>')
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 
 class WireSocket:
@@ -137,3 +142,4 @@ def test_false_closure_never_persists_or_survives_unknown(connection, monkeypatc
     recheck.recheck(connection, scope='linkedin', checker=lambda _: {'alive': None, 'liveness_reason': 'http-429-uncertain'})
     after = connection.execute('select liveness from postings where id=%s', (pid,)).fetchone()[0]
     assert 'alive' not in before and 'alive' not in after
+    assert 'linkedin_closed_signal' not in before and 'linkedin_closed_signal' not in after

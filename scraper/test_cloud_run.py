@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import pytest
 from scraper import cloud_run
@@ -53,6 +54,14 @@ def _assert_harvest_contract(
 def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     tmp_path: Path, monkeypatch, capsys, github_run_id
 ) -> None:
+    # This fixture includes every enabled tenant as of the registry snapshot.
+    # Keep request budgets on that same date, even after tenants age out live.
+    class RegistryClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 10, 7, tzinfo=timezone.utc).astimezone(tz)
+
+    monkeypatch.setattr(cloud_run.source_registry, "datetime", RegistryClock)
     if github_run_id is None:
         monkeypatch.delenv("GITHUB_RUN_ID", raising=False)
     else:

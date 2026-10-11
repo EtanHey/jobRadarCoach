@@ -19,6 +19,11 @@ def _stop_group(process):
 
 
 MAX_STDERR_BYTES = 16_384
+STDERR_CATEGORY_MARKERS = {
+    "quota": (b"usage_limit_reached", b"insufficient_quota", b"429", b"rate limit"),
+    "auth": (b"401 unauthorized", b"invalid_api_key", b"authentication", b"token_expired"),
+    "model_access": (b"model_not_found", b"model is not supported", b"model does not exist"),
+}
 
 
 def _stderr_category(raw, truncated):
@@ -28,11 +33,7 @@ def _stderr_category(raw, truncated):
     errors = re.findall(rb"(?mi)^ERROR: ([^\r\n]*)", raw)
     if errors:
         terminal = errors[-1].lower()
-        for category, markers in (
-            ("quota", (b"usage_limit_reached", b"insufficient_quota", b"429", b"rate limit")),
-            ("auth", (b"401 unauthorized", b"invalid_api_key", b"authentication", b"token_expired")),
-            ("model_access", (b"model_not_found", b"model is not supported", b"model does not exist")),
-        ):
+        for category, markers in STDERR_CATEGORY_MARKERS.items():
             if any(marker in terminal for marker in markers):
                 return category
     return "nonzero_exit"

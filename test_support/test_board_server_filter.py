@@ -67,12 +67,14 @@ def test_board_filters_and_sorts_before_cap(tmp_path, require_database):
             else:
                 db.execute("delete from posting_status where posting_id=%s", (row["id"],))
             if row["score"] is not None:
+                reasons = [dict(factor="stack_domain_evidence", basis="posting", assessment="positive",
+                                evidence_ids=["synthetic-1"], detail="Synthetic evidence. " * 25)] * 5
                 payload = dict(employer_type="direct", seniority_real=None, fit_score=row["score"], fit_tier="good",
-                               recommendation=row["recommendation"], reasons=[], fit_line="", fit_line_evidence_ids=[], luna_status="ok")
+                               recommendation=row["recommendation"], reasons=reasons, fit_line="Synthetic fit", fit_line_evidence_ids=[], luna_status="ok")
                 labels = dict(role_type=None, seniority_match="unknown", remote_ok="unknown", red_flag_count=0)
-                db.execute("insert into posting_scores(posting_id,score,brain,model,scorer_version,posting_sha256,profile_sha256,history_sha256,score_payload,labels) "
-                           "values (%s,%s,'synthetic','synthetic','1',%s,%s,%s,%s,%s)",
-                           (row["id"], row["score"], *(["a" * 64] * 3), Jsonb(payload), Jsonb(labels)))
+                db.execute("insert into posting_scores(posting_id,score,brain,model,scorer_version,posting_sha256,profile_sha256,history_sha256,score_payload,labels,reasons) "
+                           "values (%s,%s,'synthetic','synthetic','1',%s,%s,%s,%s,%s,%s)",
+                           (row["id"], row["score"], *(["a" * 64] * 3), Jsonb(payload), Jsonb(labels), Jsonb(reasons)))
         db.execute("set local role service_role")
         for case, ids in zip(cases, expected, strict=True):
             actual = db.execute("select id from public.board_postings('all','all',%s,%s,%s,1000)",

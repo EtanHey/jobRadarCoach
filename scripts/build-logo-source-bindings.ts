@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { canonicalCompanyName, postingSourceCompanies } from "../ui/lib/company-logos";
+import { companyLogoIdentityPins } from "../ui/lib/company-logo-identity-pins";
 import manifest from "../ui/public/companies/manifest.json";
 import domains from "../ui/lib/company-logo-domains.json";
 import existingIdentities from "../ui/lib/company-logo-identities.json";
@@ -16,13 +17,7 @@ const pins: Record<string, CompanyLogoIdentity> = {
   ...Object.fromEntries(Object.entries(restorationPins as Record<string, LogoRestorationEvidence>).map(([name, proof]) => [name, {
     domains: [proof.domain], sourceCompanies: [proof.sourceCompany], collision: true,
   }])),
-  doit: { domains: ["doit.com"], collision: true, sourceCompanies: ["linkedin:doitintl", "greenhouse:doitintl"] },
-  "moveo group": { domains: ["moveo.group"] },
-  "pagaya israel": { domains: ["pagaya.com"] },
-  "real dev inc": { domains: ["real.dev"] },
-  shifters: { domains: ["shiftersai.com"] },
-  "tomax think academy": { domains: ["tomax.io"] },
-  wix: { domains: ["wix.com"] },
+  ...companyLogoIdentityPins,
 };
 
 export function buildLogoBindings(rows: Row[], pageDirs: string[]) {
@@ -57,7 +52,7 @@ export function buildLogoBindings(rows: Row[], pageDirs: string[]) {
     const companies = new Set(identity.sourceCompanies);
     if (pid && bindings[pid]) companies.add(bindings[pid]);
     // Existing unambiguous catalog names may bind their snapshot's structured ATS tenants.
-    // Known collisions require the reviewed pins above or verified employer-heading pages.
+    // Known collisions require the reviewed identity pins or verified employer-heading pages.
     if (!identity.collision) for (const row of rows.filter(row => canonicalCompanyName(row.company) === name)) {
       for (const company of postingSourceCompanies({ company: row.company, url: row.url, applyUrl: row.apply_url })) companies.add(company);
     }

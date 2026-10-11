@@ -7,13 +7,20 @@ import { loadJobDetail } from "./job-detail-request";
 import type { ViewOptions } from "./job-filters";
 
 export type CachedList = { jobs: JobSummary[]; loadedUpdatedAt: string | null };
+export function boardListPrefix(): readonly ["board-list"];
+export function boardListPrefix(filter: BoardFilter, availability: Availability): readonly ["board-list", BoardFilter, Availability];
+export function boardListPrefix(filter?: BoardFilter, availability?: Availability) {
+  return filter === undefined ? ["board-list"] as const : ["board-list", filter, availability] as const;
+}
+// Keep the facet's tuple position next to its producer, rather than at cache call sites.
+const listFoundWithin = (key: readonly unknown[]) => key[6] ?? "";
 export const boardListKey = (filter: BoardFilter, availability: Availability, view?: Pick<ViewOptions, "fit" | "statuses" | "sort" | "found_within">) =>
-  ["board-list", filter, availability, view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit", view?.found_within ?? ""] as const;
+  [...boardListPrefix(filter, availability), view?.fit ?? "", [...new Set(view?.statuses ?? [])].sort().join(","), view?.sort ?? "fit", view?.found_within ?? ""] as const;
 // Facet-specific snapshots still belong to one New-for-me visit. Keep settled
 // cards when a sort/fit change creates a new query, and hydrate them by ID.
 export function cachedVisitCohort(client: QueryClient, availability: Availability, foundWithin: ViewOptions["found_within"] = ""): JobSummary[] | null {
-  const snapshots = client.getQueriesData<CachedList>({ queryKey: ["board-list", "new-for-me", availability] })
-    .flatMap(([key, data]) => data && (key[6] ?? "") === (foundWithin ?? "") ? [data.jobs] : []);
+  const snapshots = client.getQueriesData<CachedList>({ queryKey: boardListPrefix("new-for-me", availability) })
+    .flatMap(([key, data]) => data && listFoundWithin(key) === (foundWithin ?? "") ? [data.jobs] : []);
   return snapshots.length ? uniqueJobsById(snapshots.flat()) : null;
 }
 type Confirmation = { id: string; result: StatusResult; automatic: boolean; revision: number };
@@ -70,8 +77,8 @@ export function applyConfirmedStatus(client: QueryClient, id: string, result: St
   const revision = confirmedStatusRevision(client) + 1;
   client.setQueryData(["board-status-revision"], revision);
   client.setQueryData<Confirmation>(["board-status", id], { id, result, automatic, revision });
-  client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
-  for (const [key] of client.getQueriesData<CachedList>({ queryKey: ["board-list"], type: "active" })) {
+  client.removeQueries({ queryKey: boardListPrefix(), type: "inactive" });
+  for (const [key] of client.getQueriesData<CachedList>({ queryKey: boardListPrefix(), type: "active" })) {
     client.setQueryData<CachedList>(key, current => {
       if (!current) return current;
       const jobs = updateJobStatus(current.jobs, id, result.status, result.reason);
@@ -88,8 +95,8 @@ export function applyScoreAnyway(client: QueryClient, job: JobDetail) {
   client.setQueryData(["board-status-revision"], revision);
   client.setQueryData<Record<string, number>>(["board-score-anyway"], ids => ({ ...ids, [job.id]: revision }));
   client.setQueryData(["board-detail", job.id], job);
-  client.removeQueries({ queryKey: ["board-list"], type: "inactive" });
-  for (const [key] of client.getQueriesData<CachedList>({ queryKey: ["board-list"], type: "active" })) {
+  client.removeQueries({ queryKey: boardListPrefix(), type: "inactive" });
+  for (const [key] of client.getQueriesData<CachedList>({ queryKey: boardListPrefix(), type: "active" })) {
     client.setQueryData<CachedList>(key, current => current ? { ...current,
       jobs: key[1] === "not-scored" ? current.jobs.filter(row => row.id !== job.id) : current.jobs,
     } : current);

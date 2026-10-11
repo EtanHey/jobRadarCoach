@@ -3,7 +3,6 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 import pytest
 from scraper import liveness, recheck, database
-from scraper.test_database import connection, migrated_database_url
 
 URL = 'https://il.linkedin.com/jobs/view/synthetic-engineer-1234567890'
 GUEST = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/1234567890'
@@ -58,7 +57,9 @@ def test_synthetic_visible_phrase_controls(phrase, url):
     '<div data-entity-urn="urn:li:jobPosting:9999999999">{}</div>',
     '<div data-job-id="9999999999">{}</div>'])
 def test_hidden_or_foreign_status_never_closes(wrapper):
-    assert classify(TOP+wrapper.format(STATUS)+'</section>')['alive'] is None
+    result = classify(TOP+wrapper.format(STATUS)+'</section>')
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 @pytest.mark.parametrize('body', [OPEN+'<template>'+PHRASE+'</template>',
     OPEN+'<!-- <span>'+PHRASE+'</span> -->',OPEN+'<div hidden>'+PHRASE+'</div>',
@@ -82,12 +83,18 @@ def test_hidden_or_foreign_status_never_closes(wrapper):
     TOP+'<span class="topcard__flavor--closed">'+PHRASE+'</span></section>',
     CLOSED.replace('</figcaption>',''),CLOSED+'<script>'+PHRASE,CLOSED+'<style>'+PHRASE])
 def test_nonfragment_or_unowned_status_unknown(body):
-    assert classify(body)['alive'] is None
+    result = classify(body)
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 @pytest.mark.parametrize('tag', ['script','style'])
 def test_bounded_or_incomplete_body_is_unknown(tag):
-    assert classify(OPEN+f'<{tag}>'+PHRASE+'x'*512000+f'</{tag}>')['alive'] is None
-    assert classify(CLOSED+'x'*512000)['alive'] is None
+    result = classify(OPEN+f'<{tag}>'+PHRASE+'x'*512000+f'</{tag}>')
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
+    result = classify(CLOSED+'x'*512000)
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 @pytest.mark.parametrize('status',[302,404,410,429,500,503])
 @pytest.mark.parametrize('raised',[True,False])
@@ -97,13 +104,17 @@ def test_http_failure_has_one_guest_request_and_no_closure(status,raised):
         calls.append(request.full_url)
         if raised: raise HTTPError(request.full_url,status,'synthetic',{},None)
         return Response(request.full_url,CLOSED,status)
-    assert liveness.check_url(URL,opener=opener)['alive'] is None
+    result = liveness.check_url(URL,opener=opener)
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
     assert calls==[GUEST]
 
 @pytest.mark.parametrize('final',['https://www.linkedin.com/authwall','https://www.linkedin.com/jobs/search/',
     'https://www.linkedin.com/jobs/view/9999999999',GUEST+'?redirected=1'])
 def test_any_redirect_unknown(final):
-    assert liveness.check_url(URL,opener=lambda *_a,**_k:Response(final,CLOSED))['alive'] is None
+    result = liveness.check_url(URL,opener=lambda *_a,**_k:Response(final,CLOSED))
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
 
 def test_hidden_guest_sign_in_modal_is_not_a_login_wall():
     body=CLOSED.replace('</section>','<form class="contextual-sign-in-modal__sign-in-form hidden" action="/uas/login-submit"></form></section>')
@@ -119,7 +130,9 @@ def test_network_failure_not_retried():
     calls=[]
     def opener(request,**_):
         calls.append(request.full_url); raise URLError('offline')
-    assert liveness.check_url(URL,opener=opener)['alive'] is None
+    result = liveness.check_url(URL,opener=opener)
+    assert result['alive'] is None
+    assert not result.get('linkedin_closed_signal')
     assert calls==[GUEST]
 
 def test_harvest_guest_request_preserves_single_call_budget(monkeypatch):

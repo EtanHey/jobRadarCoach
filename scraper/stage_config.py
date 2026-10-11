@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 
-from scraper.brain import DEFAULT_OLLAMA_MODEL
 from scraper.brain_contract import BrainConfigurationError, resolve_brain
 
 EXTRACTOR_PROVIDER = 'codex'
@@ -43,6 +42,8 @@ def load_stage_profile(connection) -> dict[str, object]:
 def stage_settings(stage: str, profile: Mapping[str, object],
                    env: Mapping[str, str] | None = None, *,
                    allow_legacy: bool = True) -> dict[str, str]:
+    from scraper.brain import DEFAULT_OLLAMA_MODEL
+
     source = os.environ if env is None else env
     default_provider, default_model, default_effort = DEFAULTS[stage]
     def value(field, legacy, default):

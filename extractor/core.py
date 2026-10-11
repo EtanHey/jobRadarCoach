@@ -17,6 +17,8 @@ from scraper.brain import (
     run_brain,
 )
 
+LOGGER = logging.getLogger("coach.jobfeed.extractor")
+
 EXTRACTOR_VERSION = "1.5"
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
@@ -157,7 +159,7 @@ def extract_posting(
         facts["location"] = {"value": None, "evidence_quote": None}
         # A later field may also fail; only accept after all remaining facts validate.
         validate_facts(facts, raw_jd)
-        logging.getLogger(__name__).warning(
+        LOGGER.warning(
             "extraction_fact_dropped field=location category=location_context"
         )
     jd_sha256 = hashlib.sha256(raw_bytes).hexdigest()

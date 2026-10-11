@@ -23,20 +23,22 @@ const rest = createClient("http://fixture.invalid", "synthetic-test-key", {
   auth: {persistSession: false}, global: {fetch: fixtureFetch},
 });
 
-test("DB-backed default/status/IDs lists preserve metadata and omit descriptions", async () => {
+test("DB-backed default/status/IDs lists preserve card metadata and omit drawer-only fields", async () => {
   const query = {filter: "new-for-me", availability: "active", limit: 50} as const;
   const rows = await selectSummaries(rest, query);
   assert.deepEqual(rows.map(row => row.id), [ids[0], ids[2]]);
   assert.equal(rows[0].experience, "3+ years of backend engineering experience");
   assert.deepEqual(rows[0].stack, ["Python", "Docker"]);
-  assert.equal(rows[0].description_available, true);
-  assert.equal(rows[1].description_available, false);
   assert.deepEqual(rows[1].stack, ["Extracted"]);
   assert.deepEqual((await selectSummaries(rest, {...query, filter: "seen", availability: "all"})).map(row => row.id), [ids[1]]);
   assert.deepEqual((await selectSummaries(rest, {filter: "all", availability: "all", limit: 50, ids: [ids[1]]})).map(row => row.id), [ids[1]]);
   assert.deepEqual((await selectSummaries(rest, {...query, filter: "all", availability: "all", limit: 1})).map(row => row.id), [ids[1]]);
   assert.ok(responses.length >= 4);
-  for (const rows of responses) for (const row of rows) assert.equal("raw_jd" in row, false);
+  for (const rows of responses) for (const row of rows) {
+    for (const field of ["raw_jd", "list_metadata", "salary", "description_available", "seniority_origin", "extraction_state"]) {
+      assert.equal(field in row, false, `${field} must stay out of the DB list projection`);
+    }
+  }
 });
 
 
@@ -66,6 +68,10 @@ test("the real detail store retains the full description and identical summary m
     assert.equal(detail?.raw_jd, "Requirements: 3+ years of backend engineering experience with Python and Docker.");
     assert.equal(detail?.experience, "3+ years of backend engineering experience");
     assert.deepEqual(detail?.stack, ["Python", "Docker"]);
+    assert.equal(detail?.description_available, true);
+    const withoutDescription = await getApiStore().getJob(ids[2]);
+    assert.equal(withoutDescription?.raw_jd, null);
+    assert.equal(withoutDescription?.description_available, false);
   } finally {
     globalThis.fetch = nativeFetch;
     if (previousUrl === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previousUrl;
