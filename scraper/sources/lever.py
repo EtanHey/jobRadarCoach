@@ -85,6 +85,7 @@ def fetch(
                 "title": str(job.get("text", "")),
                 "company": company,
                 "location": location,
+                "work_mode": job.get("workplaceType"),
                 "url": str(job.get("hostedUrl", "")),
                 "posted_at": posted_at,
                 "posted_ago": posted_ago,

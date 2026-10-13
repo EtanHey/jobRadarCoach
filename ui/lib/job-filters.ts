@@ -1,12 +1,16 @@
-import type { Availability, JobSummary } from "./contracts";
+import type { GlobeJob } from "./globe-contract";
+import { timestamp } from "./job-time";
+import type { Availability, FoundWithin, JobSummary } from "./contracts";
 import { groupDuplicateJobs, type DuplicateJobGroup } from "./job-dedup";
 import { matchesFit } from "./job-fit";
 import type { PipelineStatus } from "./job-status";
 
-export type JobSort = "found" | "posted" | "fit" | "seniority";
+export { foundWithinCutoff } from "./view-options";
+import { foundWithinCutoff, type JobSort } from "./view-options";
+export type { JobSort } from "./view-options";
 export type LocationFilter = "" | "israel" | "united-states" | "other";
 export type LocationGroup = Exclude<LocationFilter, ""> | "unknown";
-export type ViewOptions = { remote?: boolean; search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
+export type ViewOptions = { found_within?: FoundWithin; work_mode?: "hybrid" | "remote" | "on-site"; remote?: boolean; search: string; source: string; location: LocationFilter; seniority: string; fit: string; statuses: PipelineStatus[]; availability: Availability; sort: JobSort };
 export const levelOrder = ["Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"];
 export function sourceFilterValues(jobs: Pick<JobSummary, "source">[], selected: string): string[] {
   return [...new Set([...jobs.map((job) => job.source), ...(selected ? [selected] : [])])].sort();
@@ -38,6 +42,7 @@ export function locationGroup(value: string | null): LocationGroup {
   if (UNITED_STATES_LOCATION.test(location) || knownUnitedStatesCity(location) || UNITED_STATES_METRO.test(location)) return "united-states";
   return "other";
 }
+// Mirrored in SQL public.board_level_rank (0025), after titleSeniority fallback.
 export function levelGroup(value: string | null): string {
   if (!value) return "Unknown";
   if (/intern/i.test(value)) return "Intern";
@@ -48,31 +53,30 @@ export function levelGroup(value: string | null): string {
   if (/mid|intermediate/i.test(value)) return "Mid-level";
   return "Unknown";
 }
-function timestamp(value: string | null): number { return value ? Date.parse(value) || 0 : 0; }
-function matchesView(job: JobSummary, options: ViewOptions, needle: string): boolean {
+function matchesView(job: GlobeJob, options: ViewOptions, needle: string, cutoff: number | null): boolean {
   return (
+    (cutoff === null || (timestamp(job.first_seen_at) ?? -Infinity) >= cutoff) &&
     (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
     (!options.source || job.source === options.source) &&
-    (options.remote === undefined || job.remote === options.remote) &&
+    (options.work_mode || options.remote === undefined || job.remote === options.remote) &&
+    (!options.work_mode || (job.work_mode ?? (job.remote === true ? "remote" : job.remote === false ? "on-site" : null)) === options.work_mode) &&
     (!options.location || locationGroup(job.location) === options.location) &&
     (!options.seniority || (options.seniority === "non-senior" ? !["Senior", "Lead / Manager", "Staff / Principal"].includes(levelGroup(job.seniority)) : levelGroup(job.seniority) === options.seniority)) &&
     (options.statuses.length === 0 || options.statuses.includes(job.status as PipelineStatus)) &&
     matchesFit(job, options.fit)
   );
 }
-function compareJobs(a: JobSummary, b: JobSummary, sort: JobSort): number {
-    if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1) || timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
+function compareJobs(a: GlobeJob, b: GlobeJob, sort: JobSort): number {
+    if (sort === "fit") return (b.score ?? -1) - (a.score ?? -1)
+      || (timestamp(b.posted_at ?? b.first_seen_at) ?? 0) - (timestamp(a.posted_at ?? a.first_seen_at) ?? 0)
+      || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
     if (sort === "seniority") return levelOrder.indexOf(levelGroup(a.seniority)) - levelOrder.indexOf(levelGroup(b.seniority)) || a.title.localeCompare(b.title);
-    if (sort === "posted") return timestamp(b.posted_at ?? b.first_seen_at) - timestamp(a.posted_at ?? a.first_seen_at);
-    return timestamp(b.first_seen_at) - timestamp(a.first_seen_at);
+    if (sort === "posted") return (timestamp(b.posted_at ?? b.first_seen_at) ?? 0) - (timestamp(a.posted_at ?? a.first_seen_at) ?? 0);
+    return (timestamp(b.first_seen_at) ?? 0) - (timestamp(a.first_seen_at) ?? 0);
 }
-export function filterJobs(jobs: JobSummary[], options: ViewOptions): JobSummary[] {
+export function filterJobGroups<T extends GlobeJob>(jobs: T[], options: ViewOptions): DuplicateJobGroup<T>[] {
   const needle = options.search.trim().toLocaleLowerCase();
-  return jobs.filter((job) => matchesView(job, options, needle))
-    .sort((a, b) => compareJobs(a, b, options.sort));
-}
-export function filterJobGroups(jobs: JobSummary[], options: ViewOptions): DuplicateJobGroup[] {
-  const needle = options.search.trim().toLocaleLowerCase();
-  return groupDuplicateJobs(jobs.filter((job) => matchesView(job, options, needle)))
+  const cutoff = foundWithinCutoff(options.found_within);
+  return groupDuplicateJobs(jobs.filter((job) => matchesView(job, options, needle, cutoff)))
     .sort((a, b) => compareJobs(a.job, b.job, options.sort));
 }

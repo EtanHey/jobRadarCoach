@@ -4,7 +4,7 @@ create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(42);
+select plan(31);
 
 create function pg_temp.throws_sqlstate(command text, expected_state text)
 returns boolean language plpgsql as $$
@@ -16,16 +16,15 @@ exception when others then
 end
 $$;
 
-select has_function('public', 'list_new_for_me', array[]::text[], 'list_new_for_me exists');
 select has_function('public', 'set_status', array['uuid', 'text', 'text'], 'set_status exists');
 select has_function('public', 'update_profile', array['text', 'jsonb'], 'update_profile exists');
 select has_function('public', 'profile_value_is_valid', array['text', 'jsonb'], 'profile validator exists');
 select is(
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public'
-     and p.proname in ('list_new_for_me', 'set_status', 'update_profile', 'profile_value_is_valid')
+     and p.proname in ('set_status', 'update_profile', 'profile_value_is_valid')
      and not p.prosecdef and p.proconfig = array['search_path=""']),
-  4::bigint,
+  3::bigint,
   'all functions are invoker-scoped with an empty search path'
 );
 
@@ -93,35 +92,6 @@ insert into posting_status (posting_id, status) values
   ('00000000-0000-0000-0000-000000002002', 'new'),
   ('00000000-0000-0000-0000-000000002006', 'seen');
 
-select ok(exists(
-  select 1 from public.list_new_for_me() where posting_id = '00000000-0000-0000-0000-000000002004'
-), 'no visits row behaves as a first visit');
-insert into visits (singleton, last_visit_at) values (true, '2026-01-01 12:00Z');
-select is(
-  (select count(*) from public.list_new_for_me()
-   where posting_id between '00000000-0000-0000-0000-000000002001' and '00000000-0000-0000-0000-000000002006'),
-  3::bigint,
-  'only synthetic dated new postings after the visit are listed'
-);
-select is(
-  (select array_agg(posting_id order by ordinality)
-   from public.list_new_for_me() with ordinality
-   where posting_id in (
-     '00000000-0000-0000-0000-000000002001',
-     '00000000-0000-0000-0000-000000002002',
-     '00000000-0000-0000-0000-000000002003')),
-  array[
-    '00000000-0000-0000-0000-000000002001',
-    '00000000-0000-0000-0000-000000002002',
-    '00000000-0000-0000-0000-000000002003']::uuid[],
-  'scores rank descending and missing scores sort last'
-);
-select is((select status from public.list_new_for_me() where posting_id = '00000000-0000-0000-0000-000000002001'), 'new', 'missing status is treated as new');
-select is((select score from public.list_new_for_me() where posting_id = '00000000-0000-0000-0000-000000002003'), null::smallint, 'missing score remains null');
-select ok(not exists(select 1 from public.list_new_for_me() where posting_id = '00000000-0000-0000-0000-000000002005'), 'null posted_at is excluded');
-select ok(not exists(select 1 from public.list_new_for_me() where posting_id = '00000000-0000-0000-0000-000000002004'), 'pre-visit postings are excluded');
-select ok(not exists(select 1 from public.list_new_for_me() where posting_id = '00000000-0000-0000-0000-000000002006'), 'non-new status is excluded');
-
 select ok(pg_temp.throws_sqlstate(
   $$select public.set_status('00000000-0000-0000-0000-000000002001', 'unknown')$$,
   '22023'), 'set_status rejects unknown states');
@@ -145,8 +115,6 @@ select is(
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'applied')).status, 'applied', 'status corrections can move to any known state');
 select is((public.set_status('00000000-0000-0000-0000-000000002001', 'new')).status, 'new', 'applied can be corrected back to new');
 
-select ok(not has_function_privilege('anon', 'public.list_new_for_me()', 'execute'), 'anon cannot execute the read RPC');
-select ok(not has_function_privilege('authenticated', 'public.list_new_for_me()', 'execute'), 'authenticated cannot execute the read RPC');
 select ok(not has_function_privilege('anon', 'public.set_status(uuid,text,text)', 'execute'), 'anon cannot execute set_status');
 select ok(not has_function_privilege('authenticated', 'public.update_profile(text,jsonb)', 'execute'), 'authenticated cannot execute update_profile');
 select ok(has_function_privilege('service_role', 'public.set_status(uuid,text,text)', 'execute'), 'service role can execute set_status');

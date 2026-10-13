@@ -1,22 +1,24 @@
 "use client";
 
 import { Select } from "@base-ui/react/select";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, LoaderCircle } from "lucide-react";
 
 export type SelectOption = { value: string; label: string };
 
-export function AppSelect({ label, value, options, onValueChange, compact = false }: {
+export function AppSelect({ label, value, options, onValueChange, compact = false, busy = false }: {
   label: string;
   value: string;
   options: readonly SelectOption[];
   onValueChange: (value: string) => void;
   compact?: boolean;
+  /** Swaps the chevron for a spinner while a change is saving. */
+  busy?: boolean;
 }) {
   return <Select.Root items={options} value={value} onValueChange={(next) => next !== null && onValueChange(next)}>
     <Select.Label className="cursor-default text-xs font-medium text-muted-foreground">{label}</Select.Label>
-    <Select.Trigger className={`mt-1.5 flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border bg-background text-left text-foreground outline-none transition hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-muted/60 ${compact ? "px-2 text-xs" : "px-3 text-sm"}`}>
+    <Select.Trigger aria-busy={busy || undefined} className={`mt-1.5 flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-lg border bg-background text-left text-foreground outline-none transition hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-muted/60 ${compact ? "px-2 text-xs" : "px-3 text-sm"}`}>
       <Select.Value className="min-w-0 truncate" />
-      <Select.Icon className="shrink-0 text-muted-foreground"><ChevronDown aria-hidden="true" size={15} /></Select.Icon>
+      <Select.Icon className="shrink-0 text-muted-foreground">{busy ? <LoaderCircle data-status-saving aria-hidden="true" size={15} className="animate-spin motion-reduce:animate-none" /> : <ChevronDown aria-hidden="true" size={15} />}</Select.Icon>
     </Select.Trigger>
     <Select.Portal>
       <Select.Positioner align="start" alignItemWithTrigger={false} sideOffset={5} className="z-50 outline-none">

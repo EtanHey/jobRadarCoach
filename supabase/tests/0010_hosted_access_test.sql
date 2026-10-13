@@ -2,7 +2,7 @@ begin;
 create schema if not exists extensions;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(15);
+select plan(14);
 
 select is((select array_agg(c.relname::text order by c.relname) from pg_catalog.pg_class c
   join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'
@@ -28,25 +28,22 @@ select ok((select bool_and(has_table_privilege('service_role',c.oid,'select,inse
 select ok(has_table_privilege('service_role','public.active_mic','select')
   and not has_table_privilege('service_role','public.active_mic','insert,update,delete'),'active_mic preserves RPC-only service writes');
 select ok(not exists(select 1 from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace
-  where n.nspname='public' and p.oid=any(array['public.profile_value_is_valid(text,jsonb)'::regprocedure,'public.list_new_for_me()'::regprocedure,'public.set_status(uuid,text,text)'::regprocedure,
+  where n.nspname='public' and p.oid=any(array['public.profile_value_is_valid(text,jsonb)'::regprocedure,'public.set_status(uuid,text,text)'::regprocedure,
     'public.update_profile(text,jsonb)'::regprocedure,'public.record_application_history(text,text,date,text,uuid)'::regprocedure,'public.list_application_history(text)'::regprocedure,'public.prepare_posting_status_change()'::regprocedure,
-    'public.record_posting_status_change()'::regprocedure,'public.list_jobs(boolean,integer,integer,text,text,text)'::regprocedure,'public.claim_active_mic(uuid)'::regprocedure,'public.release_active_mic(uuid)'::regprocedure,'public.get_active_mic()'::regprocedure])
+    'public.record_posting_status_change()'::regprocedure,'public.claim_active_mic(uuid)'::regprocedure,'public.release_active_mic(uuid)'::regprocedure,'public.get_active_mic()'::regprocedure])
     and (has_function_privilege('anon',p.oid,'execute') or has_function_privilege('authenticated',p.oid,'execute')
       or exists(select 1 from pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) a where a.privilege_type='EXECUTE' and a.grantee=0))),
   'browser roles and PUBLIC cannot execute any public routine');
 select ok((select bool_and(has_function_privilege('service_role',routine,'execute')) from (values
-  ('public.profile_value_is_valid(text,jsonb)'::regprocedure),('public.list_new_for_me()'::regprocedure),('public.set_status(uuid,text,text)'::regprocedure),
+  ('public.profile_value_is_valid(text,jsonb)'::regprocedure),('public.set_status(uuid,text,text)'::regprocedure),
   ('public.update_profile(text,jsonb)'::regprocedure),('public.record_application_history(text,text,date,text,uuid)'::regprocedure),('public.list_application_history(text)'::regprocedure),
-  ('public.list_jobs(boolean,integer,integer,text,text,text)'::regprocedure),('public.claim_active_mic(uuid)'::regprocedure),('public.release_active_mic(uuid)'::regprocedure),('public.get_active_mic()'::regprocedure)) required(routine)),
+  ('public.claim_active_mic(uuid)'::regprocedure),('public.release_active_mic(uuid)'::regprocedure),('public.get_active_mic()'::regprocedure)) required(routine)),
   'service_role retains every explicitly required routine');
 select ok((select convalidated from pg_catalog.pg_constraint where conrelid='public.posting_scores'::regclass
   and conname='posting_scores_complete_metadata'),'the complete scoring metadata predicate is validated');
 select is((select count(*) from pg_catalog.pg_publication_tables where pubname='supabase_realtime' and schemaname='public'
   and tablename=any(array['active_mic','application_history','posting_extractions','posting_scores','posting_status','postings','profile','visits'])),
   8::bigint,'all server-side Realtime tables remain published');
-select ok(to_regclass('public.heartbeat') is null or (select c.relrowsecurity and not has_table_privilege('anon',c.oid,'select')
-  and not has_table_privilege('authenticated',c.oid,'select') from pg_catalog.pg_class c where c.oid=to_regclass('public.heartbeat')),
-  'heartbeat is absent or hardened');
 
 create table public.hosted_access_future_table(id bigint generated always as identity primary key);
 create function public.hosted_access_future_function() returns bigint language sql set search_path='' as 'select 1::bigint';

@@ -135,6 +135,7 @@ environment contracts in Vercel; never commit their values:
 | `UI_ORIGIN` | server | Exact production HTTPS origin |
 | `JRC_OWNER_RECOVERY_ENABLED` | server | Explicit recovery gate |
 | `JRC_OWNER_RECOVERY_EMAIL` | secret, server only | Existing owner recovery address |
+| `NEXT_PUBLIC_LOGO_DEV_KEY` | browser, optional | Logo.dev publishable `pk_` key for company logos outside the curated catalog; unset = catalog + initials only. Never an `sk_` key. Needs a rebuild to take effect |
 
 Missing or malformed Auth configuration intentionally returns a private,
 non-cacheable unavailable response. After deployment, verify signed-out denial,
@@ -164,12 +165,6 @@ Configure the GitHub Actions secret `DATABASE_URL` for the hosted database.
 The default schedule does not require a Supabase-to-GitHub personal access
 token.
 
-The Supabase Cron package in
-[`supabase/scheduling/cloud_scrape`](../supabase/scheduling/cloud_scrape/README.md)
-is retained only as an optional alternative dispatcher. Never enable it while
-the native GitHub schedule is active, because both schedulers would request the
-same workflow.
-
 Scheduled GitHub runs are best effort: high load can delay them and queued jobs
 can be dropped. GitHub automatically disables scheduled workflows in a public
 repository after 60 days without repository activity. The off-hour `:17` start
@@ -194,11 +189,13 @@ BRAIN=codex python3 -m classifier.job --limit 10 --timeout-seconds 120
 `BRAIN=ollama` is also implemented. Both jobs validate structured model output
 before persistence and return nonzero on failed work.
 
-For unattended pickup, `scripts/run_local_analysis.sh` uses the 1Password env
-and launchd templates under `docs/`. It pins Luna extraction and Terra scoring,
-uses expiring leases and bounded backoff, and appends redacted JSONL receipts.
-After wake it resumes rows lacking validated results; loading the plist is a
-separate operator action.
+For unattended pickup, the installed `jrc-analysis-supervisor` entry point uses
+the [launchd template](com.jobradarcoach.local-analysis.plist.example). The
+supervisor acquires credentials through `JRC_LOCAL_ANALYSIS_CREDENTIAL_HELPER`
+before starting the worker. It pins Luna extraction and Terra scoring, uses
+expiring leases and bounded backoff, and appends redacted JSONL receipts.
+After wake it resumes rows lacking validated results; installing the package
+and loading the plist are separate operator actions.
 
 Only the explicitly selected safe professional projection may enter a model
 request. People, connectors, prohibited-claim lists, private paths, and nested
@@ -210,12 +207,10 @@ Run the affected suites before proposing a change:
 
 ```zsh
 python3 -m pytest -q scraper extractor classifier \
-  supabase/scheduling/cloud_scrape/test_schedule.py \
   scripts/test_check_private_files.py scripts/test_local_analysis.py
 python3 -m ruff check \
   --per-file-ignores 'extractor/test_persistence.py:E402' \
   scraper extractor classifier \
-  supabase/scheduling/cloud_scrape/test_schedule.py \
   scripts/check_private_files.py scripts/test_check_private_files.py \
   scripts/local_analysis.py scripts/test_local_analysis.py
 npm --prefix ui run test

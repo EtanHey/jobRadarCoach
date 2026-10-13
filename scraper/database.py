@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import re
@@ -11,9 +11,14 @@ import sys
 from typing import Protocol, cast
 
 try:
-    from scraper.annotate import _load_safe_profile_contract
+    from scraper.ats_sources import ATS_SOURCES
+    from scraper.annotate import _load_safe_profile_contract, posting_mode
+    from scraper import linkedin_liveness, relevance
 except ModuleNotFoundError:  # Direct /app/scraper/harvest.py entrypoint.
-    from annotate import _load_safe_profile_contract
+    from ats_sources import ATS_SOURCES
+    from annotate import _load_safe_profile_contract, posting_mode
+    import linkedin_liveness
+    import relevance
 
 PROFILE_SEED_LOCK = 0x4A4F425241444152
 UNKNOWN_TEXT_VALUES = frozenset(
@@ -261,6 +266,13 @@ def _timestamp(value: object) -> datetime | None:
     return parsed if parsed.tzinfo is not None else None
 
 
+
+def _publication_timestamp(value: object, observed_at: datetime) -> datetime | None:
+    parsed = _timestamp(value)
+    return parsed if parsed is not None and (
+        datetime(2000, 1, 1, tzinfo=timezone.utc) <= parsed <= observed_at + timedelta(days=1)
+    ) else None
+
 def _known_stack(value: object) -> list[str]:
     if not isinstance(value, list) or not value:
         return []
@@ -271,6 +283,37 @@ def _known_stack(value: object) -> list[str]:
 
 
 def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
+    # Harvest never owns either ATS transition or changes the gate's evidence.
+    if (_nonblank(posting.get("source")) or "linkedin") in ATS_SOURCES:
+        return {}
+    # LinkedIn observations are advisory, including legacy alive=false input.
+    if (_nonblank(posting.get("source")) or "linkedin") == "linkedin":
+        evidence = {}
+        repost = posting.get("linkedin_reposted_signal")
+        if (isinstance(repost, dict) and isinstance(repost.get("label"), str)
+                and linkedin_liveness.REPOST.fullmatch(repost["label"])
+                and _timestamp(repost.get("checked_at")) is not None
+                and linkedin_liveness.guest_url(posting.get("url", "")) is not None
+                and repost.get("url") == posting.get("url")):
+            evidence = {"linkedin_reposted_signal": repost, "liveness_checked_at": repost["checked_at"]}
+        signal = posting.get("linkedin_closed_signal")
+        if (isinstance(signal, dict) and signal.get("phrase") in
+                linkedin_liveness.CLOSURE_PHRASES
+                and _timestamp(signal.get("checked_at")) is not None
+                and isinstance(signal.get("url"), str)
+                and signal["url"] == posting.get("url")):
+            return {**evidence, "linkedin_closed_signal": signal, "liveness_checked_at": signal["checked_at"]}
+        cleared_at = posting.get("linkedin_closed_signal_cleared_at")
+        if ("linkedin_closed_signal" in posting and signal is None
+                and posting.get("liveness_reason") == "linkedin-open-signal"
+                and posting.get("liveness_status") == 200
+                and linkedin_liveness.guest_url(posting.get("url", "")) is not None
+                and posting.get("liveness_final_url") == linkedin_liveness.guest_url(posting.get("url", ""))
+                and _timestamp(cleared_at) is not None
+                and cleared_at == posting.get("liveness_checked_at")):
+            return {**evidence, "linkedin_closed_signal": None, "linkedin_closed_signal_cleared_at": cleared_at,
+                    "liveness_checked_at": cleared_at}
+        return evidence
     alive = posting.get("alive")
     status = posting.get("liveness_status")
     reason = _known_text(posting.get("liveness_reason"))
@@ -285,13 +328,14 @@ def _liveness_evidence(posting: dict[str, object]) -> dict[str, object]:
         or _timestamp(checked_at) is None
     ):
         return {}
-    return {
+    evidence = {
         "alive": alive,
         "liveness_status": status,
         "liveness_reason": reason,
         "liveness_final_url": final_url,
         "liveness_checked_at": checked_at,
     }
+    return evidence
 
 
 def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[object, ...]:
@@ -303,9 +347,10 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
     title = _required_text(posting.get("title"), "title")
     company = _required_text(posting.get("company"), "company")
     location = _nonblank(posting.get("location"))
-    explicit_remote = posting.get("remote")
-    remote = explicit_remote if isinstance(explicit_remote, bool) else None
-    if remote is None and location and re.search(r"\bremote\b", location, re.I):
+    mode, mode_source = posting_mode(posting)
+    remote = {"remote": True, "on-site": False}.get(mode)
+    # Preserve pre-work-mode inference for multi-location ATS labels.
+    if mode is None and location and re.search(r"\bremote\b", location, re.IGNORECASE):
         remote = True
     apply_url = _nonblank(posting.get("apply_url"))
     return (
@@ -313,18 +358,21 @@ def _posting_values(posting: dict[str, object], observed_at: datetime) -> tuple[
         location, remote, _known_text(posting.get("seniority")),
         _known_stack(posting.get("stack")),
         _nonblank(posting.get("salary")), apply_url or url,
-        _timestamp(posting.get("posted_at")), _nonblank(posting.get("jd_text")),
+        _publication_timestamp(posting.get("posted_at"), observed_at),
+        _publication_timestamp(posting.get("last_published_at"), observed_at)
+        or _publication_timestamp(posting.get("posted_at"), observed_at),
+        _nonblank(posting.get("jd_text")),
         observed_at, observed_at,
         json.dumps(_liveness_evidence(posting), ensure_ascii=False),
-        apply_url is not None,
+        mode, mode_source, apply_url is not None,
     )
 
 
 POSTING_UPSERT = """
 insert into public.postings as current (
   source, external_id, url, title, company, location, remote, seniority, stack,
-  salary, apply_url, posted_at, raw_jd, first_seen_at, last_seen_at, liveness
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness, work_mode, work_mode_source
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
 on conflict on constraint postings_source_external_id_key do update set
   url = excluded.url, title = excluded.title, company = excluded.company,
   location = coalesce(excluded.location, current.location),
@@ -332,11 +380,22 @@ on conflict on constraint postings_source_external_id_key do update set
     when %s then excluded.apply_url
     else coalesce(current.apply_url, excluded.apply_url)
   end,
-  remote = coalesce(excluded.remote, current.remote),
+  remote = case when current.work_mode_source = 'structured'
+    and excluded.work_mode_source is distinct from 'structured' then current.remote
+    when excluded.work_mode is not null then excluded.remote
+    when current.work_mode is not null then current.remote
+    else coalesce(excluded.remote, current.remote) end,
+  work_mode = case when current.work_mode_source = 'structured'
+    and excluded.work_mode_source is distinct from 'structured' then current.work_mode
+    else coalesce(excluded.work_mode, current.work_mode) end,
+  work_mode_source = case when current.work_mode_source = 'structured'
+    and excluded.work_mode_source is distinct from 'structured' then current.work_mode_source
+    else coalesce(excluded.work_mode_source, current.work_mode_source) end,
   seniority = coalesce(excluded.seniority, current.seniority),
   stack = case when cardinality(excluded.stack) > 0 then excluded.stack else current.stack end,
   salary = coalesce(excluded.salary, current.salary),
-  posted_at = coalesce(excluded.posted_at, current.posted_at),
+  posted_at = least(excluded.posted_at, current.posted_at),
+  last_published_at = greatest(excluded.last_published_at, current.last_published_at),
   raw_jd = coalesce(excluded.raw_jd, current.raw_jd),
   last_seen_at = greatest(excluded.last_seen_at, current.last_seen_at),
   liveness = case
@@ -345,7 +404,7 @@ on conflict on constraint postings_source_external_id_key do update set
       then (excluded.liveness->>'liveness_checked_at')::timestamptz >=
            (current.liveness->>'liveness_checked_at')::timestamptz
       else true
-    end then excluded.liveness
+    end then current.liveness || excluded.liveness
     else current.liveness
   end
 returning id
@@ -355,8 +414,8 @@ returning id
 POSTING_INSERT = """
 insert into public.postings (
   source, external_id, url, title, company, location, remote, seniority, stack,
-  salary, apply_url, posted_at, raw_jd, first_seen_at, last_seen_at, liveness
-) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+  salary, apply_url, posted_at, last_published_at, raw_jd, first_seen_at, last_seen_at, liveness, work_mode, work_mode_source
+) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
 on conflict on constraint postings_source_external_id_key do nothing
 returning id
 """
@@ -390,6 +449,9 @@ def _persist_postings(
                 "on conflict (posting_id) do nothing",
                 (posting_id,),
             )
+        # Classify the effective stored title/JD, including retained conflict
+        # values, while writes are still invisible to board and poll readers.
+        relevance.refresh_gate(connection, posting_ids=posting_ids, limit=len(posting_ids), at_write=True)
     return posting_ids, inserted_ids
 
 

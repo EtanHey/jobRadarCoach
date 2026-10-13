@@ -1,11 +1,11 @@
-import type { JobSummary } from "./contracts";
+import type { GlobeJob } from "./globe-contract";
 import type { DuplicateJobGroup } from "./job-dedup";
 
 export type PostingPoint = { posting_id: string; lat: number; lng: number; precision: "city" | "region" | "country" | "hq"; source: string; resolved_at: string };
-export type GlobePoint = PostingPoint & { job: JobSummary; rowId: string };
+export type GlobePoint = PostingPoint & { job: GlobeJob; rowId: string };
 export const FALLBACK_CENTER: [number, number] = [34.8113, 31.8928];
-export function globePoints(groups: DuplicateJobGroup[], coordinates: PostingPoint[]): GlobePoint[] {
-  const rows = new Map<string, { job: JobSummary; rowId: string }>();
+export function globePoints(groups: DuplicateJobGroup<GlobeJob>[], coordinates: PostingPoint[]): GlobePoint[] {
+  const rows = new Map<string, { job: GlobeJob; rowId: string }>();
   for (const group of groups) for (const job of [group.job, ...group.alternates]) rows.set(job.id, { job, rowId: group.job.id });
   return coordinates.flatMap(point => {
     const row = rows.get(point.posting_id);
@@ -21,7 +21,7 @@ export function thinPoints(points: GlobePoint[], selected: string | null, limit 
   return chosen ? [chosen, ...sampled].slice(0, limit) : sampled.slice(0, limit);
 }
 export function scoreColor(score: number | null): [number, number, number, number] {
-  return score === null ? [148, 163, 184, 255] : score >= 80 ? [52, 211, 153, 255] : score >= 60 ? [56, 189, 248, 255] : [251, 191, 36, 255];
+  return score === null ? [148, 163, 184, 255] : score >= 80 ? [16, 185, 129, 255] : score >= 60 ? [245, 158, 11, 255] : [148, 163, 184, 255];
 }
 export function pointLabel(point: GlobePoint): string {
   return point.precision === "hq" ? "Company HQ · not the job location" : `Approximate ${point.precision} location`;
@@ -55,15 +55,14 @@ export function clusterPoints(points: GlobePoint[], project: (point: GlobePoint)
 }
 // A cluster uses the best existing member score. Individual scores never change.
 export const clusterScore = (cluster: PointCluster) => cluster.members.reduce<number | null>((best, point) => point.job.score === null ? best : Math.max(best ?? 0, point.job.score), null);
-
-export function globeChoices(points: GlobePoint[], choiceIds: string[]): GlobePoint[] {
-  if (!choiceIds.length) return [];
-  const byId = new Map<string, GlobePoint[]>();
-  for (const point of points) {
-    const id = point.posting_id;
-    const matches = byId.get(id);
-    if (matches) matches.push(point);
-    else byId.set(id, [point]);
+export const clusterRoleIds = (members: readonly GlobePoint[]) => [...new Set(members.map(point => point.rowId))];
+export const clusterIsStack = (members: readonly GlobePoint[]) => new Set(members.map(point => `${point.lng.toFixed(4)},${point.lat.toFixed(4)}`)).size === 1;
+export function clusterPlace(members: readonly GlobePoint[]) {
+  const counts = new Map<string, number>();
+  for (const point of members) {
+    const name = point.job.location?.split(",")[0]?.trim() || "this location";
+    counts.set(name, (counts.get(name) ?? 0) + 1);
   }
-  return choiceIds.flatMap(id => byId.get(id) ?? []);
+  const [name, count] = [...counts].sort((a, b) => b[1] - a[1])[0] ?? ["this location", 0];
+  return count / (members.length || 1) < .6 ? `Near ${name}` : name;
 }

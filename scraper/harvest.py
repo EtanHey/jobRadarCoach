@@ -93,28 +93,40 @@ NEGATIVE_RULES: tuple[tuple[str, re.Pattern[str], int, str], ...] = (
 )
 YEARS_REQUIREMENT_PATTERN = re.compile(
     r"\b(?:(?:minimum(?:\s+of)?|at\s+least)\s+)?"
-    r"(?P<minimum>\d{1,2})\s*(?:\+|-\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
+    r"(?P<minimum>\d{1,2})\s*(?:\+|\s*(?:[-–—]|to)\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
     re.I,
 )
-YEAR_QUALIFICATION_CONTEXT_PATTERN = re.compile(
-    r"\b(?:requirements?|qualifications?|required|must|minimum|at\s+least|"
-    r"experience|expertise|background|proficien\w*|candidates?|"
-    r"you(?:'ll|\s+will)?\s+(?:have|bring|need)|years?\s+(?:of|in|with|"
-    r"building|creating|delivering|designing|developing|leading|managing|"
-    r"operating|programming|shipping|working))\b",
-    re.I,
+YEAR_EXPERIENCE_PATTERN = re.compile(
+    r"^\s+(?:(?:of\s+)?(?:[\w-]+\s+){0,4}experience\b|"
+    r"(?:of\s+)?(?:building|creating|delivering|designing|developing|leading|"
+    r"managing|operating|programming|shipping|working)\b|"
+    r"in\s+(?:software|backend|frontend|engineering)\b)", re.I,
+)
+YEAR_CANDIDATE_PREFIX_PATTERN = re.compile(
+    r"^(?:you(?:['’]ll|\s+will)?\s+(?:(?:must\s+)?have|bring|need)|"
+    r"(?:(?:candidates?|applicants?)\s+)?must\s+have|required:)\s*"
+    r"(?:(?:at\s+least|minimum(?:\s+of)?)\s+)?\s*$", re.I,
 )
 YEAR_OPTIONAL_REQUIREMENT_PATTERN = re.compile(
-    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|a\s+plus|preferred|optional)\b",
+    r"\b(?:advantage|bonus|nice[\s-]+to[\s-]+have|(?:a\s+)?plus|preferred|optional|desirable)\b",
     re.I,
 )
-YEAR_COMPANY_HISTORY_PATTERN = re.compile(
-    r"\b(?:our|the|this)\s+(?:company|business|firm|organization|organisation)\s+"
-    r"(?:has|have)\b.*\b\d{1,2}\s*years?\b|"
-    r"\b\d{1,2}\s*years?\s+in\s+business\b|"
-    r"\bfounded\b.*\b\d{1,2}\s*years?\s+ago\b",
-    re.I,
+YEAR_SECTION_HEADING_PATTERN = re.compile(
+    r"^\s*(?:\#{1,6}\s+([\w /'’()–-]{2,60})\s*$|([\w /'’()–-]{2,60}):|"
+    r"(requirements?|qualifications?|about (?:us|the company|our company)|"
+    r"company overview|responsibilities|benefits|what we offer|what you'll do|"
+    r"(?:preferred|nice[\s-]+to[\s-]+have|bonus|plus|optional)"
+    r"(?:\s+[\w /'’()–-]{2,40})?)\s*$|"
+    r"((?-i:[A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|and|of|the|we|are)){0,7}|"
+    r"[A-Z][A-Z /]{2,60}))\s*$)", re.I,
 )
+YEAR_ALTERNATIVE_PATTERN = re.compile(r"\bor\b(?!\s+(?:more|higher|greater)\b)", re.I)
+YEAR_INLINE_HEADING_PATTERN = re.compile(r"(?:requirements?|qualifications?):\s*", re.I)
+YEAR_NONREQUIREMENT_PATTERN = re.compile(r"\b(?:not\s+required|isn['’]t\s+required)\b", re.I)
+YEAR_BULLET_PREFIX_PATTERN = re.compile(r"\s*[-•]\s*")
+YEAR_CLAUSE_BOUNDARY_PATTERN = re.compile(r"[;•]|\n(?![ \t]+(?![-•]|\d+[.)]\s)\S)|[.!?](?=\s|$)")
+YEAR_SKILL_SUFFIX_PATTERN = re.compile(r"\s+of\s+(?:Python|Java|JavaScript|TypeScript|React)\b", re.I)
+YEAR_REQUIRED_HEADINGS = frozenset({"requirement", "requirements", "qualification", "qualifications"})
 YEAR_BANDS: tuple[tuple[int, str, int], ...] = (
     (10, "10+ years", -12),
     (8, "8-9+ years", -10),
@@ -129,7 +141,7 @@ GUEST_SEARCH_ENDPOINT = (
 )
 GUEST_JOB_ENDPOINT = "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting"
 USER_AGENT = "Mozilla/5.0 (compatible; JobRadarCoach/1.0)"
-SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable")
+SOURCE_ORDER = ("linkedin", "comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters", "workday")
 NATIVE_ATS_SOURCES = frozenset(SOURCE_ORDER[1:])
 PostingIdentity = tuple[str, str]
 STAFFING_COMPANIES = frozenset(
@@ -147,11 +159,14 @@ STAFFING_SIGNAL_PATTERN = re.compile(
     re.I,
 )
 SOURCE_LABELS = {
+    "ashby": "Ashby",
+    "smartrecruiters": "SmartRecruiters",
     "linkedin": "LinkedIn",
     "comeet": "Comeet",
     "greenhouse": "Greenhouse",
     "lever": "Lever",
     "workable": "Workable",
+    "workday": "Workday",
 }
 OUTPUT_FIELDS = (
     "id",
@@ -179,6 +194,9 @@ OUTPUT_FIELDS = (
     "liveness_reason",
     "liveness_final_url",
     "liveness_checked_at",
+    "linkedin_reposted_signal",
+    "linkedin_closed_signal",
+    "linkedin_closed_signal_cleared_at",
 )
 OUTPUT_DEFAULTS: dict[str, object] = {
     "updated_at": "",
@@ -196,6 +214,9 @@ OUTPUT_DEFAULTS: dict[str, object] = {
     "liveness_reason": "not-checked",
     "liveness_final_url": "",
     "liveness_checked_at": "",
+    "linkedin_reposted_signal": None,
+    "linkedin_closed_signal": None,
+    "linkedin_closed_signal_cleared_at": None,
 }
 LUNA_FIELDS = (
     "employer_type", "seniority_real", "fit_score", "fit_tier",
@@ -361,8 +382,18 @@ class _LinkedInCardParser(HTMLParser):
 
         for class_name, field in self.FIELD_CLASSES.items():
             if class_name in classes:
-                self.captures.append((tag, field))
+                self._capture_field(tag, field, attributes)
                 break
+
+    def _capture_field(self, tag: str, field: str, attributes: dict[str, str]) -> None:
+        self.captures.append((tag, field))
+        if tag == "time" and field == "posted_ago":
+            try:
+                published = date.fromisoformat(attributes.get("datetime", ""))
+            except ValueError:
+                return  # Relative ages are not invented publication dates.
+            assert self.card is not None
+            self.card["posted_at"] = f"{published.isoformat()}T00:00:00Z"
 
     def handle_data(self, data: str) -> None:
         if self.card is None or not self.captures or not data.strip():
@@ -397,6 +428,8 @@ class _LinkedInCardParser(HTMLParser):
             "url": str(self.card.get("url", "")),
             "posted_ago": fields.get("posted_ago", ""),
         }
+        if self.card.get("posted_at"):
+            posting["posted_at"] = str(self.card["posted_at"])
         visible = [
             posting["title"],
             posting["company"],
@@ -546,7 +579,7 @@ def _requirement_list_item(text: str, start: int, end: int) -> str:
 
     boundaries = [
         match.start()
-        for match in re.finditer(r"[,;\n•]|[.!?](?=\s+[A-Z]|\s*$)", text)
+        for match in re.finditer(r"[,;\n•]|[.!?](?=\s|$)", text)
     ]
     left = max((index for index in boundaries if index < start), default=-1)
     right_candidates = [index for index in boundaries if index >= end]
@@ -634,17 +667,72 @@ def _score_years_requirement(text: str) -> tuple[str, int] | None:
 
 
 def _has_blocking_years_requirement(text: str) -> bool:
-    """Block when any single stated experience minimum is seven years or higher."""
+    """Discard only unambiguous applicant experience minimums of seven or more.
 
+    Bare role descriptions and organization history remain available to scoring.
+    Section context grants N+ experience minima and explicit requirement bullets.
+    """
+
+    text = re.sub(r"[*_`]", "", text)
     for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
         if int(match.group("minimum")) < 7:
             continue
         item = _requirement_list_item(text, match.start(), match.end())
-        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item):
+        if YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(item) or YEAR_NONREQUIREMENT_PATTERN.search(item):
             continue
-        if YEAR_COMPANY_HISTORY_PATTERN.search(item):
+        offset = item.index(match.group(0))
+        prefix = item[:offset].strip().lstrip("- ")
+        suffix = item[offset + len(match.group(0)):]
+        experience = YEAR_EXPERIENCE_PATTERN.match(suffix)
+        required_section = False
+        optional_section = False
+        for line in text[:match.start()].splitlines():
+            heading = YEAR_SECTION_HEADING_PATTERN.match(line)
+            if heading:
+                title = next(group for group in heading.groups() if group).strip().casefold()
+                required_section = title in YEAR_REQUIRED_HEADINGS
+                optional_section = bool(YEAR_OPTIONAL_REQUIREMENT_PATTERN.search(title))
+        if optional_section:
             continue
-        if YEAR_QUALIFICATION_CONTEXT_PATTERN.search(item):
+        # Keep comma-separated alternatives together, while independent sentences
+        # and list items still have their own requirement evidence. Indented
+        # continuation lines belong to the current item; new bullets do not.
+        clause_boundaries = [
+            boundary.start()
+            for boundary in YEAR_CLAUSE_BOUNDARY_PATTERN.finditer(text)
+        ]
+        left = max((index for index in clause_boundaries if index < match.start()), default=-1)
+        right = min(
+            (index for index in clause_boundaries if index >= match.end()), default=len(text)
+        )
+        clause = text[left + 1:right]
+        if YEAR_ALTERNATIVE_PATTERN.search(clause):
+            continue
+        inline = YEAR_INLINE_HEADING_PATTERN.fullmatch(prefix)
+        bare = not prefix or bool(inline)
+        # An explicit section list can name the skill without the word experience.
+        line_prefix = text[:match.start()].rsplit("\n", 1)[-1]
+        listed = bool(YEAR_BULLET_PREFIX_PATTERN.fullmatch(line_prefix))
+        if bare and required_section and ("+" in match.group(0) or inline or listed) and (
+            experience or YEAR_SKILL_SUFFIX_PATTERN.match(suffix)
+        ):
+            return True
+        if not experience:
+            continue
+        if YEAR_CANDIDATE_PREFIX_PATTERN.fullmatch(prefix):
+            return True
+        if bare and re.match(r"(?:minimum|at\s+least)\b", match.group(0), re.I):
+            return True
+        # "required for this role" is applicant-directed even after a role noun.
+        after_experience = suffix[experience.end():]
+        if re.match(
+            r"\s+(?:is\s+)?required\s+for\s+(?:this|the)\s+(?:role|position)\b",
+            after_experience, re.I,
+        ):
+            return True
+        if (bare or prefix.casefold() == "with") and re.match(
+            r"\s+(?:is\s+)?required\b", after_experience, re.I
+        ):
             return True
     return False
 
@@ -916,10 +1004,13 @@ def apply_liveness_checks(
     cache: dict[str, dict[str, object]] = {}
     for posting in postings:
         result = dict(posting)
+        if _posting_source(result) in {"ashby", "smartrecruiters"}:
+            checked.append(result)
+            continue
         url = str(posting.get("url", ""))
         try:
             if url not in cache:
-                cache[url] = checker(posting)
+                cache[url] = posting if posting.get("liveness_reason") == "workday-active-list" else checker(posting)
             evidence = cache[url]
             if not isinstance(evidence, dict) or "alive" not in evidence:
                 raise ValueError("liveness checker returned an invalid result")
@@ -1252,7 +1343,7 @@ def harvest_sources(
                     "fetcher": fetcher,
                     "before_request": before_request,
                 }
-                if name == "workable" and posting_filter is not None:
+                if name in {"workable", "smartrecruiters", "workday"} and posting_filter is not None:
                     def counted_filter(posting):
                         nonlocal prefilter_count
                         prefilter_count += 1
@@ -1496,13 +1587,16 @@ def fetch_html(
     url: str,
     *,
     opener: Callable[..., object] = urlopen,
+    data: bytes | None = None,
     sleep: Callable[[float], None] = time.sleep,
     backoffs: tuple[float, ...] = (1.0, 2.0),
     timeout: int = 20,
 ) -> str | None:
     """Fetch one guest page with a bounded retry budget and no credentials."""
 
-    request = Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
+    request = Request(url, data=data, headers={"User-Agent": USER_AGENT,
+        "Accept": "application/json" if data is not None or "/wday/cxs/" in url else "text/html",
+        **({"Content-Type": "application/json"} if data is not None else {})})
     attempts = len(backoffs) + 1
     for attempt in range(attempts):
         try:
@@ -2338,6 +2432,7 @@ def run_pipeline(  # skipcq: PY-R1000
     else:
         result["new_published_count"] = len(scored)
     if enabled_sources:
+        result["source_warning_count"] = len(source_config_warnings) + source_warnings
         result["source_counts"] = source_counts
         result["source_fetch_counts"] = source_fetch_counts
         result["source_match_counts"] = source_match_counts

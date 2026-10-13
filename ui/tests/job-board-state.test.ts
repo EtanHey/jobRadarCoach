@@ -1,33 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createBoundedJobListCache, createDetailCoordinator, createListRefreshCoordinator, createRequestFence, jobListCacheKey, jobListRequestPath, retainVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
+import { jobListCacheKey, jobListRequestPath, retainVisitCohort, refreshVisitCohort, uniqueJobsById, updateJobStatus } from "../lib/job-board-state";
 
-test("private list cache keys the complete server query and evicts the least-recently-used view", () => {
-  assert.throws(() => createBoundedJobListCache(0), RangeError);
-  assert.throws(() => createBoundedJobListCache(-1), RangeError);
-  const cache = createBoundedJobListCache<string>(2);
-  const all = jobListCacheKey({ filter: "all", availability: "active", limit: 1000 });
-  const inactive = jobListCacheKey({ filter: "all", availability: "inactive", limit: 1000 });
-  const fresh = jobListCacheKey({ filter: "new-for-me", availability: "active", limit: 1000 });
-  const seen = jobListCacheKey({ filter: "seen", availability: "active", limit: 1000 });
-
-  assert.equal(all, "filter=all&availability=active&limit=1000");
+test("list requests key the complete server query", () => {
+  assert.equal(jobListCacheKey({ filter: "all", availability: "active", limit: 1000 }), "filter=all&availability=active&limit=1000");
   assert.equal(jobListRequestPath({ filter: "seen", availability: "inactive", limit: 1000 }), "/api/jobs?filter=seen&availability=inactive&limit=1000");
-  assert.notEqual(all, inactive);
-  let repeatedFetches = 0;
-  const load = () => cache.get(all) ?? (++repeatedFetches, cache.set(all, "network rows"), "network rows");
-  assert.equal(load(), "network rows");
-  assert.equal(load(), "network rows");
-  assert.equal(repeatedFetches, 1);
-  cache.set(all, "all rows");
-  cache.set(fresh, "fresh rows");
-  assert.equal(cache.get(all), "all rows");
-  cache.set(seen, "seen rows");
-  assert.equal(cache.get(fresh), undefined);
-  assert.equal(cache.get(all), "all rows");
-  assert.equal(cache.get(seen), "seen rows");
-  cache.clear();
-  assert.equal(cache.get(all), undefined);
+});
+
+test("board requests send fit, pipeline statuses and sort to the server", () => {
+  const path = jobListRequestPath({ filter: "all", availability: "active", limit: 1000,
+    fit: "recommended", statuses: ["applied", "worth_checking"], sort: "fit" });
+  const params = new URL(path, "https://example.test").searchParams;
+  assert.equal(params.get("fit"), "recommended");
+  assert.equal(params.get("statuses"), "applied,worth_checking");
+  assert.equal(params.get("sort"), "fit");
 });
 
 test("a status mutation updates the active list without resetting unrelated rows", () => {
@@ -39,65 +25,6 @@ test("a status mutation updates the active list without resetting unrelated rows
 
   assert.deepEqual(updated[0], { id: "job-1", status: "worth_checking", status_reason: null });
   assert.equal(updated[1], current[1]);
-});
-
-test("status invalidation rejects an older list response before it can refill cache", () => {
-  const fence = createRequestFence();
-  const beforeMutation = fence.capture();
-  assert.equal(fence.isCurrent(beforeMutation), true);
-  fence.invalidate();
-  assert.equal(fence.isCurrent(beforeMutation), false);
-  assert.equal(fence.isCurrent(fence.capture()), true);
-});
-
-test("a realtime refresh arriving during a list request schedules one follow-up", () => {
-  const coordinator = createListRefreshCoordinator();
-  coordinator.beginRequest();
-
-  assert.equal(coordinator.requestRefresh(), false);
-  assert.equal(coordinator.requestRefresh(), false);
-  assert.equal(coordinator.finishRequest(), true);
-  assert.equal(coordinator.finishRequest(), false);
-});
-
-test("a reconnect-ready event refreshes loaded cached rows", () => {
-  const coordinator = createListRefreshCoordinator();
-
-  assert.equal(coordinator.markReady(), false);
-  coordinator.markDisconnected();
-  assert.equal(coordinator.markReady(), true);
-  assert.equal(coordinator.markReady(), false);
-});
-
-test("a reconnect-ready refresh queues behind an in-flight list request", () => {
-  const coordinator = createListRefreshCoordinator();
-  coordinator.beginRequest();
-  coordinator.markDisconnected();
-
-  assert.equal(coordinator.markReady(), true);
-  assert.equal(coordinator.requestRefresh(), false);
-  assert.equal(coordinator.finishRequest(), true);
-});
-
-test("a successful mutation invalidates an older SSE detail read", () => {
-  const coordinator = createDetailCoordinator();
-  const selected = coordinator.select("job-a");
-  const staleSseRead = coordinator.beginRead();
-
-  assert.equal(coordinator.acceptRead(staleSseRead), true);
-  assert.equal(coordinator.commitMutation(selected), true);
-  assert.equal(coordinator.acceptRead(staleSseRead), false);
-});
-
-test("selection generations reject detail work from a previously opened job", () => {
-  const coordinator = createDetailCoordinator();
-  const firstSelection = coordinator.select("job-a");
-  const firstRead = coordinator.beginRead();
-  const secondSelection = coordinator.select("job-b");
-
-  assert.equal(coordinator.acceptRead(firstRead), false);
-  assert.equal(coordinator.commitMutation(firstSelection), false);
-  assert.equal(coordinator.commitMutation(secondSelection), true);
 });
 
 test("new-for-me visit cohort keeps existing order while updating and appending jobs", () => {
@@ -149,4 +76,29 @@ test("refresh collapses repeated incoming and preexisting IDs without changing f
 test("unique IDs preserve their input array reference", () => {
   const jobs = [{ id: "job-1" }, { id: "job-2" }];
   assert.equal(uniqueJobsById(jobs), jobs);
+});
+
+
+test("retained card absent from incoming refreshes all fields without moving or admitting unrelated rows", () => {
+  const current = [{ id: "a", status: "new", title: "old" }, { id: "b", status: "new", title: "B" }];
+  const latest = [{ id: "a", status: "applied", title: "updated" }, { id: "unrelated", status: "seen", title: "other" }];
+  const next = retainVisitCohort(current, [{ id: "c", status: "new", title: "C" }, current[1]], latest);
+  assert.deepEqual(next.map(job => job.id), ["a", "b", "c"]);
+  assert.deepEqual(next[0], latest[0]);
+});
+
+
+test("refresh hydrates only absent retained IDs in bounded batches, including an empty new cohort", async () => {
+  const current = Array.from({ length: 205 }, (_, n) => ({ id: String(n), status: "new" }));
+  const calls: string[][] = [];
+  const refreshed = await refreshVisitCohort(current, [], ids => {
+    calls.push(ids);
+    return Promise.resolve(ids.map(id => ({ id, status: "applied" })));
+  });
+  assert.deepEqual(calls.map(ids => ids.length), [100, 100, 5]);
+  assert.deepEqual(refreshed.map(job => job.id), current.map(job => job.id));
+  assert.ok(refreshed.every(job => job.status === "applied"));
+  await refreshVisitCohort(null, current, () => { throw new Error("unnecessary fetch"); });
+  await refreshVisitCohort(current, current, () => { throw new Error("unnecessary fetch"); });
+  await assert.rejects(refreshVisitCohort(current, [], () => { throw new Error("offline"); }), /offline/);
 });

@@ -7,10 +7,12 @@ from dataclasses import dataclass, field
 import hashlib
 import json
 import re
+
+from scraper.annotate import canonical_mode
 from urllib.parse import urlsplit
 
 
-NORMALIZER_VERSION = "4"
+NORMALIZER_VERSION = "5"
 LINK_STATUSES = frozenset({"no_link", "available", "invalid_url"})
 
 _ISRAEL = {
@@ -215,7 +217,12 @@ def normalize(posting_row: Mapping[str, object]) -> Facts:
         if city and city not in cities:
             cities.append(city)
     remote_value = posting_row.get("remote")
-    if remote_value is True or re.search(r"\bremote\b", raw_location, re.I):
+    explicit_mode = canonical_mode(posting_row.get("work_mode"))
+    if explicit_mode:
+        work_mode = "onsite" if explicit_mode == "on-site" else explicit_mode
+    elif isinstance(remote_value, bool):
+        work_mode = "remote" if remote_value else "onsite"
+    elif re.search(r"\bremote\b", raw_location, re.I):
         work_mode = "remote"
     elif re.search(r"\bhybrid\b", raw_location, re.I):
         work_mode = "hybrid"

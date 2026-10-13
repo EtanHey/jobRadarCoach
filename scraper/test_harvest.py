@@ -82,6 +82,7 @@ def test_parse_saved_linkedin_guest_fixture() -> None:
             "location": "Tel Aviv District, Israel",
             "url": "https://il.linkedin.com/jobs/view/full-stack-engineer-at-gotfriends-4449293792",
             "posted_ago": "1 hour ago",
+            "posted_at": "2026-08-09T00:00:00Z",
             "raw_text": "Full Stack Engineer Gotfriends Tel Aviv District, Israel Be an early applicant 1 hour ago",
         },
         {
@@ -91,6 +92,7 @@ def test_parse_saved_linkedin_guest_fixture() -> None:
             "location": "Tel Aviv-Yafo, Tel Aviv District, Israel",
             "url": "https://il.linkedin.com/jobs/view/full-stack-next-js-developer-customer-facing-web-ai-first-at-bridgify-4449288878",
             "posted_ago": "1 hour ago",
+            "posted_at": "2026-08-09T00:00:00Z",
             "raw_text": "Full Stack Next.js Developer, Customer-Facing Web (AI-First) Bridgify Tel Aviv-Yafo, Tel Aviv District, Israel Be an early applicant 1 hour ago",
         },
     ]
@@ -1468,12 +1470,133 @@ def test_year_hard_gate_binds_optional_marker_to_the_year_list_item() -> None:
     ) is True
 
 
-def test_year_hard_gate_blocks_standalone_requirement_bullet() -> None:
+def test_year_hard_gate_blocks_requirement_section_bullet() -> None:
     harvest = load_harvest_module()
 
     assert harvest._has_blocking_years_requirement(
-        "7+ years building production Python systems"
+        "Requirements:\n• 7+ years building production Python systems"
     ) is True
+
+
+@pytest.mark.parametrize(
+    ("text", "blocking"),
+    [
+        # #449 role descriptions are ambiguous without an applicant requirement.
+        ("Our ideal engineer has 8 years of experience building software", False),
+        ("Our engineers have 8 years of experience in Python", False),
+        ("Tech Lead has 8 years of experience building software", False),
+        ("QA Lead has over 8 years of experience building software", False),
+        ("Tech Lead has 8 years of experience required for this role", True),
+        ("With 8 years of experience required for this role, Tech Lead builds software", True),
+        ("Acme Corp has over 20 years of experience serving customers", False),
+        ("With 25 years of experience, Acme provides software that helps candidates find jobs", False),
+        ("About us: Our company has 20 years of experience serving customers", False),
+        ("Based in Tel Aviv, our company has 20 years of experience serving customers", False),
+        ("Our company has at least 20 years of experience serving customers", False),
+        ("Our company has 20 years of experience. You must have 8 years of experience", True),
+        ("Earnix brings 25 years of experience delivering financial software", False),
+        ("Founded 25 years ago", False),
+        ("7+ years of experience required", True),
+        ("Minimum 8 years of backend experience", True),
+        ("You have 10+ years of experience building software", True),
+        ("You bring 8 years of experience", True),
+        ("You'll need 7 years of experience", True),
+        ("Must have 7 years building backend services", True),
+        ("Candidates must have 8 years of experience", True),
+        ("Required: 8 years of experience", True),
+        ("Requirements:\nNice to have\n• 8+ years of experience", False),
+        ("Requirements:\nPreferred qualifications\n• 8+ years of experience", False),
+        ("Requirements: 8+ years of product history", False),
+        ("Requirements:\n• 7+ years building backend services", True),
+        ("Qualifications\n- 7+ years of backend experience", True),
+        ("Requirements: 7+ years of experience", True),
+        ("Requirements:\n• 7+ years of Python", True),
+        ("Requirements:\n• 7 years of experience", True),
+        ("Requirements: 7 years of experience", True),
+        ("Requirements\n7 years of experience", False),
+        ("7+ years building backend services", False),
+        ("8 years of experience", False),
+        ("Minimum 8 years in business", False),
+        ("Minimum 8 years warranty required", False),
+        ("Requirements:\nAbout us:\n25+ years of experience", False),
+        ("Qualifications\nAbout us\n25+ years of experience", False),
+        ("Requirements:\n• 7+ years of experience preferred", False),
+        ("Minimum 8 years of experience is nice to have", False),
+        ("You have 10+ years of experience (bonus)", False),
+        ("Requirements: 5–8 years of experience", False),
+        ("Requirements: 5-8 years of experience", False),
+        ("Requirements: 5—8 years of experience", False),
+        ("Requirements: 5 to 8 years of experience", False),
+        ("Minimum 7–10 years of experience", True),
+        ("Requirements: 7+ years of experience preferred, 8+ years of Python required", True),
+        ("Our company has 25 years of experience, you have 7 years of backend experience", True),
+        ("Requirements: 7+ years building services; About us: 25 years of experience", True),
+        ("Our product has 10 years of experience. Required tools: Python", False),
+        ("Our team has 10 years of experience with required tools", False),
+    ],
+)
+def test_year_hard_gate_requires_unambiguous_candidate_minimum(text, blocking):
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(text) is blocking
+
+
+@pytest.mark.parametrize(
+    ("text", "blocking"),
+    [
+        ("Preferred qualifications:\n• Minimum 8 years of experience", False),
+        ("Requirements:\nNice to have:\n• At least 8 years of experience", False),
+        ("Bonus:\nYou have 10+ years of experience", False),
+        ("Plus\nMinimum 8 years of experience", False),
+        ("Preferred\nYou have 10+ years of experience", False),
+        ("Nice to have\n• Python\n• At least 8 years of experience", False),
+        ("Preferred qualifications:\n• Minimum 8 years of experience\n"
+         "• 10+ years of experience required for this role", False),
+        ("Requirements:\nAbout the company\n25+ years of experience serving customers", False),
+        ("Requirements:\nCompany Overview\n25+ years of experience serving customers", False),
+        ("Requirements:\n### Our Story\n25+ years of experience serving customers", False),
+        ("Requirements:\nOur Story\n25+ years of experience serving customers", False),
+        ("Preferred skills\nMinimum 8 years of experience", False),
+        ("Requirements:\n• 8+ years of experience or a relevant degree", False),
+        ("Must have 8 years of experience or a relevant degree", False),
+        ("Minimum 8 years of experience, or a relevant degree", False),
+        ("Preferred qualifications:\n• Minimum 8 years of experience\n"
+         "Requirements:\n• Minimum 8 years of experience", True),
+        ("Bonus:\nYou have 10+ years of experience\n"
+         "Qualifications\n• At least 8 years of experience", True),
+        ("Requirements:\n• Minimum 8 years of experience", True),
+        ("Requirements:\n• 8 or more years of experience", True),
+        ("Requirements:\n• 8+ years of experience\n• A relevant degree", True),
+    ],
+)
+def test_year_hard_gate_preserves_section_context_and_alternatives(text, blocking):
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(text) is blocking
+
+
+@pytest.mark.parametrize(
+    ("text", "blocking"),
+    [
+        ("Preferred qualifications (optional):\nMinimum 8 years of experience", False),
+        ("Preferred qualifications (nice to have):\nYou have 10+ years of experience", False),
+        ("Preferred qualifications (optional)\nMinimum 8 years of experience", False),
+        ("Preferred qualifications (optional):\nMinimum 8 years of experience\n"
+         "Requirements:\n• 8+ years of experience", True),
+        ("Requirements:\n• 8+ years of experience\n  or a relevant degree", False),
+        ("Requirements:\n- 8+ years of experience\n  or a relevant degree", False),
+        ("Requirements:\n• 8+ years of experience\n  • Python or Java", True),
+        ("Requirements:\n• 8+ years of experience\n  or a relevant degree\n"
+         "• 10+ years of backend experience", True),
+        ("Requirements:\n• 8+ years of experience is not required", False),
+        ("Requirements:\n• 8+ years of experience isn't required", False),
+        ("Requirements:\n• 8+ years of experience isn’t required", False),
+        ("Requirements:\n• 8+ years of experience is desirable", False),
+        ("Requirements:\n• 8+ years of experience is not required\n"
+         "• 10+ years of backend experience", True),
+    ],
+)
+def test_year_hard_gate_followup_wrong_drops(text, blocking):
+    harvest = load_harvest_module()
+    assert harvest._has_blocking_years_requirement(text) is blocking
 
 
 def test_us_only_onsite_posting_survives_source_scope() -> None:
@@ -1644,8 +1767,31 @@ def test_db_pipeline_uses_writer_disposition_for_truthful_new_count(
     assert annotations == ["linkedin-repeat"]
 
 
+@pytest.mark.parametrize(
+    ("allowed_jd", "penalty"),
+    [
+        ("Build React products. 6+ years of experience required.", "6+ years (stretch)"),
+        ("Build React products. Earnix brings 25 years of experience delivering software.", "10+ years"),
+        ("Build React products. Our engineers have 8 years of experience in Python.", "8-9+ years"),
+        ("Build React products.\nPreferred qualifications:\n• Minimum 8 years of experience",
+         "8-9+ years"),
+        ("Build React products.\nRequirements:\nNice to have:\n• At least 8 years of experience",
+         "8-9+ years"),
+        ("Build React products.\nBonus:\nYou have 10+ years of experience", "10+ years"),
+        ("Build React products.\nRequirements:\nAbout the company\n"
+         "25+ years of experience serving customers", "10+ years"),
+        ("Build React products.\nRequirements:\n• 8+ years of experience or a relevant degree",
+         "8-9+ years"),
+        ("Build React products.\nPreferred qualifications (optional):\n"
+         "Minimum 8 years of experience", "8-9+ years"),
+        ("Build React products.\nRequirements:\n• 8+ years of experience\n"
+         "  or a relevant degree", "8-9+ years"),
+        ("Build React products.\nRequirements:\n• 8+ years of experience is not required",
+         "8-9+ years"),
+    ],
+)
 def test_db_pipeline_penalizes_six_and_hard_blocks_seven_before_persistence(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch, allowed_jd, penalty
 ) -> None:
     harvest = load_harvest_module()
     postings = [
@@ -1655,7 +1801,7 @@ def test_db_pipeline_penalizes_six_and_hard_blocks_seven_before_persistence(
             "company": "Allowed",
             "location": "Israel",
             "url": "https://example.test/stretch",
-            "jd_text": "Build React products. 6+ years of experience required.",
+            "jd_text": allowed_jd,
             "jd_fetched": True,
         },
         {
@@ -1715,7 +1861,8 @@ def test_db_pipeline_penalizes_six_and_hard_blocks_seven_before_persistence(
     )
 
     assert [row["id"] for row in persisted] == ["stretch"]
-    assert persisted[0]["negative_hits"] == ["6+ years (stretch)"]
+    assert penalty in persisted[0]["negative_hits"]
+    assert persisted[0]["jd_text"] == allowed_jd
     assert result["new_count"] == 1
 
 
@@ -1928,7 +2075,8 @@ def test_append_jsonl_schema_and_latest_summary(tmp_path: Path) -> None:
             "core_stack_present", "ai_bonus_gated", "employer_class",
             "employer_class_note", "source", "source_tenant", "alive",
             "liveness_status", "liveness_reason", "liveness_final_url",
-            "liveness_checked_at",
+            "liveness_checked_at", "linkedin_reposted_signal",
+            "linkedin_closed_signal", "linkedin_closed_signal_cleared_at",
         }
     summary = (tmp_path / "latest-summary.md").read_text(encoding="utf-8")
     assert "Harvested cards: 4" in summary
@@ -1944,6 +2092,7 @@ def test_append_jsonl_schema_and_latest_summary(tmp_path: Path) -> None:
     assert row["jd_chars"] == 0
     assert row["fetch_method"] == ""
     assert row["employer_class_note"] == ""
+    assert row["linkedin_reposted_signal"] is None
 
 
 def test_append_jsonl_defaults_new_enrichment_fields(tmp_path: Path) -> None:
@@ -3094,3 +3243,16 @@ def test_run_pipeline_dispatches_registry_queries_and_isolates_tenants(
     assert {(row["source"], row["source_tenant"]) for row in rows} == {
         ("linkedin", "linkedin-guest"), ("lever", "good")
     }
+
+
+def test_linkedin_absolute_publication_is_preserved_without_guessing_relative_age() -> None:
+    harvest = load_harvest_module()
+    html = '''<div class="job-search-card" data-entity-urn="urn:li:jobPosting:123">
+      <a class="base-card__full-link" href="https://example.test/job"></a>
+      <h3 class="base-search-card__title">Engineer</h3>
+      <time class="job-search-card__listdate" datetime="2026-10-01">3 days ago</time>
+    </div>'''
+    assert harvest.parse_job_cards(html)[0]["posted_at"] == "2026-10-01T00:00:00Z"
+    for value in ["", "invalid"]:
+        row = harvest.parse_job_cards(html.replace('datetime="2026-10-01"', f'datetime="{value}"'))[0]
+        assert "posted_at" not in row

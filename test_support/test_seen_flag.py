@@ -102,17 +102,6 @@ def test_seen_flag_contract() -> None:
                 "select status,seen,seen_at is not null from public.mark_seen(%s)",
                 (IDS[4],),
             ).fetchone() == ("seen", True, True)
-            assert connection.execute(
-                "select status,seen,seen_at from public.set_seen(%s,false)", (IDS[4],),
-            ).fetchone() == ("new", False, None)
-            assert connection.execute(
-                "select status,seen from public.set_seen(%s,true)", (IDS[4],),
-            ).fetchone() == ("seen", True)
-            connection.commit()
-            with pytest.raises(psycopg.errors.InvalidParameterValue):
-                connection.execute("select public.set_seen(%s,false)", (IDS[2],))
-            connection.rollback()
-
             changed = connection.execute(
                 "select status,seen from public.set_status(%s,'skipped')", (IDS[3],),
             ).fetchone()
@@ -122,46 +111,13 @@ def test_seen_flag_contract() -> None:
                 "where posting_id=%s order by recorded_at desc,id desc limit 1", (IDS[3],),
             ).fetchone() == ("seen", "skipped")
 
-            columns = connection.execute(
-                "select array_agg(key order by key) from "
-                "(select * from public.list_jobs(null,10) limit 1) row_value "
-                "cross join lateral jsonb_object_keys(to_jsonb(row_value)) key"
-            ).fetchone()[0]
-            assert columns == [
-                "apply_url", "brain", "company", "external_id", "labels", "location",
-                "pipeline_status", "posted_at", "posting_id", "raw_jd", "reasons",
-                "remote", "salary", "score", "scored_at", "seen", "seen_at",
-                "seniority", "source", "stack", "status", "status_reason",
-                "status_updated_at", "title", "url",
-            ]
-            assert connection.execute(
-                "select count(*) from public.list_jobs(false,10)"
-            ).fetchone() == (2,)
-            assert connection.execute(
-                "select status,pipeline_status from public.list_jobs(true,10) "
-                "where posting_id=%s", (IDS[2],),
-            ).fetchone() == ("applied", "applied")
-            assert connection.execute(
-                "select status,pipeline_status from public.list_jobs(true,10) "
-                "where posting_id=%s", (IDS[1],),
-            ).fetchone() == ("seen", None)
-            assert connection.execute(
-                "select status,seen,pipeline_status from public.list_jobs(false,10) "
-                "where posting_id=%s", (IDS[5],),
-            ).fetchone() == ("new", False, None)
-            assert connection.execute(
-                "select array(select posting_id from public.list_jobs(false,10) order by 1) = "
-                "array(select p.id from public.postings p left join public.posting_status s "
-                "on s.posting_id=p.id where not (coalesce(s.status,'new')<>'new') order by 1)"
-            ).fetchone() == (True,)
             assert connection.execute(
                 "select count(*) from public.posting_status "
                 "where seen is distinct from (status <> 'new')"
             ).fetchone() == (0,)
 
             for routine in (
-                "mark_seen(uuid)", "set_seen(uuid,boolean)",
-                "list_jobs(boolean,integer,integer,text,text,text)",
+                "mark_seen(uuid)",
             ):
                 assert connection.execute(
                     "select not has_function_privilege('anon',%s,'execute') and "

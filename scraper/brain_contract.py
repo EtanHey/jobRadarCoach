@@ -32,13 +32,21 @@ _SCHEMA_KEYS = frozenset({
 class BrainError(RuntimeError): ...
 
 
-class BrainConfigurationError(BrainError): ...
+class BrainConfigurationError(BrainError):
+    def __init__(self, message, *, category="configuration_error"):
+        super().__init__(message)
+        self.category = category
 
 
 class UnsupportedBrainError(BrainConfigurationError): ...
 
 
-class BrainTransportError(BrainError): ...
+class BrainTransportError(BrainError):
+    def __init__(self, message, *, category="transport_error", exit_code=None, stderr_truncated=False):
+        super().__init__(message)
+        self.category = category
+        self.exit_code = exit_code
+        self.stderr_truncated = stderr_truncated
 
 
 class BrainResponseError(BrainError): ...

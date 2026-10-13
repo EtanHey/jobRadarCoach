@@ -16,9 +16,9 @@ RUN python /tmp/install_codex.py "$TARGETARCH" \
     && codex --version
 
 COPY scraper/ /app/scraper/
-COPY extractor/core.py extractor/evidence.py extractor/payload.py extractor/persistence.py extractor/job.py /app/extractor/
+COPY extractor/__init__.py extractor/core.py extractor/evidence.py extractor/payload.py extractor/persistence.py extractor/job.py /app/extractor/
 
-COPY classifier/__init__.py classifier/core.py classifier/projection.py classifier/request.py classifier/persistence.py classifier/job.py /app/classifier/
+COPY classifier/__init__.py classifier/calibration.py classifier/core.py classifier/projection.py classifier/request.py classifier/persistence.py classifier/job.py /app/classifier/
 
 # 4. Don't run as root: make a user, hand it the folder, switch to it
 RUN useradd --create-home radar \

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { foundWithinOptions, fitOptions, sortOptions } from "./view-options";
+import { pipelineStatusValues } from "./pipeline-status-values";
 
 const text = z.string();
 const nullableText = text.nullable();
@@ -8,6 +10,7 @@ const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL
 
 export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "skipped", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
+export const WorkModeSchema = z.enum(["hybrid", "remote", "on-site"]);
 export const AvailabilitySchema = z.enum(["active", "inactive", "all"]);
 // PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
 // without restricting RFC version or variant bits. Match that database domain.
@@ -35,6 +38,20 @@ export const ScorePayloadSchema = z.object({
   luna_status: z.literal("ok"),
 }).strict();
 
+export const LinkedInClosedSignalSchema = z.object({
+  phrase: z.enum(["no longer accepting applications", "not currently accepting applications"]),
+  checked_at: z.iso.datetime({ offset: true }),
+  url: publicUrl.refine(value => {
+    const url = new URL(value);
+    return url.protocol === "https:" && (url.hostname === "linkedin.com" || url.hostname.endsWith(".linkedin.com"))
+      && !url.username && !url.password && (!url.port || url.port === "443");
+  }),
+}).strict();
+
+export const LinkedInRepostedSignalSchema = LinkedInClosedSignalSchema.omit({ phrase: true }).extend({
+  label: z.string().regex(/^Reposted [1-9][0-9]* (?:minute|hour|day|week|month|year)s? ago$/i),
+}).strict();
+
 export const JobSummarySchema = z.object({
   id: JobIdSchema,
   title: text,
@@ -42,27 +59,38 @@ export const JobSummarySchema = z.object({
   source: text,
   last_seen_at: text,
   experience: nullableText,
-  description_available: z.boolean(),
-  seniority_origin: z.enum(["extracted", "title", "unknown"]),
-  extraction_state: z.enum(["not-extracted", "extracted"]),
+  // Optional for legacy cached summaries; list responses omit drawer metadata.
+  description_available: z.boolean().optional(),
+  seniority_origin: z.enum(["extracted", "title", "unknown"]).optional(),
+  extraction_state: z.enum(["not-extracted", "extracted"]).optional(),
   location: nullableText,
   remote: z.boolean().nullable(),
+  work_mode: WorkModeSchema.nullable().optional(),
   seniority: nullableText,
   stack: z.array(text),
-  salary: nullableText,
+  salary: nullableText.optional(),
   url: publicUrl,
   apply_url: publicUrl.nullable(),
   posted_at: nullableText,
+  last_published_at: nullableText.optional(),
   first_seen_at: text,
   status: JobStatusSchema,
   status_reason: nullableText,
+  relevance_filtered: z.boolean().optional(),
+  relevance_rule: nullableText.optional(),
   score: z.number().int().min(0).max(100).nullable(),
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
   alive: z.boolean().nullable().default(null),
+  linkedin_reposted_signal: LinkedInRepostedSignalSchema.nullable().optional(),
+  linkedin_closed_signal: LinkedInClosedSignalSchema.nullable().optional(),
 }).strict();
 
 export const JobDetailSchema = JobSummarySchema.extend({
+  description_available: z.boolean(),
+  seniority_origin: z.enum(["extracted", "title", "unknown"]),
+  extraction_state: z.enum(["not-extracted", "extracted"]),
+  salary: nullableText,
   raw_jd: nullableText,
   reasons: z.array(ScoreReasonSchema),
   score_payload: ScorePayloadSchema.nullable(),
@@ -70,13 +98,39 @@ export const JobDetailSchema = JobSummarySchema.extend({
   scored_at: nullableText,
 }).strict();
 
+export const FoundWithinSchema = z.enum(foundWithinOptions.map(option => option.value));
+export type FoundWithin = z.infer<typeof FoundWithinSchema>;
+
 const limit = z.coerce.number().int().min(1).max(1000).default(50);
 const filterStatus = JobStatusSchema.exclude(["skipped"]);
+export const JobSourcesQuerySchema = z.object({
+  filter: z.enum(["all", "new-for-me", "not-scored", ...filterStatus.options]).default("all"),
+  availability: AvailabilitySchema.default("active"),
+}).strict();
+export const JobSourcesResponseSchema = z.object({ sources: z.array(text) });
+
 export const JobListQuerySchema = z.object({
-  filter: z.enum(["all", "new-for-me", ...filterStatus.options]),
+  filter: z.enum(["all", "new-for-me", "not-scored", ...filterStatus.options]),
   availability: AvailabilitySchema.default("active"),
   limit,
-}).strict();
+  ids: z.string().transform(value => value.split(",")).pipe(z.array(JobIdSchema).min(1).max(100)).optional(),
+  found_within: FoundWithinSchema.optional(),
+  // Strictly-newer cursor for the board's new-roles poll.
+  since: z.iso.datetime({ offset: true }).optional(),
+  fit: z.enum(fitOptions.map(option => option.value)).optional(),
+  statuses: z.string().transform(value => value === "" ? [] : value.split(","))
+    .pipe(z.array(z.enum(pipelineStatusValues)).max(pipelineStatusValues.length)).optional(),
+  sort: z.enum(sortOptions.map(option => option.value)).optional(),
+  source: z.string().max(200).optional(),
+  work_mode: WorkModeSchema.optional(),
+  remote: z.enum(["true", "false"]).transform(value => value === "true").optional(),
+  location: z.enum(["", "israel", "united-states", "other"]).optional(),
+  seniority: z.enum(["", "non-senior", "Intern", "Junior", "Mid-level", "Senior", "Lead / Manager", "Staff / Principal", "Unknown"]).optional(),
+}).strict().refine(query => !query.ids || (query.filter === "all" && query.availability === "all" && !query.since && !query.found_within), {
+  message: "ID lookup requires all statuses and availability, without a cursor or found-within window.",
+}).refine(query => !(query.ids || query.since) || (query.fit === undefined && query.statuses === undefined && query.sort === undefined && query.source === undefined && query.work_mode === undefined && query.remote === undefined && query.location === undefined && query.seniority === undefined), {
+  message: "ID and poll reads do not accept board facets.",
+});
 
 const ordinaryStatus = JobStatusSchema.exclude(["seen", "skipped", "rejected", "not_relevant"]);
 const verbatimReason = z.string().max(2_000).refine((value) => value.trim().length > 0);
@@ -112,13 +166,15 @@ export const ProfileSchema = z.object({
   "runtime.brain": z.enum(["ollama", "codex"]),
 }).strict();
 
-export const JobListResponseSchema = z.object({ jobs: z.array(JobSummarySchema).max(1000) }).strict();
+export const JobListItemSchema = JobSummarySchema.omit({
+  salary: true, description_available: true, seniority_origin: true, extraction_state: true,
+}).strip();
+export const JobListResponseSchema = z.object({ jobs: z.array(JobListItemSchema).max(1000) }).strict();
 export const JobDetailResponseSchema = z.object({ job: JobDetailSchema }).strict();
 export const StatusResultSchema = z.object({
   status: JobStatusSchema,
   reason: nullableText,
 }).strict();
-export const StatusResponseSchema = z.object({ status: JobStatusSchema, reason: nullableText }).strict();
 export const ProfileResponseSchema = z.object({ profile: ProfileSchema }).strict();
 
 export type JobSummary = z.infer<typeof JobSummarySchema>;

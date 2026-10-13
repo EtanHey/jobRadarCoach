@@ -35,6 +35,8 @@ class Connection:
 
     def execute(self, query, params=()):
         if "from public.profile" in query:
+            if params and params[0] != "runtime.brain":
+                return Result()
             self.profile_reads += 1
             return Result((self.brain,))
         assert "from public.posting_scores" in query

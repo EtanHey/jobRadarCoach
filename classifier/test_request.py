@@ -212,6 +212,9 @@ def test_persistence_serializes_complete_explanations_without_a_database(monkeyp
             if query.startswith("insert into public.posting_scores"):
                 self.inserted_params = params
                 return Result((captured.posting["id"],))
+            if query.startswith("update public.postings set relevance_gate="):
+                assert params == (captured.posting["id"],)
+                return Result(None)
             raise AssertionError(f"unexpected query: {query}")
 
     connection = RecordingConnection()

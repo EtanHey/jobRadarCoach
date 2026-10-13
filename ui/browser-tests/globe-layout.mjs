@@ -2,6 +2,7 @@ import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import sharp from "sharp";
+import { globeDiameterRatio, routeFixtureExternal, isFixtureLogo404 } from "./globe-fixture.mjs";
 
 const base = process.env.GLOBE_QA_URL ?? "http://127.0.0.1:4327";
 const output = process.env.GLOBE_QA_OUTPUT;
@@ -37,6 +38,7 @@ try {
         if (path === "/api/events") return route.fulfill({ contentType: "text/event-stream", body: "event: ready\ndata: {}\n\n" });
         return route.fulfill({ status: 404, json: { error: "fixture only" } });
       });
+      await page.route("https://img.logo.dev/**", route => routeFixtureExternal(route, new URL(route.request().url())));
       await page.goto(base);
       await page.getByRole("combobox", { name: "Work mode" }).waitFor();
       const values = await page.locator("[data-job-toolbar] > div:first-child .truncate").evaluateAll(nodes => nodes.map(node => ({ value: node.textContent?.trim(), width: node.clientWidth, content: node.scrollWidth })));
@@ -51,12 +53,12 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("console", message => { if (message.type() === "error" && !isFixtureLogo404(message)) errors.push(message.text()); });
     page.on("requestfailed", request => { if (request.failure()?.errorText !== "net::ERR_ABORTED") errors.push(`${request.url()}: ${request.failure()?.errorText}`); });
     await page.addInitScript(() => { window.EventSource = class { addEventListener() {} close() {} }; });
     await page.route("**/*", route => {
       const url = new URL(route.request().url());
-      if (url.hostname !== "127.0.0.1") return url.hostname.endsWith("cartocdn.com") ? route.continue() : route.abort();
+      if (url.hostname !== "127.0.0.1") return routeFixtureExternal(route, url);
       if (url.pathname === "/api/jobs/globe") return route.fulfill({ json: payload });
       if (url.pathname === "/api/jobs") return route.fulfill({ json: { jobs } });
       if (url.pathname === "/api/events") return route.fulfill({ contentType: "text/event-stream", body: "event: ready\ndata: {}\n\n" });
@@ -64,6 +66,8 @@ try {
     });
     try {
       await page.goto(base);
+      // Exercise future Logo.dev wiring even without a configured public key (#378).
+      assert.equal(await page.evaluate(async () => (await fetch('https://img.logo.dev/example.test?token=pk_synthetic')).status), 404);
       if (name === "short-desktop" && phase === "after") {
         await page.getByRole("combobox", { name: "Work mode" }).waitFor();
         assert.ok(await page.getByRole("combobox", { name: "Work mode" }).isVisible(), "list view keeps inline filters at 1024px");
@@ -78,7 +82,7 @@ try {
         const legend = box("[data-globe-legend]"), toolbar = box("[data-job-toolbar]");
         const toggle = [...document.querySelectorAll("button")].find(node => node.getAttribute("aria-label") === "Globe" && node.offsetWidth)?.getBoundingClientRect();
         const reset = [...document.querySelectorAll("button")].find(node => node.textContent?.trim() === "Reset view" && node.offsetWidth)?.getBoundingClientRect();
-        const railElement = document.querySelector(".globe-rail");
+        const railElement = document.querySelector(".globe-rail-list");
         return { viewport: { width: innerWidth, height: innerHeight }, documentHeight: document.documentElement.scrollHeight,
           documentWidth: document.documentElement.scrollWidth, globe: globe && { x: globe.x, y: globe.y, width: globe.width, height: globe.height },
           rail: rail && { x: rail.x, y: rail.y, width: rail.width, height: rail.height }, layout: layout && { y: layout.y, height: layout.height },
@@ -90,39 +94,35 @@ try {
           zoom: Number(document.querySelector("[data-projection]")?.getAttribute("data-zoom")),
         };
       });
-      const globePng = await page.locator(".job-globe").screenshot();
-      const { data, info } = await sharp(globePng).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-      const row = Math.floor(info.height / 2), hits = [];
-      for (let x = 12; x < info.width - 12; x++) {
-        const offset = (row * info.width + x) * info.channels;
-        if (Math.abs(data[offset] - 8) + Math.abs(data[offset + 1] - 15) + Math.abs(data[offset + 2] - 28) > 10) hits.push(x);
-      }
-      metrics.globeDiameterRatio = hits.length ? (hits.at(-1) - hits[0]) / Math.min(info.width, info.height) : 0;
+      // Measure controls in the same scroll frame as the map; locator screenshots scroll short pages.
       metrics.zoomButtons = await Promise.all(["Zoom in", "Zoom out"].map(async name => {
         const box = await page.getByRole("button", { name, exact: true }).boundingBox();
         return box && { top: box.y, bottom: box.y + box.height };
       }));
+      const globePng = await page.locator(".job-globe").screenshot();
+      const { data, info } = await sharp(globePng).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+      metrics.globeDiameterRatio = globeDiameterRatio(data, info);
       await page.screenshot({ path: `${output}/${name}-${phase}.png`, fullPage: true });
       await page.screenshot({ path: `${output}/${name}-${phase}-viewport.png` });
       if (name === "mobile" && phase === "after") {
         await page.locator(".globe-cluster").first().click();
-        const panel = page.getByRole("region", { name: "Postings at this point" });
-        const choices = await panel.boundingBox();
+        const chip = page.getByRole("button", { name: /Clear bubble filter/ });
+        const chipBox = await chip.boundingBox();
+        const rail = await page.locator(".globe-rail").boundingBox();
         const location = await page.getByRole("button", { name: "Use my location" }).boundingBox();
-        const attribution = await page.locator(".maplibregl-ctrl-attrib").first().boundingBox();
-        assert.ok(choices && location, "cluster choices and location control are visible");
-        assert.ok(choices.y >= metrics.globe.y && choices.y + choices.height <= metrics.globe.y + metrics.globe.height, "choices stay inside the map");
-        assert.ok(choices.y >= location.y + location.height, "choices do not cover the location control");
-        assert.ok(attribution && choices.y + choices.height <= attribution.y, "choices leave CARTO attribution visible");
+        assert.ok(chipBox && rail && location, "cluster chip, rail and location control are visible");
+        assert.ok(chipBox.x >= rail.x && chipBox.y >= rail.y && chipBox.y < rail.y + rail.height, "bubble chip lives in the rail");
+        assert.ok(chipBox.y >= metrics.globe.y + metrics.globe.height, "rail chip does not cover the map or locate control");
+        assert.ok(await page.locator('[data-globe-section="visible"] [data-posting-id]').count() > 0, "bubble filters the rail to roles");
+        assert.equal(await page.locator('[data-globe-section="outside"]').count(), 0, "bubble hides off-screen roles");
         assert.ok(await page.getByText("Drag to spin · scroll to zoom").isVisible(), "one-time drag hint is visible before interaction");
-        assert.equal(await page.locator("[data-globe-posting]:visible").count(), 0, "focused card does not cover open choices");
-        await page.screenshot({ path: `${output}/mobile-cluster-open.png` });
+        await page.screenshot({ path: `${output}/mobile-cluster-filter.png` });
         await page.locator(".maplibregl-ctrl-location-status").evaluate(node => { node.textContent = "Centered near you · not saved by Job Radar"; });
         const status = await page.locator(".maplibregl-ctrl-location-status").boundingBox();
-        const shifted = await panel.boundingBox();
-        assert.ok(status && shifted && (status.y + status.height <= shifted.y || status.x + status.width <= shifted.x || shifted.x + shifted.width <= status.x), "location status never overlaps open choices");
+        const shifted = await chip.boundingBox();
+        assert.ok(status && shifted && status.y + status.height <= shifted.y, "location status never overlaps the rail chip");
         assert.equal(await page.locator(".globe-location-help").count(), 0, "removed privacy helper does not cover the map");
-        await page.screenshot({ path: `${output}/mobile-status-choices.png` });
+        await page.screenshot({ path: `${output}/mobile-status-chip.png` });
       }
       receipts.push({ name, metrics, errors });
       if (phase === "after") {

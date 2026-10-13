@@ -174,6 +174,7 @@ def derive_remote_fact(evidence_quote: object, raw_jd: str) -> dict[str, object]
 
 _NON_ROLE_LOCATION_RE = re.compile(
     r"\b(?:headquarters|headquartered)\b|"
+    r"\bהמטה\b|"
     r"\boffices\s+(?:are\s+)?(?:located\s+)?in\b|"
     r"\b(?:within|across)\s+the\s+\w+\s+market\b|"
     r"\b(?:startup|company)\s+(?:is\s+)?based\s+in\b",
@@ -186,11 +187,6 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
         return
     quote = fact["evidence_quote"]
     assert isinstance(quote, str)
-    if re.search(
-        r"\b(?:this|the)\s+(?:role|position|job)\s+(?:is\s+)?(?:based|located)\b",
-        quote, re.IGNORECASE,
-    ):
-        return
     offset = 0
     while (start := raw_jd.find(quote, offset)) >= 0:
         before = max(raw_jd.rfind(boundary, 0, start) for boundary in ".!?;\n")

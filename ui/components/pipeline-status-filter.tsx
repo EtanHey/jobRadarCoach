@@ -19,7 +19,7 @@ export function PipelineStatusFilter({ value, onChange }: {
     details.querySelector("summary")?.focus();
   }
   return <div className="min-w-0">
-    <span className="cursor-default text-xs font-medium text-muted-foreground">Pipeline status</span>
+    <span className="block cursor-default text-xs font-medium text-muted-foreground">Pipeline status</span>
     <details
       ref={detailsRef}
       className="relative mt-1.5 min-w-0"

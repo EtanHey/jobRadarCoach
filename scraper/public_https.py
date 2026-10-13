@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 class _Response:
     def __init__(self, response, connection, url):
         self._connection = connection
-        self._response, self.status, self.headers, self._url = (
+        self._http_response, self.status, self.headers, self._url = (
             response,
             response.status,
             response.headers,
@@ -19,7 +19,7 @@ class _Response:
         )
 
     def read(self, size=-1):
-        return self._response.read(size)
+        return self._http_response.read(size)
 
     def geturl(self):
         return self._url
@@ -29,7 +29,7 @@ class _Response:
 
     def close(self):
         try:
-            self._response.close()
+            self._http_response.close()
         finally:
             self._connection.close()
 
@@ -68,7 +68,7 @@ def pinned_open(
             path += "?" + parsed.query
         headers = dict(request.header_items())
         headers["Host"] = host
-        connection.request(request.get_method(), path, headers=headers)
+        connection.request(request.get_method(), path, body=request.data, headers=headers)
         wrapped = _Response(connection.getresponse(), connection, request.full_url)
         if not 200 <= wrapped.status <= 299:
             error = HTTPError(

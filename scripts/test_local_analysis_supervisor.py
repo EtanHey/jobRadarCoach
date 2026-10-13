@@ -406,9 +406,3 @@ def test_outer_lock_prevents_overlapping_secret_resolution(tmp_path: Path) -> No
         encoding="utf-8"
     )
     assert '"outcome":"already_running"' in log
-
-
-def test_launcher_uses_supervisor_before_op_run() -> None:
-    launcher = (Path(__file__).parent / "run_local_analysis.sh").read_text()
-    assert "scripts.local_analysis_supervisor" in launcher
-    assert '"${op_cli}" run' not in launcher

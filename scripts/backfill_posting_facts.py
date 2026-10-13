@@ -72,7 +72,7 @@ def backfill_connection(connection, *, batch_size: int = 100) -> dict[str, objec
     while True:
         with connection.cursor(row_factory=dict_row) as cursor:
             rows = cursor.execute(
-                """select id, title, location, remote, seniority, stack, raw_jd, apply_url, url
+                """select id, title, location, remote, to_jsonb(postings)->>'work_mode' work_mode, seniority, stack, raw_jd, apply_url, url
                    from public.postings where id > %s order by id limit %s""",
                 (last_id, batch_size),
             ).fetchall()

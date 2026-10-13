@@ -1,3 +1,8 @@
+import type { JobSummary } from "./contracts";
+
+/** Inflect the noun only; callers retain their existing count and sentence format. */
+export const plural = (count: number, singular: string, multiple = `${singular}s`) => count === 1 ? singular : multiple;
+
 export function relativeAge(value: string | null, now = Date.now()): string | null {
   if (!value) return null;
   const time = Date.parse(value);
@@ -6,22 +11,95 @@ export function relativeAge(value: string | null, now = Date.now()): string | nu
   return hours < 1 ? "just now" : hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
 }
 
-export function publishedAge(value: string | null, now = Date.now()): string {
-  const age = relativeAge(value, now);
-  return age ? `Posted ${age}` : "Posted date unavailable";
+export type PostingDateKind = "posted" | "republished" | "published" | "found";
+export type PostingDate = { kind: PostingDateKind; short: string; tooltip: string; label: string; dateTime: string };
+
+function parsedTime(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : null;
 }
 
-type PostingDate = { label: string; dateTime: string | undefined };
+function compactAge(time: number, now: number): string {
+  const hours = Math.max(0, Math.floor((now - time) / 3_600_000));
+  return hours < 1 ? "now" : hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+}
 
-export function postingDates(postedAt: string | null, firstSeenAt: string | null, now = Date.now()): PostingDate[] {
-  const posted = relativeAge(postedAt, now);
-  const found = relativeAge(firstSeenAt, now);
+function spokenAge(time: number, now: number): string {
+  const hours = Math.max(0, Math.floor((now - time) / 3_600_000));
+  if (hours < 1) return "just now";
+  const [count, unit] = hours < 24 ? [hours, "hour"] : [Math.floor(hours / 24), "day"];
+  return `${count} ${plural(count, unit)} ago`;
+}
+
+// ISO-style calendar date (and optional 24h time) in the viewer's zone, or `timeZone` when given.
+function calendarStamp(time: number, timeZone: string | undefined, withTime: boolean): string {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+    ...(withTime ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" } : {}) }).formatToParts(time).map(part => [part.type, part.value]));
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  return withTime ? `${date} ${parts.hour}:${parts.minute}` : date;
+}
+
+export function localCalendarDate(value: string, timeZone?: string): string | null {
+  const time = parsedTime(value);
+  return time === null ? null : calendarStamp(time, timeZone, false);
+}
+
+function isRepublished(posted: number | null, latest: number | null): boolean {
+  return posted !== null && latest !== null && latest > posted;
+}
+
+export function postingDates(postedAt: string | null, firstSeenAt: string | null, now = Date.now(), lastPublishedAt: string | null = null, timeZone?: string): PostingDate[] {
+  const posted = parsedTime(postedAt), latest = parsedTime(lastPublishedAt);
   const dates: PostingDate[] = [];
-  if (posted) dates.push({ label: `Posted ${posted}`, dateTime: postedAt ?? undefined });
-  if (found) dates.push({ label: `Found ${found}`, dateTime: firstSeenAt ?? undefined });
-  return dates.length ? dates : [{ label: "Date unavailable", dateTime: undefined }];
+  const add = (kind: PostingDateKind, value: string | null, tooltip: (stamp: (withTime: boolean) => string) => string) => {
+    const time = parsedTime(value);
+    if (value === null || time === null) return;
+    const text = tooltip(withTime => calendarStamp(time, timeZone, withTime));
+    dates.push({ kind, short: compactAge(time, now), tooltip: text, label: `${text}, ${spokenAge(time, now)}`, dateTime: value });
+  };
+  add("posted", postedAt, stamp => `Posted ${stamp(false)}`);
+  if (isRepublished(posted, latest)) add("republished", lastPublishedAt, stamp => `Republished ${stamp(false)}`);
+  else if (posted === null) add("published", lastPublishedAt, stamp => `Published ${stamp(false)}`);
+  add("found", firstSeenAt, stamp => `Found by JRC ${stamp(true)}`);
+  return dates;
+}
+
+// Client-only evidence retained before group display dates are aggregated.
+export type ListingPublicationEvidence = {
+  listing_publication_dates?: { posted_at: string | null; last_published_at?: string | null };
+};
+
+export function repostNote(job: { source: string; url: string; posted_at: string | null; last_published_at?: string | null;
+  linkedin_reposted_signal?: { label: string; url: string } | null } & ListingPublicationEvidence, timeZone?: string): string | null {
+  if (job.source === "linkedin") {
+    const signal = job.linkedin_reposted_signal;
+    return signal?.url === job.url ? signal.label : null;
+  }
+  const publication = job.listing_publication_dates ?? job;
+  const latest = parsedTime(publication.last_published_at);
+  return latest !== null && isRepublished(parsedTime(publication.posted_at), latest)
+    ? `Reposted: republished ${calendarStamp(latest, timeZone, false)}` : null;
+}
+
+export function repostTooltip(job: Pick<JobSummary, "source" | "url" | "posted_at" | "last_published_at" | "linkedin_reposted_signal"> & ListingPublicationEvidence, timeZone?: string): string | null {
+  const note = repostNote(job, timeZone);
+  return note && job.source === "linkedin" && job.linkedin_reposted_signal
+    ? `LinkedIn: ${note} · checked ${localCalendarDate(job.linkedin_reposted_signal.checked_at, timeZone)}` : note;
+}
+
+export type WorkModeKind = "remote" | "on-site" | "hybrid" | "unknown";
+const workModeLabels: Record<WorkModeKind, string> = { remote: "Remote", "on-site": "On-site", hybrid: "Hybrid", unknown: "Work mode unspecified" };
+const structuredWorkModes: Record<string, WorkModeKind> = { remote: "remote", hybrid: "hybrid", "on-site": "on-site", onsite: "on-site", on_site: "on-site", "on site": "on-site" };
+
+/** A structured work mode (hybrid comes only from it) wins; otherwise the remote flag decides. */
+export function workModeOf(job: { remote: boolean | null; work_mode?: string | null }): { kind: WorkModeKind; label: string } {
+  const structured = job.work_mode?.trim().toLowerCase() ?? "";
+  const kind = Object.hasOwn(structuredWorkModes, structured) ? structuredWorkModes[structured]
+    : job.remote === true ? "remote" : job.remote === false ? "on-site" : "unknown";
+  return { kind, label: workModeLabels[kind] };
 }
 
 export function workMode(remote: boolean | null): string {
-  return remote === true ? "Remote" : remote === false ? "On-site" : "Work mode unspecified";
+  return workModeOf({ remote }).label;
 }

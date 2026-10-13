@@ -21,7 +21,7 @@ FIXTURES = HERE / "fixtures"
 SEARCHES_PATH = HERE / "searches.yaml"
 REGISTRY_PATH = HERE / "source-registry.json"
 REGISTRY_MODULE_PATH = HERE / "source_registry.py"
-SOURCE_NAMES = ("comeet", "greenhouse", "lever", "workable")
+SOURCE_NAMES = ("comeet", "greenhouse", "lever", "workable", "ashby", "smartrecruiters", "workday")
 REQUIRED_POSTING_FIELDS = {
     "id", "title", "company", "location", "url", "posted_ago", "source"
 }
@@ -533,7 +533,14 @@ def test_source_registry_is_checked_in_and_separate_from_linkedin_searches() -> 
         "enabled",
     }
     assert all(required <= set(entry) for entry in registry["tenants"])
-    report = registry_module.load_registry(REGISTRY_PATH, as_of=date(2026, 8, 26))
+    # Registry shape is independent of when this test runs.
+    reference_date = max(
+        datetime.fromisoformat(entry["last_verified_at"].replace("Z", "+00:00")).date()
+        for entry in registry["tenants"]
+    )
+    report = registry_module.load_registry(
+        REGISTRY_PATH, as_of=reference_date, max_age_days=10_000
+    )
     assert report.invalid == []
     assert report.stale == []
     assert len(report.valid) == sum(entry["enabled"] for entry in registry["tenants"])
@@ -586,6 +593,7 @@ def test_registry_loader_isolates_malformed_and_stale_siblings(
                     entry("good-one", "Good One"),
                     malformed,
                     stale,
+                    entry("future", "Future", last_verified_at="2026-08-27"),
                     entry("good-two", "Good Two"),
                 ],
             }
@@ -602,7 +610,8 @@ def test_registry_loader_isolates_malformed_and_stale_siblings(
         "Good Two",
     ]
     assert [(issue["company"], issue["status"]) for issue in report.invalid] == [
-        ("Malformed", "invalid")
+        ("Malformed", "invalid"),
+        ("Future", "invalid"),
     ]
     assert [(issue["company"], issue["status"]) for issue in report.stale] == [
         ("Stale", "stale")
@@ -1923,7 +1932,7 @@ def test_source_failure_isolated_to_one_seed_not_its_siblings(monkeypatch, caplo
     "bad_sources",
     [
         {"comeet": "not-a-list"},
-        {"smartrecruiters": [{"board": "future-seed"}]},
+        {"future_ats": [{"board": "future-seed"}]},
     ],
 )
 def test_enabled_source_config_error_never_kills_linkedin_feed(
@@ -1962,6 +1971,7 @@ def test_enabled_source_config_error_never_kills_linkedin_feed(
 
     assert result["new_count"] == 1
     assert result["warning_count"] >= 1
+    assert result["source_warning_count"] >= 1
     assert "Keeping LinkedIn feed after source config" in caplog.text
 
 

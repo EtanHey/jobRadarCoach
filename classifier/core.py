@@ -13,6 +13,7 @@ from classifier.projection import (
     profile_contract as _profile_contract,
     public_posting as _public_posting,
 )
+from classifier.calibration import apply_caps, validate_facts
 from classifier.request import (
     build_request as _request,
     normalize_response,
@@ -60,6 +61,7 @@ class ScoringResult:
     annotation: dict[str, object]
     brain: str
     model: str
+    calibration_rules: tuple[str, ...] = ()
 
 def score_posting(
     profile_snapshot: Mapping[str, object],
@@ -140,11 +142,21 @@ def score_projected(
             return None
         attempted_brain = result.brain
         try:
+            policy = profile.get("candidate", {}).get("scorer_calibration")
+            data = dict(result.data)
+            facts = None
+            if policy is not None:
+                facts = validate_facts(data.pop("calibration_facts", None), policy)
             normalized = normalize_response(
-                result.data,
+                data,
                 posting_evidence_id=posting_evidence_id,
                 expected_recommendation=expected,
             )
+            rules: tuple[str, ...] = ()
+            if facts is not None:
+                normalized, rules = apply_caps(normalized, policy, facts)
+                if expected is not None:
+                    normalized["recommendation"] = expected
         except Exception:
             _diagnose(diagnostic, "wire")
             return None
@@ -160,6 +172,6 @@ def score_projected(
             _diagnose(diagnostic, "semantic")
             return None
         if annotation is not None:
-            return ScoringResult(annotation, result.brain, result.model)
+            return ScoringResult(annotation, result.brain, result.model, rules)
     _diagnose(diagnostic, "semantic")
     return None

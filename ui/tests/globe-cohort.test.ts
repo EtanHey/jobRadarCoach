@@ -24,3 +24,15 @@ test("counts cover a full set beyond 1000 and filters drive rail and dots togeth
   assert.equal(filterJobGroups(data.jobs, { ...view, location: "united-states" }).length, 0);
   assert.equal(filterJobGroups(data.jobs, { ...view, remote: false }).length, 600);
 });
+
+
+test("globe-only retained card absent from incoming refreshes status and geo without losing its position", () => {
+  const previous = response([1, 2]);
+  const latest = response([1, 99], [99]);
+  latest.jobs[0] = { ...latest.jobs[0], status: "applied", title: "Updated title", alive: false };
+  const next = retainGlobeCohort(previous, response([2, 3]), latest);
+  assert.deepEqual(next.jobs.map(job => job.id), [1, 2, 3].map(n => job(n).id));
+  assert.deepEqual(next.jobs[0], latest.jobs[0]);
+  assert.deepEqual(next.points.map(point => point.posting_id), [2, 3].map(n => job(n).id));
+  assert.equal(next.unresolved_count, 1);
+});

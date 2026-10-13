@@ -4,16 +4,19 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  JobDetailSchema, JobIdSchema, JobSummarySchema, ProfileEntriesSchema, ProfileSchema,
+  JobListItemSchema, LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, JobSourcesQuerySchema, JobSourcesResponseSchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
-import { postingUrl, titleSeniority, experiencePhrase, technologyMentions } from "./job-metadata";
+import { postingUrl, titleSeniority } from "./job-metadata";
+import { foundWithinCutoff } from "./view-options";
 import { HttpError } from "./http";
 
 export interface ApiStore {
   listJobs(input: JobListQuery): Promise<JobSummary[]>;
+  listSources(input: z.infer<typeof JobSourcesQuerySchema>): Promise<string[]>;
   getJob(id: string): Promise<JobDetail | null>;
+  scoreAnyway?(id: string): Promise<JobDetail | null>;
   setStatus(input: StatusPatch & { posting_id: string }): Promise<StatusResult>;
   getProfile(): Promise<Profile>;
   updateProfile(input: ProfileEntry): Promise<Profile>;
@@ -32,22 +35,45 @@ const scoreSchema = summaryScoreSchema.extend({
   score_payload: z.unknown().nullable(), scored_at: z.string(),
 });
 const rawBaseSchema = z.object({
-  source: z.string(), last_seen_at: z.string(), raw_jd: z.string().nullable(),
+  relevance_filtered: z.boolean().optional(),
+  relevance_gate: z.object({ rule: z.string().nullable().optional() }).passthrough().optional(),
+  source: z.string(), last_seen_at: z.string(),
+  list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
   posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
-  remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
+  work_mode: WorkModeSchema.nullable().optional(), remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),
-  posted_at: z.string().nullable(), first_seen_at: z.string(),
+  posted_at: z.string().nullable(), last_published_at: z.string().nullable().default(null), first_seen_at: z.string(),
   posting_status: z.object({ status: z.string(), reason: z.string().nullable() }).nullable(),
 });
 const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSchema.nullable() });
-const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable() });
+const rawListSchema = rawBaseSchema.omit({
+  salary: true, list_metadata: true, liveness: true, relevance_gate: true, posting_extractions: true,
+}).extend({
+  list_stack: z.array(z.string()), experience: z.string().nullable(),
+  relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_reposted_signal: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
+  posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
+});
+const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const SUMMARY = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,score_payload)";
+const boardScoreFields = "posting_scores(score,recommendation:score_payload->recommendation,fit_line:score_payload->fit_line)";
+// Exhaustive over the wire schema, including optional fields. A new card field
+// must name its DB projection here, so optional schema additions cannot vanish silently.
+export const BOARD_FIELD_ALIASES = {
+  relevance_filtered: "relevance_filtered", relevance_rule: "relevance_rule:relevance_gate->rule",
+  source: "source", last_seen_at: "last_seen_at", experience: "experience:list_metadata->experience",
+  alive: "alive:liveness->alive", linkedin_reposted_signal: "linkedin_reposted_signal:liveness->linkedin_reposted_signal", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
+  id: "id", title: "title", company: "company", location: "location", remote: "remote", work_mode: "work_mode",
+  seniority: "seniority", stack: "stack,list_stack:list_metadata->stack", url: "url", apply_url: "apply_url",
+  posted_at: "posted_at", last_published_at: "last_published_at", first_seen_at: "first_seen_at",
+  status: "posting_status(status,reason)", status_reason: "posting_status(status,reason)",
+  score: boardScoreFields, recommendation: boardScoreFields, fit_line: boardScoreFields,
+} satisfies Record<keyof z.infer<typeof JobListItemSchema>, string>;
+const SUMMARY = [...new Set(Object.values(BOARD_FIELD_ALIASES))].join(",");
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "source,last_seen_at,raw_jd,liveness,posting_extractions(posting_id),id,title,company,location,remote,seniority,stack,salary,url,apply_url,posted_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "relevance_filtered,relevance_gate,source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -69,25 +95,42 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
   return parsed.data;
 }
 
-function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
-  const base = checked(rawSummarySchema, row);
-  const { posting_scores: score, posting_status: status, posting_extractions: extraction, liveness, raw_jd, ...posting } = base;
+function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
+  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
-  const payload = score?.score_payload;
-  const fit = payload && typeof payload === "object" ? payload : null;
   return checked(JobSummarySchema, {
     ...posting, url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
-    stack: posting.stack.length ? posting.stack : technologyMentions(raw_jd),
-    seniority: level, seniority_origin: posting.seniority ? "extracted" : level ? "title" : "unknown",
-    description_available: Boolean(raw_jd?.trim()),
-    experience: experiencePhrase(raw_jd), extraction_state: extraction ? "extracted" : "not-extracted",
+    stack: posting.stack.length ? posting.stack : list_stack,
+    seniority: level,
     status: status?.status ?? "new", status_reason: status?.reason ?? null,
-    score: score?.score ?? null,
-    fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
-    recommendation: fit && "recommendation" in fit ? fit.recommendation : null,
-    alive: typeof liveness?.alive === "boolean" ? liveness.alive : null,
+    score: base.relevance_filtered ? null : score?.score ?? null,
+    fit_line: base.relevance_filtered ? null : score?.fit_line ?? null,
+    recommendation: base.relevance_filtered ? null : score?.recommendation ?? null,
+    alive: typeof alive === "boolean" ? alive : null,
+    linkedin_reposted_signal: LinkedInRepostedSignalSchema.safeParse(linkedin_reposted_signal).data ?? null,
+    linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(linkedin_closed_signal).data ?? null,
   });
+}
+
+function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
+  const { salary, posting_extractions, liveness, list_metadata, relevance_gate, posting_scores, ...posting } = checked(rawSummarySchema, row);
+  const payload = posting_scores?.score_payload;
+  const fit = payload && typeof payload === "object" ? payload : null;
+  const job = listSummary({ ...posting, list_stack: list_metadata.stack, experience: list_metadata.experience,
+    relevance_rule: relevance_gate?.rule ?? null, alive: liveness?.alive ?? null,
+    linkedin_reposted_signal: liveness?.linkedin_reposted_signal ?? null,
+    linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,
+    posting_scores: posting_scores ? { score: posting_scores.score,
+      fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
+      recommendation: fit && "recommendation" in fit ? fit.recommendation : null } : null });
+  return { ...job, salary, description_available: list_metadata.description_available,
+    seniority_origin: row.seniority ? "extracted" : titleSeniority(row.title) ? "title" : "unknown",
+    extraction_state: posting_extractions ? "extracted" : "not-extracted" };
+}
+
+function parseListRows(value: unknown): { jobs: JobSummary[] } {
+  return { jobs: checked(z.array(rawListSchema), value).map(listSummary) };
 }
 
 export function availabilityPredicate(availability: Availability) {
@@ -96,35 +139,42 @@ export function availabilityPredicate(availability: Availability) {
   return null;
 }
 
-export function parseSummaryRows(value: unknown): { jobs: JobSummary[]; invalidRowCount: 0 } {
+export function parseSummaryRows(value: unknown): { jobs: JobSummary[] } {
   const rows = checked(z.array(rawSummarySchema), value);
-  return { jobs: rows.map(summary), invalidRowCount: 0 };
+  return { jobs: rows.map(summary) };
 }
 
-async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
-  if (input.filter === "new-for-me") {
-    const visit = checked(z.object({ last_visit_at: z.string().nullable() }).nullable(), await data(
-      db.from("visits").select("last_visit_at").eq("singleton", true).maybeSingle(),
-    ));
-    let fresh = db.from("postings").select(STATUS_SUMMARY)
-      .eq("posting_status.status", "new");
-    const availability = availabilityPredicate(input.availability);
-    if (availability?.method === "eq") fresh = fresh.eq(availability.column, availability.value);
-    else if (availability?.method === "or") fresh = fresh.or(availability.filter);
-    if (visit?.last_visit_at) {
-      const cutoff = z.iso.datetime({ offset: true }).parse(visit.last_visit_at);
-      fresh = fresh.or(`posted_at.gt.${cutoff},and(posted_at.is.null,first_seen_at.gt.${cutoff})`);
-    }
-    fresh = fresh.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
-    return parseSummaryRows(await data(fresh)).jobs;
+export function usesBoardRpc(input: JobListQuery): boolean {
+  return Boolean((!input.since && input.found_within) || input.sort !== undefined || input.fit !== undefined || input.statuses !== undefined || input.source !== undefined || input.work_mode !== undefined || input.remote !== undefined || input.location !== undefined || input.seniority !== undefined);
+}
+
+export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
+  if (input.ids) {
+    return parseListRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
   }
-  let query = db.from("postings").select(input.filter === "all" ? SUMMARY : STATUS_SUMMARY);
-  if (input.filter !== "all") query = query.eq("posting_status.status", input.filter);
+  if (usesBoardRpc(input)) {
+    return parseListRows(await data(db.rpc("board_postings", {
+      filter: input.filter, availability: input.availability, fit: input.fit ?? "",
+      statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
+      ...(input.source !== undefined ? { source: input.source } : {}),
+      ...(input.work_mode !== undefined ? { work_mode: input.work_mode } : {}),
+      ...(input.remote !== undefined ? { remote: input.remote } : {}),
+      ...(input.location !== undefined ? { location: input.location } : {}),
+      ...(input.seniority !== undefined ? { seniority: input.seniority } : {}),
+      ...(input.found_within ? { found_within: input.found_within } : {}),
+    }).select(SUMMARY))).jobs;
+  }
+  let query = db.from("postings").select(["all", "not-scored"].includes(input.filter) ? SUMMARY : STATUS_SUMMARY);
+  query = query.eq("relevance_filtered", input.filter === "not-scored");
+  if (!["all", "not-scored"].includes(input.filter)) query = query.eq("posting_status.status", input.filter === "new-for-me" ? "new" : input.filter);
   const availability = availabilityPredicate(input.availability);
   if (availability?.method === "eq") query = query.eq(availability.column, availability.value);
   else if (availability?.method === "or") query = query.or(availability.filter);
+  const cutoff = foundWithinCutoff(input.found_within);
+  if (cutoff !== null) query = query.gte("first_seen_at", new Date(cutoff).toISOString());
+  if (input.since) query = query.gt("first_seen_at", input.since);
   query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
-  return parseSummaryRows(await data(query)).jobs;
+  return parseListRows(await data(query)).jobs;
 }
 
 async function readDetail(db: SupabaseClient, id: string): Promise<z.infer<typeof rawDetailSchema> | null> {
@@ -145,9 +195,14 @@ async function readProfile(db: SupabaseClient): Promise<Profile> {
   });
 }
 
+export async function selectSources(db: SupabaseClient, input: z.infer<typeof JobSourcesQuerySchema>): Promise<string[]> {
+  return checked(JobSourcesResponseSchema.shape.sources, await data(db.rpc("board_sources", input)));
+}
+
 export function getApiStore(): ApiStore {
   return {
     listJobs: (input) => selectSummaries(client(), input),
+    listSources: (input) => selectSources(client(), input),
     async getJob(id) {
       const db = client();
       const row = await readDetail(db, id);
@@ -158,6 +213,11 @@ export function getApiStore(): ApiStore {
         score_payload: score?.score_payload ?? null, brain: score?.brain ?? null,
         scored_at: score?.scored_at ?? null,
       });
+    },
+    async scoreAnyway(id) {
+      const exists = await data(client().rpc("score_anyway", { posting_id: id }));
+      if (exists !== true) return null;
+      return this.getJob(id);
     },
     async setStatus(input) {
       const db = client();

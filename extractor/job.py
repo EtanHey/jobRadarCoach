@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import AbstractContextManager
 from functools import partial
 from typing import Protocol
 from uuid import UUID
@@ -18,7 +19,9 @@ from extractor.core import (
 )
 from extractor.evidence import ExtractionValidationError
 from extractor.persistence import persist_extraction
-from scraper.brain import run_brain
+from scraper.brain import provider_diagnostic_scope, run_brain
+from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
+from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import (
     BrainValidationError,
     UnsupportedBrainError,
@@ -36,6 +39,7 @@ class Result(Protocol):
 
 class Connection(Protocol):
     def execute(self, query: str, params: tuple[object, ...] = ()) -> Result: ...
+    def transaction(self) -> AbstractContextManager[object]: ...
 
 
 def _log(**fields: object) -> None:
@@ -69,12 +73,9 @@ def _assignment_fields(
 
 
 def load_runtime_profile(connection: Connection) -> dict[str, object]:
-    """Capture only the committed provider-selection field needed by extraction."""
+    """Capture committed stage model settings and the legacy provider fallback."""
 
-    row = connection.execute(
-        "select value from public.profile where field = 'runtime.brain'"
-    ).fetchone()
-    return {} if row is None else {"runtime.brain": row[0]}
+    return load_stage_profile(connection)
 
 
 def select_postings(
@@ -89,6 +90,7 @@ def select_postings(
     if claimable_stage not in (None, "extract"):
         raise ValueError("claimable stage must be extract")
     requested = list(dict.fromkeys(posting_ids)) or None
+    refresh_gate(connection, posting_ids=requested or ())
     lease_filter = (
         "and not exists (select 1 from public.local_analysis_leases l "
         "where l.stage = %s and l.posting_id = p.id and "
@@ -97,15 +99,16 @@ def select_postings(
     )
     rows = connection.execute(
         "select p.id::text, p.raw_jd from public.postings p "
-        "where p.raw_jd is not null and p.raw_jd ~ '[^[:space:]]' "
+        "where p.liveness->'alive' is distinct from 'false'::jsonb "
+        "and p.raw_jd is not null and p.raw_jd ~ '[^[:space:]]' "
         "and char_length(regexp_replace(p.raw_jd, "
         "'(^[[:space:]]+|[[:space:]]+$)', '', 'g')) >= %s "
         "and octet_length(p.raw_jd) <= %s "
         "and not exists (select 1 from public.posting_extractions e "
         "where e.posting_id = p.id) "
         "and (%s::uuid[] is null or p.id = any(%s::uuid[])) "
-        + lease_filter + "order by p.first_seen_at, p.id limit %s",
-        (MIN_RAW_JD_CHARS, MAX_RAW_JD_BYTES, requested, requested)
+        + SELECTION_GUARD + lease_filter + "order by p.first_seen_at, p.id limit %s",
+        (MIN_RAW_JD_CHARS, MAX_RAW_JD_BYTES, requested, requested, VERSION)
         + ((claimable_stage,) if claimable_stage else ()) + (limit,),
     ).fetchall()
     selected = []
@@ -128,6 +131,7 @@ def run_batch(
     timeout_seconds: int | float,
     posting_ids: Sequence[str] = (),
     env: Mapping[str, str] | None = None,
+    allow_legacy_settings: bool = True,
     extractor: Callable[..., dict[str, object]] | None = None,
     persister: Callable[..., str] = persist_extraction,
 ) -> int:
@@ -141,7 +145,7 @@ def run_batch(
     ):
         raise ValueError("timeout must be between 0 and 120 seconds")
     profile = load_runtime_profile(connection)
-    settings = dict(os.environ if env is None else env)
+    settings = stage_settings('extractor', profile, env, allow_legacy=allow_legacy_settings)
     provider = resolve_brain(profile, settings)
     if extractor is None:
         extractor = partial(extract_posting, runner=partial(run_brain, env=settings))
@@ -159,7 +163,8 @@ def run_batch(
         posting_id = str(posting["id"])
         raw_jd = str(posting["raw_jd"])
         try:
-            result = extractor(posting, profile, timeout_seconds=timeout_seconds)
+            with provider_diagnostic_scope(lambda event: _log(event="provider_request", **event)):
+                result = extractor(posting, profile, timeout_seconds=timeout_seconds)
             outcome = persister(connection, posting_id, raw_jd, result)
             if outcome == "stale":
                 failed += 1
@@ -237,6 +242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 limit=args.limit,
                 timeout_seconds=args.timeout_seconds,
                 posting_ids=args.posting_id,
+                allow_legacy_settings=False,
             )
     except Exception as error:
         _log(selected=0, extracted=0, failed=1, failure=type(error).__name__)

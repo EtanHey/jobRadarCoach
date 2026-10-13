@@ -17,5 +17,7 @@ try { await symlink(resolve(ui,"node_modules"),resolve(target,"node_modules"),"d
 let root = ui;
 while (relative(root,target).startsWith("..")) root = dirname(root);
 await writeFile(resolve(target,"next.config.ts"), `export default { turbopack: { root: ${JSON.stringify(root)} }, devIndicators: false };\n`);
+// The e2e app replaces next.config.ts; keep the opt-in in the isolated app environment.
+await writeFile(resolve(target,".env.local"), "NEXT_PUBLIC_QA_DATASETS=1\n");
 await writeFile(resolve(target,"app/page.tsx"), 'import { JobBoard } from "@/components/job-board"; export default function Page() { return <JobBoard /> }');
 console.log(target);

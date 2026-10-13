@@ -11,16 +11,14 @@ from uuid import UUID
 
 from classifier.core import diagnostic_scope
 from classifier.persistence import list_scoring_candidates, score_and_persist
-from scraper.brain import run_brain
+from scraper.brain import provider_diagnostic_scope, run_brain
+from scraper.stage_config import load_stage_profile, stage_settings
 from scraper.brain_contract import UnsupportedBrainError, resolve_brain
 
 
 MAX_BATCH_SIZE = 30
 MAX_TIMEOUT_SECONDS = 120
 IMPLEMENTED_BRAINS = frozenset({"ollama", "codex"})
-BRAIN_SETTINGS = (
-    "BRAIN", "OLLAMA_BASE_URL", "OLLAMA_MODEL", "CODEX_MODEL", "CODEX_REASONING_EFFORT",
-)
 
 
 class Result(Protocol):
@@ -54,10 +52,7 @@ def _assignment_fields(
 
 
 def load_runtime_profile(connection: Connection) -> dict[str, object]:
-    row = connection.execute(
-        "select value from public.profile where field = 'runtime.brain'"
-    ).fetchone()
-    return {} if row is None else {"runtime.brain": row[0]}
+    return load_stage_profile(connection)
 
 
 def _selection(
@@ -95,6 +90,7 @@ def run_batch(
     timeout_seconds: int | float,
     posting_ids: Sequence[str] = (),
     env: Mapping[str, str] | None = None,
+    allow_legacy_settings: bool = True,
     candidate_lister: Callable[..., list[str]] = list_scoring_candidates,
     scorer: Callable[..., str] = score_and_persist,
     brain: Callable[..., object] = run_brain,
@@ -109,16 +105,13 @@ def run_batch(
     ):
         raise ValueError("timeout must be between 0 and 120 seconds")
     profile = load_runtime_profile(connection)
-    source_settings = os.environ if env is None else env
-    settings = {key: source_settings[key] for key in BRAIN_SETTINGS if key in source_settings}
+    settings = stage_settings('scorer', profile, env, allow_legacy=allow_legacy_settings)
     provider = resolve_brain(profile, settings)
     if provider not in IMPLEMENTED_BRAINS:
         _log(selected=0, scored=0, failed=1, provider=provider,
              failure=UnsupportedBrainError.__name__)
         return 1
     settings["BRAIN"] = provider
-    if provider == "codex":
-        settings.setdefault("CODEX_MODEL", "gpt-5.6-terra")
     candidates = _selection(
         connection,
         limit=limit,
@@ -129,12 +122,13 @@ def run_batch(
     _log(selected=len(candidates), provider=provider)
 
     def brain_runner(request, profile_snapshot):
-        return brain(
-            request,
-            profile_snapshot,
-            env=settings,
-            timeout_seconds=timeout_seconds,
-        )
+        with provider_diagnostic_scope(lambda event: _log(event="provider_request", **event)):
+            return brain(
+                request,
+                profile_snapshot,
+                env=settings,
+                timeout_seconds=timeout_seconds,
+            )
 
     scored = failed = 0
     for posting_id in candidates:
@@ -213,6 +207,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 limit=args.limit,
                 timeout_seconds=args.timeout_seconds,
                 posting_ids=args.posting_id,
+                allow_legacy_settings=False,
             )
     except Exception as error:
         _log(selected=0, scored=0, failed=1, failure=type(error).__name__)

@@ -22,18 +22,18 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
   await context.addInitScript(({theme}) => {
     localStorage.setItem("job-radar-theme",theme);
     if (!localStorage.getItem("job-radar.board-preferences")) localStorage.setItem("job-radar.board-preferences",JSON.stringify({version:3,filter:"all",view:{search:"",source:"",location:"",seniority:"",fit:"",statuses:[],availability:"active",sort:"fit"}}));
-    class FixtureEvents extends EventTarget { constructor() { super(); window.fixtureEvents=this; setTimeout(()=>this.dispatchEvent(new Event("ready")),20); } close() {} }
-    window.EventSource=FixtureEvents;
   },{theme});
+  if (!mobile && theme==="dark") await context.clock.install(); // Only this pass polls for new roles.
   const page = await context.newPage(), errors=[];
   page.on("pageerror",error=>errors.push(error.message));
-  let fetches=0,shiftSelected=false;
+  let fetches=0,newRoles=0;
   await page.route("**/*",route=>{
     const request=route.request(),url=new URL(request.url());
     if (url.hostname!=="127.0.0.1") return url.hostname.endsWith(".cartocdn.com")?route.continue():route.abort();
     if (!url.pathname.startsWith("/api/")) return route.continue();
-    if (request.method()!=="GET") return route.fulfill({status:405,json:{error:"Read-only fixture"}});
-    if (url.pathname==="/api/jobs/globe") {fetches++;return route.fulfill({json:{...payload,jobs:jobs.map(job=>({...job,title:`${job.title} refresh ${fetches}`})),points:payload.points.map(point=>point.posting_id===id(1)&&shiftSelected?{...point,lng:point.lng+.01}:point)}});}
+    if (request.method()!=="GET" && url.pathname!=="/api/jobs/new-roles") return route.fulfill({status:405,json:{error:"Read-only fixture"}});
+    if(url.pathname==="/api/jobs/new-roles")return route.fulfill({json:{count:newRoles?1:0,truncated:false,...(route.request().method()==="GET"?{companies:[],incoming_ids:[]}: {})}});
+    if (url.pathname==="/api/jobs/globe") {fetches++;return route.fulfill({json:{...payload,jobs:jobs.map(job=>({...job,title:`${job.title} refresh ${fetches}`}))}});}
     if (url.pathname==="/api/jobs") return route.fulfill({json:{jobs:jobs.map(job=>({...job,title:`${job.title} refresh ${fetches}`}))}});
     const job=jobs.find(job=>url.pathname===`/api/jobs/${job.id}`);
     return job?route.fulfill({json:{job:{...job,raw_jd:null,reasons:[],score_payload:null,brain:null,scored_at:null}}}):route.fulfill({status:404,json:{error:"Fixture only"}});
@@ -48,15 +48,16 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
     await page.locator('[data-projection="globe"]').waitFor({timeout:30000});
     await page.locator('.globe-cluster').first().waitFor();
     await page.locator('.globe-cluster').first().hover();
-    assert.equal(await page.locator('.globe-cluster').first().evaluate(node => getComputedStyle(node).scale), "1.06", "cluster hover scale composes with MapLibre marker translation");
+    assert.deepEqual(await page.locator('.globe-cluster').first().evaluate(node => [getComputedStyle(node).scale, getComputedStyle(node, "::before").scale]), ["none", "1.06"], "cluster hover grows the disc, never the MapLibre marker");
     await shot("initial");
     if (!mobile && theme==="dark") {
       await page.evaluate(()=>{window.markerChurn=0;const globe=document.querySelector('.job-globe');window.markerObserver=new MutationObserver(records=>{for(const record of records)for(const node of [...record.addedNodes,...record.removedNodes])if(node.nodeType===1&&(node.matches?.('.globe-cluster')||node.querySelector?.('.globe-cluster')))window.markerChurn++;});window.markerObserver.observe(globe,{childList:true,subtree:true});});
       const before=await camera();
-      for(let n=0;n<5;n++){await page.evaluate(()=>window.fixtureEvents.dispatchEvent(new Event("refresh")));await page.waitForTimeout(400);}
+      // Show refreshes the data in place: same camera, no marker churn.
+      for(let n=0;n<2;n++){newRoles=1;await page.clock.fastForward(91_000);await page.locator("[data-new-roles]").click();newRoles=0;await page.waitForTimeout(400);}
       await page.waitForTimeout(30000);
       const after=await camera(),churn=await page.evaluate(()=>window.markerChurn);
-      assert.ok(fetches>=2,`SSE did not refetch: ${fetches}`);
+      assert.ok(fetches>=3,`Show did not refetch: ${fetches}`);
       assert.ok(Math.abs(after.center[0]-before.center[0])<=1e-6&&Math.abs(after.center[1]-before.center[1])<=1e-6&&Math.abs(after.zoom-before.zoom)<=1e-6);
       assert.equal(after.starts,before.starts,"idle refresh moved the camera");
       assert.equal(churn,0,"unchanged geography replaced cluster markers");
@@ -88,7 +89,6 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
       await page.waitForTimeout(100);
       const after=await camera();assert.ok(after.zoom>=7.99,`dot click zoomed out ${before.zoom} -> ${after.zoom}`);
       step.dot={before,after};await shot("dot");
-      if (theme==="dark") {const count=fetches;shiftSelected=true;await page.evaluate(()=>window.fixtureEvents.dispatchEvent(new Event("refresh")));await page.waitForTimeout(700);assert.ok(fetches>count);const refreshed=await camera();assert.equal(refreshed.starts,after.starts,"changed selected geography moved camera without another click");step.selectedRefresh=refreshed;}
       await page.getByRole("dialog").getByRole("button",{name:"Close"}).click();
       await page.getByRole("dialog").waitFor({state:"hidden"});
       const edgeBefore=await camera(),canvas=await page.locator('.maplibregl-canvas').boundingBox();
@@ -134,11 +134,11 @@ try { for (const theme of ["light","dark"]) for (const mobile of [false,true]) {
       await page.emulateMedia({reducedMotion:"no-preference"});
       await page.getByRole("combobox",{name:"Location",exact:true}).click();
       await page.getByRole("option",{name:"United States",exact:true}).click();
-      await page.waitForTimeout(1100);
+      await page.waitForFunction(()=>Number(document.querySelector('[data-projection="globe"]').dataset.center.split(",")[0])<-90,null,{timeout:4000}); // R3-13 far flights run up to 2.2 s.
       const beforeOffReset=await camera();assert.ok(beforeOffReset.center[0]<-90,JSON.stringify(beforeOffReset));
       await toggle.click();
       await page.getByRole("button",{name:"Reset view",exact:true}).click();
-      await toggle.click();await page.waitForTimeout(1100);
+      await toggle.click();await page.waitForFunction(()=>{const [lng,lat]=document.querySelector('[data-projection="globe"]').dataset.center.split(",").map(Number);return Math.abs(lng-34.8113)<.01&&Math.abs(lat-31.8928)<.01;},null,{timeout:4000}).catch(()=>{});
       const offReset=await camera();
       assert.ok(Math.abs(offReset.center[0]-34.8113)<.01 && Math.abs(offReset.center[1]-31.8928)<.01 && offReset.zoom<=1.91,`off→Reset→on restored the old camera: ${JSON.stringify(offReset)}`);
       step.offReset={before:beforeOffReset,after:offReset};
