@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import pytest
 from scraper import cloud_run
@@ -11,12 +11,18 @@ from scraper import cloud_run
 
 def _source_fixture(tmp_path: Path):
     registry = json.loads((Path(__file__).parent / "source-registry.json").read_text())
+    snapshot_date = max(
+        datetime.fromisoformat(row["last_verified_at"]).date()
+        for row in registry["tenants"]
+    ) + timedelta(days=1)
     appended = next((row.copy() for row in registry["tenants"] if row["source"] == "greenhouse"), None)
     assert appended is not None, "Greenhouse tenant required for the registry fixture"
     appended.update(
         identifiers={"board": "lateaddition"},
         company="Late Addition",
         careers_url="https://job-boards.greenhouse.io/lateaddition",
+        enabled=True,
+        last_verified_at=snapshot_date.isoformat(),
     )
     registry["tenants"].append(appended)
     registry_path = tmp_path / "source-registry.json"
@@ -24,10 +30,11 @@ def _source_fixture(tmp_path: Path):
     searches = json.loads((Path(__file__).parent / "searches.yaml").read_text())["searches"]
     source_urls = {name: [] for name in cloud_run.ALL_SOURCES}
     source_urls["linkedin"] = [f"https://linkedin.com/search/{i}" for i in range(len(searches))]
-    for tenant in registry["tenants"]:
-        if tenant.get("enabled") is True:
-            source_urls[tenant["source"]].append(tenant["careers_url"])
-    return registry_path, source_urls, appended["careers_url"]
+    report = cloud_run.source_registry.load_registry(registry_path, as_of=snapshot_date)
+    assert not report.invalid, report.invalid
+    for tenant in report.valid:
+        source_urls[tenant["source"]].append(tenant["careers_url"])
+    return registry_path, source_urls, appended["careers_url"], snapshot_date
 
 
 def _assert_harvest_contract(
@@ -54,12 +61,13 @@ def _assert_harvest_contract(
 def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     tmp_path: Path, monkeypatch, capsys, github_run_id
 ) -> None:
-    # This fixture includes every enabled tenant as of the registry snapshot.
-    # Keep request budgets on that same date, even after tenants age out live.
+    registry_path, source_urls, appended_url, snapshot_date = _source_fixture(tmp_path)
+    # The appended tenant is newer than the live registry. Keep coverage and
+    # request budgets on its snapshot date as the registry grows and ages.
     class RegistryClock(datetime):
         @classmethod
         def now(cls, tz=None):
-            return cls(2026, 10, 7, tzinfo=timezone.utc).astimezone(tz)
+            return cls.combine(snapshot_date, cls.min.time(), tzinfo=timezone.utc).astimezone(tz)
 
     monkeypatch.setattr(cloud_run.source_registry, "datetime", RegistryClock)
     if github_run_id is None:
@@ -67,7 +75,6 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     else:
         monkeypatch.setenv("GITHUB_RUN_ID", github_run_id)
     monkeypatch.setenv("DATABASE_URL", "postgresql://hosted.example/job_radar")
-    registry_path, source_urls, appended_url = _source_fixture(tmp_path)
     monkeypatch.setattr(cloud_run, "REGISTRY_PATH", registry_path, raising=False)
     attempted: list[tuple[str, tuple[object, ...], object]] = []
     jd_attempted: list[str] = []
