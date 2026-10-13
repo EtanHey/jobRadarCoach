@@ -29,6 +29,21 @@
     "result": "miss",
     "slug_tried": "1passwordisrael"
   },
+  "3pillar|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "3pillarisrael"
+  },
+  "3pillar|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "3pillarisrael"
+  },
+  "3pillar|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "3pillarisrael"
+  },
   "4m analytics|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -134,6 +149,21 @@
     "result": "miss",
     "slug_tried": "actisrael"
   },
+  "ad hoc llc|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "adhocllc"
+  },
+  "ad hoc llc|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "adhocllc"
+  },
+  "ad hoc llc|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "adhocllc"
+  },
   "adaptive6|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -149,6 +179,21 @@
     "result": "miss",
     "slug_tried": "adaptive6israel"
   },
+  "adsx|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "adsxisrael"
+  },
+  "adsx|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "adsxisrael"
+  },
+  "adsx|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "adsxisrael"
+  },
   "agilegrid solutions|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -163,6 +208,21 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "agilegridsolutions"
+  },
+  "agoda|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "agoda"
+  },
+  "agoda|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "agodaisrael"
+  },
+  "agoda|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "agodaisrael"
   },
   "ai startup in stealth mode|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -189,6 +249,11 @@
     "result": "miss",
     "slug_tried": "aidocisrael"
   },
+  "aidoc|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aidocisrael"
+  },
   "aionas|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -208,6 +273,41 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "airapps"
+  },
+  "air apps|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "airapps"
+  },
+  "airbnb|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "airbnb"
+  },
+  "airbnb|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "airbnbisrael"
+  },
+  "airbnb|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "airbnbisrael"
+  },
+  "airis labs|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "airislabs"
+  },
+  "airis labs|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "airislabs"
+  },
+  "airis labs|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "airislabs"
   },
   "airobotics|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -239,6 +339,11 @@
     "result": "miss",
     "slug_tried": "akamaiisrael"
   },
+  "akamai technologies|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "akamaiisrael"
+  },
   "alice formerly activefence|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -246,6 +351,11 @@
   },
   "alice formerly activefence|lever": {
     "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "aliceformerlyactivefence"
+  },
+  "alice formerly activefence|workable": {
+    "last_checked_at": "2026-10-13",
     "result": "miss",
     "slug_tried": "aliceformerlyactivefence"
   },
@@ -259,6 +369,26 @@
     "result": "miss",
     "slug_tried": "alicornjobs"
   },
+  "alicorn jobs|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "alicornjobs"
+  },
+  "alignerr|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "alignerrisrael"
+  },
+  "alignerr|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "alignerrisrael"
+  },
+  "alignerr|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "alignerrisrael"
+  },
   "allcloud|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -268,6 +398,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "allcloudisrael"
+  },
+  "allcloud|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "allcloudisrael"
+  },
+  "allpha innovation|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "allphainnovation"
+  },
+  "allpha innovation|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "allphainnovation"
+  },
+  "allpha innovation|workable": {
+    "last_checked_at": "2026-10-13",
+    "result": "error",
+    "slug_tried": "allphainnovation"
   },
   "alta|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -309,6 +459,16 @@
     "result": "miss",
     "slug_tried": "amazonwebservicesaws"
   },
+  "amentum|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "amentumisrael"
+  },
+  "amentum|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "amentumisrael"
+  },
   "anchor|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -320,7 +480,7 @@
     "slug_tried": "anchorisrael"
   },
   "anthropic|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "anthropic"
   },
@@ -340,7 +500,7 @@
     "slug_tried": "anyrayisrael"
   },
   "apiiro|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "apiiro"
   },
@@ -350,7 +510,7 @@
     "slug_tried": "apiiroisrael"
   },
   "apollo io|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "apolloio"
   },
@@ -358,6 +518,36 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "apolloio"
+  },
+  "apono|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aponoisrael"
+  },
+  "apono|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aponoisrael"
+  },
+  "appdome|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "appdomeisrael"
+  },
+  "appdome|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "appdomeisrael"
+  },
+  "apple|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "appleisrael"
+  },
+  "apple|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "appleisrael"
   },
   "applied materials israel|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -378,6 +568,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "aprilisrael"
+  },
+  "arad technologies|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aradisrael"
+  },
+  "arad technologies|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aradisrael"
+  },
+  "aran software|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aransoftware"
+  },
+  "aran software|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "aransoftware"
   },
   "argen|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -449,6 +659,16 @@
     "result": "miss",
     "slug_tried": "ascendranetworks"
   },
+  "ascertain|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ascertainisrael"
+  },
+  "ascertain|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ascertainisrael"
+  },
   "ashby|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -480,7 +700,7 @@
     "slug_tried": "associatedbank"
   },
   "astera labs|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "asteralabs"
   },
@@ -530,7 +750,7 @@
     "slug_tried": "ateraisrael"
   },
   "augury|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "augury"
   },
@@ -560,7 +780,7 @@
     "slug_tried": "axonpulse"
   },
   "axonius|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "axonius"
   },
@@ -568,6 +788,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "axoniusisrael"
+  },
+  "back market|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "backmarket"
+  },
+  "back market|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "backmarket"
   },
   "bagira|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -599,6 +829,16 @@
     "result": "miss",
     "slug_tried": "ballistixisrael"
   },
+  "bank of jerusalem בנק ירושלים|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "bank of jerusalem בנק ירושלים|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": ""
+  },
   "bardin|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -609,6 +849,16 @@
     "result": "miss",
     "slug_tried": "bardinisrael"
   },
+  "baylor scott white health|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "baylorscottwhitehealth"
+  },
+  "baylor scott white health|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "baylorscottwhitehealth"
+  },
   "bazak|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -618,6 +868,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "bazakisrael"
+  },
+  "bdo israel|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "bdoisrael"
+  },
+  "bdo israel|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "bdoisrael"
   },
   "beaconfire inc|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -630,7 +890,7 @@
     "slug_tried": "beaconfireisrael"
   },
   "beamup|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "beamup"
   },
@@ -645,12 +905,12 @@
     "slug_tried": "biocatchisrael"
   },
   "biocatch|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "biocatch"
   },
   "bitwarden|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "bitwarden"
   },
@@ -668,6 +928,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "bjakisrael"
+  },
+  "blackedge labs|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "blackedgelabs"
+  },
+  "blackedge labs|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "blackedgelabs"
+  },
+  "blackedge|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "blackedgeisrael"
+  },
+  "blackedge|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "blackedgeisrael"
   },
   "blaise|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -690,7 +970,7 @@
     "slug_tried": "bluebirdaerosystems"
   },
   "bluevine israel|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "bluevineisrael"
   },
@@ -749,6 +1029,16 @@
     "result": "miss",
     "slug_tried": "bookingcom"
   },
+  "brainpop|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "brainpop"
+  },
+  "brainpop|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "brainpopisrael"
+  },
   "brandlight|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -769,6 +1059,16 @@
     "result": "miss",
     "slug_tried": "brgisrael"
   },
+  "bridgewise|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "bridgewiseisrael"
+  },
+  "bridgewise|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "bridgewiseisrael"
+  },
   "bright data|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -779,6 +1079,16 @@
     "result": "miss",
     "slug_tried": "brightdata"
   },
+  "brown brothers harriman|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "brownbrothersharriman"
+  },
+  "brown brothers harriman|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "brownbrothersharriman"
+  },
   "buildots|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -788,6 +1098,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "buildotsisrael"
+  },
+  "calialfa previously alfabet|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "calialfapreviouslyalfabet"
+  },
+  "calialfa previously alfabet|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "calialfapreviouslyalfabet"
   },
   "camunda|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -829,6 +1149,16 @@
     "result": "miss",
     "slug_tried": "capitalone"
   },
+  "cargeek|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "cargeekisrael"
+  },
+  "cargeek|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "cargeekisrael"
+  },
   "carrum health|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -850,7 +1180,7 @@
     "slug_tried": "catapultisrael"
   },
   "cato networks|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "catonetworks"
   },
@@ -889,6 +1219,16 @@
     "result": "miss",
     "slug_tried": "cerberuscapitalmanagement"
   },
+  "cerby|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "cerbyisrael"
+  },
+  "cerby|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "cerbyisrael"
+  },
   "cerno ai|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -910,7 +1250,7 @@
     "slug_tried": "chainalysisisrael"
   },
   "chainguard|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "chainguard"
   },
@@ -995,7 +1335,7 @@
     "slug_tried": "claroaiisrael"
   },
   "clear street|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "clearstreet"
   },
@@ -1024,6 +1364,16 @@
     "result": "miss",
     "slug_tried": "clearstoryisrael"
   },
+  "clickhouse|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "clickhouseisrael"
+  },
+  "clickhouse|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "clickhouseisrael"
+  },
   "close|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1040,7 +1390,7 @@
     "slug_tried": "cloudinaryisrael"
   },
   "cloudinary|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "cloudinary"
   },
@@ -1055,7 +1405,7 @@
     "slug_tried": "cloversecurity"
   },
   "coalition inc|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "coalition"
   },
@@ -1073,6 +1423,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "coappisrael"
+  },
+  "codecargo|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "codecargoisrael"
+  },
+  "codecargo|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "codecargoisrael"
+  },
+  "codeoasis ltd|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "codeoasisisrael"
+  },
+  "codeoasis ltd|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "codeoasisisrael"
   },
   "codevalue|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1095,7 +1465,7 @@
     "slug_tried": "cohereisrael"
   },
   "coinbase|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "coinbase"
   },
@@ -1134,6 +1504,26 @@
     "result": "miss",
     "slug_tried": "companytechisrael"
   },
+  "compsych|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "compsychisrael"
+  },
+  "compsych|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "compsychisrael"
+  },
+  "confidential careers|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "confidentialcareers"
+  },
+  "confidential careers|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "confidentialcareers"
+  },
   "confidential|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1155,7 +1545,7 @@
     "slug_tried": "conifersai"
   },
   "connecteam|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "connecteam"
   },
@@ -1203,6 +1593,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "corefixisrael"
+  },
+  "corephotonics ltd|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "corephotonicsisrael"
+  },
+  "corephotonics ltd|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "corephotonicsisrael"
+  },
+  "cribl|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "cribl"
+  },
+  "cribl|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "criblisrael"
   },
   "cross river|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1264,6 +1674,16 @@
     "result": "miss",
     "slug_tried": "cybercodersisrael"
   },
+  "cyera identity|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "cyeraidentity"
+  },
+  "cyera identity|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "cyeraidentity"
+  },
   "cyera|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1275,7 +1695,7 @@
     "slug_tried": "cyeraisrael"
   },
   "cymulate|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "cymulate"
   },
@@ -1325,7 +1745,7 @@
     "slug_tried": "datanexusai"
   },
   "datarails|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "datarails"
   },
@@ -1333,6 +1753,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "datarailsisrael"
+  },
+  "datateam|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "datateamisrael"
+  },
+  "datateam|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "datateamisrael"
   },
   "daylight security|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1404,6 +1834,16 @@
     "result": "miss",
     "slug_tried": "dialogisrael"
   },
+  "directeam|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "directeamisrael"
+  },
+  "directeam|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "directeamisrael"
+  },
   "discern|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1433,6 +1873,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "doitisrael"
+  },
+  "dot compliance|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "dotcompliance"
+  },
+  "dot compliance|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "dotcompliance"
   },
   "doubleverify|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1474,6 +1924,16 @@
     "result": "miss",
     "slug_tried": "drwisrael"
   },
+  "dt|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "dtisrael"
+  },
+  "dt|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "dtisrael"
+  },
   "duckduckgo|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1514,6 +1974,26 @@
     "result": "miss",
     "slug_tried": "easysendisrael"
   },
+  "ecoplant|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ecoplantisrael"
+  },
+  "ecoplant|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ecoplantisrael"
+  },
+  "edventure|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "edventureisrael"
+  },
+  "edventure|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "edventureisrael"
+  },
   "effectivbiz|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1535,7 +2015,7 @@
     "slug_tried": "elbitsystemsisrael"
   },
   "eleos health|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "eleoshealth"
   },
@@ -1543,6 +2023,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "eleoshealth"
+  },
+  "eliassen group|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "eliassengroup"
+  },
+  "eliassen group|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "eliassengroup"
   },
   "elta systems ltd|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1604,6 +2094,16 @@
     "result": "miss",
     "slug_tried": "enlightenisrael"
   },
+  "equalweb|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "equalwebisrael"
+  },
+  "equalweb|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "equalwebisrael"
+  },
   "ergo next insurance|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1654,6 +2154,16 @@
     "result": "miss",
     "slug_tried": "evloai"
   },
+  "evolent|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "evolentisrael"
+  },
+  "evolent|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "evolentisrael"
+  },
   "evolinq|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1664,6 +2174,16 @@
     "result": "miss",
     "slug_tried": "evolinqisrael"
   },
+  "experis israel|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "experisisrael"
+  },
+  "experis israel|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "experisisrael"
+  },
   "experis|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1673,6 +2193,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "experisisrael"
+  },
+  "expertvoice|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "expertvoiceisrael"
+  },
+  "expertvoice|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "expertvoiceisrael"
+  },
+  "expim outstanding cloud solutions|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "expimoutstandingcloudsolutions"
+  },
+  "expim outstanding cloud solutions|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "expimoutstandingcloudsolutions"
   },
   "extreme|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1725,7 +2265,7 @@
     "slug_tried": "fayrixisrael"
   },
   "figma|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "figma"
   },
@@ -1734,18 +2274,48 @@
     "result": "miss",
     "slug_tried": "figmaisrael"
   },
+  "finagra|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "finagraisrael"
+  },
+  "finagra|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "finagraisrael"
+  },
+  "final|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "finalisrael"
+  },
+  "final|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "finalisrael"
+  },
   "finch|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "finchisrael"
   },
   "finch|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "finch"
   },
+  "finq israel|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "finqisrael"
+  },
+  "finq israel|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "finqisrael"
+  },
   "fireblocks|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "fireblocks"
   },
@@ -1765,7 +2335,7 @@
     "slug_tried": "fiverrisrael"
   },
   "fleetio|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "fleetio"
   },
@@ -1774,8 +2344,18 @@
     "result": "miss",
     "slug_tried": "fleetioisrael"
   },
+  "flytrex|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "flytrexisrael"
+  },
+  "flytrex|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "flytrexisrael"
+  },
   "forter|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "forter"
   },
@@ -1838,6 +2418,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "gacsolutions"
+  },
+  "gains com|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "gainscom"
+  },
+  "gains com|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "gainscom"
   },
   "galitechonline|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1989,6 +2579,26 @@
     "result": "miss",
     "slug_tried": "glimpseisrael"
   },
+  "gloat|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "gloatisrael"
+  },
+  "gloat|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "gloatisrael"
+  },
+  "glowpal|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "glowpalisrael"
+  },
+  "glowpal|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "glowpalisrael"
+  },
   "goarc|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2059,6 +2669,16 @@
     "result": "miss",
     "slug_tried": "greenbayisrael"
   },
+  "greenvibe technologies ltd|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "greenvibeisrael"
+  },
+  "greenvibe technologies ltd|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "greenvibeisrael"
+  },
   "groundcover|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2070,7 +2690,7 @@
     "slug_tried": "groundcoverisrael"
   },
   "grove collaborative|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "grovecollaborative"
   },
@@ -2100,7 +2720,7 @@
     "slug_tried": "guardioisrael"
   },
   "guidde|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "guidde"
   },
@@ -2118,6 +2738,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "guidelineisrael"
+  },
+  "h r block|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hrblock"
+  },
+  "h r block|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hrblock"
   },
   "harrison clarke|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2140,7 +2770,7 @@
     "slug_tried": "haystackisrael"
   },
   "hello heart|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "helloheart"
   },
@@ -2159,15 +2789,35 @@
     "result": "miss",
     "slug_tried": "hendricksonisrael"
   },
+  "hibob|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hibobisrael"
+  },
+  "hibob|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hibobisrael"
+  },
   "hightouch|greenhouse": {
-    "last_checked_at": "2026-09-23",
-    "result": "hit",
-    "slug_tried": "hightouch"
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hightouchisrael"
   },
   "hightouch|lever": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "hightouchisrael"
+  },
+  "hillcrest labs acquired by ceva|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hillcrestlabsacquiredbyceva"
+  },
+  "hillcrest labs acquired by ceva|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hillcrestlabsacquiredbyceva"
   },
   "hio ai inc|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2198,6 +2848,26 @@
     "last_checked_at": "2026-09-23",
     "result": "hit",
     "slug_tried": "hive"
+  },
+  "hmg america llc|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hmgamericallc"
+  },
+  "hmg america llc|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "hmgamericallc"
+  },
+  "honeycomb insurance|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "honeycombinsurance"
+  },
+  "honeycomb insurance|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "honeycombinsurance"
   },
   "horai security|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2299,6 +2969,26 @@
     "result": "miss",
     "slug_tried": "infinidatisrael"
   },
+  "infraedge il|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "infraedgeil"
+  },
+  "infraedge il|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "infraedgeil"
+  },
+  "ingima|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ingimaisrael"
+  },
+  "ingima|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ingimaisrael"
+  },
   "inmanage|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2310,9 +3000,9 @@
     "slug_tried": "inmanageisrael"
   },
   "innovid|greenhouse": {
-    "last_checked_at": "2026-09-23",
-    "result": "hit",
-    "slug_tried": "innovid"
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "innovidisrael"
   },
   "innovid|lever": {
     "last_checked_at": "2026-09-23",
@@ -2320,7 +3010,7 @@
     "slug_tried": "innovidisrael"
   },
   "instawork|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "instawork"
   },
@@ -2328,6 +3018,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "instaworkisrael"
+  },
+  "instrumentl|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "instrumentlisrael"
+  },
+  "instrumentl|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "Instrumentl"
   },
   "integra lifesciences|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2348,6 +3048,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "intelisrael"
+  },
+  "interex group|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "interexgroup"
+  },
+  "interex group|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "interexgroup"
   },
   "intuit|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2420,7 +3130,7 @@
     "slug_tried": "jeen_ai"
   },
   "jfrog|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "jfrog"
   },
@@ -2455,7 +3165,7 @@
     "slug_tried": "jobgetherisrael"
   },
   "jobgether|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "error",
     "slug_tried": "jobgetherisrael"
   },
@@ -2585,7 +3295,7 @@
     "slug_tried": "laddersisrael"
   },
   "ladders|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "ladders"
   },
@@ -2599,6 +3309,16 @@
     "result": "miss",
     "slug_tried": "lammaisrael"
   },
+  "landa|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "landaisrael"
+  },
+  "landa|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "landaisrael"
+  },
   "larson design group|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2609,8 +3329,18 @@
     "result": "miss",
     "slug_tried": "larsondesigngroup"
   },
+  "latent ai|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "latentai"
+  },
+  "latent ai|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "latentai"
+  },
   "launchdarkly|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "launchdarkly"
   },
@@ -2618,6 +3348,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "launchdarklyisrael"
+  },
+  "lawyal|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lawyalisrael"
+  },
+  "lawyal|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lawyalisrael"
   },
   "lean techniques|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2638,6 +3378,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "lemonadeisrael"
+  },
+  "lendbuzz|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lendbuzzisrael"
+  },
+  "lendbuzz|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "lendbuzz"
   },
   "lendistry|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2669,6 +3419,16 @@
     "result": "miss",
     "slug_tried": "linxsecurity"
   },
+  "livekit|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "livekitisrael"
+  },
+  "livekit|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "livekitisrael"
+  },
   "liveramp|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2689,6 +3449,26 @@
     "result": "miss",
     "slug_tried": "locusviewisrael"
   },
+  "loora|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "looraisrael"
+  },
+  "loora|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "looraisrael"
+  },
+  "lovapex tech|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lovapextech"
+  },
+  "lovapex tech|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lovapextech"
+  },
   "loyaltie|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2698,6 +3478,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "loyaltieisrael"
+  },
+  "lumana|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lumanaisrael"
+  },
+  "lumana|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "lumanaisrael"
   },
   "lumi|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2725,9 +3515,29 @@
     "slug_tried": "lyrahealth"
   },
   "lyra health|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "error",
     "slug_tried": "lyrahealth"
+  },
+  "magos systems|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "magossystems"
+  },
+  "magos systems|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "magossystems"
+  },
+  "malamteam|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "malamteamisrael"
+  },
+  "malamteam|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "malamteamisrael"
   },
   "mastercard|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2820,7 +3630,7 @@
     "slug_tried": "meebossisrael"
   },
   "melio|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "melio"
   },
@@ -2838,6 +3648,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "mementoisrael"
+  },
+  "mentee robotics|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "menteerobotics"
+  },
+  "mentee robotics|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "menteerobotics"
   },
   "mentor talent acquisition|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2860,7 +3680,7 @@
     "slug_tried": "merckhealthcare"
   },
   "mercury|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "mercury"
   },
@@ -2889,6 +3709,16 @@
     "result": "miss",
     "slug_tried": "microaiisrael"
   },
+  "micron technology|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "microntechnology"
+  },
+  "micron technology|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "microntechnology"
+  },
   "microsoft|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2908,6 +3738,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "mikaguisrael"
+  },
+  "milestone|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "milestoneisrael"
+  },
+  "milestone|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "milestoneisrael"
   },
   "millennium|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2939,6 +3779,16 @@
     "result": "miss",
     "slug_tried": "minimusisrael"
   },
+  "minute|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "minuteisrael"
+  },
+  "minute|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "minuteisrael"
+  },
   "miracle ai|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2948,6 +3798,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "miracleai"
+  },
+  "misterbit technological solutions|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "misterbittechnologicalsolutions"
+  },
+  "misterbit technological solutions|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "misterbittechnologicalsolutions"
   },
   "mobile group ltd|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2979,8 +3839,18 @@
     "result": "miss",
     "slug_tried": "molexisrael"
   },
+  "monday com|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "mondaycom"
+  },
+  "monday com|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "mondaycom"
+  },
   "mongodb|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "mongodb"
   },
@@ -3095,7 +3965,7 @@
     "slug_tried": "navanisrael"
   },
   "nebius|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "nebius"
   },
@@ -3133,6 +4003,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": ""
+  },
+  "netapp|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "netappisrael"
+  },
+  "netapp|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "netappisrael"
   },
   "netflix|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3214,8 +4094,18 @@
     "result": "miss",
     "slug_tried": "nexxenisrael"
   },
+  "ngsoft|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ngsoftisrael"
+  },
+  "ngsoft|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ngsoftisrael"
+  },
   "nice|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "nice"
   },
@@ -3334,6 +4224,16 @@
     "result": "miss",
     "slug_tried": "nvidiaisrael"
   },
+  "nym|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "nymisrael"
+  },
+  "nym|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "nymisrael"
+  },
   "oakwell hampton group|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3354,6 +4254,16 @@
     "result": "miss",
     "slug_tried": "ochoisrael"
   },
+  "office hours|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "officehours"
+  },
+  "office hours|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "officehours"
+  },
   "offroad|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3365,7 +4275,7 @@
     "slug_tried": "offroadisrael"
   },
   "okta|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "okta"
   },
@@ -3380,7 +4290,7 @@
     "slug_tried": "oktopostisrael"
   },
   "oktopost|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "oktopost"
   },
@@ -3393,6 +4303,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "oliverbernard"
+  },
+  "ontarget communications|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ontargetcommunications"
+  },
+  "ontarget communications|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "ontargetcommunications"
   },
   "openai|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3415,7 +4335,7 @@
     "slug_tried": "optibusisrael"
   },
   "optimal dynamics|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "optimaldynamics"
   },
@@ -3433,6 +4353,36 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "opisrael"
+  },
+  "oracle|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "oracleisrael"
+  },
+  "oracle|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "oracleisrael"
+  },
+  "orca ai|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "orcaai"
+  },
+  "orca ai|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "orcaai"
+  },
+  "orca security|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "orcasecurity"
+  },
+  "orca security|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "orcasecurity"
   },
   "ourcrowd|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3455,9 +4405,9 @@
     "slug_tried": "ourritualisrael"
   },
   "outschool|greenhouse": {
-    "last_checked_at": "2026-09-23",
-    "result": "hit",
-    "slug_tried": "outschool"
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "outschoolisrael"
   },
   "outschool|lever": {
     "last_checked_at": "2026-09-23",
@@ -3500,7 +4450,7 @@
     "slug_tried": "palantirisrael"
   },
   "palantir|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "palantir"
   },
@@ -3514,9 +4464,19 @@
     "result": "miss",
     "slug_tried": "paloaltonetworks"
   },
+  "pansophic learning|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "pansophiclearning"
+  },
+  "pansophic learning|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "pansophiclearning"
+  },
   "papaya global|greenhouse": {
-    "last_checked_at": "2026-09-23",
-    "result": "error",
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
     "slug_tried": "papayaglobal"
   },
   "papaya global|lever": {
@@ -3525,7 +4485,7 @@
     "slug_tried": "papayaglobal"
   },
   "paperless parts|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "paperlessparts"
   },
@@ -3533,6 +4493,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "paperlessparts"
+  },
+  "par technology|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "partechnology"
+  },
+  "par technology|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "partechnology"
   },
   "paragon|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3550,12 +4520,12 @@
     "slug_tried": "parallelwireless"
   },
   "parallel wireless|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "parallelwireless"
   },
   "parloa|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "parloa"
   },
@@ -3563,6 +4533,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "parloaisrael"
+  },
+  "parsons corporation|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "parsonsisrael"
+  },
+  "parsons corporation|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "parsonsisrael"
   },
   "patz corporation|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3575,7 +4555,7 @@
     "slug_tried": "patzisrael"
   },
   "payoneer|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "payoneer"
   },
@@ -3664,6 +4644,16 @@
     "result": "miss",
     "slug_tried": "piperai"
   },
+  "pixellot ai sports media intelligence|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "pixellotaisportsmediaintelligence"
+  },
+  "pixellot ai sports media intelligence|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "pixellotaisportsmediaintelligence"
+  },
   "placer ai|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3683,6 +4673,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "plaeeisrael"
+  },
+  "plasan|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "plasanisrael"
+  },
+  "plasan|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "plasanisrael"
   },
   "play perfect|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3714,6 +4714,16 @@
     "result": "miss",
     "slug_tried": ""
   },
+  "pluto security|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "plutosecurity"
+  },
+  "pluto security|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "plutosecurity"
+  },
   "pmos|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3733,6 +4743,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "pointfiveisrael"
+  },
+  "pomelo care|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "pomelocare"
+  },
+  "pomelo care|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "pomelocare"
   },
   "port io|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3763,6 +4783,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "ppliedisrael"
+  },
+  "precision technologies|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "precisionisrael"
+  },
+  "precision technologies|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "precisionisrael"
   },
   "prestiga|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3820,9 +4850,19 @@
     "slug_tried": "protolabsisrael"
   },
   "protolabs|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "protolabs"
+  },
+  "puntopa ai|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "puntopaai"
+  },
+  "puntopa ai|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "puntopaai"
   },
   "q nomy|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3833,6 +4873,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "qnomy"
+  },
+  "qed science|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "qedscience"
+  },
+  "qed science|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "qedscience"
+  },
+  "qleartech|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "qleartechisrael"
+  },
+  "qleartech|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "qleartechisrael"
   },
   "qualcomm|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3884,6 +4944,16 @@
     "result": "miss",
     "slug_tried": "quantumblackaibymckinsey"
   },
+  "quicklizard|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "quicklizardisrael"
+  },
+  "quicklizard|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "quicklizardisrael"
+  },
   "radical ideas house|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3923,6 +4993,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "rampisrael"
+  },
+  "razor labs|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "razorlabs"
+  },
+  "razor labs|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "razorlabs"
   },
   "re partners|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3964,6 +5044,16 @@
     "result": "miss",
     "slug_tried": "realplayisrael"
   },
+  "recruiterforge|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "recruiterforgeisrael"
+  },
+  "recruiterforge|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "recruiterforgeisrael"
+  },
   "recruiting from scratch|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3984,6 +5074,16 @@
     "result": "miss",
     "slug_tried": "recruitricksisrael"
   },
+  "recruitx|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "recruitxisrael"
+  },
+  "recruitx|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "recruitxisrael"
+  },
   "red hat|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -3995,7 +5095,7 @@
     "slug_tried": "redhat"
   },
   "reddit inc|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "reddit"
   },
@@ -4003,6 +5103,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "redditisrael"
+  },
+  "reddit|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "reddit"
+  },
+  "reddit|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "redditisrael"
+  },
+  "referment|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "refermentisrael"
+  },
+  "referment|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "refermentisrael"
   },
   "reindeer|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4015,7 +5135,7 @@
     "slug_tried": "reindeerisrael"
   },
   "relocity inc|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "relocity"
   },
@@ -4045,7 +5165,7 @@
     "slug_tried": "repqisrael"
   },
   "resilience|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "resilience"
   },
@@ -4053,6 +5173,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "resilienceisrael"
+  },
+  "rexhio|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "rexhioisrael"
+  },
+  "rexhio|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "rexhioisrael"
   },
   "ring security|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4084,6 +5214,16 @@
     "result": "miss",
     "slug_tried": "riversidefm"
   },
+  "riverside|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "riversideisrael"
+  },
+  "riverside|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "riversideisrael"
+  },
   "roark yc w25|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4113,6 +5253,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "rocketsciencegroup"
+  },
+  "roeto|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "roetoisrael"
+  },
+  "roeto|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "roetoisrael"
   },
   "rolls royce|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4154,6 +5304,16 @@
     "result": "miss",
     "slug_tried": "ryloisrael"
   },
+  "saic|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "saicisrael"
+  },
+  "saic|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "saicisrael"
+  },
   "salesforce|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4165,7 +5325,7 @@
     "slug_tried": "salesforceisrael"
   },
   "samsung semiconductor|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "samsungsemiconductor"
   },
@@ -4183,6 +5343,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "sandiskisrael"
+  },
+  "sapient search|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sapientsearch"
+  },
+  "sapient search|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sapientsearch"
   },
   "sap|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4210,12 +5380,12 @@
     "slug_tried": "sauceisrael"
   },
   "sauce|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "Sauce"
   },
   "scaleops|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "scaleops"
   },
@@ -4243,6 +5413,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "scriptit"
+  },
+  "seed health|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "seedhealth"
+  },
+  "seed health|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "seedhealth"
   },
   "senai|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4313,6 +5493,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "settisrael"
+  },
+  "shabak israeli security agency career|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "shabakisraelisecurityagencycareer"
+  },
+  "shabak israeli security agency career|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "shabakisraelisecurityagencycareer"
+  },
+  "sharegain|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sharegainisrael"
+  },
+  "sharegain|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sharegainisrael"
   },
   "sharpies pro|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4415,7 +5615,7 @@
     "slug_tried": "silverfortisrael"
   },
   "similarweb|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "similarweb"
   },
@@ -4524,6 +5724,16 @@
     "result": "miss",
     "slug_tried": "solidaipoweredbydata"
   },
+  "solo clash|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "soloclash"
+  },
+  "solo clash|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "soloclash"
+  },
   "solomon page|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4554,6 +5764,26 @@
     "result": "miss",
     "slug_tried": "soniisrael"
   },
+  "sotalent|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sotalentisrael"
+  },
+  "sotalent|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sotalentisrael"
+  },
+  "soulmynd ai|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "soulmyndai"
+  },
+  "soulmynd ai|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "soulmyndai"
+  },
   "soundcloud|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4575,7 +5805,7 @@
     "slug_tried": "sourcixisrael"
   },
   "spacex|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "spacex"
   },
@@ -4620,7 +5850,7 @@
     "slug_tried": "spreetailisrael"
   },
   "spreetail|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "spreetail"
   },
@@ -4645,7 +5875,7 @@
     "slug_tried": "ssc"
   },
   "stackadapt|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "stackadapt"
   },
@@ -4705,7 +5935,7 @@
     "slug_tried": "stiggisrael"
   },
   "stripe|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "stripe"
   },
@@ -4744,6 +5974,26 @@
     "result": "miss",
     "slug_tried": "sundayyisrael"
   },
+  "swakioTM|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "swakioTM|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "sygnia|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sygniaisrael"
+  },
+  "sygnia|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "sygniaisrael"
+  },
   "ta9|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4755,7 +6005,7 @@
     "slug_tried": "ta9israel"
   },
   "taboola|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "taboola"
   },
@@ -4795,7 +6045,7 @@
     "slug_tried": "tailormedisrael"
   },
   "tailscale|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "tailscale"
   },
@@ -4803,6 +6053,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "tailscaleisrael"
+  },
+  "tairc|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "taircisrael"
+  },
+  "tairc|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "taircisrael"
   },
   "talencio|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4854,6 +6114,16 @@
     "result": "miss",
     "slug_tried": "talenthopisrael"
   },
+  "taskverse|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "taskverseisrael"
+  },
+  "taskverse|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "taskverseisrael"
+  },
   "tbd|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4875,7 +6145,7 @@
     "slug_tried": "team8israel"
   },
   "tebra|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "tebra"
   },
@@ -4904,6 +6174,16 @@
     "result": "miss",
     "slug_tried": "techvantagesoftware"
   },
+  "teleport|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "teleportisrael"
+  },
+  "teleport|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "teleportisrael"
+  },
   "telos|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4913,6 +6193,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "telosisrael"
+  },
+  "tempoatlas|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "tempoatlasisrael"
+  },
+  "tempoatlas|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "tempoatlasisrael"
   },
   "temu|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -4964,6 +6254,16 @@
     "result": "miss",
     "slug_tried": "teradyneisrael"
   },
+  "thales|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "thalesisrael"
+  },
+  "thales|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "thalesisrael"
+  },
   "the depository trust clearing corporation dtcc|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -4975,7 +6275,7 @@
     "slug_tried": "thedepositorytrustclearingdtcc"
   },
   "the farmer s dog|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "thefarmersdog"
   },
@@ -5014,6 +6314,26 @@
     "result": "miss",
     "slug_tried": "tikalisrael"
   },
+  "tipalti|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "tipaltiisrael"
+  },
+  "tipalti|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "tipaltiisrael"
+  },
+  "tlvtech|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "tlvtechisrael"
+  },
+  "tlvtech|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "tlvtechisrael"
+  },
   "tomax think academy|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -5045,7 +6365,7 @@
     "slug_tried": "torentifyisrael"
   },
   "trace3|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "trace3"
   },
@@ -5054,8 +6374,18 @@
     "result": "miss",
     "slug_tried": "trace3israel"
   },
+  "traild|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "traildisrael"
+  },
+  "traild|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "traildisrael"
+  },
   "transmit security|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "transmitsecurity"
   },
@@ -5074,6 +6404,16 @@
     "result": "miss",
     "slug_tried": "travelbooster"
   },
+  "travelfactory lab|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "travelfactorylab"
+  },
+  "travelfactory lab|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "travelfactorylab"
+  },
   "trm labs|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -5083,6 +6423,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "trmlabs"
+  },
+  "trust in soda|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "trustinsoda"
+  },
+  "trust in soda|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "trustinsoda"
+  },
+  "unavailable|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "unavailableisrael"
+  },
+  "unavailable|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "unavailableisrael"
   },
   "underdog io apply to top tech jobs in 60 seconds a place where companies apply to you|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5094,8 +6454,18 @@
     "result": "miss",
     "slug_tried": "underdogioapplytotoptechjobsin60secondsaplacewherecompaniesapplytoyou"
   },
+  "underdog verified engineers interview ready searching confidentially and companies apply to you|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "underdogverifiedengineersinterviewreadysearchingconfidentiallyandcompaniesapplytoyou"
+  },
+  "underdog verified engineers interview ready searching confidentially and companies apply to you|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "underdogverifiedengineersinterviewreadysearchingconfidentiallyandcompaniesapplytoyou"
+  },
   "unframe|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "unframe"
   },
@@ -5103,6 +6473,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "unframeisrael"
+  },
+  "unilink ltd|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "unilinkisrael"
+  },
+  "unilink ltd|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "unilinkisrael"
   },
   "unity|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5143,6 +6523,26 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "ustisrael"
+  },
+  "uveye|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "uveyeisrael"
+  },
+  "uveye|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "uveyeisrael"
+  },
+  "uvision group|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "uvisiongroup"
+  },
+  "uvision group|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "uvisiongroup"
   },
   "uvizion|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5270,7 +6670,7 @@
     "slug_tried": "vertaforeisrael"
   },
   "via|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "via"
   },
@@ -5288,6 +6688,36 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "viberisrael"
+  },
+  "virtualitics|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "virtualiticsisrael"
+  },
+  "virtualitics|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "hit",
+    "slug_tried": "virtualitics"
+  },
+  "virtuous|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "virtuousisrael"
+  },
+  "virtuous|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "virtuousisrael"
+  },
+  "viz ai|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "vizai"
+  },
+  "viz ai|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "vizai"
   },
   "vi|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5330,9 +6760,9 @@
     "slug_tried": "warnermusicgroup"
   },
   "wayve|greenhouse": {
-    "last_checked_at": "2026-09-23",
-    "result": "hit",
-    "slug_tried": "wayve"
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "wayveisrael"
   },
   "wayve|lever": {
     "last_checked_at": "2026-09-23",
@@ -5340,7 +6770,7 @@
     "slug_tried": "wayveisrael"
   },
   "wedev|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "wedev"
   },
@@ -5389,6 +6819,16 @@
     "result": "miss",
     "slug_tried": "wilsonbrown"
   },
+  "wiraa|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "wiraaisrael"
+  },
+  "wiraa|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "wiraaisrael"
+  },
   "wittix|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -5419,6 +6859,16 @@
     "result": "miss",
     "slug_tried": "wizisrael"
   },
+  "wobi ltd|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "wobiisrael"
+  },
+  "wobi ltd|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "wobiisrael"
+  },
   "wondr interactive inc|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -5429,8 +6879,48 @@
     "result": "miss",
     "slug_tried": "wondrinteractive"
   },
+  "workday|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workdayisrael"
+  },
+  "workday|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workdayisrael"
+  },
+  "workinvirtual|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workinvirtualisrael"
+  },
+  "workinvirtual|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workinvirtualisrael"
+  },
+  "workiva|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workivaisrael"
+  },
+  "workiva|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workivaisrael"
+  },
+  "workiz|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workizisrael"
+  },
+  "workiz|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "workizisrael"
+  },
   "worldquant|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "worldquant"
   },
@@ -5448,6 +6938,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "wrkmarkisrael"
+  },
+  "xpend|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "xpendisrael"
+  },
+  "xpend|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "xpendisrael"
   },
   "yad2|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5489,6 +6989,16 @@
     "result": "miss",
     "slug_tried": "yahooisrael"
   },
+  "yara ai|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "yaraai"
+  },
+  "yara ai|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "yaraai"
+  },
   "yellow brick health|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -5510,7 +7020,7 @@
     "slug_tried": "yolkisrael"
   },
   "yotpo|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "yotpo"
   },
@@ -5525,7 +7035,7 @@
     "slug_tried": "zadaraisrael"
   },
   "zadara|lever": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "Zadara"
   },
@@ -5559,8 +7069,28 @@
     "result": "miss",
     "slug_tried": "zenityisrael"
   },
+  "zero networks|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "zeronetworks"
+  },
+  "zero networks|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "zeronetworks"
+  },
+  "zipher|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "zipherisrael"
+  },
+  "zipher|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "zipherisrael"
+  },
   "zocdoc|greenhouse": {
-    "last_checked_at": "2026-09-23",
+    "last_checked_at": "2026-10-13",
     "result": "hit",
     "slug_tried": "zocdoc"
   },
@@ -5568,6 +7098,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "zocdocisrael"
+  },
+  "מרטנס mertens מקבוצת מלם תים|greenhouse": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": ""
+  },
+  "מרטנס mertens מקבוצת מלם תים|lever": {
+    "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": ""
   },
   "שני נוי ייעוץ תעסוקתי|greenhouse": {
     "last_checked_at": "2026-09-23",
