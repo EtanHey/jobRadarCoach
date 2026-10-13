@@ -32,6 +32,13 @@ def _source_fixture(tmp_path: Path):
     source_urls["linkedin"] = [f"https://linkedin.com/search/{i}" for i in range(len(searches))]
     report = cloud_run.source_registry.load_registry(registry_path, as_of=snapshot_date)
     assert not report.invalid, report.invalid
+    # Independent of load_registry: enabled and verified within 45 days.
+    fresh_enabled = {
+        row["careers_url"] for row in registry["tenants"]
+        if row["enabled"] is True
+        and (snapshot_date - datetime.fromisoformat(row["last_verified_at"]).date()).days <= 45
+    }
+    assert {tenant["careers_url"] for tenant in report.valid} == fresh_enabled
     for tenant in report.valid:
         source_urls[tenant["source"]].append(tenant["careers_url"])
     return registry_path, source_urls, appended["careers_url"], snapshot_date
