@@ -4,15 +4,17 @@ on:
     - cron: "43 2 * * 0"
   workflow_dispatch:
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
+  contents: read
 concurrency:
   group: ats-discovery-weekly
   cancel-in-progress: false
 
 jobs:
   discover:
+    permissions:
+      actions: write # Dispatch validation for the token-created data PR.
+      contents: write # Push the registry/cache update branch.
+      pull-requests: write # Open and label the reviewable data PR.
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
@@ -23,7 +25,8 @@ jobs:
         run: |
           set -euo pipefail
           count=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
-            --jq '[.[] | select(.head.ref | startswith("data/ats-discovery-weekly-"))] | length' \
+            | jq --arg repo "$GITHUB_REPOSITORY" \
+              '[.[] | select(.head.repo.full_name == $repo and .base.ref == "master" and (.head.ref | startswith("data/ats-discovery-weekly-")))] | length' \
             | awk '{n += $1} END {print n+0}')
           if [[ "$count" != "0" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
