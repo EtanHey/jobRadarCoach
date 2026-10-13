@@ -60,7 +60,7 @@ jobs:
             :
           else
             status=$?
-            if [[ "$status" != 124 && "$status" != 137 ]]; then exit "$status"; fi
+            if [[ "$status" != 124 ]]; then exit "$status"; fi
             echo "Probe time budget exhausted; preserving partial cache progress." >> "$GITHUB_STEP_SUMMARY"
             echo '{"partial":true,"reason":"probe time budget exhausted"}' > ats-discovery-stats.json
           fi

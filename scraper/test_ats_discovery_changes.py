@@ -128,7 +128,7 @@ def test_actual_pr_step_and_orphan_cleanup(tmp_path, scenario, creates, exit_cod
         assert not remote_heads
 
 
-@pytest.mark.parametrize("probe_exit,expected", [(0, 0), (124, 0), (137, 0), (2, 2)])
+@pytest.mark.parametrize("probe_exit,expected", [(0, 0), (124, 0), (137, 137), (2, 2)])
 def test_probe_timeout_preserves_partial_cache_and_real_errors_fail(tmp_path, probe_exit, expected):
     import os
     timeout = tmp_path / "timeout"
@@ -138,5 +138,5 @@ def test_probe_timeout_preserves_partial_cache_and_real_errors_fail(tmp_path, pr
     result = subprocess.run(["bash", "-c", workflow_run("Probe public ATS boards")], cwd=tmp_path, env=env, capture_output=True, text=True)
     assert result.returncode == expected
     assert (tmp_path / "cache").read_text() == "partial cache"
-    if probe_exit in {124, 137}:
+    if probe_exit == 124:
         assert json.loads((tmp_path / "ats-discovery-stats.json").read_text())["partial"] is True
