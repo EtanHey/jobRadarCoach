@@ -21,7 +21,7 @@ jobs:
       - name: Check for an existing discovery PR
         id: gate
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ATS_DISCOVERY_TOKEN || github.token }}
         run: |
           set -euo pipefail
           count=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
@@ -54,12 +54,20 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
-          python -m scraper.ats_discovery --names db --out scraper/source-registry.json --merge \
-            | tee ats-discovery-stats.json
+          # Leave time to persist partial cache progress before the 240m job limit.
+          if timeout --kill-after=30s 200m python -m scraper.ats_discovery --names db --out scraper/source-registry.json --merge \
+            | tee ats-discovery-stats.json; then
+            :
+          else
+            status=$?
+            if [[ "$status" != 124 && "$status" != 137 ]]; then exit "$status"; fi
+            echo "Probe time budget exhausted; preserving partial cache progress." >> "$GITHUB_STEP_SUMMARY"
+            echo '{"partial":true,"reason":"probe time budget exhausted"}' > ats-discovery-stats.json
+          fi
       - name: Validate and open a reviewable PR
         if: steps.gate.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.ATS_DISCOVERY_TOKEN || github.token }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -69,8 +77,9 @@ jobs:
               raise SystemExit(f"Registry has {len(report.invalid)} invalid entries")
           PY
           git diff --check
-          if git diff --quiet -- scraper/source-registry.json scraper/ats-probe-cache.json; then
-            echo "No new tenants or cache changes." >> "$GITHUB_STEP_SUMMARY"
+          cache_changed=$(python -m scraper.ats_discovery_changes)
+          if git diff --quiet -- scraper/source-registry.json && [[ "$cache_changed" == "false" ]]; then
+            echo "No registry or meaningful non-error cache result changes." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           branch="data/ats-discovery-weekly-${GITHUB_RUN_ID}"
@@ -88,7 +97,7 @@ jobs:
           else size="size:L"; fi
           {
             echo "## Summary"
-            echo "Weekly public ATS re-probe from read-only company names in postings. Only live boards with jobs and matching board identity enter the registry. Curated tenants are preserved. No auto-merge."
+            echo "Weekly Greenhouse, Lever and Workable discovery from read-only company names in postings. Comeet requires URL hints and is not probed by this DB-name run. Only live boards with jobs and matching board identity enter the registry. Curated tenants are preserved. No auto-merge."
             echo
             echo "## Probe counts"
             cat ats-discovery-stats.json
@@ -101,8 +110,18 @@ jobs:
             echo
             echo "— jobRadarCoach weekly discovery workflow (automation)"
           } > ats-discovery-pr-body.md
-          url=$(gh pr create --repo "$GITHUB_REPOSITORY" --base master --head "$branch" \
-            --title "data: weekly verified ATS discovery" --body-file ats-discovery-pr-body.md --label "$size")
+          if url=$(gh pr create --repo "$GITHUB_REPOSITORY" --base master --head "$branch" \
+            --title "data: weekly verified ATS discovery" --body-file ats-discovery-pr-body.md --label "$size"); then
+            :
+          else
+            status=$?
+            echo "::error::Discovery PR creation failed; removing pushed branch $branch."
+            if ! git push origin --delete "$branch"; then
+              echo "::error::Failed to delete orphan $branch; operator cleanup required."
+            fi
+            exit "$status"
+          fi
           gh workflow run ats-discovery-validate.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+          gh workflow run python-tests.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
           echo "$url" >> "$GITHUB_STEP_SUMMARY"
-          echo "A validation workflow was dispatched on the PR head; review its check before merge." >> "$GITHUB_STEP_SUMMARY"
+          echo "Validation and required python-db workflows were dispatched on the PR head; review both before merge." >> "$GITHUB_STEP_SUMMARY"

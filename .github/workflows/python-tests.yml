@@ -1,6 +1,7 @@
 name: Python and DB tests
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [master]

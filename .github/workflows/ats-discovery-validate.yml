@@ -32,8 +32,8 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           python scripts/check_private_files.py --all-tracked
-          python -m ruff check scraper/ats_discovery.py scraper/source_registry.py scraper/sources
-          python -m pytest scraper/test_ats_discovery.py scraper/test_sources.py -q
+          python -m ruff check scraper/ats_discovery.py scraper/ats_discovery_changes.py scraper/source_registry.py scraper/sources
+          python -m pytest scraper/test_ats_discovery.py scraper/test_ats_discovery_changes.py scraper/test_sources.py -q
           python - <<'PY'
           from scraper.source_registry import load_registry
           report = load_registry()
