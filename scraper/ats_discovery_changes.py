@@ -8,14 +8,18 @@ CACHE_PATH = Path("scraper/ats-probe-cache.json")
 
 
 def meaningful_cache_change(previous: dict, current: dict) -> bool:
-    """New non-error keys or non-error result transitions justify a PR.
+    """New non-error keys/results or newer miss cooldowns justify a PR.
 
-    Dates, slug changes, removals, and errors alone do not. The registry has
+    Hit/error dates, slug changes, removals, and errors alone do not. The registry has
     its own diff gate, so newly discovered tenants are always eligible.
     """
     return any(
         row["result"] != "error"
-        and (key not in previous or row["result"] != previous[key]["result"])
+        and (
+            key not in previous
+            or row["result"] != previous[key]["result"]
+            or (row["result"] == "miss" and row.get("last_checked_at", "") > previous[key].get("last_checked_at", ""))
+        )
         for key, row in current.items()
     )
 
