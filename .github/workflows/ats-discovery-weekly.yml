@@ -1,0 +1,127 @@
+name: Weekly ATS discovery
+on:
+  schedule:
+    - cron: "43 2 * * 0"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ats-discovery-weekly
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    permissions:
+      actions: write # Dispatch validation for the token-created data PR.
+      contents: write # Push the registry/cache update branch.
+      pull-requests: write # Open and label the reviewable data PR.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Check for an existing discovery PR
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.ATS_DISCOVERY_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          count=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
+            | jq --arg repo "$GITHUB_REPOSITORY" \
+              '[.[] | select(.head.repo.full_name == $repo and .base.ref == "master" and (.head.ref | startswith("data/ats-discovery-weekly-")))] | length' \
+            | awk '{n += $1} END {print n+0}')
+          if [[ "$count" != "0" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "An ATS discovery PR is already open; no second run started." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Check out default branch
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: master
+          persist-credentials: false
+      - name: Set up Python
+        if: steps.gate.outputs.skip != 'true'
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install database client
+        if: steps.gate.outputs.skip != 'true'
+        run: python -m pip install "psycopg[binary]==3.3.5"
+      # Checkout restores the tracked default cache; commit updates with the registry
+      # so fresh misses retain their 30-day cooldown across weekly runs.
+      - name: Probe public ATS boards
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          # Leave time to persist partial cache progress before the 240m job limit.
+          if timeout --kill-after=30s 200m python -m scraper.ats_discovery --names db --out scraper/source-registry.json --merge \
+            | tee ats-discovery-stats.json; then
+            :
+          else
+            status=$?
+            if [[ "$status" != 124 ]]; then exit "$status"; fi
+            echo "Probe time budget exhausted; preserving partial cache progress." >> "$GITHUB_STEP_SUMMARY"
+            echo '{"partial":true,"reason":"probe time budget exhausted"}' > ats-discovery-stats.json
+          fi
+      - name: Validate and open a reviewable PR
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.ATS_DISCOVERY_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from scraper.source_registry import load_registry
+          report = load_registry()
+          if report.invalid:
+              raise SystemExit(f"Registry has {len(report.invalid)} invalid entries")
+          PY
+          git diff --check
+          cache_changed=$(python -m scraper.ats_discovery_changes)
+          if git diff --quiet -- scraper/source-registry.json && [[ "$cache_changed" == "false" ]]; then
+            echo "No registry or meaningful non-error cache result changes." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          branch="data/ats-discovery-weekly-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scraper/source-registry.json scraper/ats-probe-cache.json
+          git commit -m "data: update verified ATS tenants and probe cache"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$branch"
+          lines=$(git diff --numstat origin/master...HEAD | awk '{n += $1 + $2} END {print n+0}')
+          if (( lines <= 50 )); then size="size:XS"
+          elif (( lines <= 150 )); then size="size:S"
+          elif (( lines <= 400 )); then size="size:M"
+          else size="size:L"; fi
+          {
+            echo "## Summary"
+            echo "Weekly Greenhouse, Lever and Workable discovery from read-only company names in postings. Comeet requires URL hints and is not probed by this DB-name run. Only live boards with jobs and matching board identity enter the registry. Curated tenants are preserved. No auto-merge."
+            echo
+            echo "## Probe counts"
+            cat ats-discovery-stats.json
+            echo
+            echo "## Verification"
+            echo "Registry validation and git diff --check passed. CI and human review remain required."
+            if [[ "$size" == "size:L" ]]; then
+              echo "Size:L because the generated tenant registry and durable probe cache exceed 400 changed JSON lines."
+            fi
+            echo
+            echo "— jobRadarCoach weekly discovery workflow (automation)"
+          } > ats-discovery-pr-body.md
+          if url=$(gh pr create --repo "$GITHUB_REPOSITORY" --base master --head "$branch" \
+            --title "data: weekly verified ATS discovery" --body-file ats-discovery-pr-body.md --label "$size"); then
+            :
+          else
+            status=$?
+            echo "::error::Discovery PR creation failed; removing pushed branch $branch."
+            if ! git push origin --delete "$branch"; then
+              echo "::error::Failed to delete orphan $branch; operator cleanup required."
+            fi
+            exit "$status"
+          fi
+          gh workflow run ats-discovery-validate.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+          gh workflow run python-tests.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Validation and required python-db workflows were dispatched on the PR head; review both before merge." >> "$GITHUB_STEP_SUMMARY"
