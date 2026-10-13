@@ -21,8 +21,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh pr list --repo "${GITHUB_REPOSITORY}" --state open --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("data/ats-discovery-weekly-"))] | length')
+          set -euo pipefail
+          count=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" \
+            --jq '[.[] | select(.head.ref | startswith("data/ats-discovery-weekly-"))] | length' \
+            | awk '{n += $1} END {print n+0}')
           if [[ "$count" != "0" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "An ATS discovery PR is already open; no second run started." >> "$GITHUB_STEP_SUMMARY"
@@ -41,6 +43,8 @@ jobs:
       - name: Install database client
         if: steps.gate.outputs.skip != 'true'
         run: python -m pip install "psycopg[binary]==3.3.5"
+      # Checkout restores the tracked default cache; commit updates with the registry
+      # so fresh misses retain their 30-day cooldown across weekly runs.
       - name: Probe public ATS boards
         if: steps.gate.outputs.skip != 'true'
         env:
@@ -95,8 +99,7 @@ jobs:
             echo "— jobRadarCoach weekly discovery workflow (automation)"
           } > ats-discovery-pr-body.md
           url=$(gh pr create --repo "$GITHUB_REPOSITORY" --base master --head "$branch" \
-            --title "data: weekly verified ATS discovery" --body-file ats-discovery-pr-body.md)
-          gh pr edit "$url" --repo "$GITHUB_REPOSITORY" --add-label "$size"
+            --title "data: weekly verified ATS discovery" --body-file ats-discovery-pr-body.md --label "$size")
           gh workflow run ats-discovery-validate.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
           echo "$url" >> "$GITHUB_STEP_SUMMARY"
           echo "A validation workflow was dispatched on the PR head; review its check before merge." >> "$GITHUB_STEP_SUMMARY"
