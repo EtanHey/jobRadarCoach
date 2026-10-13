@@ -1,5 +1,6 @@
-"""Weekly discovery PR eligibility uses result changes, never date churn."""
+"""Weekly eligibility persists miss cooldowns without hit/error date churn."""
 
+from datetime import date
 import json
 from pathlib import Path
 import subprocess
@@ -7,6 +8,7 @@ import sys
 
 import pytest
 
+from scraper.ats_discovery import skip_miss
 from scraper.ats_discovery_changes import meaningful_cache_change
 
 
@@ -18,6 +20,16 @@ def test_reviewers_112_tenants_and_twenty_date_bumps_do_not_open_pr():
     previous = {str(n): record("hit" if n < 10 else "error") for n in range(20)}
     current = {key: {**value, "last_checked_at": "2026-10-13"} for key, value in previous.items()}
     assert not meaningful_cache_change(previous, current)
+
+
+def test_newer_miss_dates_persist_all_1030_renewed_cooldowns():
+    previous = {str(n): record("miss") for n in range(1030)}
+    renewed = {key: {**row, "last_checked_at": "2026-10-25"} for key, row in previous.items()}
+    assert meaningful_cache_change(previous, renewed)
+    assert not meaningful_cache_change(previous, previous)
+    assert not meaningful_cache_change(renewed, previous)
+    assert not skip_miss(previous["0"], date(2026, 11, 1))
+    assert skip_miss(renewed["0"], date(2026, 11, 1))
 
 
 @pytest.mark.parametrize("before,after,expected", [
@@ -66,6 +78,7 @@ def workflow_run(step):
     ("twenty-date-bumps", False, 0),
     ("errors-only", False, 0),
     ("new-miss", True, 0),
+    ("renewed-misses", True, 0),
     ("registry", True, 0),
     ("pr-failure", True, 42),
 ])
@@ -85,6 +98,8 @@ def test_actual_pr_step_and_orphan_cleanup(tmp_path, scenario, creates, exit_cod
     registry.write_bytes((root / "scraper/source-registry.json").read_bytes())
     tenants_before = len(json.loads(registry.read_text())["tenants"])
     previous = {str(n): record("hit" if n < 10 else "error") for n in range(20)}
+    if scenario == "renewed-misses":
+        previous = {str(n): record("miss") for n in range(1030)}
     cache = repo / "scraper/ats-probe-cache.json"
     cache.write_text(json.dumps(previous))
     git("add", ".")
