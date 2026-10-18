@@ -2137,6 +2137,70 @@
       ],
       "last_verified_at": "2026-10-13",
       "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "beyondtrust"
+      },
+      "company": "BeyondTrust",
+      "careers_url": "https://job-boards.greenhouse.io/beyondtrust",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/beyondtrust/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-18",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "comet"
+      },
+      "company": "Comet",
+      "careers_url": "https://job-boards.greenhouse.io/comet",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/comet/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-18",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "doppel"
+      },
+      "company": "Doppel",
+      "careers_url": "https://job-boards.greenhouse.io/doppel",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/doppel/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-18",
+      "enabled": true
+    },
+    {
+      "source": "lever",
+      "identifiers": {
+        "account": "lyrahealth"
+      },
+      "company": "Lyra Health",
+      "careers_url": "https://jobs.lever.co/lyrahealth",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://api.lever.co/v0/postings/lyrahealth?mode=json"
+        }
+      ],
+      "last_verified_at": "2026-10-18",
+      "enabled": true
     }
   ]
 }
