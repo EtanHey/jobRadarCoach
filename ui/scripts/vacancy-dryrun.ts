@@ -64,6 +64,13 @@ async function main() {
         && new Set(parts.flatMap(part => part.requisitions)).size === parts.length;
       return [{company: group.job.company, title: group.job.title, parts, distinct}];
     });
+    const beforeById = new Map(before.flatMap((group, index) => members(group).map(job => [job.id, index] as const)));
+    const masterSeparatePairs = after.flatMap(group => {
+      const jobs = members(group);
+      return jobs.flatMap((left, index) => jobs.slice(index + 1)
+        .filter(right => beforeById.get(left.id) !== beforeById.get(right.id))
+        .map(right => ({left, right})));
+    });
     const family = readFileSync(summaryPath, "utf8").split("### 1. Repeated requisition/content identity")[1].split("### 2.")[0];
     const subgroups = family.split("\n").filter(line => /^- (?:JR\d+|`ISSUE-)/u.test(line)).map(line => ({
       name: line.match(/^- (JR\d+|`ISSUE-[^`]+`)/u)?.[1] ?? "unknown",
@@ -84,8 +91,14 @@ async function main() {
         `${index + 1}. **${split.company} — ${split.title}: 1 → ${split.parts.length}.** ${split.distinct ? "Genuine distinct employer requisitions." : "UNPROVEN split: no distinct requisition evidence."}`,
         ...split.parts.map(part => `   - ${part.requisitions.join(", ") || "unknown requisition"}: ${part.rows.map(row => `\`${row.id}\``).join(", ")}`), "",
       ]),
+      "## Master-separate → branch-merged snapshot pairs", "",
+      `${masterSeparatePairs.length} pairs. This is the exhaustive literal group-membership comparison, including intended same-vacancy merges. The NVIDIA target itself requires merging some master-separated groups (33 → 21), so an empty full-snapshot list is incompatible with that target.`, "",
+      "| Company | Left posting | Right posting | Requisitions |",
+      "|---|---|---|---|",
+      ...masterSeparatePairs.map(({left, right}) => `| ${left.company} | ${left.id} | ${right.id} | ${[...new Set([...left.vacancy_identity.requisitions, ...right.vacancy_identity.requisitions])].join(", ") || "none"} |`), "",
+      "The three reviewer technology-collision pairs remain separate in raw and compact form in both input orders (focused tests); their master-separate → branch-merged list is EMPTY.", "",
       "## Identity and fallback rule", "",
-      "Strong identity uses employer requisitions from labelled JD fields, JR/R patterns in the JD, or the Workday URL requisition segment. Greenhouse posting IDs (jobs path, gh_jid, embed token), Lever UUIDs, Comeet position UIDs and Workable shortcodes remain posting/link evidence. They cannot veto a JD match.", "",
+      "Strong identity uses employer requisitions from labelled JD fields (including Job Req), unlabelled JR IDs with at least five digits in the JD, or Workday URL path segments _JR<digits> / _R<at least five digits>. Bare R IDs are never extracted from JD text. Greenhouse posting IDs (jobs path, gh_jid, embed token), Lever UUIDs, Comeet position UIDs and Workable shortcodes remain posting/link evidence. They cannot veto a JD match.", "",
       "Without conflicting known requisitions, identical normalized JDs merge even with title/location drift. Different JD fingerprints fall through to the existing title/role-URL and compatible-location heuristic. A changed hash cannot prove distinct headcount: this conservative fallback restores the nine unknown-requisition baseline groups split in R1, including Office Hours. Different titles and posting URLs with substantively different JDs stay separate; known distinct requisitions always stay separate even with matching titles, locations and JDs. This intentionally does not infer distinct headcount from substantive wording changes alone.", "",
       "UI transport derives compact identity from existing raw_jd server-side; bodies do not cross the board/globe wire. Globe evidence is read by captured IDs in batches of 100 after its membership snapshot. Identity can therefore reflect a later JD edit; membership/geo/cutoff remain from the original snapshot.", "",
       "Offline function evidence only. No hosted dashboard, production DB, browser visual QA, or ingest change is claimed.", ""];

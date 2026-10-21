@@ -7,7 +7,7 @@ export type VacancyIdentity = z.infer<typeof VacancyIdentitySchema>;
 type IdentityInput = { url: string; apply_url: string | null; raw_jd?: string | null };
 
 function textRequisitions(text: string): string[] {
-  return [...text.matchAll(/\b(?:JR|R)\d+\b|\b(?:requisition|req(?:uisition)?\.?|job)\s*(?:id|number|no\.?)\s*[:#-]?\s*(?=[A-Z\d_-]*\d)([A-Z\d]+(?:[-_][A-Z\d]+)*)\b/giu)]
+  return [...text.matchAll(/\bJR\d{5,}\b|\b(?:req(?:uisition)?\.?\s*(?:id|number|no\.?)|job\s*(?:req(?:uisition)?(?:\s*(?:id|number|no\.?))?|id|number|no\.?))\s*[:#-]?\s*(?=[A-Z\d_-]*\d)([A-Z\d]+(?:[-_][A-Z\d]+)*)\b/giu)]
     .map(match => (match[1] ?? match[0]).toUpperCase());
 }
 
@@ -24,7 +24,7 @@ export function vacancyIdentity(job: IdentityInput, urls = postingUrls(job)): Va
       const path = decodeURIComponent(url.pathname);
       // ATS posting IDs identify source records, not employer headcount.
       if (url.hostname.endsWith(".myworkdayjobs.com")) {
-        const workday = path.match(/_((?:JR|R)\d+)(?:-\d+)?(?:\/apply)?\/?$/iu);
+        const workday = path.match(/_(JR\d+|R\d{5,})(?:-\d+)?(?:\/apply)?\/?$/iu);
         if (workday) requisitions.add(workday[1].toUpperCase());
       }
     } catch { /* Invalid legacy URLs supply no identity evidence. */ }

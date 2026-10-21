@@ -4,9 +4,9 @@ import { jdFingerprint, vacancyIdentity } from "../lib/vacancy-identity";
 const identity = (url: string, raw_jd: string | null = null) => vacancyIdentity({url, apply_url: null, raw_jd});
 test("requisition extraction recognizes NVIDIA, Workday and labelled JD IDs", () => {
   assert.deepEqual(identity("https://nvidia.wd5.myworkdayjobs.com/Careers/job/Haifa/Title_JR123-1").requisitions, ["JR123"]);
-  assert.deepEqual(identity("https://employer.wd1.myworkdayjobs.com/Careers/job/City/Title_R456/apply").requisitions, ["R456"]);
+  assert.deepEqual(identity("https://employer.wd1.myworkdayjobs.com/Careers/job/City/Title_R45678/apply").requisitions, ["R45678"]);
   assert.deepEqual(identity("https://example.test", "Requisition ID: R789").requisitions, ["R789"]);
-  assert.deepEqual(identity("https://example.test", "Workday requisition R456").requisitions, ["R456"]);
+  assert.deepEqual(identity("https://example.test", "Workday requisition R456").requisitions, []);
   for (const url of ["bad", "https://example.test/careers", "https://linkedin.com/jobs/view/123"]) assert.deepEqual(identity(url).requisitions, []);
 });
 for (const [shape, url] of [
@@ -23,7 +23,7 @@ for (const [shape, url] of [
   });
 }
 test("explicit JD labels retain employer IDs independently of ATS posting IDs", () => {
-  for (const label of ["Req ID", "Requisition ID", "Job ID"]) {
+  for (const label of ["Req ID", "Requisition ID", "Job Req", "Job ID"]) {
     assert.deepEqual(identity("https://boards.greenhouse.io/employer/jobs/123", `${label}: ENG-456`).requisitions, ["ENG-456"]);
   }
 });
@@ -37,5 +37,19 @@ test("fingerprints retain technology punctuation and ambiguous requisitions rema
   assert.notEqual(jdFingerprint("Requires C#"), jdFingerprint("Requires C"));
   assert.notEqual(jdFingerprint("Use foo_bar"), jdFingerprint("Use foobar"));
   assert.notEqual(jdFingerprint("Use vector<T>"), jdFingerprint("Use vector<U>"));
-  assert.deepEqual(identity("https://example.test", "JR123 and JR456").requisitions, ["JR123", "JR456"]);
+  assert.deepEqual(identity("https://example.test", "JR12345 and JR45678").requisitions, ["JR12345", "JR45678"]);
+});
+
+for (const text of ["FHIR R4", "S3/R2", "R2D2", "Python 3, R 4.2", "Cloudflare R2", "R123456", "JR1234"]) {
+  test(`body technology or unlabelled short ID is not a requisition: ${text}`, () => {
+    assert.deepEqual(identity("https://example.test", text).requisitions, []);
+  });
+}
+test("Workday R IDs require five digits in the URL path and cannot come from query or body", () => {
+  for (const url of [
+    "https://employer.wd1.myworkdayjobs.com/Careers/job/City/Title_R456/apply",
+    "https://employer.wd1.myworkdayjobs.com/Careers?req=_R45678",
+    "https://example.test/Careers/job/City/Title_R45678",
+  ]) assert.deepEqual(identity(url, "R45678").requisitions, []);
+  assert.deepEqual(vacancyIdentity({url: "https://example.test", apply_url: "https://employer.wd1.myworkdayjobs.com/Careers/job/City/Title_R45678-1/apply"}).requisitions, ["R45678"]);
 });

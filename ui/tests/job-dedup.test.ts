@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { vacancyIdentity } from "../lib/vacancy-identity";
 import { globePoints } from "../lib/globe-model";
 import { JobSummarySchema, type JobSummary } from "../lib/contracts";
 import { groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
@@ -306,3 +307,19 @@ test("conflicting requisitions are isolated; employers and per-source evidence s
   const [group] = groupDuplicateJobs(rows);
   assert.deepEqual([group.job, ...group.alternates].map(({id, source, score, alive, location}) => ({id, source, score, alive, location})), rows.map(({id, source, score, alive, location}) => ({id, source, score, alive, location})));
 });
+
+for (const [company, text, titles, duties] of [
+  ["Evolent", "We build healthcare products integrating FHIR R4.", ["Backend Engineer", "Frontend Engineer"], ["Implement Java APIs and healthcare integrations.", "Build React interfaces and patient-facing components."]],
+  ["Latent AI", "Our platform stores customer files in Cloudflare R2.", ["Site Reliability Engineer", "Security Engineer"], ["Operate Kubernetes clusters and manage on-call rotations.", "Perform threat modeling and implement application security."]],
+  ["Latent AI", "Data & Real-Time: Convex, PostgreSQL, object storage (s3/r2)", ["Software Engineer", "Product Designer"], ["Implement durable backend workflow services.", "Run user interviews and design product interaction flows."]],
+] as const) {
+  test(`${company}: distinct ${titles.join(" / ")} roles sharing technology stay split`, () => {
+    const rows = titles.map((title, index) => vacancy(450 + index, null, {
+      company, title, raw_jd: `${text}\n\n${duties[index]}`,
+    }));
+    const compact = rows.map(row => ({...row, raw_jd: undefined, vacancy_identity: vacancyIdentity(row)}));
+    for (const input of [rows, rows.toReversed(), compact, compact.toReversed()]) {
+      assert.equal(groupDuplicateJobs(input).length, 2);
+    }
+  });
+}
