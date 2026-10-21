@@ -3,6 +3,7 @@ import { timestamp } from "./job-time";
 import type { JobSummary } from "./contracts";
 import { createRepostLocationMatcher } from "./repost-locations";
 import { uniqueJobsById } from "./job-board-state";
+import { postingUrls, vacancyIdentity, type VacancyIdentity } from "./vacancy-identity";
 
 import type { GlobeJob } from "./globe-contract";
 export type DuplicateJobGroup<T extends GlobeJob = JobSummary> = { job: T & ListingPublicationEvidence; alternates: T[] };
@@ -12,10 +13,9 @@ export function normalizedIdentity(value: string): string {
 }
 
 // Only known role-specific routes: no generic careers/homepage URL identities.
-function roleKey(value: string | null): string | null {
-  if (!value) return null;
+function roleKey(value: URL): string | null {
   try {
-    const { hostname: host, pathname: path } = new URL(value);
+    const { hostname: host, pathname: path } = value;
     let match: RegExpMatchArray | null;
     if (/^(?:job-)?boards(?:\.eu)?\.greenhouse\.io$/u.test(host)
       && (match = path.match(/^\/([^/]+)\/jobs\/(\d+)\/?$/u))) {
@@ -37,13 +37,19 @@ function roleKey(value: string | null): string | null {
   return null;
 }
 
-function roleKeys(job: GlobeJob): string[] {
-  return [...new Set([roleKey(job.apply_url), roleKey(job.url)].filter((key): key is string => key !== null))];
+function roleKeys(urls: URL[]): string[] {
+  return [...new Set(urls.map(roleKey).filter((key): key is string => key !== null))];
 }
 
-type PreparedJob<T extends GlobeJob = GlobeJob> = { job: T; company: string; title: string; keys: string[] };
+type PreparedJob<T extends GlobeJob = GlobeJob> = { job: T; company: string; title: string; keys: string[]; identity: VacancyIdentity };
 function sameRole(a: PreparedJob, b: PreparedJob, locationsMatch: ReturnType<typeof createRepostLocationMatcher>): boolean {
   if (!a.company || a.company !== b.company) return false;
+  const left = a.identity, right = b.identity;
+  if (left.requisitions.length > 1 || right.requisitions.length > 1) return false;
+  if (left.requisitions.length && right.requisitions.length) return left.requisitions[0] === right.requisitions[0];
+  if (!left.requisitions.length && !right.requisitions.length && left.jd_fingerprint
+    && left.jd_fingerprint === right.jd_fingerprint) return true;
+  // A changed JD alone is not evidence of separate headcount; retain the heuristic.
   if (!locationsMatch(a.job.location, b.job.location)) return false;
   return a.keys.some(key => b.keys.includes(key)) || Boolean(a.title && a.title === b.title);
 }
@@ -69,14 +75,17 @@ export function groupDuplicateJobs<T extends GlobeJob>(jobs: T[]): DuplicateJobG
   const locationsMatch = createRepostLocationMatcher();
   for (const job of uniqueJobsById(jobs)) {
     const key = normalizedIdentity(job.company);
-    const prepared = { job, company: key, title: normalizedIdentity(job.title), keys: roleKeys(job) };
+    const urls = postingUrls(job);
+    const prepared = { job, company: key, title: normalizedIdentity(job.title), keys: roleKeys(urls), identity: job.vacancy_identity ?? vacancyIdentity(job, urls) };
     const bucket = buckets.get(key);
     if (bucket) bucket.push(prepared); else buckets.set(key, [prepared]);
   }
   return [...buckets.values()].flatMap(bucket => {
     const groups: PreparedJob<T>[][] = [];
-    // Complete linkage prevents missing-location bridges from merging different cities.
-    for (const job of bucket.sort((a, b) => a.job.id.localeCompare(b.job.id))) {
+    // Strong evidence groups first; weak rows must not split a known vacancy.
+    const strength = (job: PreparedJob) => job.identity.requisitions.length ? 2 : job.identity.jd_fingerprint ? 1 : 0;
+    // Complete linkage prevents unknown-evidence bridges from merging distinct vacancies.
+    for (const job of bucket.sort((a, b) => strength(b) - strength(a) || a.job.id.localeCompare(b.job.id))) {
       const group = groups.find(members => members.every(member => sameRole(member, job, locationsMatch)));
       if (group) group.push(job); else groups.push([job]);
     }
