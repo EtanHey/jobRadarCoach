@@ -77,7 +77,7 @@ test("one RPC fixes deletion/reordering and new-for-me cutoff for the entire req
   }, from: (table: string) => {
     assert.equal(table, "postings");
     return { select: (columns: string) => {
-      assert.equal(columns, "id,url,apply_url,raw_jd");
+      assert.equal(columns, "id,identity_evidence:raw_jd");
       return { in: async (column: string, ids: string[]) => {
         assert.equal(column, "id"); assert.deepEqual(ids, jobs.slice(0,4).map(j => j.id));
         return {data: [], error: null};

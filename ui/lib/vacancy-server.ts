@@ -3,18 +3,39 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GlobeJob } from "./globe-contract";
 import { JobIdSchema } from "./contracts";
-import { data } from "./server";
+import { HttpError } from "./http";
 import { uniqueJobsById } from "./job-board-state";
+import { normalizedIdentity } from "./job-dedup";
 import { vacancyIdentity } from "./vacancy-identity";
 
-// The marker RPC intentionally omits JD bodies. Fetch evidence only for its captured IDs.
-export async function withVacancyIdentity(db: SupabaseClient, jobs: GlobeJob[]): Promise<GlobeJob[]> {
-  const identities = new Map<string, ReturnType<typeof vacancyIdentity>>();
-  const schema = z.array(z.object({ id: JobIdSchema, url: z.string(), apply_url: z.string().nullable(), raw_jd: z.string().nullable() }));
+export function vacancyBodyCandidates<T extends GlobeJob>(jobs: T[]): T[] {
   const unique = uniqueJobsById(jobs);
-  for (let offset = 0; offset < unique.length; offset += 100) {
-    const rows = schema.parse(await data(db.from("postings").select("id,url,apply_url,raw_jd").in("id", unique.slice(offset, offset + 100).map(job => job.id))));
-    for (const row of rows) identities.set(row.id, vacancyIdentity(row));
+  const employers = new Map<string, number>();
+  for (const job of unique) {
+    const employer = normalizedIdentity(job.company);
+    employers.set(employer, (employers.get(employer) ?? 0) + 1);
+  }
+  return unique.filter(job => (employers.get(normalizedIdentity(job.company)) ?? 0) >= 2
+    && vacancyIdentity(job).requisitions.length === 0);
+}
+
+// Membership projections stay body-free; only unresolved repeated employers need JD evidence.
+export async function withVacancyIdentity<T extends GlobeJob>(db: SupabaseClient, jobs: T[]): Promise<T[]> {
+  const identities = new Map(jobs.map(job => [job.id, vacancyIdentity(job)]));
+  const candidates = vacancyBodyCandidates(jobs);
+  const selected = candidates.slice(0, 300);
+  if (candidates.length > selected.length) {
+    console.warn("Vacancy identity body fetch capped", {
+      candidates: candidates.length, fetched: selected.length, skipped: candidates.length - selected.length,
+    });
+  }
+  const schema = z.array(z.object({ id: JobIdSchema, identity_evidence: z.string().nullable() }));
+  for (let offset = 0; offset < selected.length; offset += 100) {
+    const batch = selected.slice(offset, offset + 100);
+    const response = await db.from("postings").select("id,identity_evidence:raw_jd").in("id", batch.map(job => job.id));
+    if (response.error) throw new HttpError(503, "Database request failed.", "database");
+    const bodies = new Map(schema.parse(response.data).map(row => [row.id, row.identity_evidence]));
+    for (const job of batch) identities.set(job.id, vacancyIdentity({ ...job, raw_jd: bodies.get(job.id) }));
   }
   return jobs.map(job => ({ ...job, vacancy_identity: identities.get(job.id) ?? vacancyIdentity(job) }));
 }
