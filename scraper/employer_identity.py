@@ -5,40 +5,72 @@ import re
 
 from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
+from scraper.employer_aliases import is_alias
 
-VERSION = '1'
+VERSION = '2'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed against all 57 family-2 evidence IDs; these are publishers, not clients.
 NAME = r'(?P<name>[A-Z][\w·&.,’\'() \t-]{0,78}?)'
 PATTERNS = [
     re.compile(r'^(?:Recruiting |Hiring |We are recruiting )?on behalf of\s+\*{0,2}' + NAME + r'\*{0,2}(?=\s+(?:for|is|are|we)\b|[,:;\n]|$)', re.M),
     re.compile(r'^(?:Our|our) client[,:]?\s+\*{0,2}' + NAME + r'\*{0,2}(?=\s+(?:is|are|has|seeks)\b|[,;\n]|$)', re.M),
-    re.compile(r'^\*{0,2}' + NAME + r'\*{0,2}\s+(?:is (?:the employer|hiring|looking for|seeking)|are hiring)\b[^\n]*', re.M),
+    re.compile(r'^\*{0,2}' + NAME + r'\*{0,2}(?: in [A-Z][\w ,.-]{0,60}?)?\s+(?:is (?:the employer|hiring|looking for|seeking)|are hiring)\b[^\n]*', re.M),
     re.compile(r'^\*{0,2}About (?:[Tt]he )?[Cc]ompany\*{0,2}\s*\n+\*{0,2}' + NAME + r'\*{0,2}\s+(?:is|provides|develops|builds)\b[^\n]*', re.M),
 ]
 GENERIC = {'we', 'our', 'the company', 'this company', 'the client', 'a company', 'you'}
 
 
+# Explicit intermediary descriptions, not mere mentions of recruitment tools.
+INTERMEDIARY = re.compile(
+    r"\b(?:staffing|recruiting|recruitment) (?:firm|agency|company)\b"
+    r"|\bprovider of (?:[\w-]+ ){0,3}staffing solutions\b|\bstaffing industry\b"
+    r"|\b(?:join|for|on behalf of) (?:a|an) (?:[\w-]+ ){0,3}(?:organization|client|company)\b",
+    re.I,
+)
+AGENCY_STATEMENT = re.compile(r'^.*\b(?:our client(?=[:,*]|\s+is\b|\s*$)|on behalf of (?:our|an? unnamed) client)\b[^\n]*', re.I | re.M)
+ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
+
+
 def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, object]:
-    """Missing evidence stays unknown; a publisher's absence from the list proves nothing."""
+    """Prefer role-linked names; absence of agency evidence never proves directness."""
     opening = '\n'.join(raw_jd.splitlines()[:32])[:2000]
-    candidates: dict[str, tuple[str, str]] = {}
-    for pattern in PATTERNS:
+    role_heading = ROLE_HEADING.search(opening)
+    role_names: dict[str, tuple[str, str]] = {}
+    blurb_names: dict[str, tuple[str, str]] = {}
+    agency_statement = AGENCY_STATEMENT.search(opening)
+    agency_evidence = agency_statement[0] if agency_statement else None
+    intermediary_seen = False
+    role_intermediary_seen = False
+    for index, pattern in enumerate(PATTERNS):
         for match in pattern.finditer(opening):
             name = match['name'].strip(' .,')
             words = name.split()
             if (name.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
                     or name.casefold() in GENERIC
-                    or any(word[0].islower() and word not in {'of', 'the', 'and'} for word in words)
-                    or name.casefold() in PUBLISHER_KEYS):
+                    or any(word[0].islower() and word not in {'of', 'the', 'and'} for word in words)):
+                continue
+            is_blurb = index == 3 or (index == 2 and role_heading is not None
+                                     and match.start() < role_heading.start())
+            if (name.casefold() in PUBLISHER_KEYS
+                    or re.search(r"\b(?:staffing|recruiting|recruitment)\b", name, re.I)
+                    or INTERMEDIARY.search(match[0])):
+                agency_evidence = match[0]
+                intermediary_seen = True
+                role_intermediary_seen |= not is_blurb
                 continue
             if re.match(re.escape(publisher) + r"(?:\b|[’'])", name, re.I):
                 name = publisher
+            candidates = blurb_names if is_blurb else role_names
             candidates[name.casefold()] = (name, match[0])
     employer, evidence = None, None
+    candidates = role_names if role_names or role_intermediary_seen else blurb_names
     if len(candidates) == 1:
         employer, evidence = next(iter(candidates.values()))
-    elif not candidates and source in ATS_SOURCES and publisher.casefold() not in PUBLISHER_KEYS:
+    elif not candidates and not intermediary_seen and source in ATS_SOURCES and publisher.casefold() not in PUBLISHER_KEYS:
         employer, evidence = publisher, f'source:{source}; company:{publisher}'
+    relationship = ('unknown' if employer is None else
+                    'unchanged' if employer.casefold() == publisher.casefold() else
+                    'alias' if is_alias(publisher, employer) else 'resolved-different')
     return {'publisher': publisher, 'hiring_employer': employer,
-            'employer_evidence': evidence, 'resolver_version': VERSION}
+            'employer_evidence': evidence, 'resolver_version': VERSION,
+            'relationship': relationship, 'agency_evidence': agency_evidence}

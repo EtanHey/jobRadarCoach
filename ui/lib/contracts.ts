@@ -55,6 +55,8 @@ export const LinkedInRepostedSignalSchema = LinkedInClosedSignalSchema.omit({ ph
 export const EmployerIdentitySchema = z.object({
   publisher: text, hiring_employer: nullableText, employer_evidence: nullableText,
   resolver_version: text,
+  relationship: z.enum(["resolved-different", "alias", "unknown", "unchanged"]).optional(),
+  agency_evidence: nonblank.nullable().optional(),
 }).refine(value => value.hiring_employer === null || value.employer_evidence !== null);
 
 export const JobSummarySchema = z.object({
