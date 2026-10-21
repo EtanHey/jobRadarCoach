@@ -1295,10 +1295,8 @@ def load_source_queries(
     return parsed
 
 
-def load_registry_source_queries(
-    *, source_funnel: dict[str, dict[str, int]] | None = None,
-) -> dict[str, list[dict[str, str]]]:
-    """Load adapter-shaped queries from the reviewed ATS tenant registry."""
+def _load_registry_report():
+    """Load the registry and its UTC validation snapshot."""
     path = SCRIPT_DIR / "source_registry.py"
     spec = importlib.util.spec_from_file_location("coach_jobfeed_source_registry", path)
     if spec is None or spec.loader is None:
@@ -1307,26 +1305,36 @@ def load_registry_source_queries(
     spec.loader.exec_module(module)
     today = module.datetime.now(timezone.utc).date()
     report = module.load_registry(as_of=today)
-    if source_funnel is not None:
-        for status, entries in (("eligible", report.valid), ("stale", report.stale),
-                                ("disabled", report.disabled), ("invalid", report.invalid)):
-            for entry in entries:
-                source = str(entry["source"])
-                counters = source_funnel.get(source)
-                if counters is None and status == "invalid" and source not in SOURCE_ORDER:
-                    # Invalid source names cannot be selected for harvest, but
-                    # must still appear in receipts (missing names are "unknown").
-                    counters = source_funnel.setdefault(source, _empty_source_funnel())
-                if counters is None:
-                    continue
-                counters["registered"] += 1
-                counters[status] += 1
-                if status == "eligible":
-                    verified = module._parse_verified_date(entry["last_verified_at"])
-                    # Age == max_age_days is still eligible; it expires tomorrow.
-                    days_until_excluded = module.DEFAULT_MAX_AGE_DAYS + 1 - (today - verified).days
-                    counters["expiring_within_7d"] += days_until_excluded <= 7
+    return module, today, report
+
+
+def load_registry_source_queries() -> dict[str, list[dict[str, str]]]:
+    """Load adapter-shaped queries from the reviewed ATS tenant registry."""
+    _module, _today, report = _load_registry_report()
     return report.source_queries()
+
+
+def _populate_registry_source_funnel(source_funnel: dict[str, dict[str, int]]) -> None:
+    """Measure registry eligibility without changing the query-loader contract."""
+    module, today, report = _load_registry_report()
+    for status, entries in (("eligible", report.valid), ("stale", report.stale),
+                            ("disabled", report.disabled), ("invalid", report.invalid)):
+        for entry in entries:
+            source = str(entry["source"])
+            counters = source_funnel.get(source)
+            if counters is None and status == "invalid" and source not in SOURCE_ORDER:
+                # Invalid source names cannot be selected for harvest, but
+                # must still appear in receipts (missing names are "unknown").
+                counters = source_funnel.setdefault(source, _empty_source_funnel())
+            if counters is None:
+                continue
+            counters["registered"] += 1
+            counters[status] += 1
+            if status == "eligible":
+                verified = module._parse_verified_date(entry["last_verified_at"])
+                # Age == max_age_days is still eligible; it expires tomorrow.
+                days_until_excluded = module.DEFAULT_MAX_AGE_DAYS + 1 - (today - verified).days
+                counters["expiring_within_7d"] += days_until_excluded <= 7
 
 
 def _empty_source_funnel() -> dict[str, int]:
@@ -2264,7 +2272,8 @@ def run_pipeline(  # skipcq: PY-R1000
                 load_source_queries(
                     config_path, warning_sink=source_config_warnings.append
                 )
-            source_queries = load_registry_source_queries(source_funnel=source_funnel)
+            source_queries = load_registry_source_queries()
+            _populate_registry_source_funnel(source_funnel)
         except Exception as error:
             source_queries = {}
             source_config_warnings.append(str(error))
