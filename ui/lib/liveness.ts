@@ -6,8 +6,8 @@ export const LivenessSchema = z.object({
   application_deadline: z.iso.datetime({ offset: true }).nullable(),
 });
 
-// Matches the hourly ats-liveness.yml cadence; delays become visible uncertainty.
-export const LIVENESS_FRESH_MS = 60 * 60 * 1000;
+// Hourly ats-liveness.yml checks every ATS row; allow one skipped run plus scheduling jitter.
+export const LIVENESS_FRESH_MS = 3 * 60 * 60 * 1000;
 const instant = z.iso.datetime({ offset: true });
 function timestamp(value: unknown): string | null {
   return instant.safeParse(value).data ?? null;

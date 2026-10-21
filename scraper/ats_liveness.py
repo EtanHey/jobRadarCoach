@@ -25,7 +25,8 @@ LEVER_BOARD_CAP = 16_000_000
 STRIKE_SPACING = timedelta(minutes=45)
 URL_UNKNOWN_LIMIT = 3
 URL_BACKOFF = timedelta(hours=24)
-LIVENESS_FRESH_FOR = timedelta(hours=1)  # ats-liveness.yml runs hourly.
+# Hourly ats-liveness.yml checks every ATS row; allow one skipped run plus scheduling jitter.
+LIVENESS_FRESH_FOR = timedelta(hours=3)
 GREENHOUSE_PAGE_HOSTS = {"job-boards.greenhouse.io", "job-boards.eu.greenhouse.io",
                          "boards.greenhouse.io", "boards.eu.greenhouse.io"}
 

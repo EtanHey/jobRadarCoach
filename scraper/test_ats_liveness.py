@@ -39,7 +39,7 @@ def test_expired_check_is_not_displayed_alive():
     from datetime import datetime, timezone
     from scraper.ats_liveness import project_liveness
 
-    state = {"alive": True, "liveness_checked_at": "2026-10-22T08:59:59Z"}
+    state = {"alive": True, "liveness_checked_at": "2026-10-22T06:59:59Z"}
     projected = project_liveness(state, now=datetime(2026, 10, 22, 10, tzinfo=timezone.utc))
     assert projected["state"] == "stale" and projected["alive"] is None
     assert state["alive"] is True

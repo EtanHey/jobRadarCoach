@@ -1,7 +1,9 @@
 [
+  {"name":"2h59m confirmed","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T07:01:00Z","last_attempt_verdict":"alive"},"state":"confirmed","alive":true},
+  {"name":"3h01m stale","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T06:59:00Z","last_attempt_verdict":"alive"},"state":"stale","alive":null},
   {"name":"fresh legacy success","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z"},"state":"confirmed","alive":true},
-  {"name":"hour inclusive","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:00:00Z","last_attempt_verdict":"alive"},"state":"confirmed","alive":true},
-  {"name":"hour exceeded","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T08:59:59Z"},"state":"stale","alive":null},
+  {"name":"three hours inclusive","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T07:00:00Z","last_attempt_verdict":"alive"},"state":"confirmed","alive":true},
+  {"name":"three hours exceeded","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T06:59:59Z"},"state":"stale","alive":null},
   {"name":"unknown after success","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","last_attempt_verdict":"unknown"},"state":"stale","alive":null},
   {"name":"pending miss","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","last_attempt_verdict":"pending"},"state":"stale","alive":null},
   {"name":"duplicate cannot refresh","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","last_attempt_verdict":"duplicate-snapshot"},"state":"stale","alive":null},

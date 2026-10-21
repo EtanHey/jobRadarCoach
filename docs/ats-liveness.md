@@ -6,8 +6,11 @@ Historical `postings.liveness.alive` remains conclusive evidence, never a promis
 of current availability. Read-time projections in `scraper.ats_liveness.project_liveness`
 and `ui/lib/liveness.ts` share regression fixtures. They expose `confirmed` only
 for a positive observation with a valid, nonfuture `liveness_checked_at` no more
-than **one hour** old and a latest verdict of `alive` (or no verdict on legacy
-evidence). One hour matches the configured hourly ATS cadence. Schedule delays
+than **three hours** old and a latest verdict of `alive` (or no verdict on legacy
+evidence). Every ATS row is checked on each configured hourly run. The three-hour
+window tolerates one skipped hourly run plus scheduling jitter; scheduled runs can
+drift or skip, so the cron cadence is not a delivery guarantee. Successes at 2h59m
+and exactly 3h remain confirmed; at 3h01m they are stale. Delays beyond the window
 surface as uncertainty. Unknown, pending, duplicate snapshots, missing/invalid
 timestamps, and older successes are `stale`; they never close a posting.
 
