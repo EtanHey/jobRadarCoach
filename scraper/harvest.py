@@ -1425,22 +1425,40 @@ def _contains_normalized_phrase(text: str, phrase: str) -> bool:
     )
 
 
+# Code-owned country scope for city-only ATS locations. Profile aliases are additive.
+COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "israel": (
+        "Tel Aviv", "Tel Aviv-Yafo", "Herzliya", "Ramat Gan", "Petah Tikva",
+        "Haifa", "Jerusalem", "Ra'anana", "Hod Hasharon", "Netanya",
+        "Rehovot", "Kfar Saba", "Be'er Sheva", "Yokneam",
+        "תל אביב", "תל אביב-יפו", "הרצליה", "רמת גן", "פתח תקווה",
+        "חיפה", "ירושלים", "רעננה", "הוד השרון", "נתניה", "רחובות",
+        "כפר סבא", "באר שבע", "יקנעם",
+    ),
+    "united states": ("San Francisco, CA",),
+}
+
+
+def _normalized_location(value: object) -> str:
+    return " ".join(re.sub(r"[\W_]+", " ", str(value).casefold()).split())
+
+
 def _location_matches(
     posting: dict[str, object],
     geography: str,
     location_terms: dict[str, object],
 ) -> bool:
-    location = _normalized_identity(posting.get("location", ""))
+    location = _normalized_location(posting.get("location", ""))
     if geography.strip().casefold() == "remote":
         return posting.get("remote") is True or "remote" in location.split()
     aliases = location_terms.get(geography, [])
-    terms = [geography]
+    terms = [geography, *COUNTRY_CITY_ALIASES.get(_normalized_location(geography), ())]
     if isinstance(aliases, list):
         terms.extend(alias for alias in aliases if isinstance(alias, str))
     return any(
         _contains_normalized_phrase(location, normalized)
         for term in terms
-        if (normalized := _normalized_identity(term))
+        if (normalized := _normalized_location(term))
     )
 
 
