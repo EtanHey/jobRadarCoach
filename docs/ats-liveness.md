@@ -1,5 +1,34 @@
 # ATS availability
 
+## Display freshness
+
+Historical `postings.liveness.alive` remains conclusive evidence, never a promise
+of current availability. Read-time projections in `scraper.ats_liveness.project_liveness`
+and `ui/lib/liveness.ts` share regression fixtures. They expose `confirmed` only
+for a positive observation with a valid, nonfuture `liveness_checked_at` no more
+than **one hour** old and a latest verdict of `alive` (or no verdict on legacy
+evidence). One hour matches the configured hourly ATS cadence. Schedule delays
+surface as uncertainty. Unknown, pending, duplicate snapshots, missing/invalid
+timestamps, and older successes are `stale`; they never close a posting.
+
+Explicit historical `alive=false` stays `closed`, even after uncertainty. Otherwise,
+a normalized `liveness.application_deadline` strictly before now takes precedence
+as `deadline_passed`. The hook accepts a zoned ISO timestamp with a full year;
+equality is still within the deadline. An explicit later deadline can supersede it.
+No current extraction schema or source adapter parses an application deadline:
+the cited triage deadline exists only in JD prose. This change adds the projection
+hook and fixture coverage; deadline extraction remains a separate task.
+
+List and detail responses return fresh `alive=true` only for `confirmed`,
+`alive=false` only for `closed`, and `alive=null` for stale/deadline-passed evidence.
+Cards and the shared drawer show the confirmation age or deadline/closure state.
+Slim globe/new-role RPCs omit confirmation evidence, so historical positives are
+conservatively unknown until card hydration. Existing Active filtering still means
+not conclusively closed; stale rows remain visible with their uncertainty label.
+There is no schema migration or production-data rewrite.
+
+## Reliability checks
+
 Ongoing liveness uses an hourly tenant-wide run (`ats-liveness.yml`, minute 37, plus 0–60s start jitter). The six-hour scrape keeps its bounded LinkedIn URL recheck; it does not duplicate ATS checks. The hourly workflow has its own `ats-liveness` concurrency group, while the scrape uses `cloud-scrape`; optimistic row guards protect overlapping writes. GitHub schedules can be delayed; hourly is the configured cadence, not a delivery SLA.
 
 `python -m scraper.recheck --scope ats --jitter` selects every stored ATS row, including inactive rows, with one cached complete active-list retrieval per tenant per run. Lever uses its unfiltered list endpoint without skip/limit, avoiding offset races and individual API lookups for routine misses. Greenhouse uses its [shared public API](https://docs.greenhouse.io/job-board.html); Lever uses [published postings with pagination](https://github.com/lever/postings-api). Comeet/Workable use the harvest adapters' board formats. `--limit 60` bounds only LinkedIn checks; `--scope linkedin` retains their existing behavior.

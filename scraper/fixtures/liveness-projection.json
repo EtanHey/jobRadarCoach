@@ -1,0 +1,21 @@
+[
+  {"name":"fresh legacy success","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z"},"state":"confirmed","alive":true},
+  {"name":"hour inclusive","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:00:00Z","last_attempt_verdict":"alive"},"state":"confirmed","alive":true},
+  {"name":"hour exceeded","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T08:59:59Z"},"state":"stale","alive":null},
+  {"name":"unknown after success","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","last_attempt_verdict":"unknown"},"state":"stale","alive":null},
+  {"name":"pending miss","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","last_attempt_verdict":"pending"},"state":"stale","alive":null},
+  {"name":"duplicate cannot refresh","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","last_attempt_verdict":"duplicate-snapshot"},"state":"stale","alive":null},
+  {"name":"closure survives unknown","evidence":{"alive":false,"last_attempt_verdict":"unknown"},"state":"closed","alive":false},
+  {"name":"deadline overrides success","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","application_deadline":"2026-10-18T23:59:59Z"},"state":"deadline_passed","alive":null},
+  {"name":"deadline without presence","evidence":{"application_deadline":"2026-10-18T23:59:59Z"},"state":"deadline_passed","alive":null},
+  {"name":"deadline inclusive","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","application_deadline":"2026-10-22T10:00:00Z"},"state":"confirmed","alive":true},
+  {"name":"deadline extended","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","application_deadline":"2026-10-23T00:00:00Z"},"state":"confirmed","alive":true},
+  {"name":"missing success timestamp","evidence":{"alive":true},"state":"stale","alive":null},
+  {"name":"invalid timestamp","evidence":{"alive":true,"liveness_checked_at":"garbage"},"state":"stale","alive":null},
+  {"name":"future success","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T10:00:01Z"},"state":"stale","alive":null},
+  {"name":"zoned timestamp","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T12:30:00+03:00"},"state":"confirmed","alive":true},
+  {"name":"naive success rejected","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00"},"state":"stale","alive":null},
+  {"name":"unparsed deadline ignored","evidence":{"alive":true,"liveness_checked_at":"2026-10-22T09:30:00Z","application_deadline":"October 18th"},"state":"confirmed","alive":true},
+  {"name":"missing presence","evidence":{},"state":"stale","alive":null},
+  {"name":"malformed presence","evidence":{"alive":"true","liveness_checked_at":"2026-10-22T09:30:00Z"},"state":"stale","alive":null}
+]
