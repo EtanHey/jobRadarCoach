@@ -1756,6 +1756,77 @@ def test_city_aliases_respect_location_segments_and_country(geography, location,
     )
 
 
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        ("Tel Aviv (in-office)", True),
+        ("Tel Aviv / Remote or Hybrid", True),
+        ("Tel Aviv, hybrid in office", True),
+        ("Jerusalem office, IL 60137", False),
+        ("IL-JM, IL 60137", False),
+    ],
+)
+def test_israel_city_review_reproductions(location, expected) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": location}
+    searches = [{"keywords": "Software Engineer", "location": "Israel"}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == (
+        [posting] if expected else []
+    )
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "in office", "remote or hybrid", "contact me", "oh so flexible",
+        "ok with hybrid", "say hi to the team", "chef de mission", "a la carte",
+        "IN OFFICE", "REMOTE OR HYBRID", "in", "or", "me", "oh", "ok", "hi", "de", "la",
+    ],
+)
+def test_israel_city_work_description_is_not_a_country_code(description) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": f"Tel Aviv / {description}"}
+    searches = [{"keywords": "Software Engineer", "location": "Israel"}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == [posting]
+
+
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        ("Tel Aviv, IN", False),
+        ("Tel Aviv / OR", False),
+        ("Jerusalem office, ME", False),
+        ("Jerusalem office / OH", False),
+        ("Haifa, OK", False),
+        ("Haifa / HI", False),
+        ("Tel Aviv, DE", False),
+        ("Tel Aviv / LA", False),
+        ("Tel Aviv (IN OFFICE)", True),
+        ("Tel Aviv (OR)", True),
+        ("Herzliya, IL", True),
+        ("Jerusalem office, Israel", True),
+        ("IL-JM, IL", True),
+        ("Jerusalem office, IL 60137-1234", False),
+        ("IL-JM / IL 60137-1234", False),
+        ("Jerusalem office, il 60137", False),
+        ("Jerusalem office, OH 43747", False),
+        ("Jerusalem office, IN 46001", False),
+        ("Jerusalem office, IL 1234", True),
+        ("Jerusalem office, IL 123456", True),
+    ],
+)
+def test_israel_city_short_codes_require_geographic_context(location, expected) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": location}
+    searches = [{"keywords": "Software Engineer", "location": "Israel"}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == (
+        [posting] if expected else []
+    )
+
+
 def test_country_city_aliases_merge_with_profile_location_terms() -> None:
     harvest = load_harvest_module()
     postings = [

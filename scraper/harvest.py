@@ -1761,6 +1761,25 @@ def _city_matches_country(raw_location: object, country: str) -> bool:
     conflicting_identifiers = COUNTRY_IDENTIFIERS - own_identifiers
     if country != "united states":
         conflicting_identifiers |= US_STATE_IDENTIFIERS - own_identifiers
+    if country == "israel":
+        # Bare short codes are geographic only as uppercase comma/slash fields.
+        # Preserve raw case so prose such as "in-office" or "remote or hybrid"
+        # cannot become IN (India/Indiana) or OR (Oregon) after normalization.
+        for part in re.split(r"[,/]", str(raw_location)):
+            code = part.strip()
+            if re.fullmatch(r"[A-Z]{2}", code) and code.casefold() in conflicting_identifiers:
+                return False
+        # A US state code with a ZIP disambiguates IL as Illinois, not Israel.
+        if any(
+            match.group(1).casefold() in US_STATE_IDENTIFIERS
+            for match in re.finditer(
+                r"\b([A-Za-z]{2})\s+[0-9]{5}(?:-[0-9]{4})?\b", str(raw_location)
+            )
+        ):
+            return False
+        conflicting_identifiers = frozenset(
+            identifier for identifier in conflicting_identifiers if len(identifier) != 2
+        )
     for index, segment in enumerate(segments):
         if index in city_indices or segment in own_identifiers:
             continue
