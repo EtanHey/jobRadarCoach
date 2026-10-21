@@ -2,10 +2,10 @@ import { GOOD_FIT_SCORE } from "./view-options";
 import type { JobSummary } from "./contracts";
 
 /** Recommendations and score are distinct: a stretch role can still merit review. */
-export function matchesFit(job: Pick<JobSummary, "score" | "recommendation">, filter: string): boolean {
+export function matchesFit(job: Pick<JobSummary, "score" | "recommendation" | "eligibility">, filter: string): boolean {
   switch (filter) {
     case "": return true;
-    case "recommended": return job.score !== null && ["apply", "referral", "review"].includes(job.recommendation ?? "");
+    case "recommended": return job.eligibility !== "blocked" && job.score !== null && ["apply", "referral", "review"].includes(job.recommendation ?? "");
     case "skip": return job.score !== null && job.recommendation === "skip";
     case "good": return job.score !== null && job.score >= GOOD_FIT_SCORE;
     case "scored": return job.score !== null;

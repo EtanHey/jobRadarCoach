@@ -13,7 +13,8 @@ def test_archive_exclusion_and_score_anyway():
             db.execute("insert into postings(id,source,external_id,url,title,company,relevance_gate) values(%s,'synthetic',%s,'https://example.test/job','Engineer','Example',%s::jsonb)", (id,id,'{"version":"test","rule":"leadership-title-strict"}' if filtered else '{}'))
             db.execute("insert into posting_status(posting_id,status) values(%s,'new')", (id,))
         for filter in ['all', 'new-for-me', 'seen', 'not-scored']:
-            if filter == 'seen':db.execute("update posting_status set status='seen'")
+            if filter == 'seen':
+                db.execute("update posting_status set status='seen'")
             rows = db.execute("select id::text from board_postings(%s,'all','','{}','found',1,'')",(filter,)).fetchall()
             assert rows == [(ids[0] if filter == 'not-scored' else ids[1],)]
             globe = db.execute("select get_globe_markers(%s,'all')",(filter,)).fetchone()[0]
@@ -31,6 +32,7 @@ def test_scored_archive_override_queues_exactly_one_analysis():
     from scraper.relevance import refresh_gate
     migrations=Path(__file__).parents[1]/'supabase/migrations'
     with migrated_database(migrations,through=29) as url,psycopg.connect(url) as db:
+        db.execute((migrations / '0037_location_eligibility_payload.sql').read_text())
         id=seed(db,status='new')
         db.execute("update postings set raw_jd=raw_jd || ' Applicants should already be based in United States.' where id=%s",(id,))
         assert score_and_persist(db,id,brain_runner=runner)=='stored'

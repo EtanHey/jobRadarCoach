@@ -36,6 +36,8 @@ py-modules = [
   "extractor.payload",
   "extractor.persistence",
   "scraper.annotate",
+  "scraper.eligibility",
+  "scraper.geography",
   "scraper.relevance",
   "scraper.ats_sources",
   "scraper.brain",
