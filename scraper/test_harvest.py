@@ -1679,6 +1679,51 @@ def test_city_only_us_location_passes_united_states_search() -> None:
     assert harvest.filter_source_postings([posting], searches, {}) == [posting]
 
 
+@pytest.mark.parametrize(
+    ("geography", "location", "expected"),
+    [
+        ("Israel", "Jerusalem, NY, United States", False),
+        ("Israel", "Jerusalem, Ohio, USA", False),
+        ("Israel", "New Jerusalem, Pennsylvania, United States", False),
+        ("United States", "San Francisco, Cordoba, Argentina", False),
+        ("United States", "San Francisco, CA, Argentina", False),
+        ("Israel", "Tel Aviv, Israel", True),
+        ("Israel", "Jerusalem, Israel", True),
+        ("Israel", "Jerusalem, NY", False),
+        ("Israel", "Jerusalem, Ohio", False),
+        ("Israel", "Jerusalem, US", False),
+        ("Israel", "Jerusalem, U.S.A.", False),
+        ("Israel", "Jerusalem, GB", False),
+        ("Israel", "Jerusalem, United Kingdom", False),
+        ("Israel", "Jerusalem, Canada", False),
+        ("Israel", "Jerusalem, CAN", False),
+        ("Israel", "Jerusalem, Georgia", False),
+        ("Israel", "New Jerusalem", False),
+        ("Israel", "Jerusalem Heights", False),
+        ("Israel", "Jerusalem / Ohio / USA", False),
+        ("Israel", "Jerusalem (Ohio)", False),
+        ("Israel", "Jerusalem - United States", False),
+        ("Israel", "Jerusalem, Jerusalem District", True),
+        ("Israel", "Jerusalem, IL", True),
+        ("United States", "San Francisco, CA, AR", False),
+        ("United States", "San Francisco, CA, ARG", False),
+        ("United States", "New San Francisco, CA", False),
+        ("United States", "San Francisco, CA, Canada", False),
+        ("United States", "San Francisco, CA, Israel", False),
+        ("United States", "San Francisco, CA, US", True),
+        ("United States", "San Francisco, CA, USA", True),
+    ],
+)
+def test_city_aliases_respect_location_segments_and_country(geography, location, expected) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": location}
+    searches = [{"keywords": "Software Engineer", "location": geography}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == (
+        [posting] if expected else []
+    )
+
+
 def test_country_city_aliases_merge_with_profile_location_terms() -> None:
     harvest = load_harvest_module()
     postings = [
