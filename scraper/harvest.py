@@ -1295,7 +1295,9 @@ def load_source_queries(
     return parsed
 
 
-def load_registry_source_queries() -> dict[str, list[dict[str, str]]]:
+def load_registry_source_queries(
+    *, source_funnel: dict[str, dict[str, int]] | None = None,
+) -> dict[str, list[dict[str, str]]]:
     """Load adapter-shaped queries from the reviewed ATS tenant registry."""
     path = SCRIPT_DIR / "source_registry.py"
     spec = importlib.util.spec_from_file_location("coach_jobfeed_source_registry", path)
@@ -1303,7 +1305,49 @@ def load_registry_source_queries() -> dict[str, list[dict[str, str]]]:
         raise RuntimeError(f"Unable to load source registry: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.load_registry().source_queries()
+    today = module.datetime.now(timezone.utc).date()
+    report = module.load_registry(as_of=today)
+    if source_funnel is not None:
+        for status, entries in (("eligible", report.valid), ("stale", report.stale),
+                                ("disabled", report.disabled), ("invalid", report.invalid)):
+            for entry in entries:
+                counters = source_funnel.get(str(entry["source"]))
+                if counters is None:
+                    continue
+                counters["registered"] += 1
+                counters[status] += 1
+                if status == "eligible":
+                    verified = module._parse_verified_date(entry["last_verified_at"])
+                    # Age == max_age_days is still eligible; it expires tomorrow.
+                    days_until_excluded = module.DEFAULT_MAX_AGE_DAYS + 1 - (today - verified).days
+                    counters["expiring_within_7d"] += days_until_excluded <= 7
+    return report.source_queries()
+
+
+def _empty_source_funnel() -> dict[str, int]:
+    return dict.fromkeys((
+        "registered", "eligible", "stale", "disabled", "invalid", "expiring_within_7d",
+        "requested", "filtered", "inserted_new", "updated_existing",
+    ), 0)
+
+
+def _source_funnel_warnings(
+    source_funnel: dict[str, dict[str, int]],
+    parsed_counts: dict[str, int], matched_counts: dict[str, int],
+) -> list[str]:
+    warnings = []
+    for source, counts in source_funnel.items():
+        if counts["registered"] > 0 and counts["eligible"] == 0:
+            warnings.append(f"{source}: registered={counts['registered']} but eligible=0 "
+                            f"(stale={counts['stale']}, disabled={counts['disabled']}, invalid={counts['invalid']})")
+        if parsed_counts[source] > 0 and matched_counts[source] == 0:
+            warnings.append(f"{source}: parsed={parsed_counts[source]} but matched=0; "
+                            f"filtered={counts['filtered']}")
+        if counts["expiring_within_7d"]:
+            warnings.append(f"{source}: expiring_within_7d={counts['expiring_within_7d']}")
+    for message in warnings:
+        LOGGER.warning("%s", message)
+    return warnings
 
 
 def load_source_adapter(name: str):
@@ -1324,6 +1368,7 @@ def harvest_sources(
     before_request: Callable[[], None],
     posting_filter: Callable[[dict[str, object]], bool] | None = None,
     fetch_counts: dict[str, int] | None = None,
+    source_funnel: dict[str, dict[str, int]] | None = None,
 ) -> tuple[list[dict[str, object]], int]:
     postings: list[dict[str, object]] = []
     warnings = 0
@@ -1337,6 +1382,8 @@ def harvest_sources(
             LOGGER.warning("Keeping feed after %s adapter failure: %s", name, error)
             continue
         for query in source_queries.get(name, []):
+            if source_funnel is not None:
+                source_funnel[name]["requested"] += 1
             try:
                 prefilter_count = 0
                 adapter_kwargs = {
@@ -2199,6 +2246,10 @@ def run_pipeline(  # skipcq: PY-R1000
         fit_terms = profile["fit_terms"]
         assert isinstance(fit_terms, set)
         location_terms = {}
+    source_funnel = {name: _empty_source_funnel() for name in SOURCE_ORDER
+                     if name == "linkedin" or name in enabled_sources}
+    source_funnel["linkedin"]["registered"] = len(searches)
+    source_funnel["linkedin"]["eligible"] = len(searches)
     source_config_warnings: list[str] = []
     if enabled_sources:
         try:
@@ -2208,7 +2259,7 @@ def run_pipeline(  # skipcq: PY-R1000
                 load_source_queries(
                     config_path, warning_sink=source_config_warnings.append
                 )
-            source_queries = load_registry_source_queries()
+            source_queries = load_registry_source_queries(source_funnel=source_funnel)
         except Exception as error:
             source_queries = {}
             source_config_warnings.append(str(error))
@@ -2221,12 +2272,16 @@ def run_pipeline(  # skipcq: PY-R1000
     linkedin_fetched_count = 0
     linkedin_matched_count = 0
     warning_count = len(source_config_warnings)
+    def counted_linkedin_request():
+        source_funnel["linkedin"]["requested"] += 1
+        before_request()
+
     for search in searches:
         page_postings, page_warnings = harvest_search(
             search,
             max_pages=max_pages,
             fetcher=fetcher,
-            before_request=before_request,
+            before_request=counted_linkedin_request,
         )
         linkedin_fetched_count += len(page_postings)
         matched_page = [
@@ -2248,6 +2303,7 @@ def run_pipeline(  # skipcq: PY-R1000
             posting, searches, location_terms
         ),
         fetch_counts=source_fetch_counts,
+        source_funnel=source_funnel,
     )
     source_postings = filter_source_postings(
         source_postings, searches, location_terms
@@ -2258,6 +2314,11 @@ def run_pipeline(  # skipcq: PY-R1000
     warning_count += source_warnings + count_missing_source_jds(source_postings)
     fetched_count = linkedin_fetched_count + sum(source_fetch_counts.values())
     matched_count = len(harvested)
+    parsed_counts = {"linkedin": linkedin_fetched_count, **source_fetch_counts}
+    for name, counters in source_funnel.items():
+        counters["filtered"] = parsed_counts[name] - source_match_counts[name]
+    source_warnings_list = _source_funnel_warnings(source_funnel, parsed_counts, source_match_counts)
+    warning_count += len(source_warnings_list)
 
     unique = dedupe_postings(harvested, set())
     if database_mode:
@@ -2334,6 +2395,9 @@ def run_pipeline(  # skipcq: PY-R1000
         observed_posting_ids = observed
         inserted_posting_ids = inserted
         inserted_set = set(inserted_posting_ids)
+        for posting, posting_id in zip(scored_all, observed_posting_ids):
+            disposition = "inserted_new" if posting_id in inserted_set else "updated_existing"
+            source_funnel[_posting_source(posting)][disposition] += 1
         annotation_candidates = [
             posting
             for posting, posting_id in zip(scored_all, observed_posting_ids)
@@ -2341,6 +2405,8 @@ def run_pipeline(  # skipcq: PY-R1000
         ]
     else:
         output_path = append_postings(output_dir, date_string, scored_all)
+        for posting in scored_all:
+            source_funnel[_posting_source(posting)]["inserted_new"] += 1
     if liveness_checker is not None and not database_mode:
         recent_liveness_counts = refresh_recent_liveness(
             output_dir, date_string, liveness_checker
@@ -2404,6 +2470,8 @@ def run_pipeline(  # skipcq: PY-R1000
                 annotation_invalid_count = 0
 
     result: dict[str, object] = {
+        "source_funnel": source_funnel,
+        "warnings": [*source_config_warnings, *source_warnings_list],
         "fetched_count": fetched_count,
         "matched_count": matched_count,
         "new_count": len(inserted_posting_ids) if database_mode else len(scored_all),
@@ -2432,7 +2500,7 @@ def run_pipeline(  # skipcq: PY-R1000
     else:
         result["new_published_count"] = len(scored)
     if enabled_sources:
-        result["source_warning_count"] = len(source_config_warnings) + source_warnings
+        result["source_warning_count"] = len(source_config_warnings) + source_warnings + len(source_warnings_list)
         result["source_counts"] = source_counts
         result["source_fetch_counts"] = source_fetch_counts
         result["source_match_counts"] = source_match_counts

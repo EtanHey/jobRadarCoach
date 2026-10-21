@@ -9,6 +9,129 @@ import pytest
 from scraper import cloud_run
 
 
+def _funnel_run(tmp_path, monkeypatch, *, tenants, jobs):
+    """Exercise the real registry, adapters, filters and receipt with a fake DB writer."""
+    harvest = cloud_run.harvest
+    database = harvest.load_database_module()
+    monkeypatch.setattr(harvest, "load_database_module", lambda: database)
+    registry_dir = tmp_path / "scraper"
+    registry_dir.mkdir()
+    (registry_dir / "source_registry.py").write_text(
+        (Path(__file__).parent / "source_registry.py").read_text()
+    )
+    (registry_dir / "sources").symlink_to(Path(__file__).parent / "sources")
+    registry_path = registry_dir / "source-registry.json"
+    registry_path.write_text(json.dumps({"schema_version": 1, "tenants": tenants}))
+    monkeypatch.setattr(harvest, "SCRIPT_DIR", registry_dir)
+    monkeypatch.setattr(cloud_run, "REGISTRY_PATH", registry_path)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://unused.test/fixture")
+    monkeypatch.setattr(harvest, "RequestPacer", lambda: lambda: None)
+    monkeypatch.setattr(harvest, "harvest_search", lambda *a, **kw: ([], 0))
+    monkeypatch.setattr(harvest, "fetch_html", lambda url, **kw: jobs if isinstance(jobs, str) else json.dumps(jobs))
+    written = []
+
+    def writer(rows, _at):
+        written.extend(rows)
+        return {"observed_posting_ids": [row["id"] for row in rows],
+                "inserted_posting_ids": [row["id"] for row in rows[:1]]}
+
+    def run(_argv):
+        result = harvest.run_pipeline(
+            config_path=tmp_path / "unused", profile_path=tmp_path / "unused",
+            output_dir=tmp_path, date_string="2026-10-22",
+            harvested_at="2026-10-22T12:00:00Z", max_pages=1,
+            fetcher=harvest.fetch_html, before_request=lambda: None,
+            enabled_sources=set(cloud_run.ATS_SOURCES), jd_fetch_cap=0,
+            profile_snapshot={"search.terms": ["Software Engineer"],
+                              "candidate.open_to.geographies": ["Israel"],
+                              "search.recency": "r10800", "candidate.fit_terms": [],
+                              "search.location_terms": {}},
+            posting_writer=writer,
+        )
+        print(json.dumps(result))
+        return 0
+
+    receipt_path = tmp_path / "receipt.json"
+    assert cloud_run.main(["--receipt", str(receipt_path)], harvest_main=run) == 0
+    return json.loads(receipt_path.read_text()), written
+
+
+def _lever_tenant(*, age=1, enabled=True, account="fixture"):
+    template = next(row for row in json.loads(
+        (Path(__file__).parent / "source-registry.json").read_text()
+    )["tenants"] if row["source"] == "lever")
+    return {**template, "identifiers": {"account": account}, "enabled": enabled,
+            "careers_url": f"https://jobs.lever.co/{account}",
+            "last_verified_at": (datetime.now(timezone.utc).date() - timedelta(days=age)).isoformat()}
+
+
+def test_receipt_warns_when_all_filtered_source(tmp_path, monkeypatch, caplog):
+    receipt, written = _funnel_run(tmp_path, monkeypatch, tenants=[_lever_tenant()], jobs=[
+        {"id": "rejected", "text": "Accountant", "categories": {"location": "Israel"}},
+    ])
+    assert not written
+    # These metrics already existed on master; the missing behavior is a warning.
+    assert receipt["result"]["source_fetch_counts"]["lever"] == 1
+    assert receipt["result"]["source_match_counts"]["lever"] == 0
+    assert any("lever" in warning and "matched=0" in warning for warning in receipt.get("warnings", []))
+    assert receipt["result"]["source_warning_count"] == 1
+    assert any(record.levelname == "WARNING" and "matched=0" in record.message for record in caplog.records)
+    funnel = receipt["source_funnel"]["lever"]
+    assert {key: funnel[key] for key in ("registered", "eligible", "requested",
+                                        "filtered", "inserted_new", "updated_existing")} == {
+        "registered": 1, "eligible": 1, "requested": 1,
+        "filtered": 1, "inserted_new": 0, "updated_existing": 0,
+    }
+
+
+def test_receipt_surfaces_stale_and_disabled_boards(tmp_path, monkeypatch, caplog):
+    receipt, written = _funnel_run(tmp_path, monkeypatch, tenants=[
+        _lever_tenant(age=46), _lever_tenant(enabled=False, account="disabled"),
+    ], jobs=[])
+    assert not written
+    funnel = receipt["source_funnel"]["lever"]
+    assert {key: funnel[key] for key in ("registered", "eligible", "stale", "disabled", "requested")} == {
+        "registered": 2, "eligible": 0, "stale": 1, "disabled": 1, "requested": 0,
+    }
+    assert any("lever" in warning and "eligible=0" in warning for warning in receipt["warnings"])
+    assert receipt["result"]["source_warning_count"] == 1
+    assert any(record.levelname == "WARNING" and "eligible=0" in record.message for record in caplog.records)
+
+
+@pytest.mark.parametrize(("age", "expiring"), [(38, 0), (39, 1), (45, 1)])
+def test_receipt_expiry_boundary_and_database_dispositions(tmp_path, monkeypatch, caplog, age, expiring):
+    receipt, written = _funnel_run(tmp_path, monkeypatch, tenants=[_lever_tenant(age=age)], jobs=[
+        {"id": str(index), "text": "Software Engineer", "categories": {"location": "Israel"},
+         "descriptionPlain": "Software engineering product development. " * 8}
+        for index in range(2)
+    ])
+    assert len(written) == 2
+    funnel = receipt["source_funnel"]["lever"]
+    assert receipt["result"]["source_fetch_counts"]["lever"] == 2
+    assert receipt["result"]["source_match_counts"]["lever"] == 2
+    assert funnel["filtered"] == 0
+    assert (funnel["inserted_new"], funnel["updated_existing"]) == (1, 1)
+    assert funnel["expiring_within_7d"] == expiring
+    assert bool(receipt["warnings"]) == bool(expiring)
+    assert any("expiring_within_7d=1" in record.message for record in caplog.records) == bool(expiring)
+
+
+def test_receipt_counts_rows_filtered_before_detail_fetch(tmp_path, monkeypatch):
+    tenant = _lever_tenant()
+    tenant.update(source="workable", careers_url="https://apply.workable.com/fixture/")
+    receipt, written = _funnel_run(tmp_path, monkeypatch, tenants=[tenant], jobs=
+        "| Accountant | Finance | Israel | Full-time | — | 2026-10-21 | "
+        "[View](https://apply.workable.com/fixture/jobs/view/ABC123.md) |\n"
+    )
+    assert not written
+    funnel = receipt["source_funnel"]["workable"]
+    assert (funnel["registered"], funnel["eligible"], funnel["requested"]) == (1, 1, 1)
+    assert receipt["result"]["source_fetch_counts"]["workable"] == 1
+    assert receipt["result"]["source_match_counts"]["workable"] == 0
+    assert funnel["filtered"] == 1
+    assert any("workable" in warning and "matched=0" in warning for warning in receipt["warnings"])
+
+
 def _source_fixture(tmp_path: Path):
     registry = json.loads((Path(__file__).parent / "source-registry.json").read_text())
     snapshot_date = max(
@@ -129,6 +252,8 @@ def test_cloud_run_forces_db_persistence_no_annotation_and_all_sources(
     assert receipt == {
         "exit_code": 0,
         "network_request_skips": 8,
+        "source_funnel": {},
+        "warnings": [],
         "result": {"fetched_count": 8, "new_count": 3},
         "run_id": github_run_id or "local",
         "schema_version": 1,
