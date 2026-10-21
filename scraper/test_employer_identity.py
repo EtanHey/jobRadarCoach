@@ -145,3 +145,45 @@ def test_staffing_software_is_not_a_staffing_intermediary():
     result = resolve_employer('Acme Labs', jd, 'linkedin')
     assert result['hiring_employer'] == 'Acme Labs'
     assert result['agency_evidence'] is None
+
+
+def test_reviewed_alldus_repost_keeps_client_unknown():
+    jd = ('**About The Company**\n\nAlldus is a pioneering technology company '
+          'developing cryptocurrency trading platforms.\n\n**About The Role**\n\n'
+          'Alldus is seeking a Staff Front End Engineer to join its team in New York.')
+    result = resolve_employer('Netrolynx AI', jd, 'linkedin')
+    assert result['hiring_employer'] is None
+    assert result['relationship'] == 'unknown'
+    assert result['agency_evidence'] in jd
+
+
+@pytest.mark.parametrize('services', [
+    'recruiting services', 'staffing solutions', 'talent acquisition services',
+    'permanent placement services', 'recruitment and staffing services',
+])
+def test_candidate_own_about_services_override_role_claim(services):
+    jd = (f'**About The Company**\n\nBridge Partners is a global provider of {services} '
+          'for technology businesses.\n\n**About The Role**\n\n'
+          'Bridge Partners is seeking a frontend engineer to join its team.')
+    result = resolve_employer('New Publisher', jd, 'linkedin')
+    assert result['hiring_employer'] is None
+    assert services in result['agency_evidence']
+
+
+def test_recruiter_about_does_not_reject_named_product_client():
+    jd = ('**About The Company**\n\nBridge Partners is a provider of talent acquisition services.'
+          '\n\n**About The Role**\n\nAcme Labs is hiring a frontend engineer.')
+    assert resolve_employer('New Publisher', jd, 'linkedin')['hiring_employer'] == 'Acme Labs'
+
+
+@pytest.mark.parametrize('description', [
+    'a platform building recruiting software for talent teams',
+    'a software company providing staffing software solutions',
+    'a developer tools company. We are recruiting engineers for our own team',
+])
+def test_product_company_about_is_not_recruiter(description):
+    jd = (f'**About The Company**\n\nAcme Labs is {description}.'
+          '\n\n**About The Role**\n\nAcme Labs is hiring a frontend engineer.')
+    result = resolve_employer('New Publisher', jd, 'linkedin')
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['agency_evidence'] is None

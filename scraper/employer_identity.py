@@ -7,8 +7,10 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '2'
+VERSION = '3'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
+# Reviewed staffing intermediaries whose names do not identify their business.
+STAFFING_KEYS = PUBLISHER_KEYS | {'alldus'}
 # Reviewed against all 57 family-2 evidence IDs; these are publishers, not clients.
 NAME = r'(?P<name>[A-Z][\w·&.,’\'() \t-]{0,78}?)'
 PATTERNS = [
@@ -27,6 +29,11 @@ INTERMEDIARY = re.compile(
     r"|\b(?:join|for|on behalf of) (?:a|an) (?:[\w-]+ ){0,3}(?:organization|client|company)\b",
     re.I,
 )
+STAFFING_SERVICES = re.compile(
+    r"\b(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
+    r"(?: and (?:staffing|recruiting|recruitment))? (?:services|solutions|agency|firm)\b",
+    re.I,
+)
 AGENCY_STATEMENT = re.compile(r'^.*\b(?:our client(?=[:,*]|\s+is\b|\s*$)|on behalf of (?:our|an? unnamed) client)\b[^\n]*', re.I | re.M)
 ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
 
@@ -34,6 +41,12 @@ ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
 def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, object]:
     """Prefer role-linked names; absence of agency evidence never proves directness."""
     opening = '\n'.join(raw_jd.splitlines()[:32])[:2000]
+    # Associate service descriptions with their own named company, not every role.
+    staffing_about = {
+        match['name'].strip(' .,').casefold(): match[0]
+        for match in PATTERNS[3].finditer(opening)
+        if STAFFING_SERVICES.search(match[0]) or INTERMEDIARY.search(match[0])
+    }
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
@@ -51,10 +64,11 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
                 continue
             is_blurb = index == 3 or (index == 2 and role_heading is not None
                                      and match.start() < role_heading.start())
-            if (name.casefold() in PUBLISHER_KEYS
+            if (name.casefold() in STAFFING_KEYS
+                    or name.casefold() in staffing_about
                     or re.search(r"\b(?:staffing|recruiting|recruitment)\b", name, re.I)
                     or INTERMEDIARY.search(match[0])):
-                agency_evidence = match[0]
+                agency_evidence = staffing_about.get(name.casefold(), match[0])
                 intermediary_seen = True
                 role_intermediary_seen |= not is_blurb
                 continue
