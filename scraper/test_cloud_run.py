@@ -116,6 +116,35 @@ def test_receipt_expiry_boundary_and_database_dispositions(tmp_path, monkeypatch
     assert any("expiring_within_7d=1" in record.message for record in caplog.records) == bool(expiring)
 
 
+@pytest.mark.parametrize("source,bucket", [("leevr", "leevr"), (None, "unknown")],
+                         ids=["unknown-source", "missing-source"])
+def test_receipt_surfaces_invalid_registry_source(
+    tmp_path, monkeypatch, caplog, capsys, source, bucket,
+):
+    from scraper import run_alerts
+
+    tenant = _lever_tenant()
+    if source is None:
+        tenant.pop("source")
+    else:
+        tenant["source"] = source
+    receipt, written = _funnel_run(tmp_path, monkeypatch, tenants=[tenant], jobs=[])
+    assert not written
+    funnel = receipt["source_funnel"].get(bucket, {})
+    assert funnel.get("registered") == 1
+    assert funnel["invalid"] == 1
+    assert funnel["eligible"] == funnel["requested"] == funnel["filtered"] == 0
+    warnings = receipt["warnings"]
+    assert len(warnings) == 1
+    assert bucket in warnings[0] and "invalid=1" in warnings[0]
+    assert receipt["result"]["source_warning_count"] == 1
+    assert any(record.levelname == "WARNING" and warnings[0] in record.message
+               for record in caplog.records)
+    capsys.readouterr()
+    assert run_alerts.main(["--kind", "scrape", "--receipt", str(tmp_path / "receipt.json")]) == 0
+    assert "1 source failure(s)" in capsys.readouterr().out
+
+
 def test_receipt_counts_rows_filtered_before_detail_fetch(tmp_path, monkeypatch):
     tenant = _lever_tenant()
     tenant.update(source="workable", careers_url="https://apply.workable.com/fixture/")

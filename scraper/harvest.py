@@ -1311,7 +1311,12 @@ def load_registry_source_queries(
         for status, entries in (("eligible", report.valid), ("stale", report.stale),
                                 ("disabled", report.disabled), ("invalid", report.invalid)):
             for entry in entries:
-                counters = source_funnel.get(str(entry["source"]))
+                source = str(entry["source"])
+                counters = source_funnel.get(source)
+                if counters is None and status == "invalid" and source not in SOURCE_ORDER:
+                    # Invalid source names cannot be selected for harvest, but
+                    # must still appear in receipts (missing names are "unknown").
+                    counters = source_funnel.setdefault(source, _empty_source_funnel())
                 if counters is None:
                     continue
                 counters["registered"] += 1
@@ -1340,7 +1345,7 @@ def _source_funnel_warnings(
         if counts["registered"] > 0 and counts["eligible"] == 0:
             warnings.append(f"{source}: registered={counts['registered']} but eligible=0 "
                             f"(stale={counts['stale']}, disabled={counts['disabled']}, invalid={counts['invalid']})")
-        if parsed_counts[source] > 0 and matched_counts[source] == 0:
+        if parsed_counts.get(source, 0) > 0 and matched_counts.get(source, 0) == 0:
             warnings.append(f"{source}: parsed={parsed_counts[source]} but matched=0; "
                             f"filtered={counts['filtered']}")
         if counts["expiring_within_7d"]:
@@ -2316,7 +2321,7 @@ def run_pipeline(  # skipcq: PY-R1000
     matched_count = len(harvested)
     parsed_counts = {"linkedin": linkedin_fetched_count, **source_fetch_counts}
     for name, counters in source_funnel.items():
-        counters["filtered"] = parsed_counts[name] - source_match_counts[name]
+        counters["filtered"] = parsed_counts.get(name, 0) - source_match_counts.get(name, 0)
     source_warnings_list = _source_funnel_warnings(source_funnel, parsed_counts, source_match_counts)
     warning_count += len(source_warnings_list)
 
