@@ -210,7 +210,7 @@
     "slug_tried": "agilegridsolutions"
   },
   "agoda|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "agoda"
   },
@@ -280,7 +280,7 @@
     "slug_tried": "airapps"
   },
   "airbnb|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "airbnb"
   },
@@ -318,6 +318,21 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "airoboticsisrael"
+  },
+  "aitan|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "aitanisrael"
+  },
+  "aitan|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "aitanisrael"
+  },
+  "aitan|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "aitanisrael"
   },
   "aizome|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -415,8 +430,8 @@
     "slug_tried": "allphainnovation"
   },
   "allpha innovation|workable": {
-    "last_checked_at": "2026-10-13",
-    "result": "error",
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
     "slug_tried": "allphainnovation"
   },
   "alta|greenhouse": {
@@ -439,6 +454,11 @@
     "result": "miss",
     "slug_tried": "alteryxisrael"
   },
+  "alteryx|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "alteryxisrael"
+  },
   "amawaterways river cruises|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -446,6 +466,11 @@
   },
   "amawaterways river cruises|lever": {
     "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "amawaterwaysrivercruises"
+  },
+  "amawaterways river cruises|workable": {
+    "last_checked_at": "2026-10-18",
     "result": "miss",
     "slug_tried": "amawaterwaysrivercruises"
   },
@@ -459,6 +484,26 @@
     "result": "miss",
     "slug_tried": "amazonwebservicesaws"
   },
+  "amazon web services aws|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "amazonwebservicesaws"
+  },
+  "amazon|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "amazonisrael"
+  },
+  "amazon|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "amazonisrael"
+  },
+  "amazon|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "amazonisrael"
+  },
   "amentum|greenhouse": {
     "last_checked_at": "2026-10-13",
     "result": "miss",
@@ -466,6 +511,11 @@
   },
   "amentum|lever": {
     "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "amentumisrael"
+  },
+  "amentum|workable": {
+    "last_checked_at": "2026-10-18",
     "result": "miss",
     "slug_tried": "amentumisrael"
   },
@@ -479,13 +529,23 @@
     "result": "miss",
     "slug_tried": "anchorisrael"
   },
+  "anchor|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "anchorisrael"
+  },
   "anthropic|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "anthropic"
   },
   "anthropic|lever": {
     "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "anthropicisrael"
+  },
+  "anthropic|workable": {
+    "last_checked_at": "2026-10-18",
     "result": "miss",
     "slug_tried": "anthropicisrael"
   },
@@ -500,7 +560,7 @@
     "slug_tried": "anyrayisrael"
   },
   "apiiro|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "apiiro"
   },
@@ -509,13 +569,23 @@
     "result": "miss",
     "slug_tried": "apiiroisrael"
   },
+  "apiiro|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "apiiroisrael"
+  },
   "apollo io|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "apolloio"
   },
   "apollo io|lever": {
     "last_checked_at": "2026-09-23",
+    "result": "miss",
+    "slug_tried": "apolloio"
+  },
+  "apollo io|workable": {
+    "last_checked_at": "2026-10-18",
     "result": "miss",
     "slug_tried": "apolloio"
   },
@@ -529,6 +599,26 @@
     "result": "miss",
     "slug_tried": "aponoisrael"
   },
+  "apono|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "aponoisrael"
+  },
+  "appcard inc|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "appcardisrael"
+  },
+  "appcard inc|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "appcardisrael"
+  },
+  "appcard inc|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "appcardisrael"
+  },
   "appdome|greenhouse": {
     "last_checked_at": "2026-10-13",
     "result": "miss",
@@ -536,6 +626,11 @@
   },
   "appdome|lever": {
     "last_checked_at": "2026-10-13",
+    "result": "miss",
+    "slug_tried": "appdomeisrael"
+  },
+  "appdome|workable": {
+    "last_checked_at": "2026-10-18",
     "result": "miss",
     "slug_tried": "appdomeisrael"
   },
@@ -547,6 +642,11 @@
   "apple|lever": {
     "last_checked_at": "2026-10-13",
     "result": "miss",
+    "slug_tried": "appleisrael"
+  },
+  "apple|workable": {
+    "last_checked_at": "2026-10-18",
+    "result": "error",
     "slug_tried": "appleisrael"
   },
   "applied materials israel|greenhouse": {
@@ -700,7 +800,7 @@
     "slug_tried": "associatedbank"
   },
   "astera labs|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "asteralabs"
   },
@@ -718,6 +818,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "atbay"
+  },
+  "at t israel r d center|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "attisraelrdcenter"
+  },
+  "at t israel r d center|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "attisraelrdcenter"
   },
   "atc|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -750,7 +860,7 @@
     "slug_tried": "ateraisrael"
   },
   "augury|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "augury"
   },
@@ -780,7 +890,7 @@
     "slug_tried": "axonpulse"
   },
   "axonius|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "axonius"
   },
@@ -890,7 +1000,7 @@
     "slug_tried": "beaconfireisrael"
   },
   "beamup|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "beamup"
   },
@@ -899,18 +1009,38 @@
     "result": "miss",
     "slug_tried": "beamupisrael"
   },
+  "beyondtrust|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "hit",
+    "slug_tried": "beyondtrust"
+  },
+  "beyondtrust|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "beyondtrustisrael"
+  },
+  "big wave digital|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "bigwavedigital"
+  },
+  "big wave digital|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "bigwavedigital"
+  },
   "biocatch|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "biocatchisrael"
   },
   "biocatch|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "biocatch"
   },
   "bitwarden|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "bitwarden"
   },
@@ -970,7 +1100,7 @@
     "slug_tried": "bluebirdaerosystems"
   },
   "bluevine israel|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "bluevineisrael"
   },
@@ -988,6 +1118,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "bluevineisrael"
+  },
+  "bmc software|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "bmcsoftware"
+  },
+  "bmc software|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "bmcsoftware"
   },
   "boa ideas|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1030,7 +1170,7 @@
     "slug_tried": "bookingcom"
   },
   "brainpop|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "brainpop"
   },
@@ -1109,6 +1249,16 @@
     "result": "miss",
     "slug_tried": "calialfapreviouslyalfabet"
   },
+  "camtek|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "camtekisrael"
+  },
+  "camtek|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "camtekisrael"
+  },
   "camunda|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -1180,7 +1330,7 @@
     "slug_tried": "catapultisrael"
   },
   "cato networks|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "catonetworks"
   },
@@ -1250,7 +1400,7 @@
     "slug_tried": "chainalysisisrael"
   },
   "chainguard|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "chainguard"
   },
@@ -1335,7 +1485,7 @@
     "slug_tried": "claroaiisrael"
   },
   "clear street|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "clearstreet"
   },
@@ -1390,7 +1540,7 @@
     "slug_tried": "cloudinaryisrael"
   },
   "cloudinary|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "cloudinary"
   },
@@ -1405,7 +1555,7 @@
     "slug_tried": "cloversecurity"
   },
   "coalition inc|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "coalition"
   },
@@ -1465,7 +1615,7 @@
     "slug_tried": "cohereisrael"
   },
   "coinbase|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "coinbase"
   },
@@ -1483,6 +1633,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "comblackisrael"
+  },
+  "comet|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "hit",
+    "slug_tried": "comet"
+  },
+  "comet|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "cometisrael"
   },
   "commit|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -1545,7 +1705,7 @@
     "slug_tried": "conifersai"
   },
   "connecteam|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "connecteam"
   },
@@ -1605,7 +1765,7 @@
     "slug_tried": "corephotonicsisrael"
   },
   "cribl|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "cribl"
   },
@@ -1695,7 +1855,7 @@
     "slug_tried": "cyeraisrael"
   },
   "cymulate|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "cymulate"
   },
@@ -1745,7 +1905,7 @@
     "slug_tried": "datanexusai"
   },
   "datarails|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "datarails"
   },
@@ -1873,6 +2033,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "doitisrael"
+  },
+  "doppel|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "hit",
+    "slug_tried": "doppel"
+  },
+  "doppel|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "doppelisrael"
   },
   "dot compliance|greenhouse": {
     "last_checked_at": "2026-10-13",
@@ -2004,6 +2174,16 @@
     "result": "miss",
     "slug_tried": "effectivbizisrael"
   },
+  "elad software systems|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "eladsoftwaresystems"
+  },
+  "elad software systems|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "eladsoftwaresystems"
+  },
   "elbit systems israel|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2015,7 +2195,7 @@
     "slug_tried": "elbitsystemsisrael"
   },
   "eleos health|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "eleoshealth"
   },
@@ -2053,6 +2233,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "elyonai"
+  },
+  "emerson|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "emersonisrael"
+  },
+  "emerson|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "emersonisrael"
   },
   "empathy|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2265,7 +2455,7 @@
     "slug_tried": "fayrixisrael"
   },
   "figma|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "figma"
   },
@@ -2300,7 +2490,7 @@
     "slug_tried": "finchisrael"
   },
   "finch|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "finch"
   },
@@ -2315,7 +2505,7 @@
     "slug_tried": "finqisrael"
   },
   "fireblocks|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "fireblocks"
   },
@@ -2335,7 +2525,7 @@
     "slug_tried": "fiverrisrael"
   },
   "fleetio|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "fleetio"
   },
@@ -2355,7 +2545,7 @@
     "slug_tried": "flytrexisrael"
   },
   "forter|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "forter"
   },
@@ -2398,6 +2588,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "fullstackisrael"
+  },
+  "fundamental|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "fundamentalisrael"
+  },
+  "fundamental|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "fundamentalisrael"
   },
   "g stat|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2468,6 +2668,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "gehealthcare"
+  },
+  "gen ii fund services|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "geniifundservices"
+  },
+  "gen ii fund services|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "geniifundservices"
   },
   "general dynamics information technology|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -2690,7 +2900,7 @@
     "slug_tried": "groundcoverisrael"
   },
   "grove collaborative|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "grovecollaborative"
   },
@@ -2720,7 +2930,7 @@
     "slug_tried": "guardioisrael"
   },
   "guidde|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "guidde"
   },
@@ -2738,6 +2948,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "guidelineisrael"
+  },
+  "gymkeeper|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "gymkeeperisrael"
+  },
+  "gymkeeper|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "gymkeeperisrael"
   },
   "h r block|greenhouse": {
     "last_checked_at": "2026-10-13",
@@ -2770,7 +2990,7 @@
     "slug_tried": "haystackisrael"
   },
   "hello heart|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "helloheart"
   },
@@ -2860,7 +3080,7 @@
     "slug_tried": "hmgamericallc"
   },
   "honeycomb insurance|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "honeycombinsurance"
   },
@@ -2949,6 +3169,16 @@
     "result": "miss",
     "slug_tried": "iceisrael"
   },
+  "ideaon|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "ideaonisrael"
+  },
+  "ideaon|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "ideaonisrael"
+  },
   "ignitetech|greenhouse": {
     "last_checked_at": "2026-09-23",
     "result": "miss",
@@ -2968,6 +3198,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "infinidatisrael"
+  },
+  "influencer society|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "influencersociety"
+  },
+  "influencer society|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "influencersociety"
   },
   "infraedge il|greenhouse": {
     "last_checked_at": "2026-10-13",
@@ -3010,7 +3250,7 @@
     "slug_tried": "innovidisrael"
   },
   "instawork|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "instawork"
   },
@@ -3025,7 +3265,7 @@
     "slug_tried": "instrumentlisrael"
   },
   "instrumentl|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "Instrumentl"
   },
@@ -3038,6 +3278,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "integralifesciences"
+  },
+  "intelliswift an ltts company|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "intelliswiftanlttscompany"
+  },
+  "intelliswift an ltts company|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "intelliswiftanlttscompany"
   },
   "intel|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3130,7 +3380,7 @@
     "slug_tried": "jeen_ai"
   },
   "jfrog|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "jfrog"
   },
@@ -3165,7 +3415,7 @@
     "slug_tried": "jobgetherisrael"
   },
   "jobgether|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "error",
     "slug_tried": "jobgetherisrael"
   },
@@ -3198,6 +3448,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "johnsonjohnsonmedtech"
+  },
+  "justbacked|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "justbackedisrael"
+  },
+  "justbacked|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "justbackedisrael"
   },
   "k health|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -3295,7 +3555,7 @@
     "slug_tried": "laddersisrael"
   },
   "ladders|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "ladders"
   },
@@ -3340,7 +3600,7 @@
     "slug_tried": "latentai"
   },
   "launchdarkly|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "launchdarkly"
   },
@@ -3385,7 +3645,7 @@
     "slug_tried": "lendbuzzisrael"
   },
   "lendbuzz|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "lendbuzz"
   },
@@ -3515,8 +3775,8 @@
     "slug_tried": "lyrahealth"
   },
   "lyra health|lever": {
-    "last_checked_at": "2026-10-13",
-    "result": "error",
+    "last_checked_at": "2026-10-18",
+    "result": "hit",
     "slug_tried": "lyrahealth"
   },
   "magos systems|greenhouse": {
@@ -3630,7 +3890,7 @@
     "slug_tried": "meebossisrael"
   },
   "melio|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "melio"
   },
@@ -3680,7 +3940,7 @@
     "slug_tried": "merckhealthcare"
   },
   "mercury|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "mercury"
   },
@@ -3850,7 +4110,7 @@
     "slug_tried": "mondaycom"
   },
   "mongodb|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "mongodb"
   },
@@ -3965,7 +4225,7 @@
     "slug_tried": "navanisrael"
   },
   "nebius|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "nebius"
   },
@@ -4105,7 +4365,7 @@
     "slug_tried": "ngsoftisrael"
   },
   "nice|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "nice"
   },
@@ -4255,7 +4515,7 @@
     "slug_tried": "ochoisrael"
   },
   "office hours|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "officehours"
   },
@@ -4275,7 +4535,7 @@
     "slug_tried": "offroadisrael"
   },
   "okta|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "okta"
   },
@@ -4290,7 +4550,7 @@
     "slug_tried": "oktopostisrael"
   },
   "oktopost|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "oktopost"
   },
@@ -4335,7 +4595,7 @@
     "slug_tried": "optibusisrael"
   },
   "optimal dynamics|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "optimaldynamics"
   },
@@ -4375,7 +4635,7 @@
     "slug_tried": "orcaai"
   },
   "orca security|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "orcasecurity"
   },
@@ -4450,7 +4710,7 @@
     "slug_tried": "palantirisrael"
   },
   "palantir|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "palantir"
   },
@@ -4465,7 +4725,7 @@
     "slug_tried": "paloaltonetworks"
   },
   "pansophic learning|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "pansophiclearning"
   },
@@ -4484,8 +4744,18 @@
     "result": "miss",
     "slug_tried": "papayaglobal"
   },
+  "papaya|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "papayaisrael"
+  },
+  "papaya|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "papayaisrael"
+  },
   "paperless parts|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "paperlessparts"
   },
@@ -4520,12 +4790,12 @@
     "slug_tried": "parallelwireless"
   },
   "parallel wireless|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "parallelwireless"
   },
   "parloa|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "parloa"
   },
@@ -4555,7 +4825,7 @@
     "slug_tried": "patzisrael"
   },
   "payoneer|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "payoneer"
   },
@@ -4850,7 +5120,7 @@
     "slug_tried": "protolabsisrael"
   },
   "protolabs|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "protolabs"
   },
@@ -4913,6 +5183,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "qualigateisrael"
+  },
+  "qualityai|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "qualityaiisrael"
+  },
+  "qualityai|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "qualityaiisrael"
   },
   "quantum integrators|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5095,7 +5375,7 @@
     "slug_tried": "redhat"
   },
   "reddit inc|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "reddit"
   },
@@ -5105,7 +5385,7 @@
     "slug_tried": "redditisrael"
   },
   "reddit|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "reddit"
   },
@@ -5135,7 +5415,7 @@
     "slug_tried": "reindeerisrael"
   },
   "relocity inc|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "relocity"
   },
@@ -5165,7 +5445,7 @@
     "slug_tried": "repqisrael"
   },
   "resilience|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "resilience"
   },
@@ -5193,6 +5473,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "ringsecurity"
+  },
+  "ripple analytics|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "rippleanalytics"
+  },
+  "ripple analytics|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "rippleanalytics"
   },
   "rise technical|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5325,7 +5615,7 @@
     "slug_tried": "salesforceisrael"
   },
   "samsung semiconductor|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "samsungsemiconductor"
   },
@@ -5380,12 +5670,12 @@
     "slug_tried": "sauceisrael"
   },
   "sauce|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "Sauce"
   },
   "scaleops|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "scaleops"
   },
@@ -5504,6 +5794,16 @@
     "result": "miss",
     "slug_tried": "shabakisraelisecurityagencycareer"
   },
+  "shapelessai|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "shapelessaiisrael"
+  },
+  "shapelessai|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "shapelessaiisrael"
+  },
   "sharegain|greenhouse": {
     "last_checked_at": "2026-10-13",
     "result": "miss",
@@ -5523,6 +5823,16 @@
     "last_checked_at": "2026-09-23",
     "result": "miss",
     "slug_tried": "sharpiespro"
+  },
+  "sheba medical center tel hashomer|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "shebamedicalcentertelhashomer"
+  },
+  "sheba medical center tel hashomer|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "shebamedicalcentertelhashomer"
   },
   "shifters|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -5615,7 +5925,7 @@
     "slug_tried": "silverfortisrael"
   },
   "similarweb|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "similarweb"
   },
@@ -5805,7 +6115,7 @@
     "slug_tried": "sourcixisrael"
   },
   "spacex|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "spacex"
   },
@@ -5850,7 +6160,7 @@
     "slug_tried": "spreetailisrael"
   },
   "spreetail|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "spreetail"
   },
@@ -5875,7 +6185,7 @@
     "slug_tried": "ssc"
   },
   "stackadapt|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "stackadapt"
   },
@@ -5935,7 +6245,7 @@
     "slug_tried": "stiggisrael"
   },
   "stripe|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "stripe"
   },
@@ -6005,7 +6315,7 @@
     "slug_tried": "ta9israel"
   },
   "taboola|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "taboola"
   },
@@ -6045,7 +6355,7 @@
     "slug_tried": "tailormedisrael"
   },
   "tailscale|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "tailscale"
   },
@@ -6145,7 +6455,7 @@
     "slug_tried": "team8israel"
   },
   "tebra|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "tebra"
   },
@@ -6275,7 +6585,7 @@
     "slug_tried": "thedepositorytrustclearingdtcc"
   },
   "the farmer s dog|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "thefarmersdog"
   },
@@ -6365,7 +6675,7 @@
     "slug_tried": "torentifyisrael"
   },
   "trace3|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "trace3"
   },
@@ -6385,7 +6695,7 @@
     "slug_tried": "traildisrael"
   },
   "transmit security|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "transmitsecurity"
   },
@@ -6465,7 +6775,7 @@
     "slug_tried": "underdogverifiedengineersinterviewreadysearchingconfidentiallyandcompaniesapplytoyou"
   },
   "unframe|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "unframe"
   },
@@ -6670,7 +6980,7 @@
     "slug_tried": "vertaforeisrael"
   },
   "via|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "via"
   },
@@ -6695,7 +7005,7 @@
     "slug_tried": "virtualiticsisrael"
   },
   "virtualitics|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "virtualitics"
   },
@@ -6770,7 +7080,7 @@
     "slug_tried": "wayveisrael"
   },
   "wedev|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "wedev"
   },
@@ -6920,7 +7230,7 @@
     "slug_tried": "workizisrael"
   },
   "worldquant|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "worldquant"
   },
@@ -6948,6 +7258,16 @@
     "last_checked_at": "2026-10-13",
     "result": "miss",
     "slug_tried": "xpendisrael"
+  },
+  "xt group|greenhouse": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "xtgroup"
+  },
+  "xt group|lever": {
+    "last_checked_at": "2026-10-18",
+    "result": "miss",
+    "slug_tried": "xtgroup"
   },
   "yad2|greenhouse": {
     "last_checked_at": "2026-09-23",
@@ -7020,7 +7340,7 @@
     "slug_tried": "yolkisrael"
   },
   "yotpo|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "yotpo"
   },
@@ -7035,7 +7355,7 @@
     "slug_tried": "zadaraisrael"
   },
   "zadara|lever": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "Zadara"
   },
@@ -7090,7 +7410,7 @@
     "slug_tried": "zipherisrael"
   },
   "zocdoc|greenhouse": {
-    "last_checked_at": "2026-10-13",
+    "last_checked_at": "2026-10-18",
     "result": "hit",
     "slug_tried": "zocdoc"
   },
