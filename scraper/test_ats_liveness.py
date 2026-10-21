@@ -1,10 +1,59 @@
 import io
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 from urllib.error import HTTPError
 
 import pytest
 
 from scraper.ats_liveness import BoardChecker, active_ids, public_get
+
+
+@pytest.mark.parametrize("case", json.loads((Path(__file__).parent / "fixtures/liveness-projection.json").read_text()),
+                         ids=lambda case: case["name"])
+def test_liveness_projection_contract(case):
+    from scraper.ats_liveness import project_liveness
+
+    projected = project_liveness(case["evidence"], now=datetime(2026, 10, 22, 10, tzinfo=timezone.utc))
+    assert projected["state"] == case["state"]
+    assert projected["alive"] is case["alive"]
+
+
+def test_unknown_after_success_preserves_history_without_fresh_alive():
+    from datetime import datetime, timezone
+    from scraper.ats_liveness import reliability_update, project_liveness
+
+    now = datetime.now(timezone.utc)
+    historical = {"alive": True, "liveness_checked_at": now.isoformat()}
+    row = {**posting(), "liveness": historical}
+    update = reliability_update(row, {"alive": None, "liveness_reason": "board-too-large",
+                                     "liveness_status": 403}, lambda _: pytest.fail("no direct check"))
+    stored = {**historical, **update}
+    assert stored["alive"] is True
+    assert stored["liveness_checked_at"] == historical["liveness_checked_at"]
+    assert project_liveness(stored, now=now)["state"] == "stale"
+    assert project_liveness(stored, now=now)["alive"] is None
+
+
+def test_expired_check_is_not_displayed_alive():
+    from datetime import datetime, timezone
+    from scraper.ats_liveness import project_liveness
+
+    state = {"alive": True, "liveness_checked_at": "2026-10-22T06:59:59Z"}
+    projected = project_liveness(state, now=datetime(2026, 10, 22, 10, tzinfo=timezone.utc))
+    assert projected["state"] == "stale" and projected["alive"] is None
+    assert state["alive"] is True
+
+
+def test_past_deadline_is_not_displayed_alive():
+    from datetime import datetime, timezone
+    from scraper.ats_liveness import project_liveness
+
+    state = {"alive": True, "liveness_checked_at": "2026-10-22T09:30:00Z",
+             "application_deadline": "2026-10-18T23:59:59Z"}
+    projected = project_liveness(state, now=datetime(2026, 10, 22, 10, tzinfo=timezone.utc))
+    assert projected["state"] == "deadline_passed" and projected["alive"] is None
+    assert state["alive"] is True
 
 
 def posting(source="greenhouse", tenant="acme", job="1", url=None):
@@ -61,7 +110,8 @@ def test_comeet_and_workable_use_adapter_board_identifiers():
     assert BoardChecker(lambda _: body)(posting("workable", job="ABC"))["alive"] is True
     checker = BoardChecker(lambda _: 'COMPANY_POSITIONS_DATA = []; POSITION_DATA = null;')
     assert checker(posting("comeet", "A.1", "B.2", "https://www.comeet.com/jobs/acme/A.1/B.2"))["alive"] is False
-    with pytest.raises(ValueError): active_ids("workable", "# Access denied")
+    with pytest.raises(ValueError):
+        active_ids("workable", "# Access denied")
     assert BoardChecker(lambda _: body.replace("/acme/", "/other/"))(
         posting("workable", job="MISSING"))["alive"] is None
 
@@ -87,7 +137,8 @@ def test_honest_get_transport_is_bounded_and_paced_per_host(monkeypatch):
     assert all(r.get_method() == "GET" and "JobRadarCoach" in r.get_header("User-agent")
                and "Chrome" not in r.get_header("User-agent") for r in calls)
     monkeypatch.setattr(module, "pinned_open", lambda *_a, **_k: Response(b"{}" + b" " * 1_999_999))
-    with pytest.raises(ValueError): get("https://boards-api.greenhouse.io/oversized")
+    with pytest.raises(ValueError):
+        get("https://boards-api.greenhouse.io/oversized")
 
 
 def test_lever_fetches_the_unfiltered_list_once_per_tenant_without_offset_polling():

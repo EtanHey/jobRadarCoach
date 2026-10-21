@@ -11,6 +11,7 @@ import {
 import { postingUrl, titleSeniority } from "./job-metadata";
 import { foundWithinCutoff } from "./view-options";
 import { HttpError } from "./http";
+import { projectLiveness } from "./liveness";
 
 export interface ApiStore {
   listJobs(input: JobListQuery): Promise<JobSummary[]>;
@@ -53,6 +54,7 @@ const rawListSchema = rawBaseSchema.omit({
 }).extend({
   list_stack: z.array(z.string()), experience: z.string().nullable(),
   relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_reposted_signal: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
+  liveness_checked_at: z.unknown().optional(), last_attempt_verdict: z.unknown().optional(), application_deadline: z.unknown().optional(),
   posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
 });
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
@@ -65,6 +67,7 @@ export const BOARD_FIELD_ALIASES = {
   relevance_filtered: "relevance_filtered", relevance_rule: "relevance_rule:relevance_gate->rule",
   source: "source", last_seen_at: "last_seen_at", experience: "experience:list_metadata->experience",
   alive: "alive:liveness->alive", linkedin_reposted_signal: "linkedin_reposted_signal:liveness->linkedin_reposted_signal", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
+  liveness: "liveness_checked_at:liveness->liveness_checked_at,last_attempt_verdict:liveness->last_attempt_verdict,application_deadline:liveness->application_deadline",
   id: "id", title: "title", company: "company", location: "location", remote: "remote", work_mode: "work_mode",
   seniority: "seniority", stack: "stack,list_stack:list_metadata->stack", url: "url", apply_url: "apply_url",
   posted_at: "posted_at", last_published_at: "last_published_at", first_seen_at: "first_seen_at",
@@ -95,8 +98,8 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
   return parsed.data;
 }
 
-function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
-  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
+function listSummary(base: z.infer<typeof rawListSchema>, now = Date.now()): JobSummary {
+  const { posting_scores: score, posting_status: status, list_stack, alive, liveness_checked_at, last_attempt_verdict, application_deadline, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   return checked(JobSummarySchema, {
     ...posting, url: postingUrl(posting.url),
@@ -107,30 +110,32 @@ function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
     score: base.relevance_filtered ? null : score?.score ?? null,
     fit_line: base.relevance_filtered ? null : score?.fit_line ?? null,
     recommendation: base.relevance_filtered ? null : score?.recommendation ?? null,
-    alive: typeof alive === "boolean" ? alive : null,
+    ...projectLiveness({ alive, liveness_checked_at, last_attempt_verdict, application_deadline }, now),
     linkedin_reposted_signal: LinkedInRepostedSignalSchema.safeParse(linkedin_reposted_signal).data ?? null,
     linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(linkedin_closed_signal).data ?? null,
   });
 }
 
-function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
+function summary(row: z.infer<typeof rawSummarySchema>, now = Date.now()): JobSummary {
   const { salary, posting_extractions, liveness, list_metadata, relevance_gate, posting_scores, ...posting } = checked(rawSummarySchema, row);
   const payload = posting_scores?.score_payload;
   const fit = payload && typeof payload === "object" ? payload : null;
   const job = listSummary({ ...posting, list_stack: list_metadata.stack, experience: list_metadata.experience,
     relevance_rule: relevance_gate?.rule ?? null, alive: liveness?.alive ?? null,
+    liveness_checked_at: liveness?.liveness_checked_at, last_attempt_verdict: liveness?.last_attempt_verdict,
+    application_deadline: liveness?.application_deadline,
     linkedin_reposted_signal: liveness?.linkedin_reposted_signal ?? null,
     linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,
     posting_scores: posting_scores ? { score: posting_scores.score,
       fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
-      recommendation: fit && "recommendation" in fit ? fit.recommendation : null } : null });
+      recommendation: fit && "recommendation" in fit ? fit.recommendation : null } : null }, now);
   return { ...job, salary, description_available: list_metadata.description_available,
     seniority_origin: row.seniority ? "extracted" : titleSeniority(row.title) ? "title" : "unknown",
     extraction_state: posting_extractions ? "extracted" : "not-extracted" };
 }
 
 function parseListRows(value: unknown): { jobs: JobSummary[] } {
-  return { jobs: checked(z.array(rawListSchema), value).map(listSummary) };
+  return { jobs: checked(z.array(rawListSchema), value).map(row => listSummary(row)) };
 }
 
 export function availabilityPredicate(availability: Availability) {
@@ -139,9 +144,9 @@ export function availabilityPredicate(availability: Availability) {
   return null;
 }
 
-export function parseSummaryRows(value: unknown): { jobs: JobSummary[] } {
+export function parseSummaryRows(value: unknown, now = Date.now()): { jobs: JobSummary[] } {
   const rows = checked(z.array(rawSummarySchema), value);
-  return { jobs: rows.map(summary) };
+  return { jobs: rows.map(row => summary(row, now)) };
 }
 
 export function usesBoardRpc(input: JobListQuery): boolean {
