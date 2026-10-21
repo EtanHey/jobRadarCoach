@@ -18,7 +18,7 @@ export const GlobeJobSchema = JobSummarySchema.pick({
   id:true,title:true,company:true,source:true,location:true,remote:true,work_mode:true,
   seniority:true,stack:true,url:true,apply_url:true,posted_at:true,last_published_at:true,
   first_seen_at:true,status:true,status_reason:true,score:true,recommendation:true,
-  alive:true,relevance_filtered:true,
+  alive:true,relevance_filtered:true,vacancy_identity:true,
 }).strip().transform(job => ({...job, seniority: job.seniority ?? titleSeniority(job.title),
   url: postingUrl(job.url), apply_url: job.apply_url ? postingUrl(job.apply_url) : null}));
 export type GlobeJob = z.infer<typeof GlobeJobSchema>;

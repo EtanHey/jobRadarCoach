@@ -242,3 +242,40 @@ test("ATS grouping preserves each listing's republish evidence separately from g
   const [ordinary] = groupDuplicateJobs([{ ...ats, last_published_at: ats.posted_at }, alternate]);
   assert.equal(repostNote(ordinary.job, "UTC"), null, "aggregate dates alone are not evidence");
 });
+
+const vacancy = (id: number, requisition: string | null, overrides: Partial<JobSummary> & { raw_jd?: string } = {}) => ({
+  ...job(id, { apply_url: requisition ? `https://nvidia.wd5.myworkdayjobs.com/en-US/Careers/job/Israel/Engineer_${requisition}` : null }),
+  ...overrides,
+});
+test("same_requisition_title_drift_has_one_group", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123"), vacancy(302, "JR123", { title: "Updated Engineer" })]).length, 1);
+});
+test("same_requisition_location_variants_have_one_group", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123"), vacancy(302, "JR123", { location: "Haifa, Israel" })]).length, 1);
+});
+test("distinct_requisitions_with_same_title_location_and_jd_stay_separate", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123", {raw_jd: "Build reliable services."}), vacancy(302, "JR456", {raw_jd: "Build reliable services."})]).length, 2);
+});
+test("jd_only_title_variants_have_one_group", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, null, {raw_jd: "Build reliable services."}), vacancy(302, null, {title: "Updated Engineer", raw_jd: "Build   reliable\nservices."})]).length, 1);
+});
+test("NVIDIA URL JR ids ignore location and Workday repost suffixes", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR2023247"), vacancy(302, "JR2023247-1", {title: "Title variant", location: "Yokneam"})]).length, 1);
+});
+
+test("unknown identity cannot bridge different requisitions or split a shared requisition", () => {
+  const unknown = vacancy(300, null);
+  const a = vacancy(301, "JR123"), b = vacancy(302, "JR456");
+  for (const rows of [[unknown, a, b], [b, a, unknown]]) {
+    assert.equal(groupDuplicateJobs(rows).length, 2);
+    assert.equal(groupDuplicateJobs([unknown, a, {...a, id: b.id, location: "Haifa", title: "Changed"}]).length, 2);
+  }
+});
+test("conflicting requisitions are isolated; employers and per-source evidence survive grouping", () => {
+  const a = vacancy(301, "JR123", {raw_jd: "Requisition ID: JR456"});
+  assert.equal(groupDuplicateJobs([a, vacancy(302, "JR123")]).length, 2);
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123"), vacancy(302, "JR123", {company: "Other"})]).length, 2);
+  const rows = [vacancy(301, "JR123", {alive: true, score: 90}), vacancy(302, "JR123", {alive: false, score: 10, source: "workday", location: "Haifa"})];
+  const [group] = groupDuplicateJobs(rows);
+  assert.deepEqual([group.job, ...group.alternates].map(({id, source, score, alive, location}) => ({id, source, score, alive, location})), rows.map(({id, source, score, alive, location}) => ({id, source, score, alive, location})));
+});

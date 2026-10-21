@@ -1,4 +1,5 @@
 import "server-only";
+import { withVacancyIdentity } from "./vacancy-server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { client, data } from "./server";
 import { GlobeJobSchema } from "./globe-contract";
@@ -20,7 +21,8 @@ export function getNewRolesStore(db: SupabaseClient = client()) {
     },
     async count(input: NewRolesQuery) {
     const snapshot=await read(input);
-    return {count: countNewRoleCards(snapshot.current, snapshot.incoming.slice(0, NEW_ROLES_LIMIT),
+    const enriched = await withVacancyIdentity(db, [...snapshot.current, ...snapshot.incoming.slice(0, NEW_ROLES_LIMIT)]);
+    return {count: countNewRoleCards(enriched.slice(0, snapshot.current.length), enriched.slice(snapshot.current.length),
       {...input.view, found_within: input.found_within}), truncated: input.incoming_ids.length > NEW_ROLES_LIMIT};
   }};
 }

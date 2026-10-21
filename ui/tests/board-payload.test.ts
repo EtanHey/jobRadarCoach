@@ -130,3 +130,18 @@ test("detail by ID retains full score and drawer metadata", async () => {
 test("every optional and required list field has an explicit database alias", () => {
   assert.deepEqual(Object.keys(BOARD_FIELD_ALIASES).sort(), Object.keys(JobListItemSchema.shape).sort());
 });
+
+test("JD identity reaches all board list paths and globe schema without sending the body", async () => {
+  const { GlobeJobSchema } = await import("../lib/globe-contract");
+  const { groupDuplicateJobs } = await import("../lib/job-dedup");
+  const db = createClient("https://database.example.test", "synthetic", {global: {fetch: async () => Response.json([
+    {...slim(), raw_jd: "Build reliable services."}, {...slim(), id: "00000000-0000-4000-8000-000000000002", title: "Changed title", raw_jd: "Build reliable services."},
+  ])}});
+  const base = {filter: "all", availability: "all", limit: 100} as const;
+  for (const input of [base, {...base, sort: "fit" as const}, {...base, ids: [id]}]) {
+    const wire = JobListResponseSchema.parse({jobs: await selectSummaries(db,input)}).jobs;
+    assert.equal("raw_jd" in wire[0], false);
+    assert.ok(wire[0].vacancy_identity?.jd_fingerprint);
+    assert.equal(groupDuplicateJobs(wire.map(row => GlobeJobSchema.parse(row))).length, 1);
+  }
+});

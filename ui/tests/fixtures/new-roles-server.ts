@@ -6,6 +6,7 @@ import { makeGetNewRoles, makePostNewRoles } from "../../app/api/jobs/new-roles/
 async function main() {
   const fixture = JSON.parse(readFileSync(0, "utf8"));
   const db = createClient("https://database.example.test", "synthetic", { global: { fetch: async (_url, init) => {
+    if (String(_url).includes("/postings?")) return Response.json([]);
     const args = JSON.parse(String(init?.body));
     return Response.json({ incoming: fixture.incoming.filter((row: {id: string}) =>
       !args.incoming_ids || args.incoming_ids.includes(row.id)),

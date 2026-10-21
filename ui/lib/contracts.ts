@@ -1,3 +1,4 @@
+import { VacancyIdentitySchema } from "./vacancy-identity";
 import { z } from "zod";
 import { foundWithinOptions, fitOptions, sortOptions } from "./view-options";
 import { pipelineStatusValues } from "./pipeline-status-values";
@@ -53,6 +54,7 @@ export const LinkedInRepostedSignalSchema = LinkedInClosedSignalSchema.omit({ ph
 }).strict();
 
 export const JobSummarySchema = z.object({
+  vacancy_identity: VacancyIdentitySchema.optional(),
   id: JobIdSchema,
   title: text,
   company: text,

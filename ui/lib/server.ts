@@ -1,4 +1,5 @@
 import "server-only";
+import { vacancyIdentity } from "./vacancy-identity";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -37,6 +38,7 @@ const scoreSchema = summaryScoreSchema.extend({
 const rawBaseSchema = z.object({
   relevance_filtered: z.boolean().optional(),
   relevance_gate: z.object({ rule: z.string().nullable().optional() }).passthrough().optional(),
+  raw_jd: z.string().nullable().optional(),
   source: z.string(), last_seen_at: z.string(),
   list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
@@ -62,6 +64,7 @@ const boardScoreFields = "posting_scores(score,recommendation:score_payload->rec
 // Exhaustive over the wire schema, including optional fields. A new card field
 // must name its DB projection here, so optional schema additions cannot vanish silently.
 export const BOARD_FIELD_ALIASES = {
+  vacancy_identity: "raw_jd",
   relevance_filtered: "relevance_filtered", relevance_rule: "relevance_rule:relevance_gate->rule",
   source: "source", last_seen_at: "last_seen_at", experience: "experience:list_metadata->experience",
   alive: "alive:liveness->alive", linkedin_reposted_signal: "linkedin_reposted_signal:liveness->linkedin_reposted_signal", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
@@ -96,10 +99,10 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
-  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
+  const { raw_jd, posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   return checked(JobSummarySchema, {
-    ...posting, url: postingUrl(posting.url),
+    ...posting, vacancy_identity: vacancyIdentity({ ...posting, raw_jd }), url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
     stack: posting.stack.length ? posting.stack : list_stack,
     seniority: level,
