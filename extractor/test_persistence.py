@@ -252,3 +252,28 @@ def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     assert connection.execute(query, (posting_id,)).fetchone() == expected
     persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts, version='1.2'))
     assert connection.execute(query, (posting_id,)).fetchone() == expected
+
+
+@pytest.mark.parametrize("existing", ["competitive salary", None, "$180,000 annually"])
+def test_nonnumeric_salary_persists_remark_and_clears_only_matching_boilerplate(
+    connection, existing,
+):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + " We offer competitive salary."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update postings set salary=%s where id=%s", (existing, posting_id))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {
+        "value": "competitive salary", "evidence_quote": "competitive salary",
+    }
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    salary, stored_facts = connection.execute(
+        "select p.salary, e.facts from postings p join posting_extractions e "
+        "on e.posting_id=p.id where p.id=%s", (posting_id,),
+    ).fetchone()
+    assert salary == (existing if existing == "$180,000 annually" else None)
+    assert stored_facts["salary"] == {"value": None, "evidence_quote": None}
+    assert stored_facts["salary_remark"] == "competitive salary"
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"

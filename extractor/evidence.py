@@ -202,6 +202,42 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
         offset = start + len(quote)
 
 
+# Amounts need a money marker, a pay period, a thousands suffix/grouping,
+# or a standalone amount. Unrelated digits (PTO, tenure, years) are insufficient.
+_AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d+)(?:\.\d+)?"
+_RANGE_AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d{4,})(?:\.\d+)?"
+_CURRENCY = r"(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD)\b)"
+_SALARY_AMOUNT_RE = re.compile(
+    rf"(?<!\w){_RANGE_AMOUNT}\s*(?:[-–—]|to)\s*{_RANGE_AMOUNT}(?!\w)|"
+    rf"{_CURRENCY}\s*{_AMOUNT}(?!\w)|"
+    rf"(?<!\w){_AMOUNT}\s*[kKmM]\b|"
+    rf"(?<!\w){_AMOUNT}\s*{_CURRENCY}|"
+    rf"(?<!\w){_AMOUNT}\s*(?:/|per\s+)(?:hour|month|year|annum)\b|"
+    rf"(?<!\w){_AMOUNT}\s+(?:annually|monthly|yearly|hourly)\b",
+    re.IGNORECASE,
+)
+_BARE_SALARY_RE = re.compile(
+    rf"\s*{_AMOUNT}(?:\s*[kKmM])?"
+    rf"(?:\s*[-–—]\s*{_AMOUNT}(?:\s*[kKmM])?)?\s*"
+)
+
+
+def has_numeric_salary(value: str) -> bool:
+    """Recognize an amount/range without treating arbitrary digits as pay."""
+    return bool(_SALARY_AMOUNT_RE.search(value) or _BARE_SALARY_RE.fullmatch(value))
+
+
+def normalize_salary(facts: dict[str, object], raw_jd: str) -> None:
+    """Retain source-supported nonnumeric pay wording only as a raw remark."""
+    salary = facts["salary"]
+    assert isinstance(salary, dict)
+    value = salary["value"]
+    _validate_quote("salary", value, salary["evidence_quote"], raw_jd)
+    if isinstance(value, str) and not has_numeric_salary(value):
+        facts["salary_remark"] = value
+        facts["salary"] = {"value": None, "evidence_quote": None}
+
+
 def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
     """Reject extracted facts that are not supported by their source quotes."""
 
@@ -209,6 +245,20 @@ def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
         fact = facts[field]
         assert isinstance(fact, dict)
         _validate_quote(field, fact["value"], fact["evidence_quote"], raw_jd)
+    salary = facts["salary"]["value"]
+    if salary is not None and not has_numeric_salary(salary):
+        raise ExtractionValidationError(
+            "salary requires numeric compensation evidence",
+            category="evidence_quote", field="salary",
+        )
+    if "salary_remark" in facts:
+        remark = facts["salary_remark"]
+        _validate_quote("salary", remark, remark, raw_jd)
+        if not isinstance(remark, str) or has_numeric_salary(remark):
+            raise ExtractionValidationError(
+                "salary remark must contain nonnumeric source wording",
+                category="evidence_quote", field="salary",
+            )
     _validate_location_context(facts["location"], raw_jd)
     remote = facts["remote"]
     assert isinstance(remote, dict)

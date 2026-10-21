@@ -102,14 +102,16 @@ def persist_extraction(
             "work_mode_source = case when work_mode_source in ('structured', 'location') then work_mode_source "
             "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
-            "salary = coalesce(%s, salary) where id = %s and raw_jd = %s returning id",
+            "salary = coalesce(%s, case when salary = %s then null else salary end) "
+            "where id = %s and raw_jd = %s returning id",
             (
                 payload.facts["location"]["value"], mode, payload.facts["remote"]["value"],
                 mode, "extracted" if mode_source else None,
                 payload.facts["seniority"]["value"],
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],
-                payload.facts["salary"]["value"], posting_id, captured_raw_jd,
+                payload.facts["salary"]["value"], payload.facts.get("salary_remark"),
+                posting_id, captured_raw_jd,
             ),
         ).fetchone()
         if updated is None:
