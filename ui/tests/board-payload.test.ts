@@ -130,3 +130,18 @@ test("detail by ID retains full score and drawer metadata", async () => {
 test("every optional and required list field has an explicit database alias", () => {
   assert.deepEqual(Object.keys(BOARD_FIELD_ALIASES).sort(), Object.keys(JobListItemSchema.shape).sort());
 });
+
+test("eligibility survives both projected lists and legacy summary parsing", async () => {
+  const eligibility = "blocked", eligibility_reason = '"Remote U.S. only"';
+  const old = { ...raw, posting_scores: { ...raw.posting_scores,
+    score_payload: { ...raw.posting_scores.score_payload, eligibility, eligibility_reason } } };
+  const projected = slim();
+  projected.posting_scores = { score: 82, recommendation: "apply", fit_line: "Synthetic fit", eligibility, eligibility_reason };
+  const db = createClient("https://database.example.test", "synthetic", { global: { fetch: async () => Response.json([projected]) } });
+  const [job] = await selectSummaries(db, { filter: "all", availability: "all", sort: "fit", limit: 100 });
+  const [legacy] = parseSummaryRows([old]).jobs;
+  assert.equal(job.eligibility, "blocked");
+  assert.equal(job.eligibility_reason, eligibility_reason);
+  assert.equal(legacy.eligibility, job.eligibility);
+  assert.equal(legacy.eligibility_reason, eligibility_reason);
+});

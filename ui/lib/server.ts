@@ -53,12 +53,12 @@ const rawListSchema = rawBaseSchema.omit({
 }).extend({
   list_stack: z.array(z.string()), experience: z.string().nullable(),
   relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_reposted_signal: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
-  posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
+  posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable(), eligibility: z.unknown().nullable().optional(), eligibility_reason: z.unknown().nullable().optional() }).nullable(),
 });
 const rawDetailSchema = rawBaseSchema.extend({ posting_scores: scoreSchema.nullable(), raw_jd: z.string().nullable() });
 const statusRowSchema = StatusResultSchema.passthrough();
 const profileRowSchema = z.object({ field: z.string(), value: z.unknown() });
-const boardScoreFields = "posting_scores(score,recommendation:score_payload->recommendation,fit_line:score_payload->fit_line)";
+const boardScoreFields = "posting_scores(score,recommendation:score_payload->recommendation,fit_line:score_payload->fit_line,eligibility:score_payload->eligibility,eligibility_reason:score_payload->eligibility_reason)";
 // Exhaustive over the wire schema, including optional fields. A new card field
 // must name its DB projection here, so optional schema additions cannot vanish silently.
 export const BOARD_FIELD_ALIASES = {
@@ -69,7 +69,7 @@ export const BOARD_FIELD_ALIASES = {
   seniority: "seniority", stack: "stack,list_stack:list_metadata->stack", url: "url", apply_url: "apply_url",
   posted_at: "posted_at", last_published_at: "last_published_at", first_seen_at: "first_seen_at",
   status: "posting_status(status,reason)", status_reason: "posting_status(status,reason)",
-  score: boardScoreFields, recommendation: boardScoreFields, fit_line: boardScoreFields,
+  score: boardScoreFields, recommendation: boardScoreFields, fit_line: boardScoreFields, eligibility: boardScoreFields, eligibility_reason: boardScoreFields,
 } satisfies Record<keyof z.infer<typeof JobListItemSchema>, string>;
 const SUMMARY = [...new Set(Object.values(BOARD_FIELD_ALIASES))].join(",");
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
@@ -107,6 +107,8 @@ function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
     score: base.relevance_filtered ? null : score?.score ?? null,
     fit_line: base.relevance_filtered ? null : score?.fit_line ?? null,
     recommendation: base.relevance_filtered ? null : score?.recommendation ?? null,
+    eligibility: score?.eligibility ?? null,
+    eligibility_reason: score?.eligibility_reason ?? null,
     alive: typeof alive === "boolean" ? alive : null,
     linkedin_reposted_signal: LinkedInRepostedSignalSchema.safeParse(linkedin_reposted_signal).data ?? null,
     linkedin_closed_signal: LinkedInClosedSignalSchema.safeParse(linkedin_closed_signal).data ?? null,
@@ -123,7 +125,9 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
     linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,
     posting_scores: posting_scores ? { score: posting_scores.score,
       fit_line: fit && "fit_line" in fit ? fit.fit_line : null,
-      recommendation: fit && "recommendation" in fit ? fit.recommendation : null } : null });
+      recommendation: fit && "recommendation" in fit ? fit.recommendation : null,
+      eligibility: fit && "eligibility" in fit ? fit.eligibility : null,
+      eligibility_reason: fit && "eligibility_reason" in fit ? fit.eligibility_reason : null } : null });
   return { ...job, salary, description_available: list_metadata.description_available,
     seniority_origin: row.seniority ? "extracted" : titleSeniority(row.title) ? "title" : "unknown",
     extraction_state: posting_extractions ? "extracted" : "not-extracted" };

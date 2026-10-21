@@ -367,3 +367,14 @@ def test_global_literal_guard_remains_fail_closed_for_all_output_wording(
     assert result is None
     assert len(runner.calls) == 2
     assert diagnostics == ["semantic"]
+
+
+def test_location_gate_runs_after_scoring_without_changing_recommendation():
+    row = posting("Remote U.S. only. " + "Build TypeScript products. " * 12)
+    row["location"] = "United States"
+    runner = SequenceBrain(wire_annotation(row["id"]))
+    result = core.score_posting(profile_snapshot(), row, [], brain_runner=runner)
+    assert result is not None
+    assert result.annotation["recommendation"] == "apply"
+    assert result.annotation["eligibility"] == "blocked"
+    assert '"Remote U.S. only' in result.annotation["eligibility_reason"]

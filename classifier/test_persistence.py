@@ -26,6 +26,7 @@ def migrated_database_url():
         with migrated_database(MIGRATIONS, through=6) as url:
             with psycopg.connect(url, autocommit=True) as db:
                 db.execute((MIGRATIONS / "0028_relevance_gate.sql").read_text())
+                db.execute((MIGRATIONS / "0037_location_eligibility_payload.sql").read_text())
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
