@@ -1723,6 +1723,17 @@ COUNTRY_OWN_IDENTIFIERS = {
         "united states", "united states of america", "us", "usa", "u s", "u s a",
     )),
 }
+ISRAEL_LOCATION_DESCRIPTORS = "central|area|office|r d center|hq|district|greater|metro"
+ISRAEL_CITY_SEGMENT = re.compile(
+    rf"(?:(?:{ISRAEL_LOCATION_DESCRIPTORS}) )*"
+    "(?:" + "|".join(
+        re.escape(_normalized_location(city)) for city in COUNTRY_CITY_ALIASES["israel"]
+    ) + ")"
+    rf"(?: (?:{ISRAEL_LOCATION_DESCRIPTORS}))*"
+)
+ISRAEL_SUBDIVISION_IDENTIFIERS = frozenset(
+    _normalized_location(code) for code in ("IL-TA", "IL-HA", "IL-JM", "IL-M", "IL-Z", "IL-D")
+)
 
 
 def _city_matches_country(raw_location: object, country: str) -> bool:
@@ -1735,19 +1746,34 @@ def _city_matches_country(raw_location: object, country: str) -> bool:
         if (normalized := _normalized_location(part))
     ]
     city_names = {_normalized_location(city) for city in cities}
-    city_indices = {index for index, segment in enumerate(segments) if segment in city_names}
+    city_indices = {
+        index for index, segment in enumerate(segments)
+        if segment in city_names or (
+            country == "israel" and (
+                ISRAEL_CITY_SEGMENT.fullmatch(segment)
+                or segment in ISRAEL_SUBDIVISION_IDENTIFIERS
+            )
+        )
+    }
     if not city_indices:
         return False
     own_identifiers = COUNTRY_OWN_IDENTIFIERS[country]
+    conflicting_identifiers = COUNTRY_IDENTIFIERS - own_identifiers
+    if country != "united states":
+        conflicting_identifiers |= US_STATE_IDENTIFIERS - own_identifiers
     for index, segment in enumerate(segments):
-        if segment in own_identifiers:
+        if index in city_indices or segment in own_identifiers:
             continue
         # CA (Canada/California), IL (Israel/Illinois), etc. are ambiguous. Only
         # the segment immediately after a US city is interpreted as a US state.
         if country == "united states" and index - 1 in city_indices and segment in US_STATE_IDENTIFIERS:
             continue
-        if segment in COUNTRY_IDENTIFIERS or (
-            country != "united states" and segment in US_STATE_IDENTIFIERS
+        # Qualifiers may share a segment with a country or ZIP ("OH 43747 USA").
+        if segment in conflicting_identifiers or (
+            country == "israel" and any(
+                _contains_normalized_phrase(segment, identifier)
+                for identifier in conflicting_identifiers
+            )
         ):
             return False
     return True
