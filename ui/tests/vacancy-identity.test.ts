@@ -2,14 +2,30 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { jdFingerprint, vacancyIdentity } from "../lib/vacancy-identity";
 const identity = (url: string, raw_jd: string | null = null) => vacancyIdentity({url, apply_url: null, raw_jd});
-test("requisition extraction recognizes NVIDIA, Workday, Greenhouse and labelled JD IDs", () => {
+test("requisition extraction recognizes NVIDIA, Workday and labelled JD IDs", () => {
   assert.deepEqual(identity("https://nvidia.wd5.myworkdayjobs.com/Careers/job/Haifa/Title_JR123-1").requisitions, ["JR123"]);
   assert.deepEqual(identity("https://employer.wd1.myworkdayjobs.com/Careers/job/City/Title_R456/apply").requisitions, ["R456"]);
-  assert.deepEqual(identity("https://boards.greenhouse.io/employer/jobs/123?utm_source=x").requisitions, ["123"]);
-  assert.deepEqual(identity("https://example.test/careers?gh_jid=123").requisitions, ["123"]);
-  assert.deepEqual(identity("https://boards.greenhouse.io/embed/job_app?token=456").requisitions, ["456"]);
   assert.deepEqual(identity("https://example.test", "Requisition ID: R789").requisitions, ["R789"]);
+  assert.deepEqual(identity("https://example.test", "Workday requisition R456").requisitions, ["R456"]);
   for (const url of ["bad", "https://example.test/careers", "https://linkedin.com/jobs/view/123"]) assert.deepEqual(identity(url).requisitions, []);
+});
+for (const [shape, url] of [
+  ["Greenhouse jobs path", "https://boards.greenhouse.io/employer/jobs/123"],
+  ["Greenhouse gh_jid", "https://example.test/careers?gh_jid=123"],
+  ["Greenhouse embed token", "https://boards.greenhouse.io/embed/job_app?token=456"],
+  ["Lever UUID", "https://jobs.lever.co/employer/12345678-1234-1234-1234-123456789abc"],
+  ["Comeet position UID", "https://www.comeet.com/jobs/employer/12.345/JR123/engineer"],
+  ["Workable shortcode", "https://apply.workable.com/employer/j/JR123/"],
+]) {
+  test(`${shape} is posting evidence, never a requisition`, () => {
+    assert.deepEqual(identity(url).requisitions, []);
+    assert.deepEqual(identity(url, "Requisition ID: R789").requisitions, ["R789"]);
+  });
+}
+test("explicit JD labels retain employer IDs independently of ATS posting IDs", () => {
+  for (const label of ["Req ID", "Requisition ID", "Job ID"]) {
+    assert.deepEqual(identity("https://boards.greenhouse.io/employer/jobs/123", `${label}: ENG-456`).requisitions, ["ENG-456"]);
+  }
 });
 test("JD fingerprint ignores formatting and bounded boilerplate while preserving role requirements", () => {
   assert.equal(jdFingerprint("**Build** reliable\nservices.\n\nWe are an equal opportunity employer."), jdFingerprint("Build   reliable services."));

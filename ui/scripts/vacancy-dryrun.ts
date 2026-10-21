@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import assert from "node:assert/strict";
 import { z } from "zod";
 import { GlobeJobSchema } from "../lib/globe-contract";
 import { groupDuplicateJobs } from "../lib/job-dedup";
@@ -18,7 +19,7 @@ async function main() {
       score: row.posting_scores?.score ?? null, recommendation: null, alive: row.liveness?.alive ?? null});
     return {...job, vacancy_identity: vacancyIdentity({...job, raw_jd: row.raw_jd})};
   });
-  const baselinePath = new URL("../lib/job-dedup-baseline.local.ts", import.meta.url);
+  const baselinePath = new URL(`../lib/job-dedup-baseline-${randomUUID()}.local.ts`, import.meta.url);
   writeFileSync(baselinePath, execFileSync("git", ["show", `${baselineRef}:ui/lib/job-dedup.ts`]));
   try {
     const baseline: typeof import("../lib/job-dedup") = await import(baselinePath.href);
@@ -26,7 +27,43 @@ async function main() {
     const members = (group: typeof after[number]) => [group.job, ...group.alternates];
     const covered = after.flatMap(members).map(job => job.id);
     if (covered.length !== rows.length || new Set(covered).size !== rows.length) throw new Error("Coverage failure");
+    const originalById = new Map(rows.map(row => [row.id, row]));
+    for (const member of after.flatMap(members)) {
+      const original = originalById.get(member.id);
+      assert.ok(original);
+      for (const field of ["company", "source", "location", "alive", "score", "url", "apply_url"] as const) {
+        assert.deepEqual(member[field], original[field], `${member.id}: preserved ${field}`);
+      }
+    }
+    for (const [name, ids] of [
+      ["Unframe", ["7c3ef744-26a4-4a05-8485-febbe4130ee2", "97994440-a6f6-4f8b-80a4-66cb6b13b57d"]],
+      ["Office Hours", ["6270b19b-5d99-4d5b-a905-6e0968fac867", "7cf0dfb5-252b-4178-b151-55a8358f16ee"]],
+    ] as const) {
+      const pair = rows.filter(row => ids.some(id => id === row.id));
+      assert.equal(pair.length, 2, `${name}: frozen pair present`);
+      for (const input of [pair, pair.toReversed()]) {
+        assert.equal(baseline.groupDuplicateJobs(input).length, 1, `${name}: master control`);
+        assert.equal(groupDuplicateJobs(input).length, 1, `${name}: frozen snapshot regression`);
+      }
+    }
     const conflicts = after.filter(group => new Set(members(group).flatMap(job => job.vacancy_identity.requisitions)).size > 1 && members(group).length > 1);
+    const afterById = new Map(after.flatMap((group, index) => members(group).map(job => [job.id, index] as const)));
+    const splits = before.flatMap(group => {
+      const partitions = new Map<number, typeof rows>();
+      for (const row of members(group)) {
+        const index = afterById.get(row.id);
+        assert.ok(index !== undefined);
+        const partition = partitions.get(index);
+        if (partition) partition.push(row); else partitions.set(index, [row]);
+      }
+      if (partitions.size < 2) return [];
+      const parts = [...partitions.values()].map(rows => ({rows,
+        requisitions: [...new Set(rows.flatMap(row => row.vacancy_identity.requisitions))],
+      }));
+      const distinct = parts.every(part => part.requisitions.length === 1)
+        && new Set(parts.flatMap(part => part.requisitions)).size === parts.length;
+      return [{company: group.job.company, title: group.job.title, parts, distinct}];
+    });
     const family = readFileSync(summaryPath, "utf8").split("### 1. Repeated requisition/content identity")[1].split("### 2.")[0];
     const subgroups = family.split("\n").filter(line => /^- (?:JR\d+|`ISSUE-)/u.test(line)).map(line => ({
       name: line.match(/^- (JR\d+|`ISSUE-[^`]+`)/u)?.[1] ?? "unknown",
@@ -40,12 +77,21 @@ async function main() {
       `NVIDIA cited subset: ${nvidiaIds.length} rows; ${count(before,nvidiaIds)} before → ${count(after,nvidiaIds)} after (target 21).`,
       `Groups merging different known requisitions: ${conflicts.length}.`, "", "| Triage subgroup | Rows | Before | After | Known requisitions |", "|---|---:|---:|---:|---|",
       ...subgroups.map(group => `| ${group.name} | ${group.ids.length} | ${count(before,group.ids)} | ${count(after,group.ids)} | ${[...new Set(rows.filter(row => group.ids.includes(row.id)).flatMap(row => row.vacancy_identity.requisitions))].join(", ") || "none"} |`), "",
-      "Counts intersect each subgroup with the full snapshot grouping, not a separate isolated run. Different known requisitions stay separate even with identical JD text; differing employers and substantive JD variants remain candidates for manual review. No row is deleted or written to a database.", "",
+      "Counts intersect each subgroup with the full snapshot grouping, not a separate isolated run. No row is deleted or written to a database. Source IDs, sources, URLs, locations, per-source liveness and scores are checked against the original rows. Both frozen Unframe and Office Hours pairs group to one in either input order.", "",
+      "## Every baseline group that split", "",
+      `${splits.length} baseline groups split, adding ${splits.reduce((sum, split) => sum + split.parts.length - 1, 0)} groups before merges elsewhere. Splits without distinct known requisition evidence: ${splits.filter(split => !split.distinct).length}.`, "",
+      ...splits.flatMap((split, index) => [
+        `${index + 1}. **${split.company} — ${split.title}: 1 → ${split.parts.length}.** ${split.distinct ? "Genuine distinct employer requisitions." : "UNPROVEN split: no distinct requisition evidence."}`,
+        ...split.parts.map(part => `   - ${part.requisitions.join(", ") || "unknown requisition"}: ${part.rows.map(row => `\`${row.id}\``).join(", ")}`), "",
+      ]),
+      "## Identity and fallback rule", "",
+      "Strong identity uses employer requisitions from labelled JD fields, JR/R patterns in the JD, or the Workday URL requisition segment. Greenhouse posting IDs (jobs path, gh_jid, embed token), Lever UUIDs, Comeet position UIDs and Workable shortcodes remain posting/link evidence. They cannot veto a JD match.", "",
+      "Without conflicting known requisitions, identical normalized JDs merge even with title/location drift. Different JD fingerprints fall through to the existing title/role-URL and compatible-location heuristic. A changed hash cannot prove distinct headcount: this conservative fallback restores the nine unknown-requisition baseline groups split in R1, including Office Hours. Different titles and posting URLs with substantively different JDs stay separate; known distinct requisitions always stay separate even with matching titles, locations and JDs. This intentionally does not infer distinct headcount from substantive wording changes alone.", "",
       "UI transport derives compact identity from existing raw_jd server-side; bodies do not cross the board/globe wire. Globe evidence is read by captured IDs in batches of 100 after its membership snapshot. Identity can therefore reflect a later JD edit; membership/geo/cutoff remain from the original snapshot.", "",
       "Offline function evidence only. No hosted dashboard, production DB, browser visual QA, or ingest change is claimed.", ""];
     writeFileSync(reportPath, lines.join("\n"));
     process.stdout.write(lines.slice(0,8).join("\n") + "\n");
-    if (conflicts.length || count(after,nvidiaIds) !== 21) process.exitCode = 1;
+    if (conflicts.length || count(after,nvidiaIds) !== 21 || splits.some(split => !split.distinct)) process.exitCode = 1;
   } finally { unlinkSync(baselinePath); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

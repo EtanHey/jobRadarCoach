@@ -259,6 +259,33 @@ test("distinct_requisitions_with_same_title_location_and_jd_stay_separate", () =
 test("jd_only_title_variants_have_one_group", () => {
   assert.equal(groupDuplicateJobs([vacancy(301, null, {raw_jd: "Build reliable services."}), vacancy(302, null, {title: "Updated Engineer", raw_jd: "Build   reliable\nservices."})]).length, 1);
 });
+test("Unframe identical JD reposts with different Greenhouse post IDs stay grouped", () => {
+  // Frozen pair 7c3ef744 / 97994440: identical bodies, distinct source post IDs.
+  const rows = [5009573101, 5003023101].map((posting, index) => vacancy(401 + index, null, {
+    company: "Unframe", title: "Full Stack Software Engineer", location: "Tel Aviv, Israel",
+    url: `https://job-boards.greenhouse.io/unframe/jobs/${posting}`,
+    raw_jd: "Build enterprise AI applications and own features across the stack.",
+  }));
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 1);
+});
+test("Office Hours trivial JD edits preserve the title and location fallback", () => {
+  // Frozen pair 6270b19b / 7cf0dfb5 differs only by the word 'either'.
+  const rows = ["can either be", "can be"].map((wording, index) => vacancy(411 + index, null, {
+    company: "Office Hours", title: "Senior Frontend Engineer", location: "Israel",
+    raw_jd: `Build frontend applications. This role ${wording} fully remote or in our office.`,
+  }));
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 1);
+});
+test("different JD fingerprints alone do not establish distinct headcount", () => {
+  const rows = [vacancy(421, null, {raw_jd: "Build Rust backend services."}),
+    vacancy(422, null, {raw_jd: "Build React frontend applications."})];
+  assert.equal(groupDuplicateJobs(rows).length, 1, "same employer, title and location remain a grouping candidate");
+});
+test("substantively different roles stay separate without a matching title or posting URL", () => {
+  const rows = [vacancy(431, null, {title: "Backend Engineer", raw_jd: "Build Rust backend services."}),
+    vacancy(432, null, {title: "Product Designer", raw_jd: "Design user journeys and conduct user research."})];
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 2);
+});
 test("NVIDIA URL JR ids ignore location and Workday repost suffixes", () => {
   assert.equal(groupDuplicateJobs([vacancy(301, "JR2023247"), vacancy(302, "JR2023247-1", {title: "Title variant", location: "Yokneam"})]).length, 1);
 });

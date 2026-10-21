@@ -47,9 +47,9 @@ function sameRole(a: PreparedJob, b: PreparedJob, locationsMatch: ReturnType<typ
   const left = a.identity, right = b.identity;
   if (left.requisitions.length > 1 || right.requisitions.length > 1) return false;
   if (left.requisitions.length && right.requisitions.length) return left.requisitions[0] === right.requisitions[0];
-  if (!left.requisitions.length && !right.requisitions.length && left.jd_fingerprint && right.jd_fingerprint) {
-    return left.jd_fingerprint === right.jd_fingerprint;
-  }
+  if (!left.requisitions.length && !right.requisitions.length && left.jd_fingerprint
+    && left.jd_fingerprint === right.jd_fingerprint) return true;
+  // A changed JD alone is not evidence of separate headcount; retain the heuristic.
   if (!locationsMatch(a.job.location, b.job.location)) return false;
   return a.keys.some(key => b.keys.includes(key)) || Boolean(a.title && a.title === b.title);
 }
