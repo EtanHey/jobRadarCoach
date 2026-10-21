@@ -3010,6 +3010,13 @@ def test_run_pipeline_dedupes_prior_and_current_files(tmp_path: Path) -> None:
         for line in (tmp_path / "2026-08-09.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert result == {
+        "source_funnel": {"linkedin": {
+            "registered": 10, "eligible": 10, "stale": 0, "disabled": 0,
+            "invalid": 0, "expiring_within_7d": 0, "requested": 10,
+            "filtered": 0,
+            "inserted_new": 1, "updated_existing": 0,
+        }},
+        "warnings": [],
         "fetched_count": 20,
         "matched_count": 20,
         "harvested_count": 20,
@@ -3323,7 +3330,7 @@ def test_run_pipeline_dispatches_registry_queries_and_isolates_tenants(
     calls: list[tuple[str, str]] = []
     monkeypatch.setattr(
         harvest, "load_registry_source_queries",
-        lambda: {
+        lambda **_kwargs: {
             "greenhouse": [{"board": "broken", "company": "Broken", "source_tenant": "broken"}],
             "lever": [{"account": "good", "company": "Good", "source_tenant": "good"}],
         },
