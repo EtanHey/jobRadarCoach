@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { CompanyLogo } from "./company-logo";
 import { InfoTip } from "./info-tip";
 import { LinkedInClosureBadge } from "./linkedin-closure-badge";
+import { LivenessBadge } from "./liveness-badge";
 import { PostingDates } from "./posting-dates";
 import { WorkModeIcon } from "./work-mode-icon";
 
@@ -77,6 +78,7 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
     </div>
     {job.relevance_filtered && <p className="pointer-events-none text-xs text-muted-foreground">{relevanceLabel(job.relevance_rule)}</p>}
     <LinkedInClosureBadge job={job} />
+    <LivenessBadge job={job} />
     {actions && <div className="relative z-10">{actions}</div>}
   </article>;
 }

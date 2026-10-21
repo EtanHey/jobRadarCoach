@@ -14,6 +14,7 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./ui/sheet";
 import { JobDescription } from "./job-description";
 import { LinkedInClosureBadge } from "./linkedin-closure-badge";
+import { LivenessBadge } from "./liveness-badge";
 import { PostingDates } from "./posting-dates";
 import { TechnologyChips } from "./technology-chips";
 import { WorkModeIcon } from "./work-mode-icon";
@@ -53,6 +54,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
         {heading && <div className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} lastPublishedAt={heading.last_published_at} firstSeenAt={heading.first_seen_at} /></div>}
         {repost && <p data-repost-marker title={summaryHeading ? repostTooltip(summaryHeading) ?? undefined : undefined} className="mt-1 text-xs text-muted-foreground">{repost}</p>}
         {summaryHeading && <LinkedInClosureBadge job={summaryHeading} />}
+        {summaryHeading && <LivenessBadge job={summaryHeading} />}
         {detail && <>
           <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground"><span>{detail.location ?? "Location unspecified"}</span><span aria-hidden="true">·</span><WorkModeIcon job={detail} showLabel /></p>
           <p className="mt-1 text-sm text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
