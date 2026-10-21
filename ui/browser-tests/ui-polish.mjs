@@ -20,8 +20,11 @@ app.stdout.on('data', data => { log += data; });
 app.stderr.on('data', data => { log += data; });
 let browser;
 const receipts = [], failures = [];
+// Keep the 7-day filter fixture fresh regardless of the day this suite runs.
+const fixtureNow = new Date('2026-10-11T12:00:00Z');
+const fixtureSeenAt = new Date(fixtureNow.getTime() - 4 * 86_400_000).toISOString();
 const role = { id: '00000000-0000-4000-8000-000000000001', title: 'Fixture engineer', company: 'Synthetic Labs',
-  source: 'fixture', last_seen_at: '2026-10-07T00:00:00Z', first_seen_at: '2026-10-07T00:00:00Z',
+  source: 'fixture', last_seen_at: fixtureSeenAt, first_seen_at: fixtureSeenAt,
   posted_at: null, experience: null, description_available: false, seniority_origin: 'title', extraction_state: 'not-extracted',
   location: 'Rehovot, Israel', remote: true, seniority: 'Junior', stack: ['React'], salary: null,
   url: 'https://example.test', apply_url: null, status: 'interview_technical', status_reason: null,
@@ -38,8 +41,11 @@ try {
   for (const width of [1440, 1280, 1100, 900, 390]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
-    const errors = [];
+    await page.clock.setFixedTime(fixtureNow);
+    const errors = [], consoleLog = [];
+    const failuresBefore = failures.length;
     page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => consoleLog.push({ type: message.type(), text: message.text() }));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     await page.addInitScript(() => {
       window.EventSource = class { addEventListener() {} close() {} };
@@ -49,7 +55,7 @@ try {
       const url = new URL(route.request().url());
       if (url.pathname.endsWith('/style.json')) return route.fulfill({ json: { version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#143047' } }] } });
       if (url.origin !== base) return route.fulfill({ status: 200, body: '' });
-      if (url.pathname === '/api/jobs/globe') return route.fulfill({ json: { jobs: [role], points: [{ posting_id: role.id, lat: 31.8928, lng: 34.8113, precision: 'city', source: 'fixture', resolved_at: '2026-10-07T00:00:00Z' }], total_count: 1, resolved_count: 1, unresolved_count: 0, attribution: 'Synthetic fixture' } });
+      if (url.pathname === '/api/jobs/globe') return route.fulfill({ json: { jobs: [role], points: [{ posting_id: role.id, lat: 31.8928, lng: 34.8113, precision: 'city', source: 'fixture', resolved_at: fixtureSeenAt }], total_count: 1, resolved_count: 1, unresolved_count: 0, attribution: 'Synthetic fixture' } });
       if (url.pathname === '/api/jobs/sources') return route.fulfill({ json: { sources: [role.source] } });
       if (url.pathname === '/api/jobs') return route.fulfill({ json: { jobs: url.searchParams.has('since') ? [] : [role] } });
       if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 200, json: {} });
@@ -194,7 +200,17 @@ try {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'no horizontal overflow');
       assert.deepEqual(errors, []);
       receipts.push({ width, errors });
-    } finally { await context.close(); }
+    } finally {
+      try {
+        await writeFile(`${output}/console-${width}.json`, JSON.stringify({ consoleLog, errors }, null, 2));
+        if (failures.length > failuresBefore) {
+          await writeFile(`${output}/failure-${width}.html`, await page.content());
+          await page.screenshot({ path: `${output}/failure-${width}.png`, fullPage: true });
+        }
+      } catch (error) {
+        console.warn(`Could not capture ${width}px diagnostics: ${error.message}`);
+      } finally { await context.close(); }
+    }
   }
   console.log(JSON.stringify({ receipts, failures }));
   assert.deepEqual(failures, []);
