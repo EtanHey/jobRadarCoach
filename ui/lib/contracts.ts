@@ -52,10 +52,16 @@ export const LinkedInRepostedSignalSchema = LinkedInClosedSignalSchema.omit({ ph
   label: z.string().regex(/^Reposted [1-9][0-9]* (?:minute|hour|day|week|month|year)s? ago$/i),
 }).strict();
 
+export const EmployerIdentitySchema = z.object({
+  publisher: text, hiring_employer: nullableText, employer_evidence: nullableText,
+  resolver_version: text,
+}).refine(value => value.hiring_employer === null || value.employer_evidence !== null);
+
 export const JobSummarySchema = z.object({
   id: JobIdSchema,
   title: text,
   company: text,
+  employer_identity: EmployerIdentitySchema.optional(),
   source: text,
   last_seen_at: text,
   experience: nullableText,

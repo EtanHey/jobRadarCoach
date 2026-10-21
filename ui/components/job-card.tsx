@@ -1,5 +1,7 @@
 "use client";
 
+import { employerLabel, employerName } from "@/lib/employer-identity";
+
 import type { ReactNode, RefObject } from "react";
 import { Recycle } from "lucide-react";
 import type { JobSummary } from "@/lib/contracts";
@@ -30,6 +32,7 @@ type Props = {
 };
 
 export function JobCard({ job, selected, keptStatus = null, logoSize = "md", actions, alternateCount = 0, openerRef, selectJob, prefetchIntent, children }: Props) {
+  const companyLabel = employerLabel(job);
   const experience = job.experience ?? job.seniority ?? "Experience unspecified";
   const repost = repostNote(job);
   const location = job.location ?? "Location unspecified";
@@ -39,13 +42,13 @@ export function JobCard({ job, selected, keptStatus = null, logoSize = "md", act
   const dim = statusDimsCard(job.status) || keptStatus === "seen" ? "opacity-60" : "";
   const chipId = `card-status-${job.id}`;
   return <article data-posting-id={job.id} data-settled={keptStatus ? "" : undefined} onPointerEnter={event => { if (event.pointerType !== "touch") prefetchIntent?.start(job.id); }} onPointerLeave={() => prefetchIntent?.end(job.id)} className="relative flex w-full flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 motion-reduce:duration-0 hover:border-ring/50 hover:shadow-md has-[:focus-visible]:border-ring/50 has-[:focus-visible]:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
-    <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${job.company}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }}
+    <button type="button" aria-pressed={selected} aria-label={`Open ${job.title} at ${employerLabel(job)}`} aria-describedby={chip ? chipId : undefined} className="absolute inset-0 rounded-xl outline-none" onClick={event => { openerRef.current = event.currentTarget; selectJob(job.id); }}
       onFocus={event => { if (event.currentTarget.matches(":focus-visible")) prefetchIntent?.start(job.id); }} onBlur={() => prefetchIntent?.end(job.id)} />
     <div className="pointer-events-none flex flex-wrap items-start gap-3">
-      <CompanyLogo company={job.company} applyUrl={job.apply_url} url={job.url} postingId={job.id} size={logoSize} className={dim} />
+      <CompanyLogo company={employerName(job)} applyUrl={job.apply_url} url={job.url} postingId={job.id} size={logoSize} className={dim} />
       <div className={cn("min-w-0 max-w-[28rem] flex-[1_1_9rem]", dim)}>
         <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-          <p className={cn("truncate", repost && "min-w-0 max-w-full flex-[1_1_8rem]")}>{job.company}</p>
+          <p className={cn(companyLabel === job.company ? "truncate" : "break-words", repost && "min-w-0 max-w-full flex-[1_1_8rem]")}>{companyLabel}</p>
           {repost && <InfoTip data-repost-marker label={repostTooltip(job) ?? repost} tip={repostTooltip(job) ?? repost} wrap className="min-w-0 max-w-full text-left"><Recycle aria-hidden="true" size={13} className="shrink-0" /><span className="ml-1 min-w-0 break-words text-xs">{repost}</span></InfoTip>}
         </div>
         <h2 className="mt-1 line-clamp-2 h-12 text-lg font-semibold leading-6 sm:h-14 sm:text-xl sm:leading-7" title={job.title}>{job.title}</h2>

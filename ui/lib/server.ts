@@ -4,7 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import {
-  JobListItemSchema, LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, JobSourcesQuerySchema, JobSourcesResponseSchema, ProfileEntriesSchema, ProfileSchema,
+  EmployerIdentitySchema, JobListItemSchema, LinkedInRepostedSignalSchema, LinkedInClosedSignalSchema, WorkModeSchema, JobDetailSchema, JobIdSchema, JobSummarySchema, JobSourcesQuerySchema, JobSourcesResponseSchema, ProfileEntriesSchema, ProfileSchema,
   ProfilePatchSchema, ScoreReasonSchema, StatusResultSchema, type JobDetail, type JobListQuery,
   type Availability, type JobSummary, type Profile, type ProfileEntry, type StatusPatch, type StatusResult,
 } from "./contracts";
@@ -40,7 +40,7 @@ const rawBaseSchema = z.object({
   source: z.string(), last_seen_at: z.string(),
   list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
-  posting_extractions: z.object({ posting_id: JobIdSchema }).nullable(),
+  posting_extractions: z.object({ posting_id: JobIdSchema.optional(), employer_identity: EmployerIdentitySchema.nullish() }).nullish(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
   work_mode: WorkModeSchema.nullable().optional(), remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),
@@ -51,6 +51,7 @@ const rawSummarySchema = rawBaseSchema.extend({ posting_scores: summaryScoreSche
 const rawListSchema = rawBaseSchema.omit({
   salary: true, list_metadata: true, liveness: true, relevance_gate: true, posting_extractions: true,
 }).extend({
+  posting_extractions: rawBaseSchema.shape.posting_extractions,
   list_stack: z.array(z.string()), experience: z.string().nullable(),
   relevance_rule: z.string().nullable(), alive: z.unknown().nullable(), linkedin_reposted_signal: z.unknown().nullable(), linkedin_closed_signal: z.unknown().nullable(),
   posting_scores: z.object({ score: z.number().nullable(), recommendation: z.unknown().nullable(), fit_line: z.unknown().nullable() }).nullable(),
@@ -65,6 +66,7 @@ export const BOARD_FIELD_ALIASES = {
   relevance_filtered: "relevance_filtered", relevance_rule: "relevance_rule:relevance_gate->rule",
   source: "source", last_seen_at: "last_seen_at", experience: "experience:list_metadata->experience",
   alive: "alive:liveness->alive", linkedin_reposted_signal: "linkedin_reposted_signal:liveness->linkedin_reposted_signal", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
+  employer_identity: "posting_extractions(employer_identity:facts->employer_identity)",
   id: "id", title: "title", company: "company", location: "location", remote: "remote", work_mode: "work_mode",
   seniority: "seniority", stack: "stack,list_stack:list_metadata->stack", url: "url", apply_url: "apply_url",
   posted_at: "posted_at", last_published_at: "last_published_at", first_seen_at: "first_seen_at",
@@ -73,7 +75,7 @@ export const BOARD_FIELD_ALIASES = {
 } satisfies Record<keyof z.infer<typeof JobListItemSchema>, string>;
 const SUMMARY = [...new Set(Object.values(BOARD_FIELD_ALIASES))].join(",");
 const STATUS_SUMMARY = SUMMARY.replace("posting_status(", "posting_status!inner(");
-const DETAIL = "relevance_filtered,relevance_gate,source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
+const DETAIL = "relevance_filtered,relevance_gate,source,last_seen_at,raw_jd,list_metadata,liveness,posting_extractions(posting_id,employer_identity:facts->employer_identity),id,title,company,location,remote,work_mode,seniority,stack,salary,url,apply_url,posted_at,last_published_at,first_seen_at,posting_status(status,reason),posting_scores(score,reasons,labels,brain,model,scorer_version,score_payload,scored_at)";
 
 export function client(): SupabaseClient {
   const env = envSchema.safeParse(process.env);
@@ -96,10 +98,10 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function listSummary(base: z.infer<typeof rawListSchema>): JobSummary {
-  const { posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
+  const { posting_extractions, posting_scores: score, posting_status: status, list_stack, alive, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   return checked(JobSummarySchema, {
-    ...posting, url: postingUrl(posting.url),
+    ...posting, employer_identity: posting_extractions?.employer_identity ?? undefined, url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
     stack: posting.stack.length ? posting.stack : list_stack,
     seniority: level,
@@ -117,7 +119,7 @@ function summary(row: z.infer<typeof rawSummarySchema>): JobSummary {
   const { salary, posting_extractions, liveness, list_metadata, relevance_gate, posting_scores, ...posting } = checked(rawSummarySchema, row);
   const payload = posting_scores?.score_payload;
   const fit = payload && typeof payload === "object" ? payload : null;
-  const job = listSummary({ ...posting, list_stack: list_metadata.stack, experience: list_metadata.experience,
+  const job = listSummary({ ...posting, posting_extractions, list_stack: list_metadata.stack, experience: list_metadata.experience,
     relevance_rule: relevance_gate?.rule ?? null, alive: liveness?.alive ?? null,
     linkedin_reposted_signal: liveness?.linkedin_reposted_signal ?? null,
     linkedin_closed_signal: liveness?.linkedin_closed_signal ?? null,

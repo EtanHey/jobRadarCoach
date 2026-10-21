@@ -1,5 +1,7 @@
 "use client";
 
+import { employerLabel, employerName } from "@/lib/employer-identity";
+
 import type { ReactNode, RefObject } from "react";
 import type { JobDetail, JobSummary } from "@/lib/contracts";
 import type { GlobeJob } from "@/lib/globe-contract";
@@ -46,7 +48,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
   return <Sheet open={selected !== null} onOpenChange={open => !open && selectJob(null)}>
     <SheetContent initialFocus={() => document.querySelector<HTMLElement>("[data-job-description]")} finalFocus={openerRef} className="flex gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-2xl">
       <SheetHeader className="max-h-[45dvh] shrink-0 overflow-y-auto border-b bg-background p-4 pr-12">
-        <div className="flex items-center gap-3">{heading && <CompanyLogo company={heading.company} applyUrl={heading.apply_url} url={heading.url} postingId={heading.id} />}<SheetDescription>{heading ? `${heading.company} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
+        <div className="flex items-center gap-3">{heading && <CompanyLogo company={employerName(heading)} applyUrl={heading.apply_url} url={heading.url} postingId={heading.id} />}<SheetDescription>{heading ? `${employerLabel(heading)} · Listing ${shortListingId(heading.id)}` : detailError ? "Role unavailable" : "Loading the role…"}</SheetDescription></div>
         <div className="mt-3 flex items-start justify-between gap-3"><SheetTitle className="text-xl leading-snug sm:text-2xl">{heading?.title ?? "Job details"}</SheetTitle>{detail && <AssessmentSheet key={detail.id} job={detail} />}</div>
         {heading && <div className="mt-1 text-sm text-muted-foreground"><PostingDates postedAt={heading.posted_at} lastPublishedAt={heading.last_published_at} firstSeenAt={heading.first_seen_at} /></div>}
         {repost && <p data-repost-marker title={summaryHeading ? repostTooltip(summaryHeading) ?? undefined : undefined} className="mt-1 text-xs text-muted-foreground">{repost}</p>}
@@ -71,7 +73,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
       {relatedJobs.length > 0 && <details className="shrink-0 border-t bg-background px-4 py-2" aria-label="Other listings for this role">
         <summary className="cursor-pointer py-1 text-xs font-medium">Other listings for this role ({relatedJobs.length})</summary>
         <ul className="mt-2 max-h-28 space-y-2 overflow-y-auto">{relatedJobs.map(job => <li key={job.id}>
-          <button aria-label={`Open ${job.title} at ${job.company}, listing ${job.id}`} onClick={() => selectJob(job.id)} className="w-full rounded-lg border px-3 py-2 text-left text-xs hover:bg-muted focus-visible:outline-2">
+          <button aria-label={`Open ${job.title} at ${employerLabel(job)}, listing ${job.id}`} onClick={() => selectJob(job.id)} className="w-full rounded-lg border px-3 py-2 text-left text-xs hover:bg-muted focus-visible:outline-2">
             <span className="block">{job.location ?? "Location unknown"} · {job.source}</span>
             <span className="mt-1 block text-muted-foreground"><PostingDates interactive={false} postedAt={job.posted_at} lastPublishedAt={job.last_published_at} firstSeenAt={job.first_seen_at} /> · {statusLabels[job.status]} · {job.score === null ? "Not scored" : `${job.score}/100`} · Listing {shortListingId(job.id)}</span>
           </button>

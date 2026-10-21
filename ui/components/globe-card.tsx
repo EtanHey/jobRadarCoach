@@ -1,4 +1,6 @@
 "use client";
+
+import { employerLabel } from "@/lib/employer-identity";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { JobListResponseSchema, type JobSummary } from "@/lib/contracts";
@@ -26,7 +28,7 @@ export function GlobeCard({job, ...props}: Omit<ComponentProps<typeof JobCard>, 
     },
   });
   if (query.data) return <JobCard {...props} job={{...query.data,...job}} />;
-  return <div ref={root} className="min-h-64 rounded-xl border bg-card p-4" role="status"><p>{job.company}</p><p className="mt-1 font-semibold">{job.title}</p><p className="mt-4 text-xs text-muted-foreground">{query.error ? "Could not load role." : "Loading role…"}{query.error && <button className="ml-2 underline" onClick={() => void query.refetch()}>Retry</button>}</p></div>;
+  return <div ref={root} className="min-h-64 rounded-xl border bg-card p-4" role="status"><p>{employerLabel(job)}</p><p className="mt-1 font-semibold">{job.title}</p><p className="mt-4 text-xs text-muted-foreground">{query.error ? "Could not load role." : "Loading role…"}{query.error && <button className="ml-2 underline" onClick={() => void query.refetch()}>Retry</button>}</p></div>;
 }
 // Full list rows render immediately; marker-only rows hydrate when they approach the rail.
 function isCardSummary(job: GlobeJob): job is JobSummary { return "experience" in job; }
