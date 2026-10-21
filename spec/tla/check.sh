@@ -37,16 +37,17 @@ for invariant in NoSilentSourceLoss OneVisibleVacancy AliveImpliesFreshCheck Loc
   printf '\nINVARIANT %s\n' "$invariant" >>"$run_dir/$invariant.cfg"
   case $invariant in
     NoSilentSourceLoss) printf 'CONSTRAINT StaleWitness\n' >>"$run_dir/$invariant.cfg" ;;
-    OneVisibleVacancy) printf 'CONSTRAINT RequisitionWitness\n' >>"$run_dir/$invariant.cfg" ;;
+    OneVisibleVacancy) printf 'CONSTRAINT DistinctWitness\n' >>"$run_dir/$invariant.cfg" ;;
   esac
   run "$invariant" "$invariant"
 done
-# Check the second independent source-loss mechanism and JD-only grouping too.
-for pair in 'NoSilentSourceLoss GeoWitness' 'OneVisibleVacancy JdWitness'; do
-  read -r invariant witness <<<"$pair"
-  name=$witness
-  cp JrcPipeline_current.cfg "$run_dir/$name.cfg"
-  printf '\nINVARIANT %s\nCONSTRAINT %s\n' "$invariant" "$witness" >>"$run_dir/$name.cfg"
-  run "$name" "$invariant"
+# Metrics already surface all-filtered loss; equal-title/location R1/R1 also groups.
+for entry in 'NoSilentSourceLoss GeoWitness pass' 'OneVisibleVacancy RequisitionWitness pass' \
+  'OneVisibleVacancy RoleWitness pass' 'OneVisibleVacancy TitleWitness OneVisibleVacancy' \
+  'OneVisibleVacancy LocationWitness OneVisibleVacancy' 'OneVisibleVacancy JdWitness OneVisibleVacancy'; do
+  read -r invariant witness expected <<<"$entry"
+  cp JrcPipeline_current.cfg "$run_dir/$witness.cfg"
+  printf '\nINVARIANT %s\nCONSTRAINT %s\n' "$invariant" "$witness" >>"$run_dir/$witness.cfg"
+  run "$witness" "$expected"
 done
-printf 'PASS: target invariants hold; all four current-code counterexamples found.\n'
+printf 'PASS: target invariants hold; current-code violations and passing controls match.\n'
