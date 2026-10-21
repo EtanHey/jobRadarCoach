@@ -26,6 +26,33 @@ network budgets, and writes raw posting data through the hosted `DATABASE_URL`.
 It contains no extraction or scoring call. Cloud fetching therefore remains
 independent of whether the owner's Mac is awake.
 
+The schema-version-1 scrape receipt adds `source_funnel` (keyed by source) and
+`warnings` without removing existing fields. Each funnel reports `registered`,
+`eligible`, `stale`, `disabled`, `invalid`, `expiring_within_7d`, `requested`,
+`filtered`, `inserted_new`, and `updated_existing`. Existing
+`result.source_fetch_counts` and `result.source_match_counts` remain the canonical
+ATS parsed/matched counters rather than duplicating them in the new funnel.
+Registry classifications are mutually exclusive; expiring tenants are a subset
+of eligible tenants. Expiry means the first excluded date, including the current
+45-day eligibility boundary. LinkedIn uses configured searches as its registered
+and eligible units; its registry-only counters remain zero.
+
+`requested` counts ATS tenant dispatch attempts (including failures or exhausted
+network budgets), or LinkedIn page attempts, rather than individual HTTP calls.
+The existing fetched counter counts adapter postings before shared title and
+geography filtering, including rows rejected before detail fetching.
+`filtered = fetched - matched`. Deduplication, liveness, and later JD admission
+can further reduce persistence. Database writer
+dispositions distinguish new inserts from updates without additional queries.
+Legacy JSONL output counts appended rows as new. Both result and receipt carry
+these fields; failures without a harvester summary leave the funnel empty.
+
+Warnings are logged and retained when a registered source has no eligible tenants,
+when all parsed postings fail shared matching, or when eligible tenants will
+expire within seven days. They also contribute to the existing source warning
+count used by workflow alerts. A success status still means the run completed;
+inspect warnings and source counters to assess coverage.
+
 On the Mac, `scripts/local_analysis.py` claims expiring `extract` and `score`
 leases and processes a bounded number of eligible hosted rows. Repository source
 pins extraction to `gpt-5.6-luna` and fit scoring to `gpt-5.6-terra` for this

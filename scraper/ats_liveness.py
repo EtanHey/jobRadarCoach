@@ -25,6 +25,8 @@ LEVER_BOARD_CAP = 16_000_000
 STRIKE_SPACING = timedelta(minutes=45)
 URL_UNKNOWN_LIMIT = 3
 URL_BACKOFF = timedelta(hours=24)
+# Hourly ats-liveness.yml checks every ATS row; allow one skipped run plus scheduling jitter.
+LIVENESS_FRESH_FOR = timedelta(hours=3)
 GREENHOUSE_PAGE_HOSTS = {"job-boards.greenhouse.io", "job-boards.eu.greenhouse.io",
                          "boards.greenhouse.io", "boards.eu.greenhouse.io"}
 
@@ -476,6 +478,31 @@ def _timestamp(value):
         return parsed.astimezone(timezone.utc) if parsed.tzinfo else None
     except (ValueError, TypeError):
         return None
+
+
+def project_liveness(evidence, *, now=None):
+    """Read-time state; never overwrite historical availability with uncertainty.
+
+    application_deadline is a hook for an explicitly normalized, zoned ISO instant.
+    No current extractor supplies it; do not infer a year/zone from JD prose here.
+    Keep in sync with ui/lib/liveness.ts (shared projection fixtures).
+    """
+    current = now if now is not None else datetime.now(timezone.utc)
+    checked = _timestamp(evidence.get("liveness_checked_at"))
+    deadline = _timestamp(evidence.get("application_deadline"))
+    confirmed = checked if evidence.get("alive") is True and checked and checked <= current else None
+    if evidence.get("alive") is False:
+        state = "closed"
+    elif deadline is not None and deadline < current:
+        state = "deadline_passed"
+    elif (confirmed is not None and current - confirmed <= LIVENESS_FRESH_FOR
+          and evidence.get("last_attempt_verdict") in (None, "alive")):
+        state = "confirmed"
+    else:
+        state = "stale"
+    return {"state": state, "alive": True if state == "confirmed" else False if state == "closed" else None,
+            "last_confirmed_at": evidence["liveness_checked_at"] if confirmed else None,
+            "application_deadline": evidence["application_deadline"] if deadline else None}
 
 
 def _unknown_alert(state, update, reason, status=None, *, list_error=False):

@@ -1295,15 +1295,72 @@ def load_source_queries(
     return parsed
 
 
-def load_registry_source_queries() -> dict[str, list[dict[str, str]]]:
-    """Load adapter-shaped queries from the reviewed ATS tenant registry."""
+def _load_registry_report():
+    """Load the registry and its UTC validation snapshot."""
     path = SCRIPT_DIR / "source_registry.py"
     spec = importlib.util.spec_from_file_location("coach_jobfeed_source_registry", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Unable to load source registry: {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.load_registry().source_queries()
+    today = module.datetime.now(timezone.utc).date()
+    report = module.load_registry(as_of=today)
+    return module, today, report
+
+
+def load_registry_source_queries() -> dict[str, list[dict[str, str]]]:
+    """Load adapter-shaped queries from the reviewed ATS tenant registry."""
+    _module, _today, report = _load_registry_report()
+    return report.source_queries()
+
+
+def _populate_registry_source_funnel(source_funnel: dict[str, dict[str, int]]) -> None:
+    """Measure registry eligibility without changing the query-loader contract."""
+    module, today, report = _load_registry_report()
+    for status, entries in (("eligible", report.valid), ("stale", report.stale),
+                            ("disabled", report.disabled), ("invalid", report.invalid)):
+        for entry in entries:
+            source = str(entry["source"])
+            counters = source_funnel.get(source)
+            if counters is None and status == "invalid" and source not in SOURCE_ORDER:
+                # Invalid source names cannot be selected for harvest, but
+                # must still appear in receipts (missing names are "unknown").
+                counters = source_funnel.setdefault(source, _empty_source_funnel())
+            if counters is None:
+                continue
+            counters["registered"] += 1
+            counters[status] += 1
+            if status == "eligible":
+                verified = module._parse_verified_date(entry["last_verified_at"])
+                # Age == max_age_days is still eligible; it expires tomorrow.
+                days_until_excluded = module.DEFAULT_MAX_AGE_DAYS + 1 - (today - verified).days
+                counters["expiring_within_7d"] += days_until_excluded <= 7
+
+
+def _empty_source_funnel() -> dict[str, int]:
+    return dict.fromkeys((
+        "registered", "eligible", "stale", "disabled", "invalid", "expiring_within_7d",
+        "requested", "filtered", "inserted_new", "updated_existing",
+    ), 0)
+
+
+def _source_funnel_warnings(
+    source_funnel: dict[str, dict[str, int]],
+    parsed_counts: dict[str, int], matched_counts: dict[str, int],
+) -> list[str]:
+    warnings = []
+    for source, counts in source_funnel.items():
+        if counts["registered"] > 0 and counts["eligible"] == 0:
+            warnings.append(f"{source}: registered={counts['registered']} but eligible=0 "
+                            f"(stale={counts['stale']}, disabled={counts['disabled']}, invalid={counts['invalid']})")
+        if parsed_counts.get(source, 0) > 0 and matched_counts.get(source, 0) == 0:
+            warnings.append(f"{source}: parsed={parsed_counts[source]} but matched=0; "
+                            f"filtered={counts['filtered']}")
+        if counts["expiring_within_7d"]:
+            warnings.append(f"{source}: expiring_within_7d={counts['expiring_within_7d']}")
+    for message in warnings:
+        LOGGER.warning("%s", message)
+    return warnings
 
 
 def load_source_adapter(name: str):
@@ -1324,6 +1381,7 @@ def harvest_sources(
     before_request: Callable[[], None],
     posting_filter: Callable[[dict[str, object]], bool] | None = None,
     fetch_counts: dict[str, int] | None = None,
+    source_funnel: dict[str, dict[str, int]] | None = None,
 ) -> tuple[list[dict[str, object]], int]:
     postings: list[dict[str, object]] = []
     warnings = 0
@@ -1337,6 +1395,8 @@ def harvest_sources(
             LOGGER.warning("Keeping feed after %s adapter failure: %s", name, error)
             continue
         for query in source_queries.get(name, []):
+            if source_funnel is not None:
+                source_funnel[name]["requested"] += 1
             try:
                 prefilter_count = 0
                 adapter_kwargs = {
@@ -1425,12 +1485,341 @@ def _contains_normalized_phrase(text: str, phrase: str) -> bool:
     )
 
 
+# Code-owned country scope for city-only ATS locations. Profile aliases are additive.
+COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "israel": (
+        "Tel Aviv", "Tel Aviv-Yafo", "Herzliya", "Ramat Gan", "Petah Tikva",
+        "Haifa", "Jerusalem", "Ra'anana", "Hod Hasharon", "Netanya",
+        "Rehovot", "Kfar Saba", "Be'er Sheva", "Yokneam",
+        "תל אביב", "תל אביב-יפו", "הרצליה", "רמת גן", "פתח תקווה",
+        "חיפה", "ירושלים", "רעננה", "הוד השרון", "נתניה", "רחובות",
+        "כפר סבא", "באר שבע", "יקנעם",
+    ),
+    "united states": ("San Francisco",),
+}
+
+
+def _normalized_location(value: object) -> str:
+    return " ".join(re.sub(r"[\W_]+", " ", str(value).casefold()).split())
+
+
+# Generated from pycountry 24.6.1 (ISO 3166-1); data only, no runtime dependency.
+COUNTRY_IDENTIFIERS = frozenset(
+    _normalized_location(identifier)
+    for identifier in (
+        'AD|AND|Andorra|Principality of Andorra|'
+        'AE|ARE|United Arab Emirates|'
+        'AF|AFG|Afghanistan|Islamic Republic of Afghanistan|'
+        'AG|ATG|Antigua and Barbuda|'
+        'AI|AIA|Anguilla|'
+        'AL|ALB|Albania|Republic of Albania|'
+        'AM|ARM|Armenia|Republic of Armenia|'
+        'AO|AGO|Angola|Republic of Angola|'
+        'AQ|ATA|Antarctica|'
+        'AR|ARG|Argentina|Argentine Republic|'
+        'AS|ASM|American Samoa|'
+        'AT|AUT|Austria|Republic of Austria|'
+        'AU|AUS|Australia|'
+        'AW|ABW|Aruba|'
+        'AX|ALA|Åland Islands|'
+        'AZ|AZE|Azerbaijan|Republic of Azerbaijan|'
+        'BA|BIH|Bosnia and Herzegovina|Republic of Bosnia and Herzegovina|'
+        'BB|BRB|Barbados|'
+        "BD|BGD|Bangladesh|People's Republic of Bangladesh|"
+        'BE|BEL|Belgium|Kingdom of Belgium|'
+        'BF|BFA|Burkina Faso|'
+        'BG|BGR|Bulgaria|Republic of Bulgaria|'
+        'BH|BHR|Bahrain|Kingdom of Bahrain|'
+        'BI|BDI|Burundi|Republic of Burundi|'
+        'BJ|BEN|Benin|Republic of Benin|'
+        'BL|BLM|Saint Barthélemy|'
+        'BM|BMU|Bermuda|'
+        'BN|BRN|Brunei Darussalam|'
+        'BO|BOL|Bolivia, Plurinational State of|Plurinational State of Bolivia|Bolivia|'
+        'BQ|BES|Bonaire, Sint Eustatius and Saba|'
+        'BR|BRA|Brazil|Federative Republic of Brazil|'
+        'BS|BHS|Bahamas|Commonwealth of the Bahamas|'
+        'BT|BTN|Bhutan|Kingdom of Bhutan|'
+        'BV|BVT|Bouvet Island|'
+        'BW|BWA|Botswana|Republic of Botswana|'
+        'BY|BLR|Belarus|Republic of Belarus|'
+        'BZ|BLZ|Belize|'
+        'CA|CAN|Canada|'
+        'CC|CCK|Cocos (Keeling) Islands|'
+        'CD|COD|Congo, The Democratic Republic of the|'
+        'CF|CAF|Central African Republic|'
+        'CG|COG|Congo|Republic of the Congo|'
+        'CH|CHE|Switzerland|Swiss Confederation|'
+        "CI|CIV|Côte d'Ivoire|Republic of Côte d'Ivoire|"
+        'CK|COK|Cook Islands|'
+        'CL|CHL|Chile|Republic of Chile|'
+        'CM|CMR|Cameroon|Republic of Cameroon|'
+        "CN|CHN|China|People's Republic of China|"
+        'CO|COL|Colombia|Republic of Colombia|'
+        'CR|CRI|Costa Rica|Republic of Costa Rica|'
+        'CU|CUB|Cuba|Republic of Cuba|'
+        'CV|CPV|Cabo Verde|Republic of Cabo Verde|'
+        'CW|CUW|Curaçao|'
+        'CX|CXR|Christmas Island|'
+        'CY|CYP|Cyprus|Republic of Cyprus|'
+        'CZ|CZE|Czechia|Czech Republic|'
+        'DE|DEU|Germany|Federal Republic of Germany|'
+        'DJ|DJI|Djibouti|Republic of Djibouti|'
+        'DK|DNK|Denmark|Kingdom of Denmark|'
+        'DM|DMA|Dominica|Commonwealth of Dominica|'
+        'DO|DOM|Dominican Republic|'
+        "DZ|DZA|Algeria|People's Democratic Republic of Algeria|"
+        'EC|ECU|Ecuador|Republic of Ecuador|'
+        'EE|EST|Estonia|Republic of Estonia|'
+        'EG|EGY|Egypt|Arab Republic of Egypt|'
+        'EH|ESH|Western Sahara|'
+        'ER|ERI|Eritrea|the State of Eritrea|'
+        'ES|ESP|Spain|Kingdom of Spain|'
+        'ET|ETH|Ethiopia|Federal Democratic Republic of Ethiopia|'
+        'FI|FIN|Finland|Republic of Finland|'
+        'FJ|FJI|Fiji|Republic of Fiji|'
+        'FK|FLK|Falkland Islands (Malvinas)|'
+        'FM|FSM|Micronesia, Federated States of|Federated States of Micronesia|'
+        'FO|FRO|Faroe Islands|'
+        'FR|FRA|France|French Republic|'
+        'GA|GAB|Gabon|Gabonese Republic|'
+        'GB|GBR|United Kingdom|United Kingdom of Great Britain and Northern Ireland|'
+        'GD|GRD|Grenada|'
+        'GE|GEO|Georgia|'
+        'GF|GUF|French Guiana|'
+        'GG|GGY|Guernsey|'
+        'GH|GHA|Ghana|Republic of Ghana|'
+        'GI|GIB|Gibraltar|'
+        'GL|GRL|Greenland|'
+        'GM|GMB|Gambia|Republic of the Gambia|'
+        'GN|GIN|Guinea|Republic of Guinea|'
+        'GP|GLP|Guadeloupe|'
+        'GQ|GNQ|Equatorial Guinea|Republic of Equatorial Guinea|'
+        'GR|GRC|Greece|Hellenic Republic|'
+        'GS|SGS|South Georgia and the South Sandwich Islands|'
+        'GT|GTM|Guatemala|Republic of Guatemala|'
+        'GU|GUM|Guam|'
+        'GW|GNB|Guinea-Bissau|Republic of Guinea-Bissau|'
+        'GY|GUY|Guyana|Republic of Guyana|'
+        'HK|HKG|Hong Kong|Hong Kong Special Administrative Region of China|'
+        'HM|HMD|Heard Island and McDonald Islands|'
+        'HN|HND|Honduras|Republic of Honduras|'
+        'HR|HRV|Croatia|Republic of Croatia|'
+        'HT|HTI|Haiti|Republic of Haiti|'
+        'HU|HUN|Hungary|'
+        'ID|IDN|Indonesia|Republic of Indonesia|'
+        'IE|IRL|Ireland|'
+        'IL|ISR|Israel|State of Israel|'
+        'IM|IMN|Isle of Man|'
+        'IN|IND|India|Republic of India|'
+        'IO|IOT|British Indian Ocean Territory|'
+        'IQ|IRQ|Iraq|Republic of Iraq|'
+        'IR|IRN|Iran, Islamic Republic of|Islamic Republic of Iran|Iran|'
+        'IS|ISL|Iceland|Republic of Iceland|'
+        'IT|ITA|Italy|Italian Republic|'
+        'JE|JEY|Jersey|'
+        'JM|JAM|Jamaica|'
+        'JO|JOR|Jordan|Hashemite Kingdom of Jordan|'
+        'JP|JPN|Japan|'
+        'KE|KEN|Kenya|Republic of Kenya|'
+        'KG|KGZ|Kyrgyzstan|Kyrgyz Republic|'
+        'KH|KHM|Cambodia|Kingdom of Cambodia|'
+        'KI|KIR|Kiribati|Republic of Kiribati|'
+        'KM|COM|Comoros|Union of the Comoros|'
+        'KN|KNA|Saint Kitts and Nevis|'
+        "KP|PRK|Korea, Democratic People's Republic of|Democratic People's Republic of Korea|North Korea|"
+        'KR|KOR|Korea, Republic of|South Korea|'
+        'KW|KWT|Kuwait|State of Kuwait|'
+        'KY|CYM|Cayman Islands|'
+        'KZ|KAZ|Kazakhstan|Republic of Kazakhstan|'
+        "LA|LAO|Lao People's Democratic Republic|Laos|"
+        'LB|LBN|Lebanon|Lebanese Republic|'
+        'LC|LCA|Saint Lucia|'
+        'LI|LIE|Liechtenstein|Principality of Liechtenstein|'
+        'LK|LKA|Sri Lanka|Democratic Socialist Republic of Sri Lanka|'
+        'LR|LBR|Liberia|Republic of Liberia|'
+        'LS|LSO|Lesotho|Kingdom of Lesotho|'
+        'LT|LTU|Lithuania|Republic of Lithuania|'
+        'LU|LUX|Luxembourg|Grand Duchy of Luxembourg|'
+        'LV|LVA|Latvia|Republic of Latvia|'
+        'LY|LBY|Libya|'
+        'MA|MAR|Morocco|Kingdom of Morocco|'
+        'MC|MCO|Monaco|Principality of Monaco|'
+        'MD|MDA|Moldova, Republic of|Republic of Moldova|Moldova|'
+        'ME|MNE|Montenegro|'
+        'MF|MAF|Saint Martin (French part)|'
+        'MG|MDG|Madagascar|Republic of Madagascar|'
+        'MH|MHL|Marshall Islands|Republic of the Marshall Islands|'
+        'MK|MKD|North Macedonia|Republic of North Macedonia|'
+        'ML|MLI|Mali|Republic of Mali|'
+        'MM|MMR|Myanmar|Republic of Myanmar|'
+        'MN|MNG|Mongolia|'
+        'MO|MAC|Macao|Macao Special Administrative Region of China|'
+        'MP|MNP|Northern Mariana Islands|Commonwealth of the Northern Mariana Islands|'
+        'MQ|MTQ|Martinique|'
+        'MR|MRT|Mauritania|Islamic Republic of Mauritania|'
+        'MS|MSR|Montserrat|'
+        'MT|MLT|Malta|Republic of Malta|'
+        'MU|MUS|Mauritius|Republic of Mauritius|'
+        'MV|MDV|Maldives|Republic of Maldives|'
+        'MW|MWI|Malawi|Republic of Malawi|'
+        'MX|MEX|Mexico|United Mexican States|'
+        'MY|MYS|Malaysia|'
+        'MZ|MOZ|Mozambique|Republic of Mozambique|'
+        'NA|NAM|Namibia|Republic of Namibia|'
+        'NC|NCL|New Caledonia|'
+        'NE|NER|Niger|Republic of the Niger|'
+        'NF|NFK|Norfolk Island|'
+        'NG|NGA|Nigeria|Federal Republic of Nigeria|'
+        'NI|NIC|Nicaragua|Republic of Nicaragua|'
+        'NL|NLD|Netherlands|Kingdom of the Netherlands|'
+        'NO|NOR|Norway|Kingdom of Norway|'
+        'NP|NPL|Nepal|Federal Democratic Republic of Nepal|'
+        'NR|NRU|Nauru|Republic of Nauru|'
+        'NU|NIU|Niue|'
+        'NZ|NZL|New Zealand|'
+        'OM|OMN|Oman|Sultanate of Oman|'
+        'PA|PAN|Panama|Republic of Panama|'
+        'PE|PER|Peru|Republic of Peru|'
+        'PF|PYF|French Polynesia|'
+        'PG|PNG|Papua New Guinea|Independent State of Papua New Guinea|'
+        'PH|PHL|Philippines|Republic of the Philippines|'
+        'PK|PAK|Pakistan|Islamic Republic of Pakistan|'
+        'PL|POL|Poland|Republic of Poland|'
+        'PM|SPM|Saint Pierre and Miquelon|'
+        'PN|PCN|Pitcairn|'
+        'PR|PRI|Puerto Rico|'
+        'PS|PSE|Palestine, State of|the State of Palestine|'
+        'PT|PRT|Portugal|Portuguese Republic|'
+        'PW|PLW|Palau|Republic of Palau|'
+        'PY|PRY|Paraguay|Republic of Paraguay|'
+        'QA|QAT|Qatar|State of Qatar|'
+        'RE|REU|Réunion|'
+        'RO|ROU|Romania|'
+        'RS|SRB|Serbia|Republic of Serbia|'
+        'RU|RUS|Russian Federation|'
+        'RW|RWA|Rwanda|Rwandese Republic|'
+        'SA|SAU|Saudi Arabia|Kingdom of Saudi Arabia|'
+        'SB|SLB|Solomon Islands|'
+        'SC|SYC|Seychelles|Republic of Seychelles|'
+        'SD|SDN|Sudan|Republic of the Sudan|'
+        'SE|SWE|Sweden|Kingdom of Sweden|'
+        'SG|SGP|Singapore|Republic of Singapore|'
+        'SH|SHN|Saint Helena, Ascension and Tristan da Cunha|'
+        'SI|SVN|Slovenia|Republic of Slovenia|'
+        'SJ|SJM|Svalbard and Jan Mayen|'
+        'SK|SVK|Slovakia|Slovak Republic|'
+        'SL|SLE|Sierra Leone|Republic of Sierra Leone|'
+        'SM|SMR|San Marino|Republic of San Marino|'
+        'SN|SEN|Senegal|Republic of Senegal|'
+        'SO|SOM|Somalia|Federal Republic of Somalia|'
+        'SR|SUR|Suriname|Republic of Suriname|'
+        'SS|SSD|South Sudan|Republic of South Sudan|'
+        'ST|STP|Sao Tome and Principe|Democratic Republic of Sao Tome and Principe|'
+        'SV|SLV|El Salvador|Republic of El Salvador|'
+        'SX|SXM|Sint Maarten (Dutch part)|'
+        'SY|SYR|Syrian Arab Republic|Syria|'
+        'SZ|SWZ|Eswatini|Kingdom of Eswatini|'
+        'TC|TCA|Turks and Caicos Islands|'
+        'TD|TCD|Chad|Republic of Chad|'
+        'TF|ATF|French Southern Territories|'
+        'TG|TGO|Togo|Togolese Republic|'
+        'TH|THA|Thailand|Kingdom of Thailand|'
+        'TJ|TJK|Tajikistan|Republic of Tajikistan|'
+        'TK|TKL|Tokelau|'
+        'TL|TLS|Timor-Leste|Democratic Republic of Timor-Leste|'
+        'TM|TKM|Turkmenistan|'
+        'TN|TUN|Tunisia|Republic of Tunisia|'
+        'TO|TON|Tonga|Kingdom of Tonga|'
+        'TR|TUR|Türkiye|Republic of Türkiye|'
+        'TT|TTO|Trinidad and Tobago|Republic of Trinidad and Tobago|'
+        'TV|TUV|Tuvalu|'
+        'TW|TWN|Taiwan, Province of China|Taiwan|'
+        'TZ|TZA|Tanzania, United Republic of|United Republic of Tanzania|Tanzania|'
+        'UA|UKR|Ukraine|'
+        'UG|UGA|Uganda|Republic of Uganda|'
+        'UM|UMI|United States Minor Outlying Islands|'
+        'US|USA|United States|United States of America|'
+        'UY|URY|Uruguay|Eastern Republic of Uruguay|'
+        'UZ|UZB|Uzbekistan|Republic of Uzbekistan|'
+        'VA|VAT|Holy See (Vatican City State)|'
+        'VC|VCT|Saint Vincent and the Grenadines|'
+        'VE|VEN|Venezuela, Bolivarian Republic of|Bolivarian Republic of Venezuela|Venezuela|'
+        'VG|VGB|Virgin Islands, British|British Virgin Islands|'
+        'VI|VIR|Virgin Islands, U.S.|Virgin Islands of the United States|'
+        'VN|VNM|Viet Nam|Socialist Republic of Viet Nam|Vietnam|'
+        'VU|VUT|Vanuatu|Republic of Vanuatu|'
+        'WF|WLF|Wallis and Futuna|'
+        'WS|WSM|Samoa|Independent State of Samoa|'
+        'YE|YEM|Yemen|Republic of Yemen|'
+        'YT|MYT|Mayotte|'
+        'ZA|ZAF|South Africa|Republic of South Africa|'
+        'ZM|ZMB|Zambia|Republic of Zambia|'
+        'ZW|ZWE|Zimbabwe|Republic of Zimbabwe|'
+        "UK|United Kingdom|Great Britain|Britain|U.S.|U.S.A.|Russia|South Korea|"
+        "North Korea|Taiwan|Vietnam|Bolivia|Venezuela|Iran|Syria|Laos|Moldova|"
+        "Tanzania|Brunei|Palestine|Czech Republic|Turkey|Cape Verde|Ivory Coast"
+    ).split("|")
+    if identifier
+)
+US_STATE_IDENTIFIERS = frozenset(
+    _normalized_location(identifier)
+    for identifier in (
+        "AL|Alabama|AK|Alaska|AZ|Arizona|AR|Arkansas|CA|California|CO|Colorado|"
+        "CT|Connecticut|DE|Delaware|FL|Florida|GA|Georgia|HI|Hawaii|ID|Idaho|"
+        "IL|Illinois|IN|Indiana|IA|Iowa|KS|Kansas|KY|Kentucky|LA|Louisiana|"
+        "ME|Maine|MD|Maryland|MA|Massachusetts|MI|Michigan|MN|Minnesota|"
+        "MS|Mississippi|MO|Missouri|MT|Montana|NE|Nebraska|NV|Nevada|"
+        "NH|New Hampshire|NJ|New Jersey|NM|New Mexico|NY|New York|"
+        "NC|North Carolina|ND|North Dakota|OH|Ohio|OK|Oklahoma|OR|Oregon|"
+        "PA|Pennsylvania|RI|Rhode Island|SC|South Carolina|SD|South Dakota|"
+        "TN|Tennessee|TX|Texas|UT|Utah|VT|Vermont|VA|Virginia|WA|Washington|"
+        "WV|West Virginia|WI|Wisconsin|WY|Wyoming|DC|District of Columbia"
+    ).split("|")
+)
+COUNTRY_OWN_IDENTIFIERS = {
+    "israel": frozenset(("israel", "il", "isr")),
+    "united states": frozenset((
+        "united states", "united states of america", "us", "usa", "u s", "u s a",
+    )),
+}
+
+
+def _city_matches_country(raw_location: object, country: str) -> bool:
+    cities = COUNTRY_CITY_ALIASES.get(country, ())
+    if not cities:
+        return False
+    segments = [
+        normalized
+        for part in re.split(r"[,;|/\n()]|\s+[-–—]\s+", str(raw_location))
+        if (normalized := _normalized_location(part))
+    ]
+    city_names = {_normalized_location(city) for city in cities}
+    city_indices = {index for index, segment in enumerate(segments) if segment in city_names}
+    if not city_indices:
+        return False
+    own_identifiers = COUNTRY_OWN_IDENTIFIERS[country]
+    for index, segment in enumerate(segments):
+        if segment in own_identifiers:
+            continue
+        # CA (Canada/California), IL (Israel/Illinois), etc. are ambiguous. Only
+        # the segment immediately after a US city is interpreted as a US state.
+        if country == "united states" and index - 1 in city_indices and segment in US_STATE_IDENTIFIERS:
+            continue
+        if segment in COUNTRY_IDENTIFIERS or (
+            country != "united states" and segment in US_STATE_IDENTIFIERS
+        ):
+            return False
+    return True
+
+
 def _location_matches(
     posting: dict[str, object],
     geography: str,
     location_terms: dict[str, object],
 ) -> bool:
-    location = _normalized_identity(posting.get("location", ""))
+    raw_location = posting.get("location", "")
+    location = _normalized_location(raw_location)
     if geography.strip().casefold() == "remote":
         return posting.get("remote") is True or "remote" in location.split()
     aliases = location_terms.get(geography, [])
@@ -1440,8 +1829,8 @@ def _location_matches(
     return any(
         _contains_normalized_phrase(location, normalized)
         for term in terms
-        if (normalized := _normalized_identity(term))
-    )
+        if (normalized := _normalized_location(term))
+    ) or _city_matches_country(raw_location, _normalized_location(geography))
 
 
 def _source_posting_matches(
@@ -2199,6 +2588,10 @@ def run_pipeline(  # skipcq: PY-R1000
         fit_terms = profile["fit_terms"]
         assert isinstance(fit_terms, set)
         location_terms = {}
+    source_funnel = {name: _empty_source_funnel() for name in SOURCE_ORDER
+                     if name == "linkedin" or name in enabled_sources}
+    source_funnel["linkedin"]["registered"] = len(searches)
+    source_funnel["linkedin"]["eligible"] = len(searches)
     source_config_warnings: list[str] = []
     if enabled_sources:
         try:
@@ -2209,6 +2602,7 @@ def run_pipeline(  # skipcq: PY-R1000
                     config_path, warning_sink=source_config_warnings.append
                 )
             source_queries = load_registry_source_queries()
+            _populate_registry_source_funnel(source_funnel)
         except Exception as error:
             source_queries = {}
             source_config_warnings.append(str(error))
@@ -2221,12 +2615,16 @@ def run_pipeline(  # skipcq: PY-R1000
     linkedin_fetched_count = 0
     linkedin_matched_count = 0
     warning_count = len(source_config_warnings)
+    def counted_linkedin_request():
+        source_funnel["linkedin"]["requested"] += 1
+        before_request()
+
     for search in searches:
         page_postings, page_warnings = harvest_search(
             search,
             max_pages=max_pages,
             fetcher=fetcher,
-            before_request=before_request,
+            before_request=counted_linkedin_request,
         )
         linkedin_fetched_count += len(page_postings)
         matched_page = [
@@ -2248,6 +2646,7 @@ def run_pipeline(  # skipcq: PY-R1000
             posting, searches, location_terms
         ),
         fetch_counts=source_fetch_counts,
+        source_funnel=source_funnel,
     )
     source_postings = filter_source_postings(
         source_postings, searches, location_terms
@@ -2258,6 +2657,11 @@ def run_pipeline(  # skipcq: PY-R1000
     warning_count += source_warnings + count_missing_source_jds(source_postings)
     fetched_count = linkedin_fetched_count + sum(source_fetch_counts.values())
     matched_count = len(harvested)
+    parsed_counts = {"linkedin": linkedin_fetched_count, **source_fetch_counts}
+    for name, counters in source_funnel.items():
+        counters["filtered"] = parsed_counts.get(name, 0) - source_match_counts.get(name, 0)
+    source_warnings_list = _source_funnel_warnings(source_funnel, parsed_counts, source_match_counts)
+    warning_count += len(source_warnings_list)
 
     unique = dedupe_postings(harvested, set())
     if database_mode:
@@ -2334,6 +2738,9 @@ def run_pipeline(  # skipcq: PY-R1000
         observed_posting_ids = observed
         inserted_posting_ids = inserted
         inserted_set = set(inserted_posting_ids)
+        for posting, posting_id in zip(scored_all, observed_posting_ids):
+            disposition = "inserted_new" if posting_id in inserted_set else "updated_existing"
+            source_funnel[_posting_source(posting)][disposition] += 1
         annotation_candidates = [
             posting
             for posting, posting_id in zip(scored_all, observed_posting_ids)
@@ -2341,6 +2748,8 @@ def run_pipeline(  # skipcq: PY-R1000
         ]
     else:
         output_path = append_postings(output_dir, date_string, scored_all)
+        for posting in scored_all:
+            source_funnel[_posting_source(posting)]["inserted_new"] += 1
     if liveness_checker is not None and not database_mode:
         recent_liveness_counts = refresh_recent_liveness(
             output_dir, date_string, liveness_checker
@@ -2404,6 +2813,8 @@ def run_pipeline(  # skipcq: PY-R1000
                 annotation_invalid_count = 0
 
     result: dict[str, object] = {
+        "source_funnel": source_funnel,
+        "warnings": [*source_config_warnings, *source_warnings_list],
         "fetched_count": fetched_count,
         "matched_count": matched_count,
         "new_count": len(inserted_posting_ids) if database_mode else len(scored_all),
@@ -2432,7 +2843,7 @@ def run_pipeline(  # skipcq: PY-R1000
     else:
         result["new_published_count"] = len(scored)
     if enabled_sources:
-        result["source_warning_count"] = len(source_config_warnings) + source_warnings
+        result["source_warning_count"] = len(source_config_warnings) + source_warnings + len(source_warnings_list)
         result["source_counts"] = source_counts
         result["source_fetch_counts"] = source_fetch_counts
         result["source_match_counts"] = source_match_counts

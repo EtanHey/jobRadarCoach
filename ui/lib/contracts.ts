@@ -2,6 +2,7 @@ import { VacancyIdentitySchema } from "./vacancy-identity";
 import { z } from "zod";
 import { foundWithinOptions, fitOptions, sortOptions } from "./view-options";
 import { pipelineStatusValues } from "./pipeline-status-values";
+import { LivenessSchema } from "./liveness";
 
 const text = z.string();
 const nullableText = text.nullable();
@@ -84,6 +85,7 @@ export const JobSummarySchema = z.object({
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
   alive: z.boolean().nullable().default(null),
+  liveness: LivenessSchema.optional(),
   linkedin_reposted_signal: LinkedInRepostedSignalSchema.nullable().optional(),
   linkedin_closed_signal: LinkedInClosedSignalSchema.nullable().optional(),
 }).strict();

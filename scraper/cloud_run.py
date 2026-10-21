@@ -122,6 +122,8 @@ def _base_receipt(exit_code: int) -> dict[str, object]:
         "status": "success" if exit_code == 0 else "failure",
         "exit_code": exit_code,
         "network_request_skips": 0,
+        "source_funnel": {},
+        "warnings": [],
         # LinkedIn is always-on inside harvest; --sources enables only ATS adapters.
         "sources": list(ALL_SOURCES),
     }
@@ -224,6 +226,8 @@ def main(
         else:
             if isinstance(result, dict):
                 receipt["result"] = result
+                receipt["source_funnel"] = result.get("source_funnel", {})
+                receipt["warnings"] = result.get("warnings", [])
             else:
                 exit_code = 1
                 receipt = _base_receipt(exit_code)

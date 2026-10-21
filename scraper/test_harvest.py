@@ -1639,6 +1639,130 @@ def test_hr_tech_posting_survives_unless_an_independent_hard_rule_matches() -> N
     ) is False
 
 
+@pytest.mark.parametrize(
+    "location",
+    [
+        "Tel Aviv", "Tel Aviv-Yafo", "Tel-Aviv", "Herzliya", "Ramat Gan",
+        "Petah Tikva", "Haifa", "Jerusalem", "Ra'anana", "Hod Hasharon",
+        "Netanya", "Rehovot", "Kfar Saba", "Be'er Sheva", "Yokneam",
+        "Tel Aviv-Yafo, Tel Aviv District", "Herzliya, Tel Aviv District",
+        "תל אביב", "תל אביב-יפו", "הרצליה", "רמת גן", "פתח תקווה",
+        "חיפה", "ירושלים", "רעננה", "הוד השרון", "נתניה", "רחובות",
+        "כפר סבא", "באר שבע", "יקנעם",
+    ],
+)
+def test_city_only_israel_location_passes_israel_search(location) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": location, "source": "comeet"}
+    searches = [{"keywords": "Software Engineer", "location": "Israel"}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == [posting]
+
+
+@pytest.mark.parametrize(
+    "location",
+    ["London", "New York", "Berlin", "Remote - US", "לונדון", "Tel Avivish"],
+)
+def test_unrelated_country_fails_israel_search(location) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": location, "source": "comeet"}
+    searches = [{"keywords": "Software Engineer", "location": "Israel"}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == []
+
+
+def test_city_only_us_location_passes_united_states_search() -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": "San Francisco, CA"}
+    searches = [{"keywords": "Software Engineer", "location": "United States"}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == [posting]
+
+
+@pytest.mark.parametrize(
+    ("geography", "location", "expected"),
+    [
+        ("Israel", "Jerusalem, NY, United States", False),
+        ("Israel", "Jerusalem, Ohio, USA", False),
+        ("Israel", "New Jerusalem, Pennsylvania, United States", False),
+        ("United States", "San Francisco, Cordoba, Argentina", False),
+        ("United States", "San Francisco, CA, Argentina", False),
+        ("Israel", "Tel Aviv, Israel", True),
+        ("Israel", "Jerusalem, Israel", True),
+        ("Israel", "Jerusalem, NY", False),
+        ("Israel", "Jerusalem, Ohio", False),
+        ("Israel", "Jerusalem, US", False),
+        ("Israel", "Jerusalem, U.S.A.", False),
+        ("Israel", "Jerusalem, GB", False),
+        ("Israel", "Jerusalem, United Kingdom", False),
+        ("Israel", "Jerusalem, Canada", False),
+        ("Israel", "Jerusalem, CAN", False),
+        ("Israel", "Jerusalem, Georgia", False),
+        ("Israel", "New Jerusalem", False),
+        ("Israel", "Jerusalem Heights", False),
+        ("Israel", "Jerusalem / Ohio / USA", False),
+        ("Israel", "Jerusalem (Ohio)", False),
+        ("Israel", "Jerusalem - United States", False),
+        ("Israel", "Jerusalem, Jerusalem District", True),
+        ("Israel", "Jerusalem, IL", True),
+        ("United States", "San Francisco, CA, AR", False),
+        ("United States", "San Francisco, CA, ARG", False),
+        ("United States", "New San Francisco, CA", False),
+        ("United States", "San Francisco, CA, Canada", False),
+        ("United States", "San Francisco, CA, Israel", False),
+        ("United States", "San Francisco, CA, US", True),
+        ("United States", "San Francisco, CA, USA", True),
+    ],
+)
+def test_city_aliases_respect_location_segments_and_country(geography, location, expected) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": location}
+    searches = [{"keywords": "Software Engineer", "location": geography}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == (
+        [posting] if expected else []
+    )
+
+
+def test_country_city_aliases_merge_with_profile_location_terms() -> None:
+    harvest = load_harvest_module()
+    postings = [
+        {"title": "Software Engineer", "location": location}
+        for location in ("Tel Aviv", "Nes Ziona", "London")
+    ]
+    searches = [{"keywords": "Software Engineer", "location": "Israel"}]
+    aliases = {"Israel": ["Nes Ziona"]}
+
+    assert harvest.filter_source_postings(postings, searches, aliases) == postings[:2]
+    assert aliases == {"Israel": ["Nes Ziona"]}
+
+
+def test_city_aliases_preserve_title_and_geography_pairing() -> None:
+    harvest = load_harvest_module()
+    searches = [
+        {"keywords": "Backend Engineer", "location": "Israel"},
+        {"keywords": "Frontend Engineer", "location": "United States"},
+    ]
+    postings = [
+        {"title": title, "location": "Tel Aviv-Yafo"}
+        for title in (
+            "Senior Backend Engineer", "Senior Frontend Engineer",
+            "Sales Manager", "Principal Backend Engineer",
+        )
+    ]
+
+    assert harvest.filter_source_postings(postings, searches, {}) == postings[:1]
+
+
+@pytest.mark.parametrize("geography", ["worldwide relocation", "Remote", "Portugal"])
+def test_country_city_aliases_do_not_expand_other_geographies(geography) -> None:
+    harvest = load_harvest_module()
+    posting = {"title": "Software Engineer", "location": "Tel Aviv", "remote": False}
+    searches = [{"keywords": "Software Engineer", "location": geography}]
+
+    assert harvest.filter_source_postings([posting], searches, {}) == []
+
+
 def test_linkedin_pipeline_requires_paired_title_and_geography(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -2886,6 +3010,13 @@ def test_run_pipeline_dedupes_prior_and_current_files(tmp_path: Path) -> None:
         for line in (tmp_path / "2026-08-09.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert result == {
+        "source_funnel": {"linkedin": {
+            "registered": 10, "eligible": 10, "stale": 0, "disabled": 0,
+            "invalid": 0, "expiring_within_7d": 0, "requested": 10,
+            "filtered": 0,
+            "inserted_new": 1, "updated_existing": 0,
+        }},
+        "warnings": [],
         "fetched_count": 20,
         "matched_count": 20,
         "harvested_count": 20,
@@ -3199,7 +3330,7 @@ def test_run_pipeline_dispatches_registry_queries_and_isolates_tenants(
     calls: list[tuple[str, str]] = []
     monkeypatch.setattr(
         harvest, "load_registry_source_queries",
-        lambda: {
+        lambda **_kwargs: {
             "greenhouse": [{"board": "broken", "company": "Broken", "source_tenant": "broken"}],
             "lever": [{"account": "good", "company": "Good", "source_tenant": "good"}],
         },

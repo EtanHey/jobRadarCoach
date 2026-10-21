@@ -1,6 +1,7 @@
 import { postingUrl, titleSeniority } from "./job-metadata";
 import { z } from "zod";
 import { JobIdSchema, JobListQuerySchema, JobSummarySchema } from "./contracts";
+import { projectLiveness } from "./liveness";
 
 export const GlobeQuerySchema = z.object({
   filter: JobListQuerySchema.shape.filter.default("all"),
@@ -20,6 +21,8 @@ export const GlobeJobSchema = JobSummarySchema.pick({
   first_seen_at:true,status:true,status_reason:true,score:true,recommendation:true,
   alive:true,relevance_filtered:true,vacancy_identity:true,
 }).strip().transform(job => ({...job, seniority: job.seniority ?? titleSeniority(job.title),
+  // Slim marker RPCs carry no freshness evidence. Cards hydrate by ID before display.
+  alive: projectLiveness({ alive: job.alive }).alive,
   url: postingUrl(job.url), apply_url: job.apply_url ? postingUrl(job.apply_url) : null}));
 export type GlobeJob = z.infer<typeof GlobeJobSchema>;
 export const GlobeResponseSchema = z.object({
