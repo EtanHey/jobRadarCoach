@@ -479,7 +479,7 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
     ("This role offers remote or hybrid work arrangements.", None),
     ("Location: Anywhere (Onsite / Hybrid / Remote - Based on Client Requirement).", None),
 ])
-def test_non_permanent_arrangements_do_not_persist_attendance(connection, mode_source, condition):
+def test_non_permanent_arrangements_do_not_persist_attendance(connection, mode_source, condition, expected):
     raw_jd = RAW_JD + " " + condition
     posting_id = insert_posting(connection, raw_jd)
     connection.execute(
