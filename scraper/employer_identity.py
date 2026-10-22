@@ -8,7 +8,7 @@ from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 from scraper.geography import COUNTRY_CITY_ALIASES, COUNTRY_IDENTIFIERS, _normalized_location
 
-VERSION = '15'
+VERSION = '16'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus'}
@@ -26,8 +26,11 @@ GENERIC = {'i', 'we', 'our', 'you', 'they', 'he', 'she', 'it', 'company', 'agenc
 GENERIC_ORG_WORDS = frozenset('''data platform r d group hiring manager customer success engineering
     team department business unit networking ai role position remote fintech startup your next challenge idf veterans applicants in
     senior backend frontend engineer research development and of the
-    צוות קבוצת קבוצה מחלקת מחלקה פלטפורמת פלטפורמה נתונים מחקר ופיתוח מנהל מנהלת גיוס
+    צוות קבוצת קבוצה מחלקת מחלקה פלטפורמת פלטפורמה נתונים מחקר ופיתוח פיתוח מנהל מנהלת גיוס
     הצלחת לקוחות הנדסה תפקיד משרה מרחוק'''.split())
+ENGLISH_ORG_HEADS = frozenset('''team teams department dept division unit squad crew chapter guild
+    org organization function office desk'''.split())
+HEBREW_ORG_HEAD = re.compile(r'[הובלמש]*(?:צוות|מחלקה|מחלקת|אגף|יחידה|יחידת|קבוצת|דסק)')
 PLACE_NAMES = COUNTRY_IDENTIFIERS | {'ישראל'} | {
     _normalized_location(city) for cities in COUNTRY_CITY_ALIASES.values() for city in cities
 }
@@ -37,7 +40,11 @@ GENERIC_SUBJECT = re.compile(r'^\*{0,2}' + NAME.replace('[A-Z]', '[A-Zא-ת]')
 
 def _generic_hiring_subject(name: str) -> bool:
     normalized = _normalized_location(name)
-    if normalized in PLACE_NAMES or set(normalized.split()) <= GENERIC_ORG_WORDS:
+    words = normalized.split()
+    if normalized in PLACE_NAMES or set(words) <= GENERIC_ORG_WORDS:
+        return True
+    # English heads come last; Hebrew construct heads come first, after prefixes.
+    if words[-1] in ENGLISH_ORG_HEADS or HEBREW_ORG_HEAD.fullmatch(words[0]):
         return True
     return any(normalized.endswith(' ' + place)
                and set(normalized[:-len(place)].split()) <= GENERIC_ORG_WORDS

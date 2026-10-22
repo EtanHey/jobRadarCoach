@@ -48,6 +48,58 @@ def test_p7b_hebrew_generic_hiring_subject(name, source):
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('name', [
+    'Product Team', 'Marketing Team', 'Sales Department', 'HR Department',
+    'Security Team', 'Design Team', 'NVIDIA (Networking Business Unit)',
+    *[f'Unfamiliar {head}' for head in [
+        'Teams', 'Dept', 'Division', 'Unit', 'Squad', 'Crew', 'Chapter', 'Guild',
+        'Org', 'Organization', 'Function', 'Office', 'Desk',
+    ]],
+])
+@pytest.mark.parametrize('predicate', ['is hiring', 'is looking for', 'is seeking', 'are hiring'])
+def test_p7bf1_english_org_head_vetoes_employer_and_ats_fallback(source, name, predicate):
+    result = resolve_employer('NewPub', f'{name} {predicate} engineers.', source)
+    assert result['hiring_employer'] is None
+    assert result['employer_evidence'] is None
+    assert result['relationship'] == 'unknown'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('head', ['צוות', 'מחלקה', 'מחלקת', 'אגף', 'יחידה', 'יחידת', 'קבוצת', 'דסק'])
+@pytest.mark.parametrize('prefix', ['', 'ה', 'ו', 'ב', 'ל', 'מ', 'ש', 'וב', 'שב', 'ולה'])
+def test_p7bf1_hebrew_head_first_vetoes_employer_and_ats_fallback(source, head, prefix):
+    result = resolve_employer('NewPub', f'{prefix}{head} מכירות מגייסים מהנדסים.', source)
+    assert result['hiring_employer'] is None
+    assert result['employer_evidence'] is None
+    assert result['relationship'] == 'unknown'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('name', ['צוות פיתוח', 'מחלקת מכירות', 'פיתוח'])
+def test_p7bf1_hebrew_review_reproducers_remain_unknown(source, name):
+    assert resolve_employer('NewPub', f'{name} מגייס מהנדסים.', source)['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_p7bf1_publisher_prefix_cannot_rescue_org_unit_subject(source):
+    jd = 'NVIDIA (Networking Business Unit) is hiring engineers.'
+    assert resolve_employer('NVIDIA', jd, source)['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('hiring', ['Product Team is hiring engineers.', 'צוות פיתוח מגייס מהנדסים.'])
+def test_p7bf1_generic_role_subject_vetoes_company_blurb(source, hiring):
+    jd = '**About The Company**\nAcme Labs builds software.\n**About The Role**\n' + hiring
+    assert resolve_employer('NewPub', jd, source)['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('name', ['Matrix Group', 'Acme Labs', 'Acme Studio', 'Team Acme', 'Guild Labs'])
+def test_p7bf1_company_suffixes_and_non_head_org_words_are_preserved(source, name):
+    assert resolve_employer('NewPub', f'{name} is hiring engineers.', source)['hiring_employer'] == name
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
 def test_p7b_publisher_prefix_does_not_erase_distinct_company(source):
     result = resolve_employer('Acme', 'Acme Labs is looking for engineers.', source)
     assert result['hiring_employer'] == 'Acme Labs'
@@ -55,7 +107,7 @@ def test_p7b_publisher_prefix_does_not_erase_distinct_company(source):
 
 
 @pytest.mark.parametrize('publisher,name', [
-    ('NVIDIA', 'NVIDIA (Networking Business Unit)'), ('TSG', 'TSG Group'),
+    ('TSG', 'TSG Group'),
     ('Arm', "Arm's Central Technology Machine Learning Group"), ('Coralogix', 'Coralogix AI'),
     ('comblack', 'COMBLACK'),
 ])
@@ -351,10 +403,11 @@ def test_review_r3_software_vendor_keeps_own_employer(source, description):
 
 
 @pytest.mark.parametrize('organization', ['company', 'organization', 'firm', 'team'])
-def test_review_r3_internal_recruitment_keeps_ats_fallback(organization):
+def test_p7bf1_internal_recruitment_subject_vetoes_ats_fallback(organization):
     jd = f'Our internal recruitment team is hiring engineers on behalf of our {organization}.'
     result = resolve_employer('Acme Labs', jd, 'greenhouse')
-    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['hiring_employer'] is None
+    assert result['employer_evidence'] is None
     assert result['agency_evidence'] is None
 
 
