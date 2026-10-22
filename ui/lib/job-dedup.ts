@@ -45,8 +45,11 @@ type PreparedJob<T extends GlobeJob = GlobeJob> = { job: T; company: string; tit
 function sameRole(a: PreparedJob, b: PreparedJob, locationsMatch: ReturnType<typeof createRepostLocationMatcher>): boolean {
   if (!a.company || a.company !== b.company) return false;
   const left = a.identity, right = b.identity;
+  if (left.requisitions.length && right.requisitions.length) {
+    const leftSet = new Set(left.requisitions), rightSet = new Set(right.requisitions);
+    return leftSet.size === rightSet.size && [...leftSet].every(value => rightSet.has(value));
+  }
   if (left.requisitions.length > 1 || right.requisitions.length > 1) return false;
-  if (left.requisitions.length && right.requisitions.length) return left.requisitions[0] === right.requisitions[0];
   if (!left.requisitions.length && !right.requisitions.length && left.jd_fingerprint
     && left.jd_fingerprint === right.jd_fingerprint) return true;
   // A changed JD alone is not evidence of separate headcount; retain the heuristic.

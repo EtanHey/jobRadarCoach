@@ -3,39 +3,9 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
 
-from scraper.brain_contract import BrainValidationError
-
-ExtractionFailureCategory = Literal[
-    "evidence_quote",
-    "location_context",
-    "remote_consistency",
-    "stack_uniqueness",
-]
-ExtractionFailureField = Literal["location", "remote", "seniority", "salary", "stack"]
-_FAILURE_CATEGORIES = frozenset(
-    {"evidence_quote", "location_context", "remote_consistency", "stack_uniqueness"}
-)
-_FAILURE_FIELDS = frozenset({"location", "remote", "seniority", "salary", "stack"})
-
-
-class ExtractionValidationError(BrainValidationError):
-    """Evidence rejection carrying only bounded diagnostic metadata."""
-
-    def __init__(
-        self,
-        message: str,
-        *,
-        category: ExtractionFailureCategory,
-        field: ExtractionFailureField,
-    ) -> None:
-        if category not in _FAILURE_CATEGORIES or field not in _FAILURE_FIELDS:
-            raise ValueError("invalid extraction failure metadata")
-        super().__init__(message)
-        self.category = category
-        self.field = field
-
+from extractor.quotes import ExtractionValidationError, validate_quote
+from extractor.salary import normalize_salary
 
 _REMOTE_WORD = r"\bremote(?:ly)?\b"
 _REMOTE_AVAILABILITY = (
@@ -83,38 +53,6 @@ _REMOTE_NEGATED_AFTER_RE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
-
-
-def _validate_quote(
-    field: ExtractionFailureField,
-    value: object,
-    quote: object,
-    raw_jd: str,
-) -> None:
-    if value is None:
-        if quote is not None:
-            raise ExtractionValidationError(
-                f"unknown {field} cannot cite evidence",
-                category="evidence_quote",
-                field=field,
-            )
-        return
-    if not isinstance(quote, str) or not quote.strip() or quote not in raw_jd:
-        raise ExtractionValidationError(
-            f"{field} evidence must be an exact nonblank quote",
-            category="evidence_quote",
-            field=field,
-        )
-    if isinstance(value, str) and (
-        not value.strip() or not re.search(
-            rf"(?<!\w){re.escape(value)}(?!\w)", quote, re.IGNORECASE
-        )
-    ):
-        raise ExtractionValidationError(
-            f"{field} value must occur in its evidence quote",
-            category="evidence_quote",
-            field=field,
-        )
 
 
 def _remote_quote_value(quote: str) -> bool | None:
@@ -205,10 +143,11 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
 def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
     """Reject extracted facts that are not supported by their source quotes."""
 
-    for field in ("location", "remote", "seniority", "salary"):
+    normalize_salary(facts, raw_jd)
+    for field in ("location", "remote", "seniority"):
         fact = facts[field]
         assert isinstance(fact, dict)
-        _validate_quote(field, fact["value"], fact["evidence_quote"], raw_jd)
+        validate_quote(field, fact["value"], fact["evidence_quote"], raw_jd)
     _validate_location_context(facts["location"], raw_jd)
     remote = facts["remote"]
     assert isinstance(remote, dict)
@@ -232,7 +171,7 @@ def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
         assert isinstance(fact, dict)
         value = fact["value"]
         quote = fact["evidence_quote"]
-        _validate_quote("stack", value, quote, raw_jd)
+        validate_quote("stack", value, quote, raw_jd)
         assert isinstance(value, str)
         normalized = value.strip().casefold()
         if normalized in seen:

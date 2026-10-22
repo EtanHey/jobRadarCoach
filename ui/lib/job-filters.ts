@@ -1,3 +1,4 @@
+import { employerLabel } from "./employer-identity";
 import type { GlobeJob } from "./globe-contract";
 import { timestamp } from "./job-time";
 import type { Availability, FoundWithin, JobSummary } from "./contracts";
@@ -56,7 +57,7 @@ export function levelGroup(value: string | null): string {
 function matchesView(job: GlobeJob, options: ViewOptions, needle: string, cutoff: number | null): boolean {
   return (
     (cutoff === null || (timestamp(job.first_seen_at) ?? -Infinity) >= cutoff) &&
-    (!needle || [job.title, job.company, job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
+    (!needle || [job.title, employerLabel(job), job.location, job.source, ...job.stack].join(" ").toLocaleLowerCase().includes(needle)) &&
     (!options.source || job.source === options.source) &&
     (options.work_mode || options.remote === undefined || job.remote === options.remote) &&
     (!options.work_mode || (job.work_mode ?? (job.remote === true ? "remote" : job.remote === false ? "on-site" : null)) === options.work_mode) &&
