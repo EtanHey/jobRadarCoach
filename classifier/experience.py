@@ -22,11 +22,11 @@ _REQUIREMENT_PREFIX = re.compile(
     re.I,
 )
 _SECTION_HEADING = re.compile(
-    r"^[ \t]*(?:#{1,6}[ \t]+)?(?:\*\*|__)?([A-Za-z][A-Za-z /-]*?):?"
+    r"^[ \t]*(?:#{1,6}[ \t]+)?(?:\*\*|__)?([^\W\d_][^\n]*?):?"
     r"(?:\*\*|__)?[ \t]*:?[ \t]*$", re.M,
 )
 _REQUIRED_SECTION = re.compile(
-    r"(?:(?:minimum|required|mandatory) )?(?:requirements?|qualifications?|skills)|required|mandatory",
+    r"(?:(?:minimum|required|mandatory) )?(?:requirements?|qualifications?|skills)|required|mandatory|must have",
     re.I,
 )
 _MANDATORY_SUFFIX = re.compile(r"\s+(?:[-–—]\s*(?:mandatory|required)|\((?:mandatory|required)\))\s*$", re.I)
@@ -36,7 +36,10 @@ def _required_section(prefix: str) -> bool:
     # Only complete preceding lines set section scope. Unknown headings default
     # to non-mandatory; a subsequent requirements heading restores that scope.
     complete_lines = prefix.rpartition("\n")[0]
-    headings = list(_SECTION_HEADING.finditer(complete_lines))
+    # Detect boundaries independently of language/punctuation, then classify
+    # the title. Duration clauses themselves must not end the current section.
+    headings = [heading for heading in _SECTION_HEADING.finditer(complete_lines)
+                if _YEARS.search(heading[1]) is None]
     return not headings or _REQUIRED_SECTION.fullmatch(headings[-1][1].strip()) is not None
 
 

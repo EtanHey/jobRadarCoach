@@ -257,6 +257,44 @@ def test_optional_section_ends_at_next_requirements_heading():
     assert [row["subject"] for row in rows if row["subject_kind"] == "specialist"] == ["angular"]
 
 
+@pytest.mark.parametrize("heading", [
+    "Preferred qualifications (optional)", "Nice to have (optional)",
+    "Bonus", "Preferred", "Advantage", "Optional", "יתרון", "יתרון (לא חובה)",
+])
+@pytest.mark.parametrize("style", ["{}:", "## {}", "**{}:**", "{}"])
+@pytest.mark.parametrize("prefix", ["", "Requirements:\n- Build applications.\n"])
+@pytest.mark.parametrize("claim", [None, "1 year React"])
+def test_optional_heading_scope_preserves_positive_request(heading, style, prefix, claim):
+    profile = safe_projection()
+    if claim:
+        profile["fit_signals"][0]["claim"] = claim
+    jd = prefix + style.format(heading) + "\n- 2+ years React\n- 3+ years Angular"
+    sent = request.build_request({"id": "test", "jd_text": jd}, profile, [])
+    baseline = request.build_request({"id": "test", "jd_text": "Build applications."}, profile, [])
+    assert sent.output_schema == baseline.output_schema
+    assert "Deterministic experience comparisons:" not in sent.prompt
+    response = wire_annotation("test")
+    response["reasons"]["stack_domain_evidence"]["evidence_ids"] = ["example-project"]
+    response["reasons"]["seniority_gap"]["assessment"] = "positive"
+    BrainResult(response, "ollama", "test", request=sent)
+
+
+@pytest.mark.parametrize("heading", ["Requirements", "Must have"])
+@pytest.mark.parametrize("style", ["{}:", "## {}", "**{}:**", "{}"])
+def test_required_heading_resets_optional_scope(heading, style):
+    jd = ("Preferred qualifications (optional):\n- 2+ years React\n"
+          + style.format(heading) + "\n3+ years Angular\n2+ years backend")
+    assert [row["subject"] for row in comparisons(jd)] == ["angular", "backend"]
+    sent = request.build_request({"id": "test", "jd_text": jd}, safe_projection(), [])
+    schema = sent.output_schema["properties"]["reasons"]["properties"]["seniority_gap"]
+    assert schema["properties"]["assessment"]["enum"] == ["unknown"]
+
+
+def test_unknown_punctuated_heading_clears_mandatory_scope():
+    jd = "Requirements:\n- 3+ years Angular\nOther skills (additional):\n- 2+ years React"
+    assert [row["subject"] for row in comparisons(jd)] == ["angular"]
+
+
 @pytest.mark.parametrize("jd", [
     "3+ years of hands-on Angular development experience – Mandatory",
     "2+ years of hands-on experience developing LLM-based AI solutions – Mandatory",
