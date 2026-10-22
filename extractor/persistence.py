@@ -106,9 +106,9 @@ def persist_extraction(
             "remote = case when %s::text is not null then case when %s = 'on-site' then false else null end else case (case when work_mode_source in ('structured', 'location') then work_mode "
             "else coalesce(%s, work_mode) end) when 'remote' then true when 'on-site' then false "
             "when 'hybrid' then null else coalesce(%s, remote) end end, "
-            "work_mode = case when %s::text is not null then %s when work_mode_source in ('structured', 'location') then work_mode "
+            "work_mode = case when %s::text is not null then nullif(%s, 'unknown') when work_mode_source in ('structured', 'location') then work_mode "
             "else coalesce(%s, work_mode) end, "
-            "work_mode_source = case when %s::text is not null then 'extracted' when work_mode_source in ('structured', 'location') then work_mode_source "
+            "work_mode_source = case when %s::text is not null then case when %s = 'unknown' then null else 'extracted' end when work_mode_source in ('structured', 'location') then work_mode_source "
             "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
             "salary = coalesce(%s, case when lower(salary) = lower(%s) then null else salary end) "
@@ -116,7 +116,7 @@ def persist_extraction(
             (
                 payload.facts["location"]["value"], attendance_mode, attendance_mode, mode,
                 payload.facts["remote"]["value"], attendance_mode, attendance_mode, mode,
-                attendance_mode, "extracted" if mode_source else None,
+                attendance_mode, attendance_mode, "extracted" if mode_source else None,
                 payload.facts["seniority"]["value"],
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],

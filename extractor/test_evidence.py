@@ -83,9 +83,9 @@ def test_unknown_remote_requires_no_evidence_quote() -> None:
     "We require three days a week in the office and two days at home.",
     "You must be in the office 2 days per week.",
     "You may work remotely but must be in the office 2 days per week.",
-    "3 ימים במשרד.",
+    "3 ימים בשבוע במשרד.",
     "נדרשים 2 ימים בשבוע במשרד.",
-    "יומיים במשרד ושלושה ימים מהבית.",
+    "יומיים בשבוע במשרד ושלושה ימים מהבית.",
 ])
 def test_attendance_outside_remote_quote_prevents_fully_remote(condition):
     raw_jd = f"Remote work is available.\n\n{condition}"
@@ -137,7 +137,7 @@ def test_other_role_attendance_preserves_this_roles_remote_evidence(condition):
     ("נדרשים 5 ימים בשבוע במשרד.", "on-site"),
     ("This role requires four days a week in the office.", "hybrid"),
     ("All staff work in the office 3 days per week.", "hybrid"),
-    ("Other roles work remotely; this role requires five office days.", "on-site"),
+    ("Other roles work remotely; this role requires five office days per week.", "on-site"),
     ("Other teams work remotely, but this role requires 3 days a week in office.", "hybrid"),
     ("You may work in office five days per week.", None),
     ("No full-time in office attendance is required.", None),
@@ -307,3 +307,60 @@ def test_salary_quote_failure_preserves_other_evidence():
     expected["salary"] = {"value": None, "evidence_quote": None}
     expected["salary_remark"] = "$120,000-$150,000 annually"
     assert candidate == expected
+
+
+@pytest.mark.parametrize("condition", [
+    "Interviews are fully in-person.",
+    "Onboarding week is fully in-person.",
+    "Process includes a fully in-person interview day.",
+    "Fully in-person onboarding for the first week.",
+    "Our events are fully in person.",
+    "This role includes fully in-person interviews.",
+    "The interview for this role is fully in-person.",
+    "Other teams have fully in-person roles.",
+    "We require three days in the office for onboarding.",
+    "We require five office days per quarter.",
+    "We require five office days for onboarding.",
+    "This role requires five office days.",
+    "Training requires three days a week in the office for the first month.",
+    "Initially, this role requires five days a week in the office.",
+    "During onboarding, this role is full-time in office.",
+    "This role is fully in-person for the first week.",
+    "This role requires three days a week in office for two weeks.",
+    "נדרשים 3 ימים במשרד.",
+])
+def test_temporary_or_non_role_attendance_preserves_remote(condition):
+    from extractor.evidence import attendance_evidence
+
+    raw_jd = "This role is fully remote. " + condition
+    assert attendance_evidence(raw_jd) is None
+    assert derive_remote_fact("This role is fully remote", raw_jd)["value"] is True
+
+
+@pytest.mark.parametrize("condition", [
+    "This role is fully in-person.",
+    "This is a fully in-person position.",
+    "Work arrangement: fully in person.",
+    "This role requires three days in the office per week.",
+])
+def test_ongoing_role_arrangements_are_retained(condition):
+    from extractor.evidence import attendance_evidence
+
+    evidence = attendance_evidence(condition)
+    assert evidence is not None
+    assert evidence[0] == ("hybrid" if "three days" in condition else "on-site")
+
+
+@pytest.mark.parametrize("condition", [
+    "Location: Anywhere (Onsite / Hybrid / Remote - Based on Client Requirement).",
+    "This position offers remote or hybrid work arrangements, with a preference for local candidates.",
+    "Work model: hybrid or remote.",
+    "This role is hybrid depending on client requirements.",
+    "A hybrid work arrangement is preferred.",
+])
+def test_unresolved_work_arrangements_abstain(condition):
+    from extractor.evidence import attendance_evidence
+
+    evidence = attendance_evidence(condition)
+    assert evidence == ("unknown", condition.rstrip("."))
+    assert derive_remote_fact("remote", condition)["value"] is None

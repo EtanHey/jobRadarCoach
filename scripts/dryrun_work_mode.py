@@ -22,8 +22,9 @@ def report(snapshot: Path) -> str:
         evidence = attendance_evidence(row.get("raw_jd") or "")
         if evidence is not None:
             mode, quote = evidence
-            new.update(work_mode=mode, remote=False if mode == "on-site" else None,
-                       work_mode_source="extracted")
+            new.update(work_mode=None if mode == "unknown" else mode,
+                       remote=False if mode == "on-site" else None,
+                       work_mode_source=None if mode == "unknown" else "extracted")
         before[old["work_mode"] or "unknown"] += 1
         after[new["work_mode"] or "unknown"] += 1
         if old != new:

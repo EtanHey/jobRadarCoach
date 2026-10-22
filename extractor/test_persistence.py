@@ -469,3 +469,27 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
         expected["salary_remark"] = salary
     assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+@pytest.mark.parametrize(("condition", "expected"), [
+    ("Interviews are fully in-person.", "remote"),
+    ("We require three days in the office for onboarding.", "remote"),
+    ("We require five office days per quarter.", "remote"),
+    ("This role offers remote or hybrid work arrangements.", None),
+    ("Location: Anywhere (Onsite / Hybrid / Remote - Based on Client Requirement).", None),
+])
+def test_non_permanent_arrangements_do_not_persist_attendance(connection, mode_source, condition):
+    raw_jd = RAW_JD + " " + condition
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    if expected is None:
+        facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ((None, None, None) if expected is None else ("remote", mode_source, True))

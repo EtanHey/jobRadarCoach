@@ -11,9 +11,10 @@ _DAYS = r"(?:[1-4]|one|two|three|four)\s+days?"
 _WEEK = r"(?:(?:a|per|each)\s+week|weekly)"
 _OFFICE = r"(?:in|at|from)\s+(?:(?:the|our)\s+)?office"
 _HYBRID_POLICY_RE = re.compile(
-    rf"\b(?:{_DAYS}\s+(?:{_WEEK}\s+)?{_OFFICE}|"
+    rf"\b(?:{_DAYS}\s+{_WEEK}\s+{_OFFICE}|"
+    rf"{_DAYS}\s+{_OFFICE}\s+{_WEEK}|"
     rf"{_OFFICE}\s+(?:for\s+)?{_DAYS}\s+{_WEEK})\b|"
-    r"\b(?:[1-4]\s+ימים|יומיים)\s+(?:בשבוע\s+)?במשרד\b|"
+    r"\b(?:[1-4]\s+ימים|יומיים)\s+בשבוע\s+במשרד\b|"
     r"\bhybrid[ -](?:work(?:ing)?|schedule|arrangement|policy)\b|"
     r"\b(?:work(?:ing)?\s+(?:in|on)|work[ -]model\s*:)\s+(?:a\s+)?hybrid\b|"
     r"\b(?:this|the)\s+(?:is\s+an?\s+)?hybrid\s+(?:role|position)\b|"
@@ -34,19 +35,35 @@ _OPTIONAL_ATTENDANCE_RE = re.compile(
 _FULL_OFFICE_RE = re.compile(
     rf"\b(?:(?:5|five)\s+days\s+{_WEEK}\s+{_OFFICE}|"
     rf"{_OFFICE}\s+(?:for\s+)?(?:5|five)\s+days\s+{_WEEK}|"
-    rf"5/5\s+days\s+{_OFFICE}|(?:5|five)\s+office\s+days|"
-    rf"full[ -]time\s+{_OFFICE}|fully\s+in[ -]person)\b|"
+    rf"5/5\s+days\s+{_OFFICE}|(?:5|five)\s+office\s+days\s+{_WEEK}|"
+    rf"full[ -]time\s+{_OFFICE})\b|"
+    r"(?:^|(?<=[.!?;\n]))[ \t*#-]*(?:(?:this|the|our)\s+)?"
+    r"(?:role|position|work[ -](?:model|arrangement))\s*(?::|is)\s+fully\s+in[ -]person\b|"
+    r"\bfully\s+in[ -]person\s+(?:role|position)\b|"
     r"\b5\s+ימים\s+בשבוע\s+במשרד\b", re.IGNORECASE,
 )
 _OTHER_ROLE_SCOPE_RE = re.compile(
     r"\b(?:some|other|certain)\s+(?:\w+[ -]){0,4}(?:roles?|positions?|teams?)\b",
     re.IGNORECASE,
 )
+# A bounded phase/purpose is not the role's permanent weekly schedule.
+_LIMITED_SCHEDULE_RE = re.compile(
+    r"\b(?:during|initially)\b|\bfor\s+(?:the\s+)?(?:first|initial)\b|"
+    r"\bfor\s+(?:the\s+)?\w+ing\b",
+    re.IGNORECASE,
+)
+_MODE = r"(?:remote|hybrid|on[ -]?site)"
+_UNRESOLVED_MODE_RE = re.compile(
+    rf"\b{_MODE}\s*(?:/|or)\s*{_MODE}\b|"
+    r"\b(?:depending\s+on|based\s+on)\b|\bprefer(?:red|ence)\b",
+    re.IGNORECASE,
+)
 _CONTRAST_RE = re.compile(r"\b(?:but|however|whereas)\b", re.IGNORECASE)
 
 
 def attendance_evidence(raw_jd: str) -> tuple[str, str] | None:
-    """Resolve role-scoped attendance; a full office week is not hybrid."""
+    """Resolve ongoing attendance; unknown explicitly clears an unresolved mode."""
+    unresolved = None
     for mode, pattern in (("on-site", _FULL_OFFICE_RE), ("hybrid", _HYBRID_POLICY_RE)):
         for match in pattern.finditer(raw_jd):
             start = max(raw_jd.rfind(boundary, 0, match.start()) for boundary in ".!?;\n") + 1
@@ -56,14 +73,18 @@ def attendance_evidence(raw_jd: str) -> tuple[str, str] | None:
             before = _CONTRAST_RE.split(raw_jd[start:match.start()])[-1]
             after = _CONTRAST_RE.split(raw_jd[match.end():end])[0]
             clause = before + match.group() + after
-            if _OTHER_ROLE_SCOPE_RE.search(clause):
+            if (_OTHER_ROLE_SCOPE_RE.search(clause) or _LIMITED_SCHEDULE_RE.search(clause)
+                    or re.match(r"\s+(?:for|during)\b", after, re.I)):
                 continue
             if _OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
                 r"\s+(?:(?:is|are)\s+)?(?:optional|not\s+required)\b", after, re.I,
             ):
                 continue
+            if _UNRESOLVED_MODE_RE.search(clause):
+                unresolved = ("unknown", clause.strip())
+                continue
             return mode, clause.strip()
-    return None
+    return unresolved
 
 
 def hybrid_evidence(raw_jd: str) -> str | None:
