@@ -98,6 +98,43 @@ def test_role_requires_software_occupation(title, expected):
     ] == expected
 
 
+@pytest.mark.parametrize("specialty", ["AI", "ML", "Machine Learning"])
+@pytest.mark.parametrize("title", [
+    "System Validation Engineer - Multiple Levels ({specialty} Fabric Products)",
+    "Data Center Engineer, Compute and {specialty}",
+    "Sales Engineer ({specialty} Software Engineer Tools)",
+    "Software Engineer - {specialty} Developer Tools",
+    "{specialty} Validation Engineer",
+    "{specialty} Sales Engineer",
+    "{specialty} Developer Relations Manager",
+    "Validation Engineer and {specialty}",
+    "Data Center Engineer for {specialty}",
+    "Sales Engineer of {specialty} Products",
+    "Sales Engineer in {specialty}",
+    "Sales Engineer for {specialty} Software Engineer Tools",
+    "Sales Engineer & {specialty} Engineer",
+])
+def test_ai_requires_primary_software_occupation(title, specialty):
+    posting = {"title": title.format(specialty=specialty)}
+    assert persistence._labels(structured_annotation("synthetic-role"), posting)[
+        "role_type"
+    ] is None
+
+
+@pytest.mark.parametrize("title", [
+    "AI Engineer", "ML Engineer", "Machine Learning Engineer",
+    "AI Software Engineer", "Applied AI Engineer", "AI Researcher", "AI Developer",
+    "Senior AI Software Engineer", "Principal ML Researcher", "LLM Engineer",
+    "Artificial Intelligence Developer", "AI Engineer, Applied Research",
+    "AI Engineer II - Applications", "AI Engineer (Remote)",
+    "AI/ML Engineer", "ML / AI Software Engineer",
+])
+def test_ai_occupational_heads_remain_known(title):
+    assert persistence._labels(structured_annotation("synthetic-role"), {"title": title})[
+        "role_type"
+    ] == "ai"
+
+
 @pytest.mark.parametrize("domain", [
     "hardware", "chip", "RTL", "power", "silicon", "analog", "ASIC", "FPGA",
 ])

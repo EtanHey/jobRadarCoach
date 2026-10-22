@@ -99,11 +99,12 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
 def _role_type(title: object) -> str | None:
     """Title-only identity; unknown occupational modifiers default to abstention.
 
-    Frontend/fullstack require a developer/engineer/architect head, directly
-    modified by the specialty and optional closed software-domain modifiers,
-    or an explicit software occupation followed by the specialty. Hardware
-    domains veto every specialty. Voice specializes AI, so exactly that pair
-    resolves to voice; all other multiple matches remain ambiguous.
+    Frontend/fullstack/AI require a software occupation head, directly modified
+    by the specialty and optional closed software-domain modifiers. AI also
+    accepts researcher, but only in the primary occupation clause. Frontend
+    and fullstack also accept an explicit software occupation followed by the
+    specialty. Hardware domains veto every specialty. Voice specializes AI, so
+    exactly that pair resolves to voice; other multiple matches are ambiguous.
     """
     if not isinstance(title, str) or re.search(
         r"\b(?:hardware|chip|RTL|power|silicon|analog|ASIC|FPGA)\b", title, re.IGNORECASE
@@ -121,11 +122,29 @@ def _role_type(title: object) -> str | None:
     if len(matches) != 1:
         return None
     label = matches.pop()
-    if label in {"frontend", "fullstack"}:
+    if label in {"frontend", "fullstack", "ai"}:
         specialty = patterns[label]
-        head = r"(?:developer|engineer|architect)\b"
+        head = (
+            r"(?:developer|engineer|architect|researcher)\b" if label == "ai"
+            else r"(?:developer|engineer|architect)\b"
+        )
         modifiers = r"(?:(?:software|web|applications?)\s+)*"
         direct = rf"{specialty}\s+{modifiers}{head}"
+        if label == "ai":
+            # AI/ML is one specialty; other slashes separate title clauses.
+            occupation = re.sub(
+                r"\b(?:AI|ML)\s*/\s*(?:AI|ML)\b", "AI", title, flags=re.IGNORECASE
+            )
+            # Product/team qualifiers cannot supply the occupation's specialty.
+            occupation = re.split(
+                r"[(),/:;&\[\]–—]|\s+-\s+|\b(?:and|for|of|in)\b",
+                occupation, maxsplit=1, flags=re.IGNORECASE,
+            )[0]
+            # A head must end the clause, not modify a different occupation
+            # (e.g. Developer Relations Manager) or a product (Developer Tools).
+            return "ai" if re.search(
+                rf"{direct}(?:\s+(?:I|II|III|IV))?\s*$", occupation, re.IGNORECASE
+            ) else None
         # Accept inverted titles such as "Software Engineer II - Front-End".
         inverted = rf"\bsoftware\s+{head}(?:\s+(?:I|II|III|IV))?\s*[-,(/:]\s*{specialty}"
         if not re.search(rf"(?:{direct}|{inverted})", title, re.IGNORECASE):
