@@ -14,13 +14,26 @@ Unrecognized residency, citizenship, work authorization, time-zone, English and
 Hebrew restriction wording stays unknown. Ordinary skill requirements such as
 “Python and SQL required” are not geographic restrictions.
 
-A block needs explicit evidence: a closed foreign-only applicant scope, mandatory
-foreign residence/relocation, an explicit Israel exclusion, or a required
-incompatible on-site/hybrid office. A location field or foreign remote scope alone
-is not enough to block. `Remote (United States)`, a client location, optional
-relocation, and ambiguous mixed office/remote options stay unknown. An explicit
-foreign residency requirement blocks even when the location says Tel Aviv;
-worldwide marketing wording does not cancel a mandatory US residence requirement.
+A block needs explicit evidence: a closed foreign-only applicant or role work
+scope, mandatory foreign residence/relocation, an explicit Israel exclusion, or a
+required incompatible office. Complete remote location annotations (`Remote - US`,
+`US Remote`, `Remote (United States)`, `Remote, EMEA`) block without “only”. EMEA
+has that policy only in complete location-field annotations, not arbitrary prose.
+Role-specific bounded remote work, corroborated role base, fully enumerated US
+hub-or-US-remote alternatives, and a labeled country-qualified mode list also
+close the scope. Choosing onsite/hybrid/remote based on client requirements does
+not change an explicitly stated country. Israel/worldwide alternatives, unknown
+places and conditional country approval prevent these closed-scope blocks.
+Bare foreign countries, client locations, optional relocation and authorization
+alone remain unknown.
+
+Prefix “only residents of” is mandatory residency. Concrete weekly attendance
+(`3 days/week` or `three days each week in our London office`) and explicit
+required office work use the same central/foreign office policy as hybrid work.
+Unparsed attendance/office requirements veto eligibility. Office boilerplate for
+some/other roles, another team or customers cannot establish this role's required
+office. A contrast introducing a requirement (“remote, but candidates must be
+based in US”) preserves it; a later exception offering Israel remains unresolved.
 
 Place knowledge comes from `scraper/geography.py`, shared with ingestion. Scope
 parsing reads adjacent place alternatives, not every city in a sentence. Country
@@ -62,22 +75,22 @@ AssessmentSheet qualifies `apply` advice for blocked and unknown locations,
 including previous archived assessments. Unknown rows remain reviewable under
 `recommended`; blocked rows are excluded. `good` continues to measure skill fit.
 
-The 21 public excerpts in `scraper/fixtures/eligibility-triage.json` now produce
-5 blocked and 16 unknown outcomes with the synthetic central-Israel profile.
-Fourteen former blocks move to unknown because they lack a mandatory requirement,
-foreign-only wording or a concrete required office. No triage case becomes
-eligible. `eligibility-adversarial.json` retains all previous 49 inputs; `sol-17`
-now blocks explicit US residence despite a Tel Aviv location, and `cursor-18`
-(`Remote US/Canada/UK`) stays unknown without explicit exclusivity.
-`eligibility-review-r2.json` covers both round-2 reviews, including central-city
-controls. Ambiguous mixed office/remote options and time-zone requirements stay
-unknown even where a reviewer expected eligible. `eligibility-fresh-r2.json`
-records 20 separately declared probes. Tests also exercise unresolved restriction
-vetoes, negations, ambiguous alternatives, country qualifiers, technical uses of
-hybrid, extraction provenance, and Israel-wide profile overrides.
+The 21 public excerpts in `scraper/fixtures/eligibility-triage.json` produce
+16 blocked and five unknown outcomes with the synthetic central-Israel profile.
+Of the 14 rows discussed in round 3, 11 have closed foreign work scopes and three
+remain ambiguous: Affirm's unnamed country of employment, a bare New York city
+label, and agency/client geography. No triage case becomes eligible.
+`eligibility-adversarial.json` retains all previous 49 inputs; the foreign remote
+field expectations and `Remote US/Canada/UK` now follow the closed-scope policy.
+The round-2 review and fresh fixtures retain their precision-first expectations.
+`eligibility-review-r3.json` adds both reviewers' probes and controls for optional
+and negated attendance, other roles, unresolved places, Israel alternatives,
+conditional country approval, authorization-only wording and nongeographic
+requirements. The full snapshot replay also checks field alternatives spanning
+semicolons, such as Israel alongside Remote - Europe.
 
-`eligibility-holdout-r2.json` adds 20 probes written after implementation. Four
-intended readings conservatively remain unknown: prefix-only residents of Ireland,
-customer residency in London, a London office separated from the hybrid wording,
-and an Israel-based remote phrase. Tests permit the intended result or unknown
-for these cases; the independent receipt reports all four as exact mismatches.
+The 20 independent holdout intentions stay unchanged. Prefix-only Ireland
+residency and weekly London attendance now block. Two intended readings remain
+conservative unknowns: client residency in London and an Israel-based remote
+phrase. Tests allow the intended result or unknown only for those two; replay
+receipts count them as exact mismatches, not passes.

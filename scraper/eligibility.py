@@ -26,7 +26,7 @@ RESIDENCE = re.compile(
     r"\b(?:(?:must|should|need to|required to)\s+(?:already\s+)?(?:be\s+)?"
     r"(?:reside|live|based|located)\s+in|(?:must|need to|required to)\s+relocate\s+to|"
     r"only\s+(?:candidates|applicants)\s+(?:based|located)\s+in|"
-    r"(?:be\s+)?based\s+in|residents?\s+of)\s+|"
+    r"(?:be\s+)?based\s+in|(?:only\s+)?residents?\s+of)\s+|"
     r"(?:חובה|נדרש)\s+(?:להתגורר|לגור)\s+ב|ל?תושבי\s+",
     re.I,
 )
@@ -40,6 +40,23 @@ ISRAEL_EXCLUDED = re.compile(
     re.I,
 )
 REMOTE = re.compile(r"\bremot(?:e|ely)\b|(?:עבודה\s+)?מרחוק", re.I)
+ATTENDANCE = re.compile(
+    r"\b(?:(?:this\s+(?:role|position|job)\s+)?requires?\s+)?"
+    r"(?:\d+|one|two|three|four|five)\s+days?\s*"
+    r"(?:/\s*week|(?:each|per|a)\s+week)\s+in\s+(?:our\s+|the\s+)?",
+    re.I,
+)
+REQUIRED_OFFICE = re.compile(
+    r"\b(?:requires?|must|need to|required to)\s+"
+    r"(?:(?:work|working|attendance|attend|be|present|physically|regularly|to)\s+)*"
+    r"(?:in|at)\s+(?:our\s+|the\s+)",
+    re.I,
+)
+OTHER_ROLES = re.compile(
+    r"\b(?:(?:some|other)\s+roles?|"
+    r"(?:the|our)\s+\w+\s+team\b)",
+    re.I,
+)
 PERMISSION = re.compile(
     r"\bopen to (?:candidates|applicants) (?:in|from)\s+|"
     r"ניתן לעבוד מכל מקום ב",
@@ -48,9 +65,10 @@ PERMISSION = re.compile(
 # A recognized rule must account for every restriction span. Unsupported grammar,
 # unknown places, citizenship, work authorization and time zones remain unknown.
 RESTRICTION = re.compile(
-    r"\b(?:must|should|need to|required|only|based in|reside|residents?|located in|live in|"
+    r"\b(?:must|should|need to|required|requires?|only|based in|reside|residents?|located in|live in|"
     r"relocate|residence|residency|not (?:open|accepting|available|eligible)|except|excluding|eligible to work|citizens?(?:hip)?|"
-    r"work authorization|time[ -]?zone)\b|"
+    r"work authorization|time[ -]?zone|attendance|attend)\b|"
+    r"\bdays?\s*(?:/\s*week|(?:each|per|a)\s+week)\b|"
     r"חובה|נדרש|להתגורר|לגור|מגורים|תושבי|רק|בלבד|למעט|פרט ל|לא\s",
     re.I,
 )
@@ -87,7 +105,7 @@ class Scope:
 def _scope(text: str, start: int) -> Scope:
     """Read adjacent places and their alternatives, never every place in a sentence."""
     prefix = re.match(
-        r"\s*[-–—:(]*\s*(?:(?:in|from|within|across)\s+)?(?:the\s+)?",
+        r"\s*[-–—:(,]*\s*(?:(?:in|from|within|across)\s+)?(?:the\s+)?",
         text[start:],
         re.I,
     )
@@ -116,10 +134,39 @@ def _scope(text: str, start: int) -> Scope:
             uncertain_alternative = bool(
                 re.search(r"\bor\b|/", separator.group(), re.I)
             )
+            if not re.match(
+                r"(?:serving|supporting|with|without|excluding|except|"
+                r"(?:and\s+)?(?:must|need|required|have|we|applicants|candidates)|"
+                r"(?:\d+|one|two|three|four|five|שלושה|ארבעה|חמישה)\s+(?:days?|ימים))\b",
+                text[next_pos:],
+                re.I,
+            ):
+                uncertain_alternative = True
             return Scope(tuple(kinds), end, not uncertain_alternative)
         pos = next_pos
         comma_qualifier = separator.group().strip() == ","
     return Scope(tuple(kinds), pos, False)
+
+
+def _closed_foreign_location(location: str) -> bool:
+    """Every field alternative must resolve before any remote option can block."""
+    for field in re.split(r"[;\n]", location):
+        field = field.strip()
+        remote = REMOTE.search(field)
+        scope = _scope(field, 0)
+        if remote and not scope.kinds:
+            if field[: remote.start()].strip():
+                return False
+            scope = _scope(field, remote.end())
+        tail = field[scope.end :]
+        if remote and scope.end <= remote.start():
+            tail = field[scope.end : remote.start()] + field[remote.end() :]
+        if not scope.complete or not scope.kinds or tail.strip(" .)-–—"):
+            return False
+        if any(kind != "foreign" for kind in scope.kinds):
+            if not (scope.kinds == ("uncertain",) and re.search(r"\bEMEA\b", field)):
+                return False
+    return True
 
 
 def _central_only(profile: Mapping[str, object]) -> bool:
@@ -199,6 +246,7 @@ def decide_location_eligibility(
                 continue
             excerpt = original.strip()[:1000]
             covered: list[tuple[int, int]] = []
+            unrelated = bool(OTHER_ROLES.search(clause))
 
             def cover(start: int, end: int) -> None:
                 covered.append((start, end))
@@ -220,10 +268,16 @@ def decide_location_eligibility(
                 cover(start, end)
                 ambiguous = bool(
                     re.search(
-                        r"\b(?:unless|if|provided|subject to|preferred|considered|optional|but|alternatively)\b",
+                        r"\b(?:unless|if|provided|subject to|preferred|considered|optional|alternatively)\b",
                         clause,
                         re.I,
                     )
+                )
+                # A contrast introducing a requirement is not an exception.
+                # A later contrast can offer another place/arrangement.
+                ambiguous |= bool(re.search(r"\bbut\b", clause[scope.end :], re.I))
+                ambiguous |= bool(
+                    re.search(r"\b(?:office|hubs?)\s+or\b", clause[scope.end :], re.I)
                 )
                 if (
                     office
@@ -251,6 +305,19 @@ def decide_location_eligibility(
 
             def is_covered(start: int) -> bool:
                 return any(left <= start < right for left, right in covered)
+
+            # All arrangement choices on this labeled line share one country.
+            modes = re.match(r"Location\s*:\s*", clause, re.I)
+            if modes and not unrelated:
+                scope = _scope(clause, modes.end())
+                if re.fullmatch(
+                    r"\s*\(Onsite\s*/\s*Hybrid\s*/\s*Remote\s*[-–—]\s*"
+                    r"Based on Client Requirement\)\s*[.]?",
+                    clause[scope.end :],
+                    re.I,
+                ):
+                    scope_rule(0, scope, mandatory=True, remote_permission=True)
+                    cover(0, len(clause))
 
             for exclusion in EXCLUSION.finditer(clause):
                 if is_covered(exclusion.start()):
@@ -283,6 +350,14 @@ def decide_location_eligibility(
                 if is_covered(requirement.start()):
                     continue
                 scope = _scope(clause, requirement.end())
+                if re.search(
+                    r"\b(?:organization|company|clients?|customers?|headquarters)\b",
+                    clause[: requirement.start()],
+                    re.I,
+                ):
+                    cover(requirement.start(), scope.end)
+                    unknown.append(excerpt)
+                    continue
                 mandatory = bool(
                     re.search(
                         r"must|need to|required to|only|חובה|נדרש|תושבי",
@@ -291,6 +366,49 @@ def decide_location_eligibility(
                     )
                 )
                 scope_rule(requirement.start(), scope, mandatory=mandatory)
+
+            for attendance in (
+                *ATTENDANCE.finditer(clause),
+                *REQUIRED_OFFICE.finditer(clause),
+            ):
+                if is_covered(attendance.start()):
+                    continue
+                scope = _scope(clause, attendance.end())
+                office_end = re.match(r"\s+office\b", clause[scope.end :], re.I)
+                if (
+                    unrelated
+                    or re.search(
+                        r"\b(?:clients?|customers?)\b",
+                        clause[: attendance.start()],
+                        re.I,
+                    )
+                    or not office_end
+                    or re.search(
+                        r"\b(?:no need|not (?:require|required|requires|mandatory|necessary)|optional|may|can)\b",
+                        clause[: attendance.end()],
+                        re.I,
+                    )
+                ):
+                    unknown.append(excerpt)
+                else:
+                    scope_rule(attendance.start(), scope, office=True, mandatory=True)
+                    cover(attendance.start(), scope.end + office_end.end())
+
+            # Unsupported attendance grammar must never let an Israel positive
+            # bypass an office requirement (including an unknown office city).
+            if (
+                re.search(r"\boffice\b", clause, re.I)
+                and re.search(
+                    r"\b(?:days?|attendance|attend|requires?|required|must)\b",
+                    clause,
+                    re.I,
+                )
+                and not any(
+                    is_covered(m.start())
+                    for m in re.finditer(r"\boffice\b", clause, re.I)
+                )
+            ):
+                unknown.append(excerpt)
 
             for office in OFFICE.finditer(clause):
                 if is_covered(office.start()):
@@ -311,7 +429,11 @@ def decide_location_eligibility(
                         r"\s*(?:full[ -]time[ ,:]*|this is a\s*)", before, re.I
                     )
                 )
-                if not role_office:
+                if (
+                    unrelated
+                    or re.search(r"\b(?:clients?|customers?)\b", before, re.I)
+                    or not role_office
+                ):
                     unknown.append(excerpt)
                     continue
                 lead = re.match(
@@ -347,7 +469,22 @@ def decide_location_eligibility(
                     re.I,
                 )
                 scope = _scope(clause, remote.end() + lead.end())
+                prefix_scope = _scope(clause, 0)
+                if (
+                    not scope.kinds
+                    and prefix_scope.end <= remote.start()
+                    and not clause[prefix_scope.end : remote.start()].strip(" -")
+                ):
+                    scope = Scope(
+                        prefix_scope.kinds, remote.end(), prefix_scope.complete
+                    )
                 if not scope.kinds:
+                    if re.match(
+                        r"\s*(?:(?:opportunity|work|role|position)\s+)?(?:in|from|within)\b",
+                        clause[remote.end() :],
+                        re.I,
+                    ):
+                        unknown.append(excerpt)
                     # Worldwide remote is also a conventional explicit permission.
                     prefix_scope = _scope(clause, 0)
                     if (
@@ -363,8 +500,80 @@ def decide_location_eligibility(
                         re.I,
                     )
                 )
+                # Closed annotations and bounded current-role remote work scopes
+                # do not need a redundant 'only'. Prose/customer geography does.
+                tail = clause[scope.end :]
+                annotation = bool(
+                    re.fullmatch(r"[\s.)]*", tail)
+                    and (
+                        re.fullmatch(
+                            r"\s*(?:Location\s*:\s*)?", clause[: remote.start()], re.I
+                        )
+                        or (
+                            is_location
+                            and prefix_scope.kinds
+                            and prefix_scope.end <= remote.start()
+                        )
+                        or clause[remote.start() - 1 : remote.start()] == "("
+                    )
+                )
+                bounded = bool(
+                    re.match(
+                        r"\s*(?:opportunity\s+)?within\s+", clause[remote.end() :], re.I
+                    )
+                )
+                # The role base and the remote opportunity corroborate each other.
+                role_base = bool(
+                    re.match(r"\s+opportunity\b", tail, re.I)
+                    and re.search(
+                        r"\b(?:engineer|developer|role|position)\b.*\bbased in\b",
+                        source,
+                        re.I,
+                    )
+                )
+                alternatives = re.search(
+                    r"from one of our\s+", clause[: remote.start()], re.I
+                )
+                enumerated = False
+                if alternatives:
+                    hubs = _scope(clause, alternatives.end())
+                    enumerated = bool(
+                        re.fullmatch(
+                            r"\s+hubs\s+or\s+", clause[hubs.end : remote.start()], re.I
+                        )
+                    )
+                    if enumerated:
+                        scope = Scope(
+                            hubs.kinds + scope.kinds,
+                            scope.end,
+                            hubs.complete and scope.complete,
+                        )
+                # Preserve unparsed alternatives and conditional country approval.
+                closed = annotation or bounded or role_base or enumerated
+                if closed and re.search(r"\bor\b|/", tail, re.I):
+                    scope = Scope(scope.kinds, scope.end, False)
+                if (
+                    annotation
+                    and is_location
+                    and re.search(r"\bEMEA\b", clause)
+                    and scope.kinds == ("uncertain",)
+                ):
+                    scope = Scope(("foreign",), scope.end, scope.complete)
+                if (
+                    is_location
+                    and closed
+                    and not _closed_foreign_location(source)
+                    and not scope.allows_israel(False, central)
+                    and "worldwide" not in scope.kinds
+                ):
+                    # An Israeli or unparsed field alternative can allow Israel.
+                    closed = False
+                    unknown.append(excerpt)
                 scope_rule(
-                    remote.start(), scope, mandatory=only, remote_permission=True
+                    remote.start(),
+                    scope,
+                    mandatory=only or (closed and not unrelated),
+                    remote_permission=True,
                 )
 
             if REMOTE.search(location + " " + clause):
@@ -408,6 +617,8 @@ def decide_location_eligibility(
                     if restriction.group().casefold() in {
                         "must",
                         "required",
+                        "require",
+                        "requires",
                         "should",
                         "only",
                         "need to",
@@ -422,6 +633,13 @@ def decide_location_eligibility(
                             clause,
                             re.I,
                         )
+                        if restriction.group().casefold() in {"require", "requires"}:
+                            has_geo_words = re.search(
+                                r"\b(?:office|attendance|remote|reside|live|located|based|"
+                                r"country|jurisdiction|relocation|work authorization)\b",
+                                clause,
+                                re.I,
+                            )
                         if not has_places and not has_geo_words:
                             continue
                     unknown.append(excerpt)

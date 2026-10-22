@@ -27,6 +27,9 @@ REVIEW_R2 = json.loads(
 FRESH_R2 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-fresh-r2.json").read_text()
 )
+REVIEW_R3 = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-review-r3.json").read_text()
+)
 
 ADVERSARIAL = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-adversarial.json").read_text()
@@ -34,7 +37,7 @@ ADVERSARIAL = json.loads(
 
 
 @pytest.mark.parametrize(
-    "case_id,location,jd,expected", ADVERSARIAL + REVIEW_R2 + FRESH_R2
+    "case_id,location,jd,expected", ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3
 )
 def test_reviewer_adversarial(case_id, location, jd, expected):
     result = decide_location_eligibility(
@@ -89,7 +92,7 @@ def test_evidence_totals():
             "eligibility"
         ]
         for _, loc, jd, _ in EVIDENCE
-    ) == {"blocked": 5, "unknown": 16}
+    ) == {"blocked": 16, "unknown": 5}
 
 
 @pytest.mark.parametrize(
@@ -286,10 +289,10 @@ def test_worldwide_needs_explicit_remote_permission(posting):
 HOLDOUT_R2 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-holdout-r2.json").read_text()
 )
-# Preserve the independent desired outcomes in the fixture. These four unsupported
+# Preserve the independent desired outcomes in the fixture. These two unsupported
 # readings may conservatively remain unknown, but must never invert to a wrong
 # confident decision. The probe receipt reports them as mismatches, not passes.
-CONSERVATIVE_HOLDOUT = {"holdout-02", "holdout-15", "holdout-17", "holdout-19"}
+CONSERVATIVE_HOLDOUT = {"holdout-15", "holdout-19"}
 
 
 @pytest.mark.parametrize("case_id,location,jd,expected", HOLDOUT_R2)
