@@ -165,3 +165,39 @@ and EEO-list/team-description controls followed by real restrictions. The round-
 rows with unresolved composite location fields move from blocked to unknown.
 Expim Haifa and Plasan Sasa retain their commute blocks. The Benin/building and Peru/Pro homographs remain
 conservative unknowns, as does the unsupported London-office attendance probe.
+
+When a posting's location resolves to Israel, its own work-model terms (hybrid,
+onsite, and unnamed weekly office attendance) can be satisfied locally only
+when the entire clause is consumed by the closed work-model vocabulary and its
+own resolved place. The own-site and own-country authorization rules use the
+same leftover check. Any extra token, including lowercase place codes or unknown
+prose after a connective, leaves an unresolved restriction. Pronoun `us` is
+consumed only in `join us` or `with us`. Foreign places and unresolved named
+offices still go through the restriction parser. A company/site description naming its own Israeli city is place evidence;
+an unfamiliar city with an explicit Israeli country suffix retains unconfirmed
+commute scope. Existing noncentral commute blocks remain in force.
+
+Own-city matching uses shared geography aliases, including TLV/Tel-Aviv-Yafo,
+Ramat-Gan and common transliteration variants. An Israel/Israeli office matches
+a positive Israeli posting location. Numbered street addresses and recognized
+local landmarks beside an explicit own-city mention do not add a workplace
+restriction. Proximity destinations must resolve to that city, a recognized
+local landmark, a transit noun phrase, or a street-type phrase; both ends of a
+“between” address must resolve to the city, a local landmark, or a street-type
+phrase. Building names require a recognized local landmark. Unrecognized names
+such as Heathrow stay unresolved, including lowercase proximity destinations.
+Address parsing preserves other cities and independent
+attendance, residency or credential requirements. A named office with a numbered
+address repeating the same city can resolve as that city's office. An office
+environment or attendance in the office without a place slot is satisfied locally;
+mixed workplace lists and unresolved cities remain unknown.
+
+The bounded requirement to have legal authorization in the country where the
+position is based is satisfied when that country resolves to Israel, including
+the supported Hebrew equivalent. Separate citizenship and clearance requirements
+remain unresolved. Composite Israeli/foreign fields cannot supply this assumption.
+
+`python -m scripts.replay_own_office --plan PATH --snapshot PATH --out PATH`
+replays the local P8E decision dump, frozen 658-row snapshot and retained probes
+offline against a chosen baseline. The dump contains saved reason excerpts, so
+its replay does not substitute for a full-JD production dry run.

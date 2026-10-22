@@ -33,8 +33,10 @@ def test_cloud_insert_is_gated_before_board_and_poll_reads(db, title, filtered, 
     receipt = write(db, observation(title, jd))
     [pid] = receipt['inserted_posting_ids']
     assert receipt['observed_posting_ids'] == [pid]
+    rule = 'jd-quality-missing-body' if jd is None else 'leadership-title-strict' if filtered else None
+    filtered = rule is not None
     assert db.execute('select relevance_filtered,relevance_gate from postings where id=%s',
-                      (pid,)).fetchone() == (filtered, dict(version=VERSION, rule='leadership-title-strict' if filtered else None))
+                      (pid,)).fetchone() == (filtered, dict(version=VERSION, rule=rule))
     for view in ['all', 'new-for-me', 'seen', 'not-scored']:
         visible = filtered if view == 'not-scored' else not filtered and view != 'seen'
         assert bool(db.execute('select id from board_postings(filter=>%s)', (view,)).fetchall()) == visible

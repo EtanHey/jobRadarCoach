@@ -186,6 +186,12 @@ def test_non_source_remote_quote_still_fails_closed() -> None:
         core.extract_posting(posting(), {}, runner=runner_for(candidate))
 
 
+def test_hybrid_policy_in_another_paragraph_overrides_remote_quote():
+    raw_jd = RAW_JD + "\nWe require three days a week in the office and two days at home."
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(facts()))
+    assert result["facts"]["remote"] == {"value": None, "evidence_quote": None}
+
+
 def test_prompt_injection_cannot_expand_the_output_contract() -> None:
     injected = facts()
     injected["title"] = "changed"
