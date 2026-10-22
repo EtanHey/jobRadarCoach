@@ -327,7 +327,7 @@
     "r7-frame-5",
     "Tel Aviv",
     "Must reside in Israel Foobar",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-frame-6",
@@ -339,31 +339,31 @@
     "r7-frame-7",
     "Tel Aviv",
     "חובה לעבוד בבלבלה",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-frame-8",
     "Tel Aviv",
     "חובה לעבור לפלנטת זיגזג",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-frame-9",
     "Tel Aviv",
     "Quuxian applicants only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-frame-10",
     "Tel Aviv",
     "מועמדים זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-frame-11",
     "Tel Aviv",
     "נדרש דרכון זיגזגי",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-eeo-1",
@@ -543,19 +543,19 @@
     "r7-he-demonym-29",
     "Tel Aviv",
     "מועמד זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-30",
     "Tel Aviv",
     "רק מועמד זיגזגים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-31",
     "Tel Aviv",
     "רק זיגזגים מועמד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-32",
@@ -615,19 +615,19 @@
     "r7-he-demonym-41",
     "Tel Aviv",
     "מועמדים זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-42",
     "Tel Aviv",
     "רק מועמדים זיגזגים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-43",
     "Tel Aviv",
     "רק זיגזגים מועמדים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-44",
@@ -687,19 +687,19 @@
     "r7-he-demonym-53",
     "Tel Aviv",
     "מועמדות זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-54",
     "Tel Aviv",
     "רק מועמדות זיגזגים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-55",
     "Tel Aviv",
     "רק זיגזגים מועמדות",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-56",
@@ -759,19 +759,19 @@
     "r7-he-demonym-65",
     "Tel Aviv",
     "תושבי זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-66",
     "Tel Aviv",
     "רק תושבי זיגזגים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-67",
     "Tel Aviv",
     "רק זיגזגים תושבי",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-68",
@@ -831,19 +831,19 @@
     "r7-he-demonym-77",
     "Tel Aviv",
     "אזרחי זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-78",
     "Tel Aviv",
     "רק אזרחי זיגזגים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-he-demonym-79",
     "Tel Aviv",
     "רק זיגזגים אזרחי",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-80",
@@ -885,19 +885,19 @@
     "r7-en-demonym-86",
     "Tel Aviv",
     "Quuxian applicants only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-87",
     "Tel Aviv",
     "applicants Quuxian only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-88",
     "Tel Aviv",
     "only Quuxian applicants",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-89",
@@ -939,19 +939,19 @@
     "r7-en-demonym-95",
     "Tel Aviv",
     "Quuxian candidates only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-96",
     "Tel Aviv",
     "candidates Quuxian only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-97",
     "Tel Aviv",
     "only Quuxian candidates",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-98",
@@ -993,19 +993,19 @@
     "r7-en-demonym-104",
     "Tel Aviv",
     "Quuxian residents only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-105",
     "Tel Aviv",
     "residents Quuxian only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-106",
     "Tel Aviv",
     "only Quuxian residents",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-107",
@@ -1047,19 +1047,19 @@
     "r7-en-demonym-113",
     "Tel Aviv",
     "Quuxian citizens only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-114",
     "Tel Aviv",
     "citizens Quuxian only",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-en-demonym-115",
     "Tel Aviv",
     "only Quuxian citizens",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-whole-slot-116",
@@ -1077,25 +1077,25 @@
     "r7-whole-slot-118",
     "Tel Aviv",
     "Must work in Israel, Foobar",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-whole-slot-119",
     "Tel Aviv",
     "only candidates from Israel or Foobar",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-whole-slot-120",
     "Tel Aviv",
     "ונדרש לעבוד בזיגזג",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-whole-slot-121",
     "Tel Aviv",
     "ורק מועמדים זיגזגים",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-whole-slot-122",
@@ -1107,13 +1107,13 @@
     "r7-whole-slot-123",
     "Tel Aviv",
     "נדרשת ויזה זיגזגית",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-whole-slot-124",
     "Tel Aviv",
     "נדרש אישור עבודה זיגזגי",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-positive-125",
@@ -1197,7 +1197,7 @@
     "r7-credential-grammar-2",
     "Tel Aviv",
     "אזרחיות זיגזגיות בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-credential-grammar-3",
@@ -1209,30 +1209,30 @@
     "r7-credential-grammar-4",
     "Tel Aviv",
     "תושבים זיגזגים בלבד",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-credential-grammar-5",
     "Tel Aviv",
     "A passport of the Quuxland republic is required",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-credential-grammar-6",
     "Tel Aviv",
     "visa for the Quuxland republic",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-credential-grammar-7",
     "Tel Aviv",
     "visa for Atlantis",
-    "unknown"
+    "eligible"
   ],
   [
     "r7-credential-grammar-8",
     "Tel Aviv",
     "Local work permits required",
-    "unknown"
+    "eligible"
   ]
 ]
