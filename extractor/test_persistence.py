@@ -474,6 +474,17 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
 @pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
 @pytest.mark.parametrize(("condition", "expected"), [
     ("Interviews are fully in-person.", "remote"),
+    ("Onboarding requires three days a week in the office.", "remote"),
+    ("Training is full-time in office.", "remote"),
+    ("Onboarding is hybrid work.", "remote"),
+    ("Training requires five days a week in the office.", "remote"),
+    ("The first two weeks are on-site for onboarding.", "remote"),
+    ("Training is in-office.", "remote"),
+    ("Work model: hybrid or fully remote.", None),
+    ("This role offers hybrid work or remote work.", None),
+    ("Hybrid or fully remote.", None),
+    ("Remote or hybrid.", None),
+    ("Flexible: on-site, hybrid or remote.", None),
     ("We require three days in the office for onboarding.", "remote"),
     ("We require five office days per quarter.", "remote"),
     ("This role offers remote or hybrid work arrangements.", None),

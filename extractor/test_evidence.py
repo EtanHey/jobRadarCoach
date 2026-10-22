@@ -364,3 +364,72 @@ def test_unresolved_work_arrangements_abstain(condition):
     evidence = attendance_evidence(condition)
     assert evidence == ("unknown", condition.rstrip("."))
     assert derive_remote_fact("remote", condition)["value"] is None
+
+
+@pytest.mark.parametrize("condition", [
+    "Onboarding requires three days a week in the office.",
+    "Training is full-time in office.",
+    "Onboarding is hybrid work.",
+    "Training requires five days a week in the office.",
+    "The first two weeks are on-site for onboarding.",
+    "Training is in-office.",
+    "Interviews require three days a week in the office.",
+    "Events require full-time in office participation.",
+])
+def test_bounded_activity_subject_does_not_set_permanent_mode(condition):
+    from extractor.evidence import attendance_evidence
+
+    raw_jd = "This role is fully remote. " + condition
+    assert attendance_evidence(raw_jd) is None
+    assert derive_remote_fact("This role is fully remote", raw_jd)["value"] is True
+
+
+@pytest.mark.parametrize("condition", [
+    "Work model: hybrid or fully remote.",
+    "This role offers hybrid work or remote work.",
+    "Hybrid or fully remote.",
+    "You may work hybrid or fully remote.",
+    "Remote or hybrid.",
+    "Flexible: on-site, hybrid or remote.",
+    "Work model: fully remote or hybrid work.",
+    "Work model: hybrid work arrangements or fully remote work.",
+])
+def test_arrangement_choices_abstain_without_a_policy_frame(condition):
+    from extractor.evidence import attendance_evidence
+
+    assert attendance_evidence(condition) == ("unknown", condition.rstrip("."))
+    assert derive_remote_fact("remote", condition)["value"] is None
+
+
+@pytest.mark.parametrize("separator", [". ", ", but "])
+@pytest.mark.parametrize(("required", "expected"), [
+    ("this role requires three days a week in office", "hybrid"),
+    ("this role requires five days a week in office", "on-site"),
+])
+def test_required_role_schedule_resolves_arrangement_choices(separator, required, expected):
+    from extractor.evidence import attendance_evidence
+
+    raw_jd = "Work model options: hybrid or fully remote" + separator + required + "."
+    assert attendance_evidence(raw_jd)[0] == expected
+
+
+@pytest.mark.parametrize("heading", ["Benefits", "Perks", "Perks and benefits"])
+def test_benefit_office_choices_do_not_override_explicit_role_policy(heading):
+    from extractor.evidence import attendance_evidence
+
+    raw_jd = ("This role is fully remote. " + heading + ": "
+              "We have offices for hybrid/on-site work preferences.")
+    assert attendance_evidence(raw_jd) is None
+    assert derive_remote_fact("This role is fully remote", raw_jd)["value"] is True
+
+
+@pytest.mark.parametrize("condition", [
+    "This role is hybrid, training is in person.",
+    "Training is in person, this role is hybrid.",
+    "This role requires five days a week in office, training is in person.",
+])
+def test_separate_training_clause_preserves_ongoing_role_policy(condition):
+    from extractor.evidence import attendance_evidence
+
+    expected = "on-site" if "five days" in condition else "hybrid"
+    assert attendance_evidence(condition)[0] == expected

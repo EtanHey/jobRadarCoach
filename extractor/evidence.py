@@ -52,9 +52,20 @@ _LIMITED_SCHEDULE_RE = re.compile(
     r"\bfor\s+(?:the\s+)?\w+ing\b",
     re.IGNORECASE,
 )
+_ACTIVITY_SCHEDULE_RE = re.compile(
+    r"\b(?:onboarding|training|interviews?|events?)"
+    r"(?:\s+(?:week|period|schedule))?\s*(?::|"
+    r"\b(?:is|are|requires?|involves?|takes?|will\s+(?:be|require))\b)",
+    re.IGNORECASE,
+)
 _MODE = r"(?:remote|hybrid|on[ -]?site)"
+# Keep the gap to arrangement vocabulary so technical uses of "hybrid" do not
+# create alternatives. Lists also need detection without a work-policy heading.
+_MODE_PHRASE = rf"{_MODE}(?:\s+(?:work(?:ing)?|arrangements?|options?|roles?|positions?))*"
+_MODE_CHOICES = rf"\b{_MODE_PHRASE}\s*(?:/|,\s*(?:or\s+)?|or\s+)\s*(?:fully\s+)?{_MODE}\b"
+_MODE_CHOICES_RE = re.compile(_MODE_CHOICES, re.IGNORECASE)
 _UNRESOLVED_MODE_RE = re.compile(
-    rf"\b{_MODE}\s*(?:/|or)\s*{_MODE}\b|"
+    rf"{_MODE_CHOICES}|"
     r"\b(?:depending\s+on|based\s+on)\b|\bprefer(?:red|ence)\b",
     re.IGNORECASE,
 )
@@ -64,7 +75,10 @@ _CONTRAST_RE = re.compile(r"\b(?:but|however|whereas)\b", re.IGNORECASE)
 def attendance_evidence(raw_jd: str) -> tuple[str, str] | None:
     """Resolve ongoing attendance; unknown explicitly clears an unresolved mode."""
     unresolved = None
-    for mode, pattern in (("on-site", _FULL_OFFICE_RE), ("hybrid", _HYBRID_POLICY_RE)):
+    for mode, pattern in (
+        ("on-site", _FULL_OFFICE_RE), ("hybrid", _HYBRID_POLICY_RE),
+        ("unknown", _MODE_CHOICES_RE),
+    ):
         for match in pattern.finditer(raw_jd):
             start = max(raw_jd.rfind(boundary, 0, match.start()) for boundary in ".!?;\n") + 1
             ends = [position for boundary in ".!?;\n"
@@ -74,11 +88,18 @@ def attendance_evidence(raw_jd: str) -> tuple[str, str] | None:
             after = _CONTRAST_RE.split(raw_jd[match.end():end])[0]
             clause = before + match.group() + after
             if (_OTHER_ROLE_SCOPE_RE.search(clause) or _LIMITED_SCHEDULE_RE.search(clause)
+                    or _ACTIVITY_SCHEDULE_RE.search(before.rsplit(",", 1)[-1])
                     or re.match(r"\s+(?:for|during)\b", after, re.I)):
                 continue
-            if _OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
+            if mode != "unknown" and (_OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
                 r"\s+(?:(?:is|are)\s+)?(?:optional|not\s+required)\b", after, re.I,
-            ):
+            )):
+                continue
+            # Office locations for a work preference are an amenity, not a
+            # choice of arrangements for the role.
+            if mode == "unknown" and re.search(
+                r"\boffice(?:s|\s+locations)\s+for\s*$", before, re.I,
+            ) and re.match(r"\s+work\s+preferences?\b", after, re.I):
                 continue
             if _UNRESOLVED_MODE_RE.search(clause):
                 unresolved = ("unknown", clause.strip())
