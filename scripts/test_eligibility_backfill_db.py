@@ -92,3 +92,65 @@ def test_real_batches_preserve_scores_and_are_idempotent():
         if os.environ.get('JOBRADAR_REQUIRE_PG17') == '1':
             pytest.fail('Required disposable PostgreSQL unavailable')
         pytest.skip('Disposable PostgreSQL unavailable')
+
+
+def test_recompute_unknown_real_sql_guards_and_idempotency():
+    if not os.environ.get('DATABASE_URL'):
+        if os.environ.get('JOBRADAR_REQUIRE_PG17') == '1':
+            pytest.fail('CI requires DATABASE_URL')
+        pytest.skip('No explicit disposable DATABASE_URL; no local Docker probe')
+    try:
+        with migrated_database(Path(__file__).parents[1] / 'supabase/migrations', through=37) as url:
+            with psycopg.connect(url, autocommit=True, row_factory=dict_row) as connection:
+                snapshot, _, fingerprint = profile_inputs()
+                connection.execute('delete from profile')
+                for field, value in snapshot.items():
+                    if field not in {'people', 'connectors'}:
+                        connection.execute('insert into profile(field,value) values (%s,%s::jsonb)', (field, json.dumps(value)))
+                for value, location, profile in [
+                    ('unknown', 'Tel Aviv', fingerprint), ('unknown', 'Remote', fingerprint),
+                    ('eligible', 'Remote', fingerprint), ('blocked', 'Tel Aviv', fingerprint),
+                    ('unknown', 'Tel Aviv', 'b'*64), (None, 'Tel Aviv', fingerprint),
+                ]:
+                    posting_id = uuid4()
+                    connection.execute(
+                        "insert into postings(id,source,external_id,url,title,company,location,raw_jd) "
+                        "values (%s,'fixture',%s,'https://example.test','Engineer','Example',%s,'Israeli work permit required')",
+                        (posting_id, str(posting_id), location))
+                    payload = structured_annotation(str(posting_id))
+                    payload['luna_status'] = 'ok'
+                    if value is not None:
+                        payload.update(eligibility=value, eligibility_reason='old')
+                    connection.execute(
+                        "insert into posting_scores(posting_id,score,reasons,labels,brain,model,scorer_version,"
+                        "posting_sha256,profile_sha256,history_sha256,score_payload) "
+                        "values (%s,%s,%s::jsonb,%s::jsonb,'fixture','fixture','1.1',%s,%s,%s,%s::jsonb)",
+                        (posting_id, payload['fit_score'], json.dumps(payload['reasons']),
+                         json.dumps(_labels(payload, {'title': 'Engineer'})), 'a'*64, profile, 'c'*64, json.dumps(payload)))
+
+                def state():
+                    return {r['posting_id']: r for r in connection.execute('select * from posting_scores')}
+
+                before = state()
+                preview = backfill.backfill_connection(connection, recompute_unknown=True, batch_size=1)
+                assert preview['planned'] == 2 and preview['applied'] == 0 and state() == before
+                receipt = backfill.backfill_connection(connection, apply=True, recompute_unknown=True, batch_size=1)
+                assert receipt['applied'] == 2
+                after = state()
+                for key, old in before.items():
+                    new = after[key]
+                    if old['profile_sha256'] != fingerprint or old['score_payload'].get('eligibility') != 'unknown':
+                        assert new == old
+                    else:
+                        assert {k: v for k, v in new.items() if k != 'score_payload'} == {k: v for k, v in old.items() if k != 'score_payload'}
+                        strip = lambda payload: {k: v for k, v in payload.items() if k not in {'eligibility', 'eligibility_reason'}}
+                        assert strip(new['score_payload']) == strip(old['score_payload'])
+                assert backfill.backfill_connection(connection, apply=True, recompute_unknown=True)['applied'] == 0
+                assert state() == after
+                key = next(k for k, r in after.items() if r['score_payload'].get('eligibility') == 'blocked')
+                assert backfill.apply_rows(connection, [(dict(id=key), {'eligibility': 'eligible', 'eligibility_reason': 'stale'})], fingerprint, recompute_unknown=True) == 0
+                assert state() == after
+    except DatabaseUnavailable:
+        if os.environ.get('JOBRADAR_REQUIRE_PG17') == '1':
+            pytest.fail('Required disposable PostgreSQL unavailable')
+        pytest.skip('Disposable PostgreSQL unavailable')

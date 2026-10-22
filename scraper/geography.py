@@ -747,6 +747,23 @@ def match_geographic_place(text: str, start: int = 0) -> tuple[str, int] | None:
     return _PLACE_KINDS[name], end
 
 
+# Additional description signals do not change structured-field scope parsing.
+_DESCRIPTION_PLACES = re.compile(
+    r"(?:Warsaw|ורשה|וורשה|Berlin|ברלין|Munich|München|מינכן|Paris|פריז|"
+    r"Lyon|Lisbon|Dublin|Zurich|San Diego|Rio de Janeiro|São Paulo|"
+    r"California|DACH|LATAM|New South Wales|ניו יורק(?: סיטי)?|מרכז אמריקה|דרום אמריקה|מזרח הרחוק|"
+    + "|".join(re.escape(name) for name in sorted(US_STATE_IDENTIFIERS, key=len, reverse=True) if len(name) > 3)
+    + r")(?!\w)", re.I,
+)
+
+
+def match_description_place(text: str, start: int = 0) -> tuple[str, int] | None:
+    """Use the shared place vocabulary plus description-only foreign aliases."""
+    if match := _DESCRIPTION_PLACES.match(text, start):
+        return "foreign", match.end()
+    return match_geographic_place(text, start)
+
+
 def has_geographic_context(text: str) -> bool:
     """Prose needs geographic meaning; ISO codes alone can be technical acronyms."""
     if re.search(
