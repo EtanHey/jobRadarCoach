@@ -165,3 +165,14 @@ and EEO-list/team-description controls followed by real restrictions. The round-
 rows with unresolved composite location fields move from blocked to unknown.
 Expim Haifa and Plasan Sasa retain their commute blocks. The Benin/building and Peru/Pro homographs remain
 conservative unknowns, as does the unsupported London-office attendance probe.
+
+P8C extends the same unresolved-slot method to role-limited/restricted wording,
+place-based applicants without exclusivity, Hebrew intended-applicant wording,
+and labeled eligible-country lists. These frames veto an unqualified pass when
+the slot cannot resolve as Israeli. They do not infer a foreign country from a
+demonym. Country-first `US residents only` uses the existing residence policy,
+including the Israeli/unresolved-header downgrade. Bullet-separated ATS location
+alternatives retain every field; recognized US city/state pairs use the shared
+city and state tables. Unknown alternatives prevent a closed foreign scope.
+Run `PYTHONPATH=. python scripts/eligibility_p8c_dryrun.py <snapshot.jsonl>` for
+the frozen offline comparison, including every decision and reason change.

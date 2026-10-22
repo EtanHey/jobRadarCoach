@@ -6,6 +6,8 @@ import re
 from typing import Literal, TypedDict
 
 from scraper.geography import (
+    COUNTRY_CITY_ALIASES,
+    US_STATE_IDENTIFIERS,
     _normalized_location,
     has_geographic_context,
     match_geographic_place,
@@ -141,12 +143,28 @@ APPLICANT_FRAMES = tuple(
         rf"(?<!\w)(?:only|[והש]*רק)\s+{APPLICANT}\s+(?P<slot>{SLOT})(?=$|[.!?]|\s+(?:may|can|are eligible|רשאים)\b)",
         rf"(?<!\w)(?:only|[והש]*רק)\s+(?P<slot>{SLOT})\s+{APPLICANT}(?!\w)",
         rf"(?<!\w)(?P<slot>[\w׳״'-]+(?:\s+[\w׳״'-]+)*)\s+{APPLICANT}\s+(?:only\b|בלבד(?!\w))",
+        rf"(?<!\w)(?P<slot>[\w׳״'-]+(?:\s+[\w׳״'-]+)*)[- ]based\s+{APPLICANT}(?!\w)",
+        rf"(?<!\w)(?:דרושים|דרושות)\s+{APPLICANT}\s+(?P<slot>{SLOT})(?=$|[.!?])",
     )
 )
 LOCATION_FRAME = re.compile(
     r"(?<!\w)(?:(?:must|required to)\s+(?:live|reside|relocate|work)\s+(?:in|to)\s+|"
     r"[והש]*(?:חובה|נדרש(?:ת|ים|ות)?)\s+(?:לגור|להתגורר|לעבור|לעבוד|רילוקיישן)\s+(?:רק\s+)?[בל])"
     rf"(?P<slot>{SLOT})(?=$|[.!?])",
+    re.I,
+)
+ROLE_SCOPE_FRAMES = tuple(
+    re.compile(pattern, re.I)
+    for pattern in (
+        rf"\b(?:(?:this|the)\s+)?(?:role|position|job|hiring)\s+(?:is\s+)?"
+        rf"(?:limited|restricted)\s+to\s+(?P<slot>{SLOT})(?=$|[.!?])",
+        rf"(?<!\w)(?:המשרה|התפקיד)\s+מיועד(?:ת)?\s+ל(?P<slot>{SLOT})(?=$|[.!?])",
+        rf"\b(?:eligible\s+(?:countries|work locations)|location eligibility)\s*:\s*"
+        rf"(?P<slot>{SLOT})(?=$|[.!?])",
+    )
+)
+COUNTRY_FIRST_RESIDENCE = re.compile(
+    rf"(?:^|[,+:])\s*(?:remote\s*[,+:]?\s*)?(?P<slot>{SLOT})\s+residents?\s+only\b",
     re.I,
 )
 CREDENTIAL = re.compile(
@@ -251,6 +269,12 @@ def _is_israeli_slot(slot: str) -> bool:
         and all(kind in {"israel", "noncentral"} for kind in scope.kinds)
         and not slot[scope.end :].strip(" .)")
     )
+
+
+def _is_israeli_role_slot(slot: str) -> bool:
+    slot = re.sub(rf"^{APPLICANT}\s+", "", slot, flags=re.I)
+    slot = re.sub(rf"\s+{APPLICANT}$", "", slot, flags=re.I)
+    return _is_israeli_slot(slot)
 
 
 def _clauses(source: str) -> Iterator[str]:
@@ -358,10 +382,30 @@ def _scope(text: str, start: int) -> Scope:
     return Scope(tuple(kinds), pos, False)
 
 
+def _normalize_location_field(location: str) -> str:
+    """Keep bullet alternatives; resolve city/state pairs using shared tables."""
+    if "•" not in location:
+        return normalize_israeli_location(location)
+    fields = []
+    us_cities = {
+        _normalized_location(city) for city in COUNTRY_CITY_ALIASES["united states"]
+    }
+    for field in location.split("•"):
+        parts = [part.strip() for part in field.split(",")]
+        if (
+            len(parts) == 2
+            and _normalized_location(parts[0]) in us_cities
+            and _normalized_location(parts[1]) in US_STATE_IDENTIFIERS
+        ):
+            field = "United States"
+        fields.append(normalize_israeli_location(field.strip()))
+    return ", ".join(fields)
+
+
 def _closed_foreign_location(location: str) -> bool:
     """Every field alternative must resolve before any remote option can block."""
     for field in re.split(r"[;\n]", location):
-        field = field.strip()
+        field = _normalize_location_field(field)
         remote = REMOTE.search(field)
         scope = _scope(field, 0)
         if remote and not scope.kinds:
@@ -433,7 +477,7 @@ def decide_location_eligibility(
     unknown: list[str] = []
     blocked: list[str] = []
     israel_excluded: list[str] = []
-    normalized_field = normalize_israeli_location(location)
+    normalized_field = _normalize_location_field(location)
     field_scope = _scope(normalized_field, 0)
     field_israeli = field_scope.complete and any(
         kind in {"israel", "noncentral"} for kind in field_scope.kinds
@@ -475,7 +519,7 @@ def decide_location_eligibility(
                 continue
             excerpt = original.strip()[:1000]
             if is_location:
-                clause = normalize_israeli_location(clause)
+                clause = _normalize_location_field(clause)
             else:
                 clause = _without_policy(clause)
             covered: list[tuple[int, int]] = []
@@ -620,6 +664,19 @@ def decide_location_eligibility(
                     )
                 )
                 scope_rule(requirement.start(), scope, mandatory=mandatory)
+
+            for residence in COUNTRY_FIRST_RESIDENCE.finditer(clause):
+                slot = residence["slot"]
+                scope = _scope(slot, 0)
+                scope_rule(
+                    residence.start(),
+                    Scope(
+                        scope.kinds,
+                        residence.end(),
+                        scope.complete and not slot[scope.end :].strip(),
+                    ),
+                    mandatory=True,
+                )
 
             for attendance in (
                 *ATTENDANCE.finditer(clause),
@@ -867,6 +924,13 @@ def decide_location_eligibility(
                         cover(frame.start(), frame.end())
                     else:
                         unknown.append(excerpt)
+            for pattern in ROLE_SCOPE_FRAMES:
+                for frame in pattern.finditer(clause):
+                    if not is_covered(frame.start(), frame.end()):
+                        if _is_israeli_role_slot(frame["slot"]):
+                            cover(frame.start(), frame.end())
+                        else:
+                            unknown.append(excerpt)
             for pattern in APPLICANT_FRAMES:
                 for frame in pattern.finditer(clause):
                     if not is_covered(frame.start(), frame.end()):
