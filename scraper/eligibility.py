@@ -5,7 +5,12 @@ from dataclasses import dataclass
 import re
 from typing import Literal, TypedDict
 
-from scraper.geography import _normalized_location, match_geographic_place
+from scraper.geography import (
+    _normalized_location,
+    has_geographic_context,
+    match_geographic_place,
+    normalize_israeli_location,
+)
 
 
 class Eligibility(TypedDict):
@@ -18,7 +23,8 @@ CENTRAL = re.compile(
     r"\b(?:central|cent(?:er|re)(?: of (?:the country|israel))?|gush dan)\b|מרכז", re.I
 )
 OFFICE = re.compile(
-    r"\b(?:on[ -]?site|office[ -]based|hybrid)(?!\s+(?:cloud|mobile|apps|infrastructure)\b)\b|"
+    r"\b(?:on[ -]?site|office[ -]based|hybrid)(?![ /-]+(?:cloud|mobile|apps|infrastructure|"
+    r"edge|environments?|SSR|multi[ -]region|data|networks?|funds|retrieval|Mamba)\b)\b|"
     r"היברידי(?:ת)?|(?:עבודה|המשרה)\s+במשרד",
     re.I,
 )
@@ -69,7 +75,7 @@ RESTRICTION = re.compile(
     r"relocate|residence|residency|not (?:open|accepting|available|eligible)|except|excluding|eligible to work|citizens?(?:hip)?|"
     r"work authorization|time[ -]?zone|attendance|attend)\b|"
     r"\bdays?\s*(?:/\s*week|(?:each|per|a)\s+week)\b|"
-    r"חובה|נדרש|להתגורר|לגור|מגורים|תושבי|רק|בלבד|למעט|פרט ל|לא\s",
+    r"(?<!\w)(?:חובה|נדרש(?:ת|ים|ות)?|להתגורר|לגור|מגורים|תושבי\w*|רק|בלבד|למעט|פרט ל|לא)(?!\w)",
     re.I,
 )
 NEGATION = re.compile(
@@ -77,6 +83,59 @@ NEGATION = re.compile(
     r"\bnot\s+(?:remote|on[ -]?site|office[ -]based|hybrid)\b",
     re.I,
 )
+NON_LOCATION_POLICY = re.compile(
+    r"\b(?:accommodations?|equal (?:employment )?opportunit\w*|"
+    r"without regard to|regardless of|protected (?:personal )?characteristics|"
+    r"privacy (?:act|policy)|GDPR|salary range|annual (?:base )?salary|"
+    r"benefits (?:program|in this paragraph)|(?:office|on[ -]?site) perks|"
+    r"on[ -]?site (?:courses|wellness|caf[ée])|dual citizens|"
+    r"recruiters (?:correspond|only contact)|legitimate communication|"
+    r"employment decisions|notify all applicants of their rights)\b",
+    re.I,
+)
+
+
+def _non_location_policy(clause: str) -> bool:
+    # A policy paragraph can also contain a real role requirement. Never erase
+    # that requirement merely because accommodations or benefits are mentioned.
+    return bool(NON_LOCATION_POLICY.search(clause)) and not (
+        RESIDENCE.search(clause)
+        or ATTENDANCE.search(clause)
+        or REQUIRED_OFFICE.search(clause)
+        or ISRAEL_EXCLUDED.search(clause)
+        or any(
+            _scope(clause, exclusion.end()).kinds or REMOTE.search(clause)
+            for exclusion in EXCLUSION.finditer(clause)
+        )
+        or (
+            re.search(
+                r"(?<!\w)(?:חובה|נדרש(?:ת|ים|ות)?|מגורים|תושבי\w*|רק)(?!\w)", clause
+            )
+            and has_geographic_context(clause)
+        )
+        or any(
+            has_geographic_context(clause[requirement.end() :])
+            for requirement in re.finditer(
+                r"\b(?:must|required|need to)\b", clause, re.I
+            )
+        )
+        or (
+            OFFICE.search(clause)
+            and not re.search(r"\b(?:perks|courses|wellness|caf[ée])\b", clause, re.I)
+        )
+        or re.search(
+            r"\b(?:must|required|requires?|only|need to)\b.*"
+            r"\b(?:remote|reside|relocate|office|citizens?(?:hip)?|work authorization|time[ -]?zone)\b",
+            clause,
+            re.I,
+        )
+        or re.search(
+            r"\b(?:citizens?(?:hip)?|work authorization|passport)\b.{0,40}"
+            r"\b(?:required|only|mandatory)\b",
+            clause,
+            re.I,
+        )
+    )
 
 
 @dataclass(frozen=True)
@@ -245,6 +304,10 @@ def decide_location_eligibility(
             if not clause:
                 continue
             excerpt = original.strip()[:1000]
+            if is_location:
+                clause = normalize_israeli_location(clause)
+            elif _non_location_policy(clause):
+                continue
             covered: list[tuple[int, int]] = []
             unrelated = bool(OTHER_ROLES.search(clause))
 
@@ -306,6 +369,9 @@ def decide_location_eligibility(
             def is_covered(start: int) -> bool:
                 return any(left <= start < right for left, right in covered)
 
+            for technical in re.finditer(r"\bdata residency\b", clause, re.I):
+                cover(technical.start(), technical.end())
+
             # All arrangement choices on this labeled line share one country.
             modes = re.match(r"Location\s*:\s*", clause, re.I)
             if modes and not unrelated:
@@ -323,6 +389,8 @@ def decide_location_eligibility(
                 if is_covered(exclusion.start()):
                     continue
                 scope = _scope(clause, exclusion.end())
+                if not scope.kinds and not has_geographic_context(clause):
+                    continue
                 cover(exclusion.start(), scope.end)
                 role_exclusion = bool(
                     REMOTE.search(clause)
@@ -614,35 +682,8 @@ def decide_location_eligibility(
 
             for restriction in RESTRICTION.finditer(clause):
                 if not is_covered(restriction.start()):
-                    if restriction.group().casefold() in {
-                        "must",
-                        "required",
-                        "require",
-                        "requires",
-                        "should",
-                        "only",
-                        "need to",
-                        "רק",
-                    }:
-                        has_places = any(
-                            match_geographic_place(clause, word.start())
-                            for word in re.finditer(r"\b\w", clause)
-                        )
-                        has_geo_words = re.search(
-                            r"\b(?:in|from|within|remote|reside|residents?|live|located|based|citizens?|hours|work|candidates|applicants|time[ -]?zone)\b|מגורים|תושבי|להתגורר|לגור|מרחוק|בישראל",
-                            clause,
-                            re.I,
-                        )
-                        if restriction.group().casefold() in {"require", "requires"}:
-                            has_geo_words = re.search(
-                                r"\b(?:office|attendance|remote|reside|live|located|based|"
-                                r"country|jurisdiction|relocation|work authorization)\b",
-                                clause,
-                                re.I,
-                            )
-                        if not has_places and not has_geo_words:
-                            continue
-                    unknown.append(excerpt)
+                    if has_geographic_context(clause):
+                        unknown.append(excerpt)
     if blocked:
         return {
             "eligibility": "blocked",

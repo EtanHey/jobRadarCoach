@@ -12,7 +12,14 @@ restrictions. Every remaining restriction span vetoes a pass and is quoted in th
 unknown reason, even when the location field says Israel or remote worldwide.
 Unrecognized residency, citizenship, work authorization, time-zone, English and
 Hebrew restriction wording stays unknown. Ordinary skill requirements such as
-“Python and SQL required” are not geographic restrictions.
+“Python and SQL required”, “Candidates must have 5+ years in React” and “What we
+need to see: B.SC.” are not geographic restrictions. Generic requirement words
+need genuine geography in the same clause. Prepositions, candidate nouns,
+pronoun “us” and technical country-code lookalikes such as AI/ML do not supply
+that evidence. Hiring policy, accommodations and technical hybrid/data-residency
+language do not veto a pass; a real requirement in the same paragraph still does.
+Hebrew restriction words use word boundaries, so אלגוריתמיקה and פריימוורקים do
+not accidentally become residence or exclusivity requirements.
 
 A block needs explicit evidence: a closed foreign-only applicant or role work
 scope, mandatory foreign residence/relocation, an explicit Israel exclusion, or a
@@ -46,6 +53,12 @@ London, Austin and Toronto use the same shared city table as other ingestion
 consumers. Inclusive lists can name Israel first or last. Excluding another
 country from worldwide remote does not exclude Israel.
 
+Compatible Israeli ATS city/district/country qualifiers are normalized by the
+shared geography module before parsing (for example, “Tel Aviv-Yafo, Tel Aviv
+District, Israel” and “Raanana, Center District, Israel”). Complete “2 Locations,
+Israel” fields are country-scoped. Unknown cities, conflicting foreign places
+and noncentral office evidence are not discarded by normalization.
+
 The central-region bar is a named-place rule, not a radius: the profile must
 mention central/center/centre, Gush Dan or מרכז in its location or allowed
 geographies, without a whole-country Israel/ישראל geography. Required offices in
@@ -71,9 +84,14 @@ the SQL `recommended` filter before its limit. Neither adds a column or rewrites
 historical scores. Previously scored rows without eligibility show location
 unknown until rescored; this change does not schedule a backfill.
 
-AssessmentSheet qualifies `apply` advice for blocked and unknown locations,
-including previous archived assessments. Unknown rows remain reviewable under
-`recommended`; blocked rows are excluded. `good` continues to measure skill fit.
+AssessmentSheet qualifies blocked `apply` advice and shows “location unclear”
+with the quote for `unknown` reasons beginning `unresolved location restriction:`.
+An `unknown` reason beginning `Israel/remote-from-Israel scope is unconfirmed:`
+shows plain apply advice. The enum remains `eligible|blocked|unknown`; these
+prefixes are the presentation contract for current and archived assessments.
+Unrecognized reasons and legacy missing eligibility retain a conservative warning.
+Both unknown kinds remain reviewable under `recommended`, like eligible rows;
+blocked rows are excluded. `good` continues to measure skill fit.
 
 The 21 public excerpts in `scraper/fixtures/eligibility-triage.json` produce
 16 blocked and five unknown outcomes with the synthetic central-Israel profile.
@@ -88,6 +106,9 @@ and negated attendance, other roles, unresolved places, Israel alternatives,
 conditional country approval, authorization-only wording and nongeographic
 requirements. The full snapshot replay also checks field alternatives spanning
 semicolons, such as Israel alongside Remote - Europe.
+`eligibility-review-r4.json` adds all supplemental reviewer probes, generic and
+technical wording, Hebrew boundaries, policy/requirement mixtures, qualified ATS
+locations and their conflicting/unknown-place controls.
 
 The 20 independent holdout intentions stay unchanged. Prefix-only Ireland
 residency and weekly London attendance now block. Two intended readings remain

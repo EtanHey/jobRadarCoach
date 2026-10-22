@@ -1,0 +1,296 @@
+[
+  [
+    "r4-generic-in",
+    "Tel Aviv",
+    "Candidates must have 5+ years in React.",
+    "eligible"
+  ],
+  [
+    "r4-generic-candidates",
+    "Tel Aviv",
+    "Only the best candidates work here.",
+    "eligible"
+  ],
+  [
+    "r4-ai-country",
+    "Tel Aviv",
+    "AI applications require a high-performance network to support them.",
+    "eligible"
+  ],
+  [
+    "r4-degree-country",
+    "Tel Aviv",
+    "What we need to see: B.SC./ M.SC.",
+    "eligible"
+  ],
+  [
+    "r4-plain-skills",
+    "Tel Aviv",
+    "Python and SQL required.",
+    "eligible"
+  ],
+  [
+    "r4-qualified-israel",
+    "Ramat Gan, Tel Aviv District, Israel",
+    "",
+    "eligible"
+  ],
+  [
+    "r4-tel-aviv-district",
+    "Tel Aviv-Yafo, Tel Aviv District, Israel",
+    "",
+    "eligible"
+  ],
+  [
+    "r4-authorization",
+    "Tel Aviv",
+    "US work authorization required.",
+    "unknown"
+  ],
+  [
+    "r4-other-team",
+    "Tel Aviv",
+    "This engineering role is hybrid in Tel Aviv. Some roles in our GTM team are currently being hired for in-person hybrid work in Toronto and Austin.",
+    "unknown"
+  ],
+  [
+    "r4-but-mandatory",
+    "Tel Aviv",
+    "Remote, but candidates must be based in United States.",
+    "blocked"
+  ],
+  [
+    "r4-but-israel-alternative",
+    "Tel Aviv",
+    "Candidates must be based in United States but applicants in Israel can work remotely.",
+    "unknown"
+  ],
+  [
+    "r4-cursor-must",
+    "Tel Aviv",
+    "Must have 5+ years in React",
+    "eligible"
+  ],
+  [
+    "r4-cursor-required",
+    "Tel Aviv",
+    "Required skills in Python",
+    "eligible"
+  ],
+  [
+    "r4-cursor-only",
+    "Tel Aviv",
+    "We only hire the best candidates",
+    "eligible"
+  ],
+  [
+    "r4-ai-skill",
+    "Tel Aviv",
+    "Candidates must have experience in AI/ML technologies",
+    "eligible"
+  ],
+  [
+    "r4-hebrew-algorithm",
+    "Tel Aviv",
+    "התפקיד כולל פיתוח תוכנה ואלגוריתמיקה",
+    "eligible"
+  ],
+  [
+    "r4-hebrew-framework",
+    "Tel Aviv",
+    "נדרש ניסיון בפריימוורקים של סוכנים",
+    "eligible"
+  ],
+  [
+    "r4-hebrew-residence",
+    "Tel Aviv",
+    "מגורים במדינה מאושרת חובה",
+    "unknown"
+  ],
+  [
+    "r4-technical-hybrid",
+    "Tel Aviv",
+    "Build hybrid infrastructure",
+    "eligible"
+  ],
+  [
+    "r4-technical-hybrid-edge",
+    "Tel Aviv",
+    "This role develops a hybrid edge system",
+    "eligible"
+  ],
+  [
+    "r4-technical-hybrid-retrieval",
+    "Tel Aviv",
+    "Experience with hybrid retrieval and ranking required",
+    "eligible"
+  ],
+  [
+    "r4-technical-residency",
+    "Tel Aviv",
+    "Review data residency and retention requirements",
+    "eligible"
+  ],
+  [
+    "r4-technical-live",
+    "Tel Aviv",
+    "An agent is already live in front of real customers",
+    "eligible"
+  ],
+  [
+    "r4-pronoun-us",
+    "Tel Aviv",
+    "Please let us know what you need to succeed",
+    "eligible"
+  ],
+  [
+    "r4-accommodation",
+    "Tel Aviv",
+    "If you have a disability or special need that requires accommodation, please let us know",
+    "eligible"
+  ],
+  [
+    "r4-eeo",
+    "Tel Aviv",
+    "All qualified applicants are considered without regard to citizenship or national origin",
+    "eligible"
+  ],
+  [
+    "r4-privacy",
+    "Tel Aviv",
+    "If you are located within the EEA and subject to GDPR, click here",
+    "eligible"
+  ],
+  [
+    "r4-salary",
+    "Tel Aviv",
+    "The salary range is only applicable to U.S.-based candidates",
+    "eligible"
+  ],
+  [
+    "r4-technical-attend",
+    "Tel Aviv",
+    "Lead and attend cross-functional meetings",
+    "eligible"
+  ],
+  [
+    "r4-benefits",
+    "Tel Aviv",
+    "Our benefits program includes on-site wellness centers",
+    "eligible"
+  ],
+  [
+    "r4-mixed-policy",
+    "Tel Aviv",
+    "We offer accommodation but candidates must reside in Canada",
+    "blocked"
+  ],
+  [
+    "r4-mixed-timezone",
+    "Tel Aviv",
+    "We offer accommodation but must work EST hours",
+    "unknown"
+  ],
+  [
+    "r4-mixed-hybrid",
+    "Tel Aviv",
+    "Please contact us to request accommodation #LI-Hybrid",
+    "unknown"
+  ],
+  [
+    "r4-district-central",
+    "Raanana, Center District, Israel",
+    "",
+    "eligible"
+  ],
+  [
+    "r4-district-only",
+    "Tel Aviv District, Israel",
+    "",
+    "eligible"
+  ],
+  [
+    "r4-locations-count",
+    "2 Locations, Israel",
+    "",
+    "eligible"
+  ],
+  [
+    "r4-israel-first",
+    "Israel, Raanana, Israel",
+    "",
+    "eligible"
+  ],
+  [
+    "r4-foreign-alternative",
+    "Tel Aviv-Yafo, Tel Aviv District, Israel; Remote - Europe",
+    "",
+    "unknown"
+  ],
+  [
+    "r4-foreign-conflict",
+    "Tel Aviv District, United States",
+    "",
+    "unknown"
+  ],
+  [
+    "r4-unknown-city",
+    "Unknownville, Center District, Israel",
+    "",
+    "unknown"
+  ],
+  [
+    "r4-noncentral-district",
+    "Haifa, Haifa District, Israel",
+    "",
+    "unknown"
+  ],
+  [
+    "r4-no-evidence",
+    "Remote",
+    "Candidates must have 5+ years in React",
+    "unknown"
+  ],
+  [
+    "r4-mixed-citizenship",
+    "Tel Aviv",
+    "We are an equal opportunity employer but US citizenship required",
+    "unknown"
+  ],
+  [
+    "r4-mixed-only-citizens",
+    "Tel Aviv",
+    "We offer accommodation but only US citizens may apply",
+    "unknown"
+  ],
+  [
+    "r4-mixed-required-foreign-work",
+    "Tel Aviv",
+    "We offer accommodation but candidates are required to work from Toronto",
+    "unknown"
+  ],
+  [
+    "r4-hebrew-feminine",
+    "Tel Aviv",
+    "נדרשת עבודה באזור זמן מאושר",
+    "unknown"
+  ],
+  [
+    "r4-mixed-exclusion",
+    "Tel Aviv",
+    "We are an equal opportunity employer, except applicants from Israel",
+    "blocked"
+  ],
+  [
+    "r4-mixed-hebrew",
+    "Tel Aviv",
+    "We offer accommodation. חובה לעבוד באזור זמן מאושר",
+    "unknown"
+  ],
+  [
+    "r4-mixed-unknown-exception",
+    "Tel Aviv",
+    "We offer accommodation, remote worldwide except candidates holding a restricted passport",
+    "unknown"
+  ]
+]

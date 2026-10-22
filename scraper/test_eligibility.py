@@ -30,6 +30,9 @@ FRESH_R2 = json.loads(
 REVIEW_R3 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-review-r3.json").read_text()
 )
+REVIEW_R4 = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-review-r4.json").read_text()
+)
 
 ADVERSARIAL = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-adversarial.json").read_text()
@@ -37,13 +40,45 @@ ADVERSARIAL = json.loads(
 
 
 @pytest.mark.parametrize(
-    "case_id,location,jd,expected", ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3
+    "case_id,location,jd,expected",
+    ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3 + REVIEW_R4,
 )
 def test_reviewer_adversarial(case_id, location, jd, expected):
     result = decide_location_eligibility(
         {"location": location, "raw_jd": jd}, None, PROFILE
     )
     assert result["eligibility"] == expected, case_id
+
+
+@pytest.mark.parametrize("office", [False, True])
+def test_district_qualifier_preserves_noncentral_office_policy(office):
+    result = decide_location_eligibility(
+        {
+            "location": "Haifa, Haifa District, Israel",
+            "work_mode": "hybrid" if office else None,
+        },
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == ("blocked" if office else "unknown")
+
+
+def test_unknown_reason_separates_missing_evidence_from_restriction():
+    for jd, prefix in [
+        (
+            "Candidates must know React",
+            "Israel/remote-from-Israel scope is unconfirmed:",
+        ),
+        (
+            "Candidates must live in an approved jurisdiction",
+            "unresolved location restriction:",
+        ),
+    ]:
+        result = decide_location_eligibility(
+            {"location": "Remote", "raw_jd": jd}, None, PROFILE
+        )
+        assert result["eligibility"] == "unknown"
+        assert result["eligibility_reason"].startswith(prefix)
 
 
 @pytest.mark.parametrize("city", ["Haifa", "Yokneam", "Jerusalem"])

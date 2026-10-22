@@ -10,10 +10,13 @@ export function AssessmentSheet({job}: {job: JobDetail}) {
   const recommendation = previous ? job.score_payload?.recommendation : job.recommendation;
   const eligibility = job.eligibility ?? job.score_payload?.eligibility;
   const eligibilityReason = job.eligibility_reason ?? job.score_payload?.eligibility_reason ?? "location eligibility has not been assessed";
-  const advice = recommendation === "apply" && eligibility !== "eligible"
+  const noLocationEvidence = eligibility === "unknown" && eligibilityReason.startsWith("Israel/remote-from-Israel scope is unconfirmed:");
+  const advice = recommendation === "apply" && eligibility !== "eligible" && !noLocationEvidence
     ? eligibility === "blocked"
       ? `Apply — location blocked: ${eligibilityReason}`
-      : `Apply — location unknown: check ${eligibilityReason}`
+      : eligibilityReason.startsWith("unresolved location restriction:")
+        ? `Apply — location unclear: ${eligibilityReason.slice("unresolved location restriction:".length).trim()}`
+        : `Apply — location unknown: check ${eligibilityReason}`
     : `Recommendation: ${recommendation}`;
   return <Sheet><SheetTrigger render={<Button size="sm" variant="secondary" />} aria-label={score === null ? "Open AI assessment: not scored" : `Open ${previous ? "previous " : ""}AI assessment: fit score ${score} out of 100`}>
     {score === null ? "Not scored" : `${previous ? "Previous: " : ""}${score}/100`}

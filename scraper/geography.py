@@ -34,6 +34,13 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "Rishon",
         "Rishon LeZion",
         "Rishon Le Zion",
+        "Ramat HaSharon",
+        "Lod",
+        "Rosh HaAyin",
+        "Nes Ziona",
+        "Bnei Brak",
+        "Yehud Monosson",
+        "Beer Yaakov",
         "Be'er Sheva",
         "Yokneam",
         "תל אביב",
@@ -468,6 +475,57 @@ def match_geographic_place(text: str, start: int = 0) -> tuple[str, int] | None:
     if name in {"u s", "u s a"} and text[end : end + 1] == ".":
         end += 1
     return _PLACE_KINDS[name], end
+
+
+def has_geographic_context(text: str) -> bool:
+    """Prose needs geographic meaning; ISO codes alone can be technical acronyms."""
+    if re.search(
+        r"\b(?:remote|reside|residents?|residence|residency|relocat\w*|"
+        r"located (?:in|within)|based (?:in|worldwide)|office|on[ -]?site|citizens?(?:hip)?|passport|"
+        r"work authorization|eligible to work|time[ -]?zone|country|countries|"
+        r"jurisdiction|location|(?:candidates?|applicants?) (?:in|from))\b|"
+        r"(?<!\w)(?:מגורים|תושבי\w*|להתגורר|לגור|מרחוק|בישראל|"
+        r"[במ]?מדינ\w*|[במ]?אזור זמן)(?!\w)",
+        text,
+        re.I,
+    ):
+        return True
+    for word in re.finditer(r"\b\w", text):
+        place = match_geographic_place(text, word.start())
+        if not place:
+            continue
+        if place[0] == "worldwide":
+            continue
+        name = _normalized_location(text[word.start() : place[1]])
+        if name in {"ai", "ml", "sc", "it", "ci", "cd"}:
+            continue
+        if len(name) > 3 or place[0] == "uncertain":
+            return True
+        # 'AI', 'SC', 'IT', and pronoun 'us' are not place evidence in prose.
+        if re.search(
+            r"\b(?:in|from|within|across|to)\s+(?:the\s+)?$", text[: word.start()], re.I
+        ):
+            if name != "us" or text[word.start() : place[1]].isupper():
+                return True
+    return False
+
+
+def normalize_israeli_location(text: str) -> str:
+    """Consume known ATS district qualifiers without discarding other places."""
+    text = re.sub(r"^\d+\s+Locations?,\s*(Israel)\s*$", r"\1", text, flags=re.I)
+    text = re.sub(r"\band across Israel\b", "and Israel", text, flags=re.I)
+    text = re.sub(r"\b(Gush Dan|Tel Aviv)\s+Area\b", r"\1", text, flags=re.I)
+    return re.sub(
+        r"\b(Tel Aviv|Center|Central|Haifa|Jerusalem|North|South)\s+District\b",
+        lambda m: {
+            "center": "Central Israel",
+            "central": "Central Israel",
+            "north": "northern Israel",
+            "south": "southern Israel",
+        }.get(m[1].casefold(), m[1]),
+        text,
+        flags=re.I,
+    )
 
 
 def _city_matches_country(raw_location: object, country: str) -> bool:
