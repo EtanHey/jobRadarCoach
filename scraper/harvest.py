@@ -29,10 +29,12 @@ try:
     from scraper.geography import (  # noqa: E402
         _city_matches_country, _contains_normalized_phrase, _normalized_location,
     )
+    from scraper.years import blocking_hebrew_years, normalize_english_years  # noqa: E402
 except ModuleNotFoundError:
     from geography import (  # noqa: E402
         _city_matches_country, _contains_normalized_phrase, _normalized_location,
     )
+    from years import blocking_hebrew_years, normalize_english_years  # noqa: E402
 
 
 ANNOTATION_BUDGET_SECONDS = 300.0
@@ -106,7 +108,7 @@ NEGATIVE_RULES: tuple[tuple[str, re.Pattern[str], int, str], ...] = (
 )
 YEARS_REQUIREMENT_PATTERN = re.compile(
     r"\b(?:(?:minimum(?:\s+of)?|at\s+least)\s+)?"
-    r"(?P<minimum>\d{1,2})\s*(?:\+|\s*(?:[-–—]|to)\s*\d{1,2}|\s+or\s+more)?\s+years?\b",
+    r"(?P<minimum>\d{1,2})\s*(?:\+|\s*(?:[-–—]|to)\s*\d{1,2}|\s+or\s+more)?\s+(?:overall\s+)?years?\b",
     re.I,
 )
 YEAR_EXPERIENCE_PATTERN = re.compile(
@@ -688,6 +690,9 @@ def _has_blocking_years_requirement(text: str) -> bool:
     """
 
     text = re.sub(r"[*_`]", "", text)
+    text = normalize_english_years(text)
+    if blocking_hebrew_years(text):
+        return True
     for match in YEARS_REQUIREMENT_PATTERN.finditer(text):
         if int(match.group("minimum")) < 7:
             continue

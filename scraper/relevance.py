@@ -1,8 +1,12 @@
 """Fixed, cheap JD rules calibrated against owner Pursue labels. No model I/O."""
 import json
 import re
+try:
+    from scraper.years import blocking_hebrew_years, normalize_english_years
+except ModuleNotFoundError:
+    from years import blocking_hebrew_years, normalize_english_years
 
-VERSION = '2026-10-11-v7'
+VERSION = '2026-10-22-v8'
 PURSUIT_STATUSES = frozenset({
     'worth_checking', 'applied', 'screen', 'interview_technical',
     'interview_final', 'offer', 'contract', 'rejected',
@@ -54,7 +58,10 @@ def gate_rule(title: str, jd: str) -> str | None:
     if matches(r'(?:\bjava\b|\bangular\b|c\+\+|c#|\.net\b)\s+(?:software\s+)?(?:developer|engineer)\b|\b(?:developer|engineer)\s*[-–(]\s*(?:java\b|angular\b|c\+\+|c#|\.net\b)', title):
         return 'incompatible-stack-title'
     # Profile-role removal and Data-family rules remain OFF pending rulings #2/#3.
+    if blocking_hebrew_years(text):
+        return 'years-minimum-7-strict'
     for clause in (c.strip() for c in re.split(CLAUSE_BOUNDARY, text)):
+        clause = normalize_english_years(clause)
         if matches(OPTIONAL + '|' + NEGATED_REQUIREMENT, clause):
             continue
         if matches(r'\bequity[ -]only\b', clause) and not matches(r'\bnot\s+(?:(?:an?|purely|solely)\s+)?equity[ -]only\b', clause):

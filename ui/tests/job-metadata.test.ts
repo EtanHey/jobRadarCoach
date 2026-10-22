@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { experiencePhrase, postingUrl, technologyMentions, titleSeniority } from "../lib/job-metadata";
+import yearsCases from "./fixtures/years-extraction.json";
+
+test("English and Hebrew required experience stays quoted and precision-first", () => {
+  for (const [description, expected] of yearsCases) {
+    const actual = experiencePhrase(description);
+    assert.equal(actual, expected, description ?? "null");
+    if (actual) assert.ok(description?.includes(actual), "evidence must be an exact source quote");
+  }
+});
 
 test("Workable export URLs become a human page without changing other hosts", () => {
   assert.equal(postingUrl("https://apply.workable.com/example/jobs/view/ABC123.md"), "https://apply.workable.com/example/j/ABC123/");

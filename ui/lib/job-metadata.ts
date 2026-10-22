@@ -1,3 +1,5 @@
+import patterns from "./experience-patterns.json";
+
 /** Workable's Markdown export is ingestion data, not a human-facing job page. */
 export function postingUrl(value: string): string {
   const url = new URL(value);
@@ -22,9 +24,15 @@ export function titleSeniority(title: string): string | null {
 /** Quote only an explicit years-of-experience phrase, never infer it from level. */
 export function experiencePhrase(description: string | null): string | null {
   if (!description) return null;
-  const phrase = /\b(?:(?:at least|minimum(?:[ \t]+of)?|over|around)[ \t]+)?\d{1,2}(?:[ \t]*[-–—][ \t]*\d{1,2})?\+?[ \t]+years?\b(?:(?:[ \t]+of)?(?:[ \t]+(?:[a-z][\w+/-]*,?|\/)){0,7}?[ \t]+experience\b|[ \t]+(?:in|with)[ \t]+[a-z][\w+/-]*(?:[ \t]+[a-z][\w+/-]*){0,2}|(?:[ \t]+of)?[ \t]+(?:(?:professional|hands-on)[ \t]+){0,2}(?:(?:backend|frontend|full[- ]stack|software|platform|infrastructure|devops|data|hardware)[ \t]+)?(?:engineering|development)\b|[ \t]+(?:developing|building|working|operating|maintaining|leading|managing|designing)\b)/gi;
+  const number = patterns.number;
+  const lead = `(?<![A-Za-z0-9_.])(?:(?:at least|minimum(?:[ \\t]+of)?|over|around)[ \\t]+)?${number}(?:[ \\t]*(?:[-–—]|to)[ \\t]*${number})?\\+?(?:[ \\t]+or more)?[ \\t]+(?:overall[ \\t]+)?years?\\b`;
+  const phrase = new RegExp(patterns.englishTail.map(tail => lead + tail).concat(patterns.hebrew).join("|"), "gi");
   for (const match of description.matchAll(phrase)) {
     const index = match.index;
+    const tokens = [...match[0].matchAll(new RegExp(`(?<![A-Za-z0-9_])${number}(?![A-Za-z0-9_])`, "gi"))];
+    const wordNumber = tokens.some(token => /^[a-z]/i.test(token[0]));
+    const amounts = tokens.map(amount => /^\d+$/.test(amount[0]) ? Number(amount[0]) : patterns.words.indexOf(amount[0].toLowerCase()));
+    if (amounts.length > 1 && amounts[1] < amounts[0]) continue;
     const quoted = match[0]
       .replace(/^minimum(?:\s+of)?\s+/i, "")
       .replace(/\s+(?:with|and|in|who|that)$/i, "")
@@ -32,26 +40,33 @@ export function experiencePhrase(description: string | null): string | null {
     const boundary = Math.max(description.lastIndexOf(".", index - 1), description.lastIndexOf("!", index - 1), description.lastIndexOf("?", index - 1), description.lastIndexOf("\n", index - 1));
     const context = description.slice(boundary + 1, index).trim();
     const nearContext = context.slice(-180);
-    const headings = description.slice(0, index).matchAll(/^[ \t]*(?:#{1,6}[ \t]+([^\n]+)|([^\n]{1,48}))[ \t]*:?[ \t]*$/gm);
+    const headings = description.slice(0, index).matchAll(new RegExp(patterns.headings, "gmi"));
     let section: "applicant" | "optional" | "other" = "other";
     for (const heading of headings) {
-      const text = (heading[1] ?? heading[2]).replace(/[:#*]+$/, "").trim();
-      if (/^(?:preferred(?: qualifications?)?|nice to have|bonus|advantages?)$/i.test(text)) section = "optional";
-      else if (/^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your experience|skills?\s*(?:&|and)\s*experience|who (?:you are|are you)|all about you|what we value)$/i.test(text)) section = "applicant";
-      else if (/^(?:about(?: the)? company|about us|company|responsibilities|what you(?:'|’)ll do|the role|benefits|what we offer|compensation)$/i.test(text)) section = "other";
+      const text = (heading[1] ?? heading[2] ?? heading[3]).replace(/[:#*]+$/, "").replace(/^[^A-Za-zא-ת]+/, "").trim();
+      if (new RegExp(patterns.optionalHeading, "i").test(text)) section = "optional";
+      else if (new RegExp(patterns.requiredHeading, "i").test(text)) section = "applicant";
+      else if (new RegExp(patterns.otherHeading, "i").test(text)) section = "other";
     }
-    const suffix = description.slice(index + match[0].length).split(/[.!?\n]/, 1)[0];
-    const negative = /\b(?:no|not|without|ideally|preferably|wish|would|nice to have)\b/i.test(nearContext);
+    const remainder = description.slice(index + match[0].length);
+    const suffix = remainder.split(/[.!?\n;]/, 1)[0];
+    const continuation = remainder.match(/^[^\n]*\n[ \t]+(?:or|או)(?=\s)[^\n]*/)?.[0] ?? "";
+    const hebrew = /[א-ת]/.test(match[0]);
+    if (new RegExp(patterns.reject, "i").test(`${nearContext} ${hebrew ? "" : match[0]} ${suffix} ${continuation}`)) continue;
+    if (new RegExp(`(?<![A-Za-z0-9_])(?:${number})[ -]*$`, "i").test(nearContext)) continue;
+    if (hebrew && !new RegExp(patterns.hebrewPrefix).test(nearContext)) continue;
     const optional = section === "optional" || /^\s*(?:[,;:–—-]\s*)?(?:is\s+)?(?:not required|not necessary|optional|nice to have|a plus|preferred)\b/i.test(suffix);
-    const company = /\b(?:our|the|this)\s+(?:company|firm|business)\b[^.!?\n]{0,100}$/i.test(nearContext)
+    const company = (/\b(?:has|have)\s*$/i.test(nearContext) && !/\b(?:you|must)\s+have\s*$/i.test(nearContext))
+      || /\b(?:our|the|this)\s+(?:company|firm|business)\b[^.!?\n]{0,100}$/i.test(nearContext)
       || /\bour team\s+(?:has|combines|brings|boasts|offers)\b[^.!?\n]{0,80}$/i.test(nearContext)
       || /\bwe(?:'ve| have| bring| offer| boast)\b[^.!?\n]{0,80}$/i.test(nearContext)
       || /^\s*(?:serving (?:customers|clients)|in business|as a company)\b/i.test(suffix);
     const required = section === "applicant"
       || /\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your experience|what you bring|what you(?:'|’)ll need)\b/i.test(nearContext)
       || /^(?:at least|minimum)\b/i.test(match[0])
-      || /\b(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|product|sre)\b/i.test(`${match[0]} ${suffix.slice(0, 80)}`);
-    if (!negative && !optional && !company && required) return quoted;
+      || (hebrew && (/^(?:לפחות|ניסיון של לפחות|נסיון של לפחות)/.test(match[0]) || /נדרש|דרישות/.test(nearContext)))
+      || (!wordNumber && /\b(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|product|sre)\b/i.test(`${match[0]} ${suffix.slice(0, 80)}`));
+    if (!optional && !company && required) return quoted;
   }
   return null;
 }
