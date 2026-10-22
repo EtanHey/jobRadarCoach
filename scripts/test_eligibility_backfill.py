@@ -31,6 +31,10 @@ def score_row(**changes):
     ('Remote', True, 'remote', 'Build React products.', None),
     ('Haifa', False, 'hybrid', '', None),
     ('Haifa', True, 'remote', '', None),
+    ('Tel Aviv', True, 'hybrid', 'Flexible hybrid work model', None),
+    ('Tel Aviv', None, None,
+     'Applicants must have the legal right to work in the country where the position is based, '
+     'without the need for visa sponsorship', None),
     (None, None, None, 'Remote from Israel', {'facts': {
         'location': {'value': 'Israel', 'evidence_quote': 'Remote from Israel'}}}),
 ])
