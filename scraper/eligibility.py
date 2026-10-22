@@ -808,13 +808,16 @@ def _applicant_scope_slot(frame: re.Match) -> str:
     slot = frame["slot"]
     if not re.match(r"[- ]based\b", frame.string[frame.end("slot"):], re.I):
         return slot
-    # Remove only a bounded recruiting head, never words preceding a recognized
-    # place: an unfamiliar first operand still belongs to the destination list.
+    # Normalize outer recruiting/modality/only grammar before qualifications.
+    # Never scan for a recognized place: unfamiliar operands belong to the slot.
     slot = re.sub(
         r"^(?:we\s+(?:only\s+)?(?:welcome|seek|accept|(?:are\s+)?"
         r"(?:seeking|hiring|recruiting|looking\s+for))\s+|"
         r"(?:(?:this|the)\s+)?(?:role|position|job|hiring)\s+(?:is\s+)?"
-        r"(?:limited|restricted)\s+to\s+|open\s+to\s+)",
+        r"(?:limited|restricted)\s+to\s+|open\s+to\s+)?"
+        r"(?:only\s+)?"
+        rf"(?:{APPLICANT}\s+(?:must|should|need\s+to|are\s+required\s+to)\s+be\s+)?"
+        r"(?:only\s+)?",
         "", slot, count=1, flags=re.I,
     )
     # Recruiting copy can place a short qualification or an application noun
@@ -826,11 +829,7 @@ def _applicant_scope_slot(frame: re.Match) -> str:
         r"^(?:(?:experienced|qualified|senior|junior|entry[- ]level)\s+)+",
         "", slot, count=1, flags=re.I,
     )
-    slot = re.sub(
-        rf"^{APPLICANT}\s+(?:must|should|need\s+to|are\s+required\s+to)\s+be\s+",
-        "", slot, count=1, flags=re.I,
-    )
-    return re.sub(r"^only\s+", "", slot, count=1, flags=re.I)
+    return slot
 
 
 def _is_israeli_slot(slot: str) -> bool:
