@@ -177,66 +177,74 @@ def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
 def run_cycle(connection, *, max_items: int, timeout_seconds: float,
               lease_seconds: int, worker_id: str,
               embeddings_enabled: bool = True) -> int:
-    attempted = failed = completed = 0
+    attempted = failed = completed = deferred = 0
     visited = set()
     timeouts_by_phase = {"version_probe": 0, "inference": 0}
 
     def observe(event):
         phase = event.get("phase")
-        if event.get("category") == "timeout" and phase in timeouts_by_phase:
+        # Count terminal provider timeouts, excluding replayed probe failures.
+        if event.get("category") == "timeout" and not event.get("cached") and phase in timeouts_by_phase:
             timeouts_by_phase[phase] += 1
     if not embeddings_enabled:
         _log(event="embedding", outcome="skipped_remote_db")
     stage_offset = 0
-    while attempted < max_items:
-        claimed = None
-        for offset in range(len(STAGES)):
-            stage = STAGES[(stage_offset + offset) % len(STAGES)]
-            for posting_id in _candidate_ids(connection, stage):
-                if (stage, posting_id) in visited:
-                    continue
-                attempt = claim(connection, stage, posting_id, worker_id, lease_seconds)
-                if attempt is not None:
-                    claimed = stage, posting_id, attempt
-                    stage_offset = (STAGES.index(stage) + 1) % len(STAGES)
+    fatal = {}
+    try:
+        while attempted < max_items:
+            claimed = None
+            for offset in range(len(STAGES)):
+                stage = STAGES[(stage_offset + offset) % len(STAGES)]
+                for posting_id in _candidate_ids(connection, stage):
+                    if (stage, posting_id) in visited:
+                        continue
+                    attempt = claim(connection, stage, posting_id, worker_id, lease_seconds)
+                    if attempt is not None:
+                        claimed = stage, posting_id, attempt
+                        stage_offset = (STAGES.index(stage) + 1) % len(STAGES)
+                        break
+                if claimed:
                     break
-            if claimed:
+            if claimed is None:
                 break
-        if claimed is None:
-            break
-        stage, posting_id, attempt = claimed
-        visited.add((stage, posting_id))
-        attempted += 1
-        _log(event="claimed", stage=stage, posting_id=posting_id, attempt=attempt)
-        try:
-            with provider_diagnostic_scope(observe):
-                exit_code = _run_stage(
-                    connection, stage, posting_id, timeout_seconds,
-                    embeddings_enabled=embeddings_enabled,
-                )
-        except Exception as error:
-            exit_code = 1
-            failure = _safe_failure(error)
-        else:
-            failure = "BatchFailed"
-        if exit_code == 0:
-            if complete(connection, stage, posting_id, worker_id):
-                completed += 1
-                _log(event="completed", stage=stage, posting_id=posting_id)
+            stage, posting_id, attempt = claimed
+            visited.add((stage, posting_id))
+            attempted += 1
+            _log(event="claimed", stage=stage, posting_id=posting_id, attempt=attempt)
+            try:
+                with provider_diagnostic_scope(observe):
+                    exit_code = _run_stage(
+                        connection, stage, posting_id, timeout_seconds,
+                        embeddings_enabled=embeddings_enabled,
+                    )
+            except Exception as error:
+                exit_code = 1
+                failure = _safe_failure(error)
+            else:
+                failure = "BatchFailed"
+            if exit_code == 0:
+                if complete(connection, stage, posting_id, worker_id):
+                    completed += 1
+                    _log(event="completed", stage=stage, posting_id=posting_id)
+                else:
+                    failed += 1
+                    deferred += 1
+                    _log(event="deferred", stage=stage, posting_id=posting_id,
+                         failure="LeaseLost")
             else:
                 failed += 1
-                _log(event="deferred", stage=stage, posting_id=posting_id,
-                     failure="LeaseLost")
-        else:
-            failed += 1
-            if not defer(connection, stage, posting_id, worker_id, failure):
-                failure = "LeaseLost"
-            _log(event="deferred", stage=stage, posting_id=posting_id, failure=failure)
-    if embeddings_enabled:
-        _run_embedding_scan(connection, max_items)
+                if not defer(connection, stage, posting_id, worker_id, failure):
+                    failure = "LeaseLost"
+                deferred += 1
+                _log(event="deferred", stage=stage, posting_id=posting_id, failure=failure)
+        if embeddings_enabled:
+            _run_embedding_scan(connection, max_items)
+    except Exception as error:
+        failed += 1
+        fatal = {"failure": _safe_failure(error)}
     _summary(attempted=attempted, failed=failed,
              distinct_items=len({posting_id for _stage, posting_id in visited}),
-             completed=completed, deferred=failed, timeouts_by_phase=timeouts_by_phase)
+             completed=completed, deferred=deferred, timeouts_by_phase=timeouts_by_phase, **fatal)
     return 1 if failed else 0
 
 

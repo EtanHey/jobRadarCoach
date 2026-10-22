@@ -16,6 +16,20 @@ Full prompts, schema, profile, credentials, argv, paths, HTTP bodies and excepti
 messages are excluded. Unrecognized model strings appear as `configured`.
 Request results, isolation, model policy and process-group cleanup remain intact.
 
+Codex timeout receipts add `phase` (`version_probe` or `inference`),
+`phase_timeout_seconds`, and `phase_elapsed_ms`. Local-analysis cycles cache version
+verification by binary path, inode, mtime and size, with one deadline-bounded retry
+on probe timeout. Cached failures have `cached=true` and zero phase budget/elapsed;
+they do not represent another process launch. Each new cycle verifies again.
+
+Cycle summaries retain `attempted` and `failed`, adding `distinct_items` (posting
+IDs across stages), `completed`, `deferred`, `timeouts_by_phase`, and `status`
+(`idle`, `succeeded`, `partial`, `failed`). Timeout counts describe terminal provider
+request timeouts, excluding cached failures and probe retries that recover. Fatal
+errors preserve prior progress. Any failure still makes the worker exit 1; the
+supervisor continues to classify that exit as failed. A `(stage, posting_id)` can
+be claimed once per cycle and remains subject to existing backoff in later cycles.
+
 `scripts/install-local-analysis.sh` runs a read-only preflight before the existing
 operator-local wheel installer. It prints the target source pin, selected binary
 version and newest executable release in `~/.codex/packages/standalone/releases`.

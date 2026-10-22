@@ -154,8 +154,14 @@ def _verify_cycle_codex(codex, verifier, *, cwd, env, deadline):
         key = (str(Path(codex).resolve()), stat.st_dev, stat.st_ino,
                stat.st_mtime_ns, stat.st_size, id(verifier))
         if key in cache:
-            if cache[key] is not None:
-                raise cache[key]
+            error = cache[key]
+            if isinstance(error, BrainTransportError):
+                raise BrainTransportError(
+                    str(error), category=error.category, phase=error.phase,
+                    phase_timeout_seconds=0, phase_elapsed_ms=0, cached=True,
+                ) from None
+            if error is not None:
+                raise error
             return
     try:
         for attempt in range(2):
@@ -175,6 +181,9 @@ def _verify_cycle_codex(codex, verifier, *, cwd, env, deadline):
             except RuntimeError as error:
                 raise BrainConfigurationError("Codex runtime is unavailable or unsupported",
                                               category="unsupported_runtime") from error
+            except OSError as error:
+                raise BrainTransportError("Codex version probe failed",
+                                          category="launch_error") from error
     except BrainError as error:
         if cache is not None:
             cache[key] = error
@@ -202,6 +211,8 @@ def run_brain(request, profile_snapshot=None, *, env=None, opener=urlopen,
         category = error.category if isinstance(error.category, str) and error.category in _TRANSPORT_CATEGORIES else "transport_error"
         exit_code = error.exit_code if type(error.exit_code) is int else None
         truncated = error.stderr_truncated is True
+        if error.cached is True:
+            phase_details["cached"] = True
         if category == "timeout" and error.phase in ("version_probe", "inference"):
             phase_details["phase"] = error.phase
             for name in ("phase_timeout_seconds", "phase_elapsed_ms"):

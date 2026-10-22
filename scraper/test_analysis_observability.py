@@ -186,3 +186,57 @@ def test_missing_database_has_failed_summary(monkeypatch, tmp_path, capsys):
     event = summary(capsys)
     assert event['status'] == 'failed'
     assert event['distinct_items'] == event['completed'] == event['deferred'] == 0
+
+
+def test_cached_probe_timeout_is_not_counted_as_another_probe(monkeypatch, tmp_path, capsys):
+    runtime(monkeypatch, tmp_path)
+    probes, events = [], []
+    def timeout(*_args, **kwargs):
+        probes.append(True)
+        raise subprocess.TimeoutExpired('PRIVATE', kwargs['timeout'])
+    monkeypatch.setattr(brain, '_verify_codex_version', timeout)
+    def run():
+        with pytest.raises(brain.BrainTransportError):
+            brain.run_brain(request(), env={'BRAIN': 'codex'})
+        return 1
+    setup_cycle(monkeypatch, {'extract': {'a': run, 'b': run}})
+    with brain.provider_diagnostic_scope(events.append):
+        assert cycle() == 1
+    assert len(probes) == 2  # One probe plus its bounded retry.
+    assert events[0].get('cached', False) is False
+    assert events[1]['cached'] is True
+    assert events[1]['phase_elapsed_ms'] == events[1]['phase_timeout_seconds'] == 0
+    assert summary(capsys)['timeouts_by_phase'] == {'version_probe': 1, 'inference': 0}
+
+
+def test_fatal_error_preserves_progress_and_does_not_invent_deferrals(monkeypatch, capsys):
+    setup_cycle(monkeypatch, {'extract': {'a': 0}})
+    scans = []
+    def candidates(_connection, stage):
+        scans.append(stage)
+        if len(scans) > 1:
+            raise ConnectionError('PRIVATE_DATABASE_URL')
+        return ['a']
+    monkeypatch.setattr(local_analysis, '_candidate_ids', candidates)
+    assert cycle() == 1
+    event = summary(capsys)
+    assert (event['attempted'], event['distinct_items'], event['completed']) == (1, 1, 1)
+    assert (event['failed'], event['deferred'], event['status']) == (1, 0, 'partial')
+    assert event['failure'] == 'ConnectionError'
+    assert 'PRIVATE' not in json.dumps(event)
+
+
+def test_probe_launch_failure_is_cached_only_for_this_cycle(monkeypatch, tmp_path):
+    runtime(monkeypatch, tmp_path)
+    probes = []
+    def unavailable(*_args, **_kwargs):
+        probes.append(True)
+        raise OSError('PRIVATE_PATH')
+    monkeypatch.setattr(brain, '_verify_codex_version', unavailable)
+    for _ in range(2):
+        with brain.codex_cycle_scope():
+            for _ in range(2):
+                with pytest.raises(brain.BrainTransportError) as caught:
+                    brain.run_brain(request(), env={'BRAIN': 'codex'})
+                assert caught.value.category == 'launch_error'
+    assert len(probes) == 2
