@@ -5,6 +5,33 @@ import { z } from "zod";
 import { employerLabel } from "../lib/employer-identity";
 import { EmployerIdentitySchema } from "../lib/contracts";
 import aliases from "../lib/employer-aliases.json";
+import selfAliases from "../../test_support/fixtures/employer_self_alias.json";
+
+test("P7C shared self-alias table labels legacy and freshly resolved identities", () => {
+  const probe = spawnSync("python3", ["-c", `
+import json
+from pathlib import Path
+from scraper.employer_identity import resolve_employer
+cases = json.loads(Path('test_support/fixtures/employer_self_alias.json').read_text())
+print(json.dumps([resolve_employer(row['publisher'], row['employer'] + ' is hiring engineers.', source)
+                  for row in cases for source in ['linkedin', 'greenhouse']]))
+`], { cwd: import.meta.dirname + "/../..", encoding: "utf8" });
+  assert.equal(probe.status, 0, probe.stderr);
+  const identities = EmployerIdentitySchema.array().parse(JSON.parse(probe.stdout));
+  assert.equal(identities.length, selfAliases.length * 2);
+  selfAliases.forEach((row, index) => {
+    for (const [publisher, employer] of [[row.publisher, row.employer], [row.employer, row.publisher]]) {
+      const identity = { publisher, hiring_employer: employer, employer_evidence: null, resolver_version: "16" };
+      assert.equal(employerLabel({ company: publisher, employer_identity: identity }),
+        row.alias ? publisher : `${employer} via ${publisher}`);
+    }
+    if (row.employer === "Labs") return;
+    for (const identity of identities.slice(index * 2, index * 2 + 2)) {
+      assert.equal(employerLabel({ company: row.publisher, employer_identity: identity }),
+        row.alias ? row.publisher : `${row.employer} via ${row.publisher}`);
+    }
+  });
+});
 
 test("2827-character resolver lines fit both evidence contracts as exact prefixes", () => {
   const probe = spawnSync("python3", ["-c", `
