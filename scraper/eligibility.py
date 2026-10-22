@@ -817,6 +817,15 @@ def _applicant_scope_slot(frame: re.Match) -> str:
         r"(?:limited|restricted)\s+to\s+|open\s+to\s+)",
         "", slot, count=1, flags=re.I,
     )
+    # Recruiting copy can place a short qualification or an application noun
+    # between the recruiting verb and the destination. Strip only these
+    # bounded grammatical prefixes so unknown/coordinated place operands stay
+    # intact for the fail-closed destination check.
+    slot = re.sub(r"^applications?\s+from\s+", "", slot, count=1, flags=re.I)
+    slot = re.sub(
+        r"^(?:(?:experienced|qualified|senior|junior|entry[- ]level)\s+)+",
+        "", slot, count=1, flags=re.I,
+    )
     slot = re.sub(
         rf"^{APPLICANT}\s+(?:must|should|need\s+to|are\s+required\s+to)\s+be\s+",
         "", slot, count=1, flags=re.I,
