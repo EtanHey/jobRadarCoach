@@ -24,6 +24,7 @@ _PEOPLE_ORG = re.compile(
 _FUNCTION_HEAD = re.compile(
     r"(?<!\w)(?ai:program|product|project|account|marketing|partner|customer\s+success|delivery)\s*$",
 )
+_POSTPOSED_ORG = re.compile(r"\s*(?:(?ai:of|for|in)\s+|[,–-]\s*)")
 
 
 def _management_head(title: str) -> str | None:
@@ -35,8 +36,10 @@ def _management_head(title: str) -> str | None:
         if grades:
             modifier = modifier[grades[-1].end():]
         # Inverted titles put the organization after an otherwise bare Manager.
-        if not modifier.strip() and title[manager.end():].lstrip().startswith(","):
-            modifier = title[manager.end():].lstrip()[1:]
+        if not modifier.strip():
+            suffix = title[manager.end():]
+            if separator := _POSTPOSED_ORG.match(suffix):
+                modifier = suffix[separator.end():]
         modifier = re.split(r"[,;()/]|\s[-–—]\s", modifier)[0].strip()
         # A functional head owns its preceding domain: Engineering Program
         # Manager is program management, even though Engineering appears earlier.

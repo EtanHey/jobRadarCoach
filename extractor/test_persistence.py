@@ -173,7 +173,11 @@ def test_title_seniority_is_quoted_from_locked_posting_and_tracks_title_edits(co
         assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "unchanged"
 
 
-@pytest.mark.parametrize("title", ["Senior Engineering Manager", "Senior Manager, Platform Engineering"])
+@pytest.mark.parametrize("title", [
+    "Senior Engineering Manager", "Senior Manager, Platform Engineering",
+    "Senior Manager of Software Engineering", "Manager for Software Engineering",
+    "Manager in Software Engineering", "Senior Manager – R&D", "Manager - Development",
+])
 def test_management_title_persists_management_scalar(connection, title) -> None:
     posting_id = insert_posting(connection)
     connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
@@ -186,6 +190,9 @@ def test_management_title_persists_management_scalar(connection, title) -> None:
 @pytest.mark.parametrize(("title", "value"), [
     ("Senior Hardware Engineering Program Manager", "Senior"),
     ("Hardware Engineering Program Manager", None),
+    ("Senior Manager of Product Marketing", "Senior"),
+    ("Manager of Product Marketing", None),
+    ("Senior Manager of Programs", "Senior"),
 ])
 def test_function_manager_persists_grade_or_unknown(connection, title) -> None:
     posting_id = insert_posting(connection)

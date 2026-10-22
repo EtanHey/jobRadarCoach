@@ -9,6 +9,7 @@ from extractor.core import extract_posting
 from extractor.payload import build_payload
 from extractor.test_core import RAW_JD, facts, posting, runner_for
 from scraper.brain_contract import BrainValidationError
+from scraper.seniority import title_seniority
 
 
 TITLE_CASES = [
@@ -146,3 +147,42 @@ def test_people_management_heads_keep_management_grade(role, head, grade):
     assert extracted["facts"]["seniority"] == expected
     assert build_payload(extracted, RAW_JD, posting_title=title).facts["seniority"] == expected
     assert normalize({"title": title}).seniority_level == "lead_manager"
+
+
+@pytest.mark.parametrize(("role", "head"), [
+    ("Manager of Software Engineering", "Manager"),
+    ("Manager for Software Engineering", "Manager"),
+    ("Manager in Software Engineering", "Manager"),
+    ("Manager, Software Engineering", "Manager"),
+    ("Manager – R&D", "Manager"),
+    ("Manager - Development", "Manager"),
+    ("Director of Software Engineering", "Director"),
+    ("Head of Software Engineering", "Head"),
+])
+@pytest.mark.parametrize("grade", ["", "Senior "])
+def test_postposed_people_org_preserves_management_head(role, head, grade):
+    title = grade + role
+    expected = {"value": head, "evidence_quote": title}
+    assert title_seniority(title).fact() == expected
+    extracted = extract_posting({**posting(), "title": title}, {}, runner=runner_for(facts()))
+    assert extracted["facts"]["seniority"] == expected
+    assert build_payload(extracted, RAW_JD, posting_title=title).facts["seniority"] == expected
+    normalized = normalize({"title": title, "seniority": "Senior", "ats_seniority": "Senior"})
+    assert (normalized.seniority_level, normalized.seniority_source) == ("lead_manager", "title")
+
+
+@pytest.mark.parametrize("function", ["Product Marketing", "Programs", "Software Delivery", "Engineering Program"])
+@pytest.mark.parametrize("separator", ["of", "for", "in", ",", "–", "-"])
+@pytest.mark.parametrize(("grade", "value", "level"), [
+    ("Senior ", "Senior", "senior"), ("Staff ", "Staff", "staff_principal"),
+    ("", None, None),
+])
+def test_postposed_function_keeps_grade_or_abstains(function, separator, grade, value, level):
+    title = f"{grade}Manager {separator} {function}"
+    expected = {"value": value, "evidence_quote": title if value else None}
+    assert title_seniority(title).fact() == expected
+    extracted = extract_posting({**posting(), "title": title}, {}, runner=runner_for(facts()))
+    assert extracted["facts"]["seniority"] == expected
+    assert build_payload(extracted, RAW_JD, posting_title=title).facts["seniority"] == expected
+    normalized = normalize({"title": title, "seniority": "Manager", "ats_seniority": "Manager"})
+    assert (normalized.seniority_level, normalized.seniority_source) == (level, "title")
