@@ -5,9 +5,9 @@ import re
 
 from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
-from scraper.employer_aliases import is_alias
+from scraper.employer_aliases import ALIASES, is_alias
 
-VERSION = '8'
+VERSION = '9'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -77,32 +77,55 @@ def _staffing_statement(text: str, company: str | None = None, *, allow_self: bo
 
 
 ABOUT_HEADING = re.compile(
-    r'^[ \t]*(?:\#{1,6}[ \t]+)?\*{0,2}About[ \t]+'
-    r'(?P<title>[^:\n*]+?)\*{0,2}[ \t]*(?::|$)', re.I | re.M)
-NAMED_DESCRIPTION = re.compile(
-    r"(?:^|[.!?]\s+|\n)\*{0,2}" + NAME + r"\*{0,2}\s+(?:is|are|provides|develops|builds)\b")
+    r'^[ \t]*(?:\#{1,6}[ \t]+)?\*{0,2}'
+    r'(?:About[ \t]+(?P<title>[^:\n*]+?)|אודות[ \t]+(?P<he_title>[^:\n*]+?)|(?P<he_us>אודותינו))'
+    r'\*{0,2}[ \t]*(?::|$)', re.I | re.M)
+SELF_HEADINGS = {'us', 'the company', 'company', 'החברה', 'אודותינו'}
+# Unrecognized capitalized/brand or Hebrew words make ownership uncertain. This
+# deliberately loses some agency labels rather than guessing a company's voice.
+OWNER_PROSE = {
+    'we', 'our', 'אנחנו', 'אנו', 'חברת', 'השמה', 'גיוס', 'היא', 'הינה',
+    'אודות', 'החברה', 'אודותינו',
+}
+OWNER_TOKEN = re.compile(r"[^\W\d_][\w’'.&-]*")
 
 
-def _publisher_staffing_statements(raw_jd: str, publisher: str, opening_end: int):
-    """Keep first-person voice attached to its About section's company."""
+def _heading_title(heading: re.Match) -> str:
+    return next(value.strip().casefold() for value in heading.groups() if value)
+
+
+def _uncertain_owner(text: str, publisher_names: set[str]) -> bool:
+    text = ABOUT_HEADING.sub(
+        lambda heading: '' if _heading_title(heading) in publisher_names | SELF_HEADINGS else heading[0], text)
+    for name in sorted(publisher_names, key=len, reverse=True):
+        text = re.sub(r'(?<!\w)' + re.escape(name) + r'(?!\w)', '', text, flags=re.I)
+    text = re.sub(r'\bRole (?:responsibilities|details)\.', '', text)
+    if re.search(r'\b(?:meet|our partner)\s+\w', text, re.I):
+        return True
+    return any(token.strip("’'.&-").casefold() not in OWNER_PROSE and (
+        any(char.isupper() for char in token) or re.search(r'[\u0590-\u05ff]', token))
+        for token in OWNER_TOKEN.findall(text))
+
+
+def _publisher_staffing_statements(raw_jd: str, publisher: str):
+    """Require an owner heading and uncontaminated context for first-person voice."""
+    publisher_names = {publisher.casefold()}
+    for name, aliases in ALIASES.items():
+        if name.casefold() == publisher.casefold():
+            publisher_names.update(alias.casefold() for alias in aliases)
     headings = list(ABOUT_HEADING.finditer(raw_jd))
     sections = [(None, 0, headings[0].start() if headings else len(raw_jd))]
     sections.extend((heading, heading.end(), headings[i + 1].start() if i + 1 < len(headings)
                      else len(raw_jd)) for i, heading in enumerate(headings))
-    other_company_seen = False
     for heading, start, end in sections:
-        title = heading['title'].strip().casefold() if heading else ''
-        publisher_section = title == publisher.casefold()
-        if heading and title not in {publisher.casefold(), 'us', 'the company', 'company', 'the role', 'role'}:
-            other_company_seen = True
-        if title == 'us':
-            named = [m['name'].strip().casefold() for m in NAMED_DESCRIPTION.finditer(raw_jd[start:end])]
-            publisher_section = all(name in {publisher.casefold(), 'we'} for name in named)
-            other_company_seen |= not publisher_section
+        title = _heading_title(heading) if heading else ''
+        publisher_section = bool(heading) and title in publisher_names | SELF_HEADINGS
+        publisher_section &= not _uncertain_owner(raw_jd[start:end], publisher_names)
         for line in re.compile(r'[^\n]+').finditer(raw_jd, start, end):
-            opening_text = line[0][:max(0, opening_end - line.start())]
-            if (_staffing_statement(line[0], publisher, allow_self=publisher_section)
-                    or (not other_company_seen and _staffing_statement(opening_text, publisher))):
+            line_start = raw_jd.rfind('\n', 0, line.start()) + 1
+            preceding = '\n'.join(raw_jd[:line_start].splitlines()[-3:])
+            allow_self = publisher_section and not _uncertain_owner(preceding, publisher_names)
+            if _staffing_statement(line[0], publisher, allow_self=allow_self):
                 yield line
 
 
@@ -121,7 +144,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
-    publisher_statements = list(_publisher_staffing_statements(raw_jd, publisher, len(opening)))
+    publisher_statements = list(_publisher_staffing_statements(raw_jd, publisher))
     publisher_statement = next(iter(publisher_statements), None)
     publisher_offsets = {hit.start() for hit in publisher_statements}
     agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
