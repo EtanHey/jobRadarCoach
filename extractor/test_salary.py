@@ -613,3 +613,77 @@ def test_salary_validation_failure_keeps_source_remark_and_other_facts(invalid):
     expected["salary"] = {"value": None, "evidence_quote": None}
     expected["salary_remark"] = "x" * 257 if invalid["value"] == "x" * 257 else "$120k"
     assert result.facts == expected
+
+
+# P9d: novel owners must survive punctuation before their first amount.
+P9D_REJECTED = [
+    "Competitive salary; liquidity, $4M",
+    "Competitive salary; order book, £6M",
+    "Competitive salary; cloud spend, $70k annually",
+    "Competitive salary; transaction volume, $8M annually",
+    "Competitive salary; escrow balance; $9M",
+    "Competitive salary; cash runway / €3M",
+    "Competitive salary; procurement envelope - $80k annually",
+    "Competitive salary; claims reserve: £7M",
+    "Competitive salary; receivables pool, $11M",
+    "Competitive salary; settlement float / ₪12 מיליון",
+]
+P9D_POSITIVE_SPANS = [
+    ("$150k–$180k", "$150k–$180k"),
+    ("salary: ₪30,000", "salary: ₪30,000"),
+    ("OTE $220k", "OTE $220k"),
+    ("$60/hour", "$60/hour"),
+    ("day rate £600", "day rate £600"),
+    ('שכר 25,000 ש"ח', 'שכר 25,000 ש"ח'),
+    ("Competitive salary, $150k–$180k", "$150k–$180k"),
+] + [
+    (f"Competitive salary; escrow balance{separator}{pay}", pay)
+    for separator in (", ", "; ", " / ", " - ", ": ")
+    for pay in ("salary $150k", "OTE $220k", "day rate £600")
+]
+P9D_SALARY_SPANS = [(value, None) for value in P9D_REJECTED] + P9D_POSITIVE_SPANS
+
+
+@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS)
+def test_list_governor_extraction_and_payload(salary, span):
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": span, "evidence_quote": salary if span else None}
+    if span != salary:
+        expected["salary_remark"] = salary
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
+    assert candidate["salary"]["value"] == salary
+
+
+@pytest.mark.parametrize("salary", P9D_REJECTED + ["salary 120k"])
+def test_dropped_salary_emits_bounded_diagnostic(caplog, monkeypatch, salary):
+    from extractor import salary as policy
+
+    if salary == "salary 120k":
+        monkeypatch.setattr(policy, "salary_span", lambda text: "120k" if text == salary else None)
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    assert result["facts"]["salary"]["value"] is None
+    messages = [record.message for record in caplog.records if "extraction_fact_dropped" in record.message]
+    assert messages == ["extraction_fact_dropped field=salary category=evidence_quote"]
+    assert salary not in messages[0]
+
+
+def test_failed_salary_quote_remark_is_bounded_and_stable():
+    from extractor.salary import normalize_salary
+
+    quote = "private business quantity " * 60
+    candidate = facts()
+    candidate["salary"] = {"value": "absent", "evidence_quote": quote}
+    normalize_salary(candidate, quote)
+    assert candidate["salary"] == {"value": None, "evidence_quote": None}
+    assert candidate["salary_remark"] == quote[:1000]
+    normalized = deepcopy(candidate)
+    normalize_salary(candidate, quote)
+    assert candidate == normalized
