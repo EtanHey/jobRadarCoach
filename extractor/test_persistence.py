@@ -153,6 +153,26 @@ def test_success_updates_fields_and_preserves_identity_history_and_status(connec
     assert state[12] is not None
 
 
+def test_title_seniority_is_quoted_from_locked_posting_and_tracks_title_edits(connection) -> None:
+    posting_id = insert_posting(connection)
+    inferred = deepcopy(FACTS)
+    inferred["seniority"] = {"value": "Backend Engineer", "evidence_quote": "Senior Backend Engineer"}
+    result = extraction(facts=inferred)
+    identity = {key: result[key] for key in ("brain", "model", "extractor_version", "schema_sha256")}
+    for title, value in (("Senior Software Engineer", "Senior"), ("Junior Software Engineer", "Junior"),
+                         ("Junior / Senior Software Engineer", None)):
+        connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
+        assert not persistence.has_current_extraction(connection, posting_id, RAW_JD, **identity)
+        assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "stored"
+        state = durable_state(connection, posting_id)
+        assert state[2] == value
+        assert state[11]["seniority"] == {"value": value, "evidence_quote": title if value else None}
+        if value is None:
+            assert state[11]["seniority_remark"] == title
+        assert persistence.has_current_extraction(connection, posting_id, RAW_JD, **identity)
+        assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "unchanged"
+
+
 def test_unknown_facts_preserve_known_columns_but_remain_truthful_in_metadata(connection) -> None:
     posting_id = insert_posting(connection)
     unknown = {

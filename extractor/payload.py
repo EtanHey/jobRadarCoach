@@ -14,6 +14,7 @@ from jsonschema.exceptions import ValidationError
 from extractor.core import EXTRACTION_SCHEMA_SHA256, MAX_RAW_JD_BYTES, _schema
 from extractor.evidence import validate_facts
 from extractor.salary import normalize_salary
+from scraper.seniority import apply_title_seniority
 
 _FACT_FIELDS = {"location", "remote", "seniority", "stack", "salary"}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -67,8 +68,8 @@ def fingerprint(
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _owned_facts(facts: object, captured_raw_jd: str) -> dict[str, object]:
-    if not isinstance(facts, dict) or set(facts) not in (_FACT_FIELDS, _FACT_FIELDS | {"salary_remark"}):
+def _owned_facts(facts: object, captured_raw_jd: str, posting_title: object = None) -> dict[str, object]:
+    if not isinstance(facts, dict) or not _FACT_FIELDS <= set(facts) <= _FACT_FIELDS | {"salary_remark", "seniority_remark"}:
         raise ValueError("extraction facts must contain exactly the supported fields")
     try:
         owned = json.loads(json.dumps(facts, ensure_ascii=False, allow_nan=False))
@@ -79,9 +80,15 @@ def _owned_facts(facts: object, captured_raw_jd: str) -> dict[str, object]:
         schema["properties"]["salary_remark"] = {
             "type": "string", "minLength": 1, "maxLength": MAX_RAW_JD_BYTES,
         }
+        schema["properties"]["seniority_remark"] = {
+            "type": "string", "minLength": 1, "maxLength": 1000,
+        }
         normalize_salary(owned, captured_raw_jd)
+        explicit = apply_title_seniority(owned, posting_title)
+        if "seniority_remark" in owned and (explicit is None or explicit.remark is None):
+            raise ValueError("seniority remark requires conflicting title levels")
         Draft202012Validator(schema).validate(owned)
-        validate_facts(owned, captured_raw_jd)
+        validate_facts(owned, captured_raw_jd, posting_title)
     except (AssertionError, KeyError, TypeError, ValidationError) as error:
         raise ValueError("extraction facts have an invalid shape") from error
     if any(
@@ -94,7 +101,7 @@ def _owned_facts(facts: object, captured_raw_jd: str) -> dict[str, object]:
 
 
 def build_payload(
-    extraction: Mapping[str, object], captured_raw_jd: str
+    extraction: Mapping[str, object], captured_raw_jd: str, *, posting_title: object = None
 ) -> Payload:
     if set(extraction) != {
         "brain", "model", "extractor_version", "schema_sha256", "jd_sha256",
@@ -114,7 +121,7 @@ def build_payload(
     expected = fingerprint(brain, model, version, schema_sha256, jd_sha256)
     if result_fingerprint != expected:
         raise ValueError("extraction fingerprint does not match its identity")
-    facts = _owned_facts(extraction["facts"], captured_raw_jd)
+    facts = _owned_facts(extraction["facts"], captured_raw_jd, posting_title)
     return Payload(
         brain, model, version, schema_sha256, jd_sha256, result_fingerprint, facts
     )
