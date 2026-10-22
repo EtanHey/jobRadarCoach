@@ -126,7 +126,7 @@ def test_recompute_unknown_real_sql_guards_and_idempotency():
                         "posting_sha256,profile_sha256,history_sha256,score_payload) "
                         "values (%s,%s,%s::jsonb,%s::jsonb,'fixture','fixture','1.1',%s,%s,%s,%s::jsonb)",
                         (posting_id, payload['fit_score'], json.dumps(payload['reasons']),
-                         json.dumps(_labels(payload)), 'a'*64, profile, 'c'*64, json.dumps(payload)))
+                         json.dumps(_labels(payload, {'title': 'Engineer'})), 'a'*64, profile, 'c'*64, json.dumps(payload)))
 
                 def state():
                     return {r['posting_id']: r for r in connection.execute('select * from posting_scores')}
