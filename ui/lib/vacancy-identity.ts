@@ -7,7 +7,8 @@ export type VacancyIdentity = z.infer<typeof VacancyIdentitySchema>;
 type IdentityInput = { url: string; apply_url: string | null; raw_jd?: string | null };
 
 function textRequisitions(text: string): string[] {
-  return [...text.matchAll(/\bJR\d{5,}\b|\b(?:req(?:uisition)?\.?\s*(?:id|number|no\.?)|job\s*(?:req(?:uisition)?(?:\s*(?:id|number|no\.?))?|id|number|no\.?))\s*[:#-]?\s*(?=[A-Z\d_-]*\d)([A-Z\d]+(?:[-_][A-Z\d]+)*)\b/giu)]
+  const prose = text.replace(/https?:\/\/\S+/giu, " ");
+  return [...prose.matchAll(/\bJR\d{5,}\b|\breq(?:uisition)?\.?(?:\s*(?:id|number|no\.?)\s*[:#-]?|\s*[:#-])\s*(?=[A-Z\d_-]*\d)([A-Z\d]+(?:[-_][A-Z\d]+)*)\b/giu)]
     .map(match => (match[1] ?? match[0]).toUpperCase());
 }
 
@@ -18,7 +19,21 @@ export function postingUrls(job: Pick<IdentityInput, "url" | "apply_url">): URL[
 }
 
 export function vacancyIdentity(job: IdentityInput, urls = postingUrls(job)): VacancyIdentity {
-  const requisitions = new Set(textRequisitions(job.raw_jd ?? ""));
+  const postingNumbers = new Set<string>();
+  for (const url of urls) {
+    try {
+      // Workday's terminal requisition segment is headcount evidence, not a posting ID.
+      let path = decodeURIComponent(url.pathname);
+      if (url.hostname.endsWith(".myworkdayjobs.com")) path = path.replace(/_(?:JR\d+|R\d{5,})(?:-\d+)?(?:\/apply)?\/?$/iu, "");
+      for (const part of [path, ...url.searchParams.values()]) {
+        for (const match of part.matchAll(/(?:^|[^a-z\d])(?:JR)?(\d+)(?=$|[^a-z\d])/giu)) postingNumbers.add(match[1]);
+      }
+    } catch { /* Invalid legacy URLs supply no posting identity evidence. */ }
+  }
+  const requisitions = new Set(textRequisitions(job.raw_jd ?? "").filter(value => {
+    const number = value.match(/^(?:JR)?(\d+)$/u)?.[1];
+    return !number || !postingNumbers.has(number);
+  }));
   for (const url of urls) {
     try {
       const path = decodeURIComponent(url.pathname);
@@ -39,7 +54,9 @@ export function jdFingerprint(description: string | null | undefined): string | 
     .replace(/\[([^\]]+)\]\([^)]*\)/gu, "$1").replace(/(\*\*|__)(.*?)\1/gu, "$2").replace(/`([^`]+)`/gu, "$1").replace(/(^|\n)#{1,6}\s+/gu, "$1")
     .split(/\n\s*\n/u).filter(paragraph => !/^\s*(?:we are an equal opportunity employer\b|equal (?:employment )?opportunity (?:employer|statement)\b|if you (?:need|require) (?:a reasonable )?accommodation\b)/iu.test(paragraph))
     .join(" ").replace(/\s+/gu, " ").trim().toLowerCase();
-  if (!body) return null;
+  // Frozen 658-row snapshot: only two nonempty normalized bodies fall below 400.
+  // Short snippets are too weak to establish identity across title/location drift.
+  if (body.length < 400) return null;
   // Two independent 32-bit hashes plus length; synchronous on server and browser.
   let a = 0x811c9dc5, b = 0x9e3779b9;
   for (let index = 0; index < body.length; index += 1) {

@@ -258,7 +258,7 @@ test("distinct_requisitions_with_same_title_location_and_jd_stay_separate", () =
   assert.equal(groupDuplicateJobs([vacancy(301, "JR123", {raw_jd: "Build reliable services."}), vacancy(302, "JR456", {raw_jd: "Build reliable services."})]).length, 2);
 });
 test("jd_only_title_variants_have_one_group", () => {
-  assert.equal(groupDuplicateJobs([vacancy(301, null, {raw_jd: "Build reliable services."}), vacancy(302, null, {title: "Updated Engineer", raw_jd: "Build   reliable\nservices."})]).length, 1);
+  assert.equal(groupDuplicateJobs([vacancy(301, null, {raw_jd: "Build reliable services. ".repeat(20)}), vacancy(302, null, {title: "Updated Engineer", raw_jd: "Build   reliable\nservices. ".repeat(20)})]).length, 1);
 });
 test("Unframe identical JD reposts with different Greenhouse post IDs stay grouped", () => {
   // Frozen pair 7c3ef744 / 97994440: identical bodies, distinct source post IDs.
@@ -323,3 +323,17 @@ for (const [company, text, titles, duties] of [
     }
   });
 }
+
+test("short matching boilerplate cannot merge different roles", () => {
+  const rows = [vacancy(501, null, {title:"Engineer", raw_jd:"Apply now"}),
+    vacancy(502, null, {title:"Designer", raw_jd:"Apply now"})];
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 2);
+});
+test("multiple requisitions merge only when their full sets match", () => {
+  const a = vacancy(501, null, {raw_jd:"Req: ENG-123. Requisition: ENG-456"});
+  const b = vacancy(502, null, {title:"Changed title", location:"Elsewhere", raw_jd:"Req: ENG-456. Req: ENG-123. Req: ENG-123"});
+  for (const input of [[a,b],[b,a]]) assert.equal(groupDuplicateJobs(input).length, 1);
+  for (const raw_jd of ["Req: ENG-123", "Req: ENG-123. Req: ENG-789", ""]) {
+    assert.equal(groupDuplicateJobs([a, vacancy(503, null, {raw_jd})]).length, 2);
+  }
+});
