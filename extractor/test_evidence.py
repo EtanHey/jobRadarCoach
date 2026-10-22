@@ -69,6 +69,51 @@ def test_unknown_remote_requires_no_evidence_quote() -> None:
     }
 
 
+@pytest.mark.parametrize("condition", [
+    "Hybrid",
+    "This role is hybrid.",
+    "This is a hybrid role.",
+    "Location: Tel Aviv (Hybrid).",
+    "מיקום: תל אביב (היברידי).",
+    "With hybrid work, we combine office time and remote work.",
+    "Work model: hybrid.",
+    "היברידי",
+    "עבודה היברידית.",
+    "2 days a week in office.",
+    "We require three days a week in the office and two days at home.",
+    "You must be in the office 2 days per week.",
+    "You may work remotely but must be in the office 2 days per week.",
+    "3 ימים במשרד.",
+    "נדרשים 2 ימים בשבוע במשרד.",
+    "יומיים במשרד ושלושה ימים מהבית.",
+])
+def test_attendance_outside_remote_quote_prevents_fully_remote(condition):
+    raw_jd = f"Remote work is available.\n\n{condition}"
+    assert derive_remote_fact("Remote work is available", raw_jd) == {
+        "value": None, "evidence_quote": None,
+    }
+    with pytest.raises(BrainValidationError, match="remote value conflicts"):
+        validate_facts(remote_only_facts(True, "Remote work is available"), raw_jd)
+
+
+@pytest.mark.parametrize("condition", [
+    "We build hybrid cloud systems.",
+    "Experience with hybrid retrieval is required.",
+    "Experience building a hybrid model is required.",
+    "There is no hybrid work policy.",
+    "This role is not hybrid.",
+    "No office attendance is required.",
+    "You may optionally visit the office.",
+    "0 days a week in the office.",
+    "Our office is open 2 days a week.",
+])
+def test_non_attendance_mentions_preserve_explicit_remote(condition):
+    raw_jd = f"Remote work is available.\n\n{condition}"
+    assert derive_remote_fact("Remote work is available", raw_jd) == {
+        "value": True, "evidence_quote": "Remote work is available",
+    }
+
+
 @pytest.mark.parametrize("quote", [
     "We are a remote-first company.",
     "Our engineering team works remotely.",

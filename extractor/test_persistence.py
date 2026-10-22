@@ -252,6 +252,22 @@ def test_fresh_extraction_updates_extracted_mode(connection):
     assert connection.execute('select work_mode,work_mode_source,remote from postings where id=%s',(posting_id,)).fetchone() == ('remote','extracted',True)
 
 
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+def test_office_schedule_overrides_remote_mode_even_when_quote_omits_it(connection, mode_source):
+    raw_jd = RAW_JD + "\nWe require three days a week in the office and two days at home."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ("hybrid", "extracted", None)
+
+
 @pytest.mark.parametrize('remote', [True, False])
 def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     raw_jd = RAW_JD if remote else RAW_JD.replace('Remote work is available', 'Office-based work is required')

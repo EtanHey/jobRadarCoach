@@ -101,7 +101,7 @@ def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     assert json.dumps(RAW_JD, ensure_ascii=True) in captured["prompt"]
     assert first == second
     assert first["facts"] == facts()
-    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.7"
+    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.8"
     assert first["schema_sha256"] == core.EXTRACTION_SCHEMA_SHA256
     assert first["brain"] == "ollama"
     assert first["model"] == "qwen2.5:7b-instruct"
@@ -184,6 +184,12 @@ def test_non_source_remote_quote_still_fails_closed() -> None:
 
     with pytest.raises(BrainValidationError, match="unknown remote cannot cite evidence"):
         core.extract_posting(posting(), {}, runner=runner_for(candidate))
+
+
+def test_hybrid_policy_in_another_paragraph_overrides_remote_quote():
+    raw_jd = RAW_JD + "\nWe require three days a week in the office and two days at home."
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(facts()))
+    assert result["facts"]["remote"] == {"value": None, "evidence_quote": None}
 
 
 def test_prompt_injection_cannot_expand_the_output_contract() -> None:

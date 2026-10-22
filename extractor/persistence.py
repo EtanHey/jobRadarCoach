@@ -12,6 +12,7 @@ import json
 from typing import Literal, Protocol
 
 from extractor.payload import build_payload, fingerprint, require_sha256, require_text
+from extractor.evidence import hybrid_evidence
 
 
 class Result(Protocol):
@@ -98,21 +99,22 @@ def persist_extraction(
             "location": payload.facts["location"]["value"],
             "remote": payload.facts["remote"]["value"],
         })
+        hybrid = hybrid_evidence(captured_raw_jd) is not None
         updated = connection.execute(
             "update public.postings set location = coalesce(%s, location), "
-            "remote = case (case when work_mode_source in ('structured', 'location') then work_mode "
+            "remote = case when %s then null else case (case when work_mode_source in ('structured', 'location') then work_mode "
             "else coalesce(%s, work_mode) end) when 'remote' then true when 'on-site' then false "
-            "when 'hybrid' then null else coalesce(%s, remote) end, "
-            "work_mode = case when work_mode_source in ('structured', 'location') then work_mode "
+            "when 'hybrid' then null else coalesce(%s, remote) end end, "
+            "work_mode = case when %s then 'hybrid' when work_mode_source in ('structured', 'location') then work_mode "
             "else coalesce(%s, work_mode) end, "
-            "work_mode_source = case when work_mode_source in ('structured', 'location') then work_mode_source "
+            "work_mode_source = case when %s then 'extracted' when work_mode_source in ('structured', 'location') then work_mode_source "
             "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
             "salary = coalesce(%s, case when lower(salary) = lower(%s) then null else salary end) "
             "where id = %s and raw_jd = %s returning id",
             (
-                payload.facts["location"]["value"], mode, payload.facts["remote"]["value"],
-                mode, "extracted" if mode_source else None,
+                payload.facts["location"]["value"], hybrid, mode, payload.facts["remote"]["value"],
+                hybrid, mode, hybrid, "extracted" if mode_source else None,
                 payload.facts["seniority"]["value"],
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],

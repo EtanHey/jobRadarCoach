@@ -7,6 +7,47 @@ import re
 from extractor.quotes import ExtractionValidationError, validate_quote
 from extractor.salary import normalize_salary
 
+_DAYS = r"(?:[1-9]\d?|one|two|three|four|five)\s+days?"
+_WEEK = r"(?:(?:a|per|each)\s+week|weekly)"
+_OFFICE = r"(?:in|at|from)\s+(?:(?:the|our)\s+)?office"
+_HYBRID_POLICY_RE = re.compile(
+    rf"\b(?:{_DAYS}\s+(?:{_WEEK}\s+)?{_OFFICE}|"
+    rf"{_OFFICE}\s+(?:for\s+)?{_DAYS}\s+{_WEEK})\b|"
+    r"\b(?:[1-9]\d?\s+ימים|יומיים)\s+(?:בשבוע\s+)?במשרד\b|"
+    r"\bhybrid[ -](?:work(?:ing)?|schedule|arrangement|policy)\b|"
+    r"\b(?:work(?:ing)?\s+(?:in|on)|work[ -]model\s*:)\s+(?:a\s+)?hybrid\b|"
+    r"\b(?:this|the)\s+(?:is\s+an?\s+)?hybrid\s+(?:role|position)\b|"
+    r"\b(?:role|position|work(?:place)?|work[ -]model)\s*(?::|is|will\s+be)\s*hybrid\b|"
+    r"\b(?:location|מיקום)\s*:[^.!?;\n]*\b(?:hybrid|היברידי(?:ת)?)\b|"
+    r"\b(?:עבודה|משרה|מודל)\s+היברידי(?:ת)?\b|"
+    r"^[ \t*#-]*(?:hybrid(?:\s+model)?|היברידי(?:ת)?)[ \t*.:]*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_OPTIONAL_ATTENDANCE_RE = re.compile(
+    r"\b(?:not(?!\s+only\b)|no|without)\s+(?:\w+[ -]){0,3}$|"
+    r"\b(?:optional(?:ly)?|not\s+required|do\s+not\s+require)\b|"
+    r"\b(?:may|can)\s+(?:choose\s+to\s+)?(?:work|visit|come|attend)\b|"
+    r"(?:לא\s+נדרש|ללא\s+חובת)", re.IGNORECASE,
+)
+
+
+def hybrid_evidence(raw_jd: str) -> str | None:
+    """Match hybrid employment frames and counted office schedules in the full JD."""
+    for match in _HYBRID_POLICY_RE.finditer(raw_jd):
+        start = max(raw_jd.rfind(boundary, 0, match.start()) for boundary in ".!?;\n") + 1
+        ends = [position for boundary in ".!?;\n"
+                if (position := raw_jd.find(boundary, match.end())) >= 0]
+        end = min(ends, default=len(raw_jd))
+        before, after = raw_jd[start:match.start()], raw_jd[match.end():end]
+        before = re.split(r"\b(?:but|however)\b", before, flags=re.I)[-1]
+        if _OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
+            r"\s+(?:(?:is|are)\s+)?(?:optional|not\s+required)\b", after, re.I,
+        ):
+            continue
+        return raw_jd[start:end].strip()
+    return None
+
+
 _REMOTE_WORD = r"\bremote(?:ly)?\b"
 _REMOTE_AVAILABILITY = (
     r"(?:available|allowed|offered|permitted|possible|supported|an\s+option)"
@@ -71,6 +112,8 @@ def _remote_quote_value(quote: str) -> bool | None:
 
 
 def _remote_source_values(quote: str, raw_jd: str) -> set[bool | None]:
+    if hybrid_evidence(raw_jd) is not None:
+        return {None}
     values: set[bool | None] = set()
     offset = 0
     while (quote_start := raw_jd.find(quote, offset)) >= 0:
