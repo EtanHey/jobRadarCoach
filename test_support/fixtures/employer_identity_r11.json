@@ -1,0 +1,152 @@
+[
+  {
+    "case": "sol-common-talent",
+    "publisher": "Talent",
+    "jd": "About Talent\nTalent builds observability systems.\nTalent is a staffing firm's most valuable resource."
+  },
+  {
+    "case": "sol-common-hire",
+    "publisher": "Hire",
+    "jd": "About Hire\nHire builds observability systems.\nAbout the company\nHire builds developer tools.\nHireCo is a staffing firm."
+  },
+  {
+    "case": "sol-common-staff",
+    "publisher": "Staff",
+    "jd": "About Staff\nStaff builds observability systems.\nStaff is a staffing firm's largest expense."
+  },
+  {
+    "case": "sol-quoted-publisher",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n**“Acme Labs is a staffing firm.”**"
+  },
+  {
+    "case": "sol-curly-single-markdown",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n**‘Our client is hiring engineers.’**"
+  },
+  {
+    "case": "sol-nested-curly-markdown",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n**“A customer shared “Great product!”\nOur client is hiring engineers.”**"
+  },
+  {
+    "case": "sol-hebrew-testimonial-heading",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n## המלצות לקוחות\nOur client is hiring engineers."
+  },
+  {
+    "case": "sol-hebrew-testimonial-heading-alt",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n**מה הלקוחות שלנו אומרים**\nOur client is hiring engineers."
+  },
+  {
+    "case": "sol-after-closing-quote-hebrew",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n“Great product!”\nOur client is hiring engineers. — יעל כהן"
+  },
+  {
+    "case": "sol-after-closing-quote-lowercase",
+    "publisher": "Acme Labs",
+    "jd": "About Acme Labs\nAcme Labs builds observability systems.\n“Great product!”\nOur client is hiring engineers. — jane smith"
+  },
+  {
+    "case": "cursor-1",
+    "publisher": "Acme Labs",
+    "jd": "Talent is a staffing firm."
+  },
+  {
+    "case": "cursor-2",
+    "publisher": "Acme Labs",
+    "jd": "Hire is a staffing firm."
+  },
+  {
+    "case": "cursor-3",
+    "publisher": "Acme Labs",
+    "jd": "Staff is a staffing firm."
+  },
+  {
+    "case": "cursor-4",
+    "publisher": "Acme Labs",
+    "jd": "\"Acme Labs is a staffing firm.\"\nAcme Labs is hiring engineers."
+  },
+  {
+    "case": "cursor-5",
+    "publisher": "Acme Labs",
+    "jd": "\"Acme Labs is a staffing firm.\""
+  },
+  {
+    "case": "cursor-6",
+    "publisher": "Acme Labs",
+    "jd": "ממליצים\nOur client is hiring engineers."
+  },
+  {
+    "case": "cursor-7",
+    "publisher": "Acme Labs",
+    "jd": "המלצות\nOur client, Orbit Inc, is hiring engineers."
+  },
+  {
+    "case": "cursor-8",
+    "publisher": "Acme Labs",
+    "jd": "> “Our client, Beta Corp, is hiring.”"
+  },
+  {
+    "case": "cursor-9",
+    "publisher": "Acme Labs",
+    "jd": "**Note:** “Our client is hiring engineers.”"
+  },
+  {
+    "case": "cursor-10",
+    "publisher": "Acme Labs",
+    "jd": "Testimonials\n\"Great place.\"\nOur client is hiring engineers."
+  },
+  {
+    "case": "allowlist-1",
+    "publisher": "Acme Labs",
+    "jd": "“Our client is hiring engineers.”"
+  },
+  {
+    "case": "allowlist-2",
+    "publisher": "Acme Labs",
+    "jd": "Our client is hiring engineers. - יעל כהן"
+  },
+  {
+    "case": "allowlist-3",
+    "publisher": "Acme Labs",
+    "jd": "About the role\nOur client is hiring engineers. — יעל כהן"
+  },
+  {
+    "case": "allowlist-4",
+    "publisher": "Acme Labs",
+    "jd": "About the role\n**‘Our client is hiring engineers.’**"
+  },
+  {
+    "case": "allowlist-5",
+    "publisher": "Acme Labs",
+    "jd": "**“Our client is hiring engineers.”**"
+  },
+  {
+    "case": "allowlist-6",
+    "publisher": "Acme Labs",
+    "jd": "About our clients\nOur client is hiring engineers."
+  },
+  {
+    "case": "allowlist-7",
+    "publisher": "Acme Labs",
+    "jd": "Job description\n## People at Acme\nOur client is hiring engineers."
+  },
+  {
+    "case": "allowlist-8",
+    "publisher": "Acme Labs",
+    "jd": "Build observability systems.\n\nOur client is hiring engineers."
+  },
+  {
+    "case": "allowlist-9",
+    "publisher": "Acme Labs",
+    "jd": "The position\nBuild observability systems.\n\nOur client is hiring engineers."
+  },
+  {
+    "case": "allowlist-10",
+    "publisher": "Acme Labs",
+    "jd": "על התפקיד\n״לקוח שלנו מגייס מהנדסים״"
+  }
+]

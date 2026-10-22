@@ -18,7 +18,7 @@ test("snapshot identity hydration batches captured IDs, preserves deleted rows a
     assert.equal(url.searchParams.get("select"), "id,identity_evidence:raw_jd");
     const batch = jobs.slice(reads++ * 100, reads * 100);
     assert.equal(url.searchParams.get("id"), `in.(${batch.map(job=>job.id).join(",")})`);
-    return Response.json(batch.filter(job=>job.id !== jobs[0].id).map(job=>({id:job.id,identity_evidence:"Build services."})));
+    return Response.json(batch.filter(job=>job.id !== jobs[0].id).map(job=>({id:job.id,identity_evidence:"Build services. ".repeat(30)})));
   }}});
   const result = await withVacancyIdentity(db, [...jobs,jobs[0]]);
   assert.equal(reads,3); assert.equal(result.length,206);
@@ -27,15 +27,19 @@ test("snapshot identity hydration batches captured IDs, preserves deleted rows a
   assert.equal(result[0].vacancy_identity?.jd_fingerprint,null);
   assert.equal("raw_jd" in result[1],false);
 });
-test("identity read errors propagate and empty snapshots perform no extra read", async () => {
+test("identity read errors fall back to URL evidence and log without leaking bodies", async (t) => {
+  const errors = t.mock.method(console,"error",()=>{});
   const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async () => Response.json({message:"unavailable"},{status:503})}});
   assert.deepEqual(await withVacancyIdentity(db,[]),[]);
-  await assert.rejects(withVacancyIdentity(db,[job(1),job(2)]));
+  const result = await withVacancyIdentity(db,[job(1),job(2)]);
+  assert.ok(result.every(row => row.vacancy_identity?.jd_fingerprint === null));
+  assert.equal(errors.mock.callCount(),1);
+  assert.match(String(errors.mock.calls[0].arguments[0]), /Vacancy identity body fetch failed/);
 });
 test("new-role count uses the same JD identity as board and globe", async () => {
   const current=job(1), incoming={...job(2),title:"Updated title"};
   const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async input => {
-    if(String(input).includes("/postings?")) return Response.json([current,incoming].map(job=>({id:job.id,identity_evidence:"Build services."})));
+    if(String(input).includes("/postings?")) return Response.json([current,incoming].map(job=>({id:job.id,identity_evidence:"Build services. ".repeat(30)})));
     return Response.json({current:[current],incoming:[incoming]});
   }}});
   assert.equal((await getNewRolesStore(db).count(NewRolesQuerySchema.parse({filter:"all",availability:"all",since:"2026-10-06T00:00:00Z",ids:[current.id],incoming_ids:[incoming.id],view:defaultBoardPreferences().view}))).count,0);
@@ -93,7 +97,7 @@ test("body enrichment caps unique candidates at 300 and warns once", async (t) =
     const offset = sizes.reduce((sum,size)=>sum+size,0);
     assert.deepEqual(ids,jobs.slice(offset,offset+100).map(job=>job.id));
     sizes.push(ids.length);
-    return Response.json(ids.map(id=>({id,identity_evidence:"Build services."})));
+    return Response.json(ids.map(id=>({id,identity_evidence:"Build services. ".repeat(30)})));
   }}});
   const result = await withVacancyIdentity(db,[...jobs,jobs[0]]);
   assert.deepEqual(sizes,[100,100,100]);
@@ -103,4 +107,43 @@ test("body enrichment caps unique candidates at 300 and warns once", async (t) =
   assert.ok(result[299].vacancy_identity?.jd_fingerprint);
   assert.equal(result[300].vacancy_identity?.jd_fingerprint,null);
   assert.ok(result[405].vacancy_identity?.jd_fingerprint);
+});
+
+for (const failure of ["transport", "invalid evidence"] as const) {
+  test(`${failure} uses URL-only fallback for the failed batch and continues later batches`, async (t) => {
+    const errors = t.mock.method(console,"error",()=>{});
+    const jobs = Array.from({length:101}, (_, n) => job(n));
+    let reads = 0;
+    const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async input => {
+      reads++;
+      if (new URL(String(input)).searchParams.get("id")?.includes(jobs[0].id)) {
+        if (failure === "transport") throw new Error("unavailable");
+        return Response.json([{id:jobs[0].id,identity_evidence:123}]);
+      }
+      return Response.json([{id:jobs[100].id,identity_evidence:"Req: ENG-123"}]);
+    }}});
+    const known = {...job(102),url:"https://acme.myworkdayjobs.com/jobs/job/Engineer_JR12345"};
+    const result = await withVacancyIdentity(db,[...jobs,known]);
+    assert.ok(reads >= 2, "SDK may retry a transport failure");
+    assert.deepEqual(result[0].vacancy_identity,{requisitions:[],jd_fingerprint:null});
+    assert.deepEqual(result[100].vacancy_identity?.requisitions,["ENG-123"]);
+    assert.deepEqual(result[101].vacancy_identity?.requisitions,["JR12345"]);
+    assert.equal(errors.mock.callCount(),1);
+  });
+}
+
+test("globe and new-role count survive JD evidence read failures", async (t) => {
+  const { getGlobeStore } = await import("../lib/globe-server");
+  const errors = t.mock.method(console,"error",()=>{});
+  const current = job(1), incoming = {...job(2),title:"Different title"};
+  const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async input => {
+    const url = String(input);
+    if (url.includes("/postings?")) return Response.json({message:"unavailable"},{status:400});
+    if (url.includes("get_globe_markers")) return Response.json({jobs:[current,incoming],geo:[]});
+    return Response.json({current:[current],incoming:[incoming]});
+  }}});
+  assert.equal((await getGlobeStore(db).snapshot({filter:"all",availability:"all"})).jobs.length,2);
+  const query = NewRolesQuerySchema.parse({filter:"all",availability:"all",since:"2026-10-06T00:00:00Z",ids:[current.id],incoming_ids:[incoming.id],view:defaultBoardPreferences().view});
+  assert.equal((await getNewRolesStore(db).count(query)).count,1);
+  assert.equal(errors.mock.callCount(),2);
 });

@@ -11,6 +11,7 @@ from extractor.evidence import ExtractionValidationError, validate_facts
 from extractor.test_core import facts, runner_for
 from extractor.test_persistence import insert_posting
 from scraper.brain_contract import BrainValidationError
+from scraper.employer_identity import resolve_employer
 
 ROWS = json.loads((Path(__file__).parent / "testdata/location_fallback.json").read_text())
 OTHER_JD = "Senior Backend Engineer. Remote within Israel. Build TypeScript and Node.js API services. Salary: $120,000-$150,000 annually."
@@ -45,12 +46,12 @@ def test_drop_location_preserves_facts_and_stops_retries(connection, row, full_q
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
     assert connection.execute("select location from postings where id=%s", (posting_id,)).fetchone() == before
     stored = connection.execute("select facts from posting_extractions where posting_id=%s", (posting_id,)).fetchone()[0]
-    assert stored == expected
+    assert stored == {**expected, "employer_identity": resolve_employer("Original company", raw_jd, "lane3d")}
     assert job.select_postings(connection, limit=1, posting_ids=[posting_id]) == []
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
-@pytest.mark.parametrize("failure", ["location_quote", "remote_quote", "seniority_quote", "salary_quote", "stack_quote", "stack_duplicate", "schema"])
+@pytest.mark.parametrize("failure", ["location_quote", "remote_quote", "seniority_quote", "stack_quote", "stack_duplicate", "schema"])
 def test_other_failures_still_reject(failure, caplog):
     row = ROWS[-1]
     candidate = candidate_for(row)
@@ -88,3 +89,16 @@ def test_r1_absent_city_and_lexical_controls_still_reject(value, jd):
     candidate["location"] = {"value": value, "evidence_quote": "Harbor City"}
     with pytest.raises(BrainValidationError):
         core.extract_posting({"raw_jd": jd + " " + OTHER_JD}, {}, runner=runner_for(candidate))
+
+
+def test_location_and_salary_failure_drop_only_those_facts():
+    row = ROWS[-1]
+    raw_jd = row["jd"] + " " + OTHER_JD
+    candidate = candidate_for(row)
+    candidate["salary"]["evidence_quote"] = "ABSENT_PRIVATE_SENTINEL"
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["location"] = UNKNOWN
+    expected["salary"] = UNKNOWN
+    expected["salary_remark"] = candidate["salary"]["value"]
+    assert result["facts"] == expected

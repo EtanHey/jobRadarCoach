@@ -1,0 +1,42 @@
+[
+  {
+    "case": "I provide recruitment services.",
+    "jd": "**About The Company**\nAcme Labs is a technology business. I provide recruitment services.\n**About The Role**\nAcme Labs is hiring engineers."
+  },
+  {
+    "case": "I provide staffing services.",
+    "jd": "**About The Company**\nAcme Labs is a technology business. I provide staffing services.\n**About The Role**\nAcme Labs is hiring engineers."
+  },
+  {
+    "case": "I provide staffing solutions to our clients.",
+    "jd": "**About The Company**\nAcme Labs is a technology business. I provide staffing solutions to our clients.\n**About The Role**\nAcme Labs is hiring engineers."
+  },
+  {
+    "case": "Customer testimonial:\n\"Our client is hiring engineers.\" \u2014 HireCo",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\nCustomer testimonial:\n\"Our client is hiring engineers.\" \u2014 HireCo"
+  },
+  {
+    "case": "Recruiting integration example:\n> Our client is seeking a senior engineer.",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\nRecruiting integration example:\n> Our client is seeking a senior engineer."
+  },
+  {
+    "case": "HireCo customer testimonial:\n\"We recruit on behalf of our clients using Acme Labs.\"",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\nHireCo customer testimonial:\n\"We recruit on behalf of our clients using Acme Labs.\""
+  },
+  {
+    "case": "A staffing customer says:\n\"We are hiring engineers for our clients using this software.\"",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\nA staffing customer says:\n\"We are hiring engineers for our clients using this software.\""
+  },
+  {
+    "case": "> Our client, Orbit Inc, is hiring backend engineers.",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\n> Our client, Orbit Inc, is hiring backend engineers."
+  },
+  {
+    "case": "A candidate wrote: \"Our client, Beta Corp, is hiring.\"",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\nA candidate wrote: \"Our client, Beta Corp, is hiring.\""
+  },
+  {
+    "case": "\"They are hiring on behalf of our client Nova.\"",
+    "jd": "About Acme Labs\nAcme Labs builds observability software.\n\"They are hiring on behalf of our client Nova.\""
+  }
+]

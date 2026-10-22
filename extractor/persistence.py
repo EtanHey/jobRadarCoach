@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from scraper.annotate import location_mode, posting_mode
+from scraper.employer_identity import VERSION, resolve_employer
 
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
@@ -50,10 +51,12 @@ def has_current_extraction(
         "select exists (select 1 from public.postings p join public.posting_extractions e "
         "on e.posting_id = p.id where p.id = %s and p.raw_jd = %s and e.brain = %s "
         "and e.model = %s and e.extractor_version = %s and e.schema_sha256 = %s "
-        "and e.jd_sha256 = %s and e.fingerprint = %s)",
+        "and e.jd_sha256 = %s and e.fingerprint = %s "
+        "and e.facts->'employer_identity'->>'resolver_version' = %s "
+        "and e.facts->'employer_identity'->>'publisher' = p.company)",
         (
             posting_id, raw_jd, brain, model, version, schema_sha256, jd_sha256,
-            result_fingerprint,
+            result_fingerprint, VERSION,
         ),
     ).fetchone()
     return row == (True,)
@@ -73,13 +76,16 @@ def persist_extraction(
     payload = build_payload(extraction, captured_raw_jd)
     with connection.transaction():
         posting = connection.execute(
-            "select raw_jd from public.postings where id = %s for update",
+            "select raw_jd, company, source from public.postings where id = %s for update",
             (posting_id,),
         ).fetchone()
         if posting is None:
             raise LookupError("posting does not exist")
         if posting[0] != captured_raw_jd:
             return "stale"
+        payload.facts["employer_identity"] = resolve_employer(
+            str(posting[1]), captured_raw_jd, str(posting[2]),
+        )
         current = connection.execute(
             "select brain, model, extractor_version, schema_sha256, jd_sha256, "
             "fingerprint, facts from public.posting_extractions where posting_id = %s",
@@ -102,14 +108,16 @@ def persist_extraction(
             "work_mode_source = case when work_mode_source in ('structured', 'location') then work_mode_source "
             "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
-            "salary = coalesce(%s, salary) where id = %s and raw_jd = %s returning id",
+            "salary = coalesce(%s, case when lower(salary) = lower(%s) then null else salary end) "
+            "where id = %s and raw_jd = %s returning id",
             (
                 payload.facts["location"]["value"], mode, payload.facts["remote"]["value"],
                 mode, "extracted" if mode_source else None,
                 payload.facts["seniority"]["value"],
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],
-                payload.facts["salary"]["value"], posting_id, captured_raw_jd,
+                payload.facts["salary"]["value"], payload.facts.get("salary_remark"),
+                posting_id, captured_raw_jd,
             ),
         ).fetchone()
         if updated is None:

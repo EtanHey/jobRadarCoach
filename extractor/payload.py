@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
 import hashlib
 import json
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from extractor.core import EXTRACTION_SCHEMA_SHA256, _schema
+from extractor.core import EXTRACTION_SCHEMA_SHA256, MAX_RAW_JD_BYTES, _schema
 from extractor.evidence import validate_facts
-
+from extractor.salary import normalize_salary
 
 _FACT_FIELDS = {"location", "remote", "seniority", "stack", "salary"}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -68,14 +68,19 @@ def fingerprint(
 
 
 def _owned_facts(facts: object, captured_raw_jd: str) -> dict[str, object]:
-    if not isinstance(facts, dict) or set(facts) != _FACT_FIELDS:
+    if not isinstance(facts, dict) or set(facts) not in (_FACT_FIELDS, _FACT_FIELDS | {"salary_remark"}):
         raise ValueError("extraction facts must contain exactly the supported fields")
     try:
         owned = json.loads(json.dumps(facts, ensure_ascii=False, allow_nan=False))
     except (TypeError, ValueError) as error:
         raise ValueError("extraction facts must be finite JSON") from error
     try:
-        Draft202012Validator(_schema()).validate(owned)
+        schema = _schema()
+        schema["properties"]["salary_remark"] = {
+            "type": "string", "minLength": 1, "maxLength": MAX_RAW_JD_BYTES,
+        }
+        normalize_salary(owned, captured_raw_jd)
+        Draft202012Validator(schema).validate(owned)
         validate_facts(owned, captured_raw_jd)
     except (AssertionError, KeyError, TypeError, ValidationError) as error:
         raise ValueError("extraction facts have an invalid shape") from error
