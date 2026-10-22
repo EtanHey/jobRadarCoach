@@ -103,3 +103,21 @@ print(json.dumps([resolve_employer(row['publisher'], row['jd'], source)
     assert.equal(employerLabel({ company: identity.publisher, employer_identity: identity }), identity.publisher);
   }
 });
+
+test("r12 nomination-only client prose never produces an agency badge", () => {
+  const probe = spawnSync("python3", ["-c", `
+import json
+from pathlib import Path
+from scraper.employer_identity import resolve_employer
+cases = json.loads(Path('test_support/fixtures/employer_identity_r12.json').read_text())
+print(json.dumps([resolve_employer(row['publisher'], row['jd'], source)
+                  for row in cases for source in ['linkedin', 'greenhouse']]))
+`], { cwd: import.meta.dirname + "/../..", encoding: "utf8" });
+  assert.equal(probe.status, 0, probe.stderr);
+  const identities = EmployerIdentitySchema.array().parse(JSON.parse(probe.stdout));
+  assert.equal(identities.length, 40);
+  for (const identity of identities) {
+    assert.equal(identity.agency_evidence, null);
+    assert.equal(employerLabel({ company: identity.publisher, employer_identity: identity }), identity.publisher);
+  }
+});

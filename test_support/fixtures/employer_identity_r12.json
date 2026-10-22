@@ -1,0 +1,102 @@
+[
+  {
+    "case": "sol-opening-customer-story",
+    "publisher": "Acme Labs",
+    "jd": "A customer shared this success story: Our client is hiring engineers."
+  },
+  {
+    "case": "sol-opening-recruiter-case-study",
+    "publisher": "Acme Labs",
+    "jd": "In a customer case study, a recruiter explained the workflow. Our client is hiring engineers."
+  },
+  {
+    "case": "sol-about-clients-heading",
+    "publisher": "Acme Labs",
+    "jd": "About our clients\nOur client is hiring engineers."
+  },
+  {
+    "case": "sol-our-customers-heading",
+    "publisher": "Acme Labs",
+    "jd": "Our customers\nOur client is hiring engineers."
+  },
+  {
+    "case": "sol-role-client-case-study",
+    "publisher": "Acme Labs",
+    "jd": "About the role\nA customer shared this success story: Our client is hiring engineers."
+  },
+  {
+    "case": "sol-responsibilities-customer-example",
+    "publisher": "Acme Labs",
+    "jd": "Responsibilities\nIn a client case study, the hiring manager described the team: our client is hiring engineers."
+  },
+  {
+    "case": "sol-recruiter-partnership-disclaimer",
+    "publisher": "Acme Labs",
+    "jd": "We partner with recruiters; the phrase our client is hiring engineers describes their work, while we hire only for our own team."
+  },
+  {
+    "case": "sol-hebrew-role-testimonial",
+    "publisher": "Acme Labs",
+    "jd": "על התפקיד\nלקוח שיתף כיצד הכלי עזר לו: לקוח שלנו מגייס מהנדסים."
+  },
+  {
+    "case": "sol-hebrew-description-testimonial",
+    "publisher": "Acme Labs",
+    "jd": "תיאור המשרה\nA customer shared this success story: Our client is hiring engineers."
+  },
+  {
+    "case": "sol-unknown-heading-with-predicate",
+    "publisher": "Acme Labs",
+    "jd": "Job description\nOur customers are hiring\nOur client is hiring engineers."
+  },
+  {
+    "case": "cursor-n01-customer-story-opening",
+    "publisher": "Acme Labs",
+    "jd": "Many customers share that our client is hiring engineers after adopting our product."
+  },
+  {
+    "case": "cursor-n02-about-our-clients",
+    "publisher": "Acme Labs",
+    "jd": "About our clients\nOur client is hiring engineers."
+  },
+  {
+    "case": "cursor-n03-our-customers",
+    "publisher": "Acme Labs",
+    "jd": "Our customers\nOur client is hiring engineers."
+  },
+  {
+    "case": "cursor-n04-job-heading-case-study",
+    "publisher": "Acme Labs",
+    "jd": "About the role\nCase study: after launching with Orbit, our client is hiring engineers across three continents."
+  },
+  {
+    "case": "cursor-n05-partner-recruiters",
+    "publisher": "Acme Labs",
+    "jd": "We partner with recruiters when needed. Our client is hiring engineers."
+  },
+  {
+    "case": "cursor-n06-hebrew-job-testimonial",
+    "publisher": "Acme Labs",
+    "jd": "תיאור המשרה\nCustomers often write that our client is hiring engineers for similar roles."
+  },
+  {
+    "case": "cursor-n07-hebrew-al-testimonial",
+    "publisher": "Acme Labs",
+    "jd": "על התפקיד\nPast clients report that our client is hiring engineers this quarter."
+  },
+  {
+    "case": "cursor-n08-about-the-clients",
+    "publisher": "Acme Labs",
+    "jd": "## About the clients\nOur client is hiring engineers."
+  },
+  {
+    "case": "cursor-n09-responsibilities-then-story",
+    "publisher": "Acme Labs",
+    "jd": "Responsibilities\nA customer success story shows our client is hiring engineers in Berlin."
+  },
+  {
+    "case": "cursor-n10-job-description-partner",
+    "publisher": "Acme Labs",
+    "jd": "Job description\nWe partner with recruiters; our client is hiring engineers for this opening."
+  }
+]
