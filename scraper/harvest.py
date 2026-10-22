@@ -25,9 +25,14 @@ from zoneinfo import ZoneInfo
 if __package__ in {None, ""} and __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scraper.geography import (  # noqa: E402
-    _city_matches_country, _contains_normalized_phrase, _normalized_location,
-)
+try:
+    from scraper.geography import (  # noqa: E402
+        _city_matches_country, _contains_normalized_phrase, _normalized_location,
+    )
+except ImportError:
+    from geography import (
+        _city_matches_country, _contains_normalized_phrase, _normalized_location,
+    )
 
 
 ANNOTATION_BUDGET_SECONDS = 300.0

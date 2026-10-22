@@ -70,6 +70,20 @@ def test_harvest_module_exists() -> None:
     assert HARVEST_PATH.is_file(), "harvest.py must provide the scheduled job-feed entry point"
 
 
+@pytest.mark.parametrize("arguments", [
+    ["-c", "import harvest"],
+    [str(RESCORE_SCRIPT_PATH), "--fixture", str(ROUND4_RESCORE_FIXTURE_PATH),
+     "--profile", str(PROFILE_PATH)],
+])
+def test_standalone_import_without_installed_package(arguments) -> None:
+    # Ignore PYTHON* variables and site-packages, including editable-install hooks.
+    result = subprocess.run(
+        [sys.executable, "-E", "-S", *arguments],
+        cwd=HERE, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_parse_saved_linkedin_guest_fixture() -> None:
     harvest = load_harvest_module()
     postings = harvest.parse_job_cards(FIXTURE_PATH.read_text(encoding="utf-8"))
