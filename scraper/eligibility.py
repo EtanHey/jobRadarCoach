@@ -472,8 +472,11 @@ def _positive_nonown_signal(clause: str, own_location: str, company: str) -> boo
     if (re.search(rf"\b(?:{ADDRESS_PROXIMITY}|between)\s+", address_clause, re.I)
             and re.search(rf"\b{WORKPLACE_NOUN}\b|\bhybrid\b", address_clause, re.I)):
         return True
-    if re.search(r"(?i:\b(?:in|at)\s+(?:the\s+)?)"
-                 r"[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*\s+(?i:building|towers?)\b", clause, re.I):
+    if re.search(
+        r"\b(?:in|at)\s+(?:the\s+)?"
+        r"(?!(?:our|your|their|a|an|world)\b)[\w'-]+(?:\s+[\w'-]+){0,3}\s+"
+        r"(?:building|towers?)\b", clause, re.I,
+    ):
         return True
     if (CREDENTIAL.search(clause) or NATIONALITY_CREDENTIAL.search(clause)
             or re.search(r"\b(?:citizens?|applicants?|candidates?|residents?)\b|אזרח|מועמד|תושב", clause, re.I)):

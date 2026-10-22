@@ -110,6 +110,8 @@ def test_workplace_extension_preserves_non_israeli_decision(location):
 
 
 @pytest.mark.parametrize('jd', [
+    'Hybrid model, with a gym in our building',
+    'Help decide how the platform should work in the world of Vibe Coding with a background building production systems',
     'Experience working in Linux-based environments',
     'Proficiency in MS Office',
     'Squads work in SCRUM methodology',
