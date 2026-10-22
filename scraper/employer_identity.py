@@ -1,13 +1,13 @@
-"""Conservative role attribution, with publisher self-description across the JD."""
+"""Conservative role attribution using named staffing and explicit client evidence."""
 from __future__ import annotations
 
 import re
 
 from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
-from scraper.employer_aliases import ALIASES, is_alias
+from scraper.employer_aliases import is_alias
 
-VERSION = '9'
+VERSION = '10'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -42,8 +42,6 @@ STAFFING_SERVICES = re.compile(
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
     r"(?: and (?:staffing|recruiting|recruitment))? services\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) (?:innovative )?staffing solutions\b"
-    r"|\bwe place candidates\b"
-    r"|\bour (?:recruitment|recruiting|staffing) firm represents\b"
     r"|(?:היא |הינה )?חברת (?:השמה|גיוס)\b",
     re.I,
 )
@@ -51,22 +49,19 @@ PRODUCT = re.compile(r"\b(?:software|platform|tool|saas|app|product)s?\b", re.I)
 PLACEMENT_CONTEXT = re.compile(r"\b(?:clients?|candidates?|placement|placing|connecting (?:talented )?professionals)\b", re.I)
 
 
-def _staffing_statement(text: str, company: str | None = None, *, allow_self: bool = True) -> bool:
-    """Require a self or named-company subject, never a customer's business."""
+def _staffing_statement(text: str, company: str | None = None) -> bool:
+    """Require a named-company subject; first-person ownership is never inferred."""
     for clause in re.split(r'[.;!?]\s+|\n+', text):
         for match in STAFFING_SERVICES.finditer(clause):
             subject = clause[:match.start()].strip(' *\t')
             subject = re.sub(r'\s+(?:is|are)\s+(?:(?:an?|the|leading|global|international|specialist|specialized)\s*)*$', '', subject, flags=re.I)
-            self_description = subject.casefold() in {'we', 'אנחנו', 'אנו'} or (
-                not subject and match[0].casefold().startswith(('we ', 'our ')))
             named_company = bool(re.fullmatch(NAME, subject)) and not (
-                subject.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
+                subject.casefold() in GENERIC
+                or subject.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
                 or any(word[0].islower() and word not in {'of', 'the', 'and'} for word in subject.split()))
-            if self_description and not allow_self:
+            if not named_company:
                 continue
-            if not self_description and not named_company:
-                continue
-            if company is not None and not self_description and subject.casefold() != company.casefold():
+            if company is not None and subject.casefold() != company.casefold():
                 continue
             if PRODUCT.search(clause[:match.start()]) or re.match(r"\s*" + PRODUCT.pattern, clause[match.end():], re.I):
                 continue
@@ -76,57 +71,11 @@ def _staffing_statement(text: str, company: str | None = None, *, allow_self: bo
     return False
 
 
-ABOUT_HEADING = re.compile(
-    r'^[ \t]*(?:\#{1,6}[ \t]+)?\*{0,2}'
-    r'(?:About[ \t]+(?P<title>[^:\n*]+?)|אודות[ \t]+(?P<he_title>[^:\n*]+?)|(?P<he_us>אודותינו))'
-    r'\*{0,2}[ \t]*(?::|$)', re.I | re.M)
-SELF_HEADINGS = {'us', 'the company', 'company', 'החברה', 'אודותינו'}
-# Unrecognized capitalized/brand or Hebrew words make ownership uncertain. This
-# deliberately loses some agency labels rather than guessing a company's voice.
-OWNER_PROSE = {
-    'we', 'our', 'אנחנו', 'אנו', 'חברת', 'השמה', 'גיוס', 'היא', 'הינה',
-    'אודות', 'החברה', 'אודותינו',
-}
-OWNER_TOKEN = re.compile(r"[^\W\d_][\w’'.&-]*")
-
-
-def _heading_title(heading: re.Match) -> str:
-    return next(value.strip().casefold() for value in heading.groups() if value)
-
-
-def _uncertain_owner(text: str, publisher_names: set[str]) -> bool:
-    text = ABOUT_HEADING.sub(
-        lambda heading: '' if _heading_title(heading) in publisher_names | SELF_HEADINGS else heading[0], text)
-    for name in sorted(publisher_names, key=len, reverse=True):
-        text = re.sub(r'(?<!\w)' + re.escape(name) + r'(?!\w)', '', text, flags=re.I)
-    text = re.sub(r'\bRole (?:responsibilities|details)\.', '', text)
-    if re.search(r'\b(?:meet|our partner)\s+\w', text, re.I):
-        return True
-    return any(token.strip("’'.&-").casefold() not in OWNER_PROSE and (
-        any(char.isupper() for char in token) or re.search(r'[\u0590-\u05ff]', token))
-        for token in OWNER_TOKEN.findall(text))
-
-
 def _publisher_staffing_statements(raw_jd: str, publisher: str):
-    """Require an owner heading and uncontaminated context for first-person voice."""
-    publisher_names = {publisher.casefold()}
-    for name, aliases in ALIASES.items():
-        if name.casefold() == publisher.casefold():
-            publisher_names.update(alias.casefold() for alias in aliases)
-    headings = list(ABOUT_HEADING.finditer(raw_jd))
-    sections = [(None, 0, headings[0].start() if headings else len(raw_jd))]
-    sections.extend((heading, heading.end(), headings[i + 1].start() if i + 1 < len(headings)
-                     else len(raw_jd)) for i, heading in enumerate(headings))
-    for heading, start, end in sections:
-        title = _heading_title(heading) if heading else ''
-        publisher_section = bool(heading) and title in publisher_names | SELF_HEADINGS
-        publisher_section &= not _uncertain_owner(raw_jd[start:end], publisher_names)
-        for line in re.compile(r'[^\n]+').finditer(raw_jd, start, end):
-            line_start = raw_jd.rfind('\n', 0, line.start()) + 1
-            preceding = '\n'.join(raw_jd[:line_start].splitlines()[-3:])
-            allow_self = publisher_section and not _uncertain_owner(preceding, publisher_names)
-            if _staffing_statement(line[0], publisher, allow_self=allow_self):
-                yield line
+    """Named third-person publisher statements count at any position in the JD."""
+    for line in re.finditer(r'[^\n]+', raw_jd):
+        if _staffing_statement(line[0], publisher):
+            yield line
 
 
 ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)

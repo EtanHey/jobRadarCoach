@@ -229,13 +229,13 @@ def test_explicit_third_party_role_blocks_ats_fallback(wording):
     assert result['agency_evidence'] == jd
 
 
-def test_candidate_placement_is_staffing_evidence():
+def test_first_person_candidate_placement_is_not_staffing_evidence():
     jd = ('**About The Company**\n\nBridge Partners is a talent business. '
           'We place candidates with our clients.\n\n**About The Role**\n\n'
           'Bridge Partners is hiring an engineer.')
     result = resolve_employer('Bridge Partners', jd, 'greenhouse')
-    assert result['hiring_employer'] is None
-    assert result['agency_evidence'] in jd
+    assert result['hiring_employer'] == 'Bridge Partners'
+    assert result['agency_evidence'] is None
 
 
 @pytest.mark.parametrize('jd', [
@@ -344,13 +344,13 @@ def test_on_behalf_of_company_requires_client_wording(company):
     assert result['agency_evidence'] is None
 
 
-@pytest.mark.parametrize('employer,expected', [('HireCo', None), ('Acme Labs', 'Acme Labs')])
+@pytest.mark.parametrize('employer,expected', [('HireCo', 'HireCo'), ('Acme Labs', 'Acme Labs')])
 def test_first_person_staffing_description_distinguishes_publisher_from_client(employer, expected):
     jd = ('**About The Company**\nWe are a staffing firm.\n'
           f'**About The Role**\n{employer} is hiring an engineer.')
     result = resolve_employer('HireCo', jd, 'greenhouse')
     assert result['hiring_employer'] == expected
-    assert result['agency_evidence'] == 'We are a staffing firm.'
+    assert result['agency_evidence'] is None
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
@@ -385,8 +385,9 @@ def test_review_r4_customer_descriptions_are_not_publisher_agency_evidence(sourc
 def test_precision_self_description_labels_sotalent_without_inventing_client(source, statement):
     jd = f'**About The Company**\n{statement}\n**About The Role**\nSoTalent is hiring engineers.'
     result = resolve_employer('SoTalent', jd, source)
-    assert result['agency_evidence'] == statement
-    assert result['hiring_employer'] is None
+    named = statement.startswith('SoTalent ')
+    assert result['agency_evidence'] == (statement if named else None)
+    assert result['hiring_employer'] == (None if named else 'SoTalent')
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
@@ -446,7 +447,7 @@ def test_review_r5_customer_business_is_not_publisher_evidence(source, jd):
 def test_review_r6_publisher_self_description_anywhere(source, statement, padding):
     heading = 'About HireCo\n' if padding and statement.startswith('We ') else ''
     result = resolve_employer('HireCo', padding + heading + statement, source)
-    unattributed_self = not padding and statement.startswith('We ')
+    unattributed_self = statement.startswith('We ')
     assert result['agency_evidence'] == (None if unattributed_self else statement)
     assert result['hiring_employer'] == ('HireCo' if unattributed_self and source == 'greenhouse' else None)
 
@@ -504,11 +505,11 @@ def test_review_r7_other_company_first_person_is_not_publisher(source, footer, p
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
 @pytest.mark.parametrize('heading', ['About HireCo:', 'About us:', '**About us**\n'])
-def test_review_r7_publisher_late_section_keeps_agency(source, heading):
+def test_review_r7_publisher_late_first_person_is_conservative(source, heading):
     jd = 'Role responsibilities.\n' * 40 + heading + ' We are a recruitment agency.'
     result = resolve_employer('HireCo', jd, source)
-    assert result['agency_evidence'] is not None
-    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == ('HireCo' if source == 'greenhouse' else None)
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
@@ -545,11 +546,11 @@ def test_review_r7_opening_self_description_requires_owner_heading(source):
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
-def test_review_r7_publisher_section_after_other_company_restores_ownership(source):
+def test_review_r7_publisher_section_does_not_restore_first_person(source):
     jd = 'About OtherCo\nWe build tools.\n' + 'Role responsibilities.\n' * 40
     result = resolve_employer('HireCo', jd + 'About us:\nWe are a staffing firm.', source)
-    assert result['agency_evidence'] == 'We are a staffing firm.'
-    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == ('HireCo' if source == 'greenhouse' else None)
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
@@ -599,11 +600,11 @@ def test_review_r8_other_name_blocks_first_person(source, heading, other, positi
     'אודות החברה', 'אודותינו', 'אודות HireCo',
 ])
 @pytest.mark.parametrize('statement', ['We are a staffing firm.', 'אנחנו חברת השמה.'])
-def test_review_r8_clean_owner_heading_counts(source, heading, statement):
+def test_review_r8_clean_owner_heading_is_conservative(source, heading, statement):
     jd = 'Role responsibilities.\n' * 40 + heading + '\n' + statement
     result = resolve_employer('HireCo', jd, source)
-    assert result['agency_evidence'] == statement
-    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == ('HireCo' if source == 'greenhouse' else None)
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
@@ -621,14 +622,14 @@ def test_review_r8_three_preceding_lines(source, distance):
     jd = ('HireCo introduces itself.\n' + '\n' * (distance - 1)
           + 'About us: We are a staffing firm.')
     result = resolve_employer('Acme Labs', jd, source)
-    assert bool(result['agency_evidence']) == (distance == 4)
+    assert result['agency_evidence'] is None
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
 def test_review_r8_publisher_alias_is_not_foreign(source):
     jd = 'About BMC\nBMC Software builds tools.\nWe are a staffing firm.'
     result = resolve_employer('BMC Software', jd, source)
-    assert result['agency_evidence'] == 'We are a staffing firm.'
+    assert result['agency_evidence'] is None
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
@@ -637,3 +638,61 @@ def test_review_r8_third_person_survives_contaminated_section(source):
     result = resolve_employer('Acme Labs', jd, source)
     assert result['agency_evidence'] == 'Acme Labs is a staffing firm.'
     assert result['hiring_employer'] is None
+
+
+R9_FOREIGN_SIGNALS = [
+    'our recruiting partner hireco introduces itself:',
+    '- hireco is a staffing firm; it describes itself below:',
+    '| partner | profile |\n| hireco | recruiting firm |',
+    '[hireco](https://hireco.example) is our recruiting partner and introduces itself:',
+    'in partnership with hireco worldwide.',
+    'working with orbit recruiting on this role.',
+    'posted via talentbridge for this opening.',
+    'together with hireco we fill roles.',
+    'email jobs@hireco.com',
+]
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('signal', R9_FOREIGN_SIGNALS)
+def test_review_r9_lowercase_partner_sections_keep_publisher(source, signal):
+    jd = 'Acme Labs is hiring engineers.\nAbout us\n' + signal + '\nWe are a staffing firm.'
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['relationship'] == 'unchanged'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('boundary', [
+    '\n\n', '\nAbout us\n', '\nAbout the company\n', '\nאודות\n',
+    '\n# Overview\n', '\nResponsibilities:\n', '\n---\n', '\n- Our business:\n',
+])
+def test_review_r9_first_person_after_section_break_is_not_publisher(source, boundary):
+    jd = 'Acme Labs is hiring engineers.' + boundary + 'We are a staffing firm.'
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Acme Labs'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', [
+    'We are a staffing firm.', 'We are a recruiting firm.',
+    'We provide recruitment services to our clients.', 'We place candidates.',
+    'Our recruitment firm represents a client.', 'אנחנו חברת השמה.', 'אנו חברת גיוס.',
+])
+@pytest.mark.parametrize('prefix', ['', 'About us\n', 'Role details.\n' * 40 + 'אודות החברה\n'])
+def test_review_r9_first_person_never_counts(source, statement, prefix):
+    result = resolve_employer('Acme Labs', prefix + statement, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == ('Acme Labs' if source == 'greenhouse' else None)
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', ['We are a staffing firm.', 'We provide recruitment services.'])
+def test_review_r9_candidate_blurb_cannot_restore_first_person(source, statement):
+    jd = ('**About The Company**\nAcme Labs is a technology business. ' + statement
+          + '\n**About The Role**\nAcme Labs is hiring engineers.')
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Acme Labs'
