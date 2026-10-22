@@ -152,6 +152,22 @@ rows with unresolved composite location fields move from blocked to unknown.
 Expim Haifa and Plasan Sasa retain their commute blocks. The Benin/building and Peru/Pro homographs remain
 conservative unknowns, as does the unsupported London-office attendance probe.
 
+P8C extends the same unresolved-slot method to role-limited/restricted wording,
+place-based applicants without exclusivity, Hebrew intended-applicant wording,
+and labeled eligible-country lists. These frames veto an unqualified pass when
+the slot cannot resolve as Israeli. They do not infer a foreign country from a
+demonym. Under the positive-Israeli-location rule, these explicit scope slots
+also supply non-own place evidence, including unknown place names and country
+codes; own-location and language-only controls remain satisfied.
+Country-first `US residents only` uses the existing residence policy,
+including the Israeli/unresolved-header downgrade. Bullet-separated ATS location
+alternatives retain every field; recognized US city/state pairs use the shared
+city and state tables. Unknown alternatives prevent a closed foreign scope.
+Run `PYTHONPATH=. python scripts/eligibility_p8c_dryrun.py <snapshot.jsonl>` for
+the frozen offline comparison against `origin/master`, including every decision
+and reason change. Use `--baseline SHA` to pin the comparison. The only snapshot
+decision changes are the three Figma bullet-field rows moving unknown to blocked.
+
 When a posting's location resolves positively to Israel, own-workplace cleanup
 still handles recognized addresses and work models. Residual prose without a
 positive non-own signal no longer vetoes eligibility. An unfamiliar city with an
