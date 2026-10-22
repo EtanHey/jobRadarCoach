@@ -13,7 +13,7 @@ from typing import Literal, Protocol
 from classifier import core, projection
 from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
 
-SCORER_VERSION = "1.3"
+SCORER_VERSION = "1.4"
 PersistOutcome = Literal["stored", "unchanged", "stale", "failed"]
 
 
@@ -96,7 +96,9 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
     )
 
 
-def _labels(annotation: Mapping[str, object]) -> dict[str, object]:
+def _labels(
+    annotation: Mapping[str, object], posting: Mapping[str, object]
+) -> dict[str, object]:
     reasons = annotation["reasons"]
     if not isinstance(reasons, list):
         raise TypeError("validated reasons must be a list")
@@ -105,18 +107,17 @@ def _labels(annotation: Mapping[str, object]) -> dict[str, object]:
     remote = by_factor["preferences"]["assessment"]
     if remote != "unknown":
         raise ValueError("withheld preferences must remain unknown")
-    supported = " ".join(
-        str(reason["detail"])
-        for factor in ("product_role_match", "stack_domain_evidence")
-        if (reason := by_factor[factor])["assessment"] in {"positive", "mixed"}
-    )
+    # The advertised title is the role's identity frame. Comparison reasons,
+    # company names and incidental JD technology mentions are not role titles.
+    title = posting.get("title")
+    title = title if isinstance(title, str) else ""
     matches = [
         label for label, pattern in (
             ("fullstack", r"\bfull[ -]?stack\b"),
             ("frontend", r"\bfront[ -]?end\b"),
             ("ai", r"\b(?:AI|LLM|machine learning|artificial intelligence)\b"),
             ("voice", r"\b(?:voice|speech|audio)\b"),
-        ) if re.search(pattern, supported, re.IGNORECASE)
+        ) if re.search(pattern, title, re.IGNORECASE)
     ]
     return {
         "role_type": matches[0] if len(matches) == 1 else None,
@@ -141,7 +142,7 @@ def _store(
     connection: Connection, captured: _Inputs, result: core.ScoringResult
 ) -> PersistOutcome:
     payload = json.loads(json.dumps(result.annotation, ensure_ascii=False, allow_nan=False))
-    labels = _labels(payload)
+    labels = _labels(payload, captured.posting)
     desired = (
         payload["fit_score"], payload["reasons"], labels, result.brain, result.model,
         SCORER_VERSION, *captured.fingerprints(), payload,

@@ -64,6 +64,28 @@ def runner_for(data: dict[str, object], captured: dict[str, object] | None = Non
     return run
 
 
+@pytest.mark.parametrize("field", ["seniority", "stack"])
+def test_candidate_voice_evidence_cannot_be_extracted_as_a_role_fact(field) -> None:
+    from extractor.evidence import ExtractionValidationError
+
+    profile = {
+        "runtime.brain": "ollama",
+        "candidate.positioning": "Voice Engineer",
+        "fit_signals": [{"claim": "Shipped production voice-agent tool calling."}],
+    }
+    candidate = facts()
+    voice = {"value": "Voice Engineer", "evidence_quote": "Voice Engineer"}
+    candidate[field] = [voice] if field == "stack" else voice
+    captured = {}
+
+    with pytest.raises(ExtractionValidationError):
+        core.extract_posting(posting(), profile, runner=runner_for(candidate, captured))
+
+    assert captured["profile_snapshot"] == {"runtime.brain": "ollama"}
+    assert "Voice Engineer" not in captured["prompt"]
+    assert "voice-agent tool calling" not in captured["prompt"]
+
+
 def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     original = posting()
     unchanged = deepcopy(original)
