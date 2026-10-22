@@ -23,7 +23,7 @@ from scraper.brain import (
 
 LOGGER = logging.getLogger("coach.jobfeed.extractor")
 
-EXTRACTOR_VERSION = "1.7"
+EXTRACTOR_VERSION = "1.8"
 _PROMPT_VERSION = "1.5"  # Salary policy is deterministic; preserve provider input.
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
