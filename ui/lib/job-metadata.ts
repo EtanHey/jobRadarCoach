@@ -21,43 +21,58 @@ export function titleSeniority(title: string): string | null {
   return null;
 }
 
+/** One-for-one masking preserves source offsets while sharing SQL's clause boundaries. */
+function normalizeExperienceText(description: string): string {
+  let text = description;
+  for (const char of patterns.normalization.space) text = text.replaceAll(char, " ");
+  for (const char of patterns.normalization.newline) text = text.replaceAll(char, "\n");
+  for (const pattern of patterns.normalization.mask) {
+    text = text.replace(new RegExp(pattern, "gmi"), match => " ".repeat(match.length));
+  }
+  return text;
+}
+
 /** Quote only an explicit years-of-experience phrase, never infer it from level. */
 export function experiencePhrase(description: string | null): string | null {
   if (!description) return null;
+  const normalized = normalizeExperienceText(description);
   const number = patterns.number;
   const lead = `(?<![A-Za-z0-9_.])(?:(?:at least|minimum(?:[ \\t]+of)?|over|around)[ \\t]+)?${number}(?:[ \\t]*(?:[-–—]|to)[ \\t]*${number})?\\+?(?:[ \\t]+or more)?[ \\t]+(?:overall[ \\t]+)?years?\\b`;
-  const phrase = new RegExp(patterns.englishTail.map(tail => lead + tail).concat(patterns.hebrew).join("|"), "gi");
+  const phrase = new RegExp(patterns.englishTail.map(tail => lead + tail).concat(patterns.hebrew, lead).join("|"), "gi");
   let strongest: { minimum: number; quote: string } | null = null;
+  const bareYears = new RegExp(`^${lead}$`, "i");
   const alternativeYears = new RegExp(patterns.alternativeYears.replaceAll("{number}", number), "i");
-  for (const match of description.matchAll(phrase)) {
+  for (const match of normalized.matchAll(phrase)) {
     const index = match.index;
     const tokens = [...match[0].matchAll(new RegExp(`(?<![A-Za-z0-9_])${number}(?![A-Za-z0-9_])`, "gi"))];
     const wordNumber = tokens.some(token => /^[a-z]/i.test(token[0]));
     const amounts = tokens.map(amount => /^\d+$/.test(amount[0]) ? Number(amount[0]) : patterns.words.indexOf(amount[0].toLowerCase()));
-    if (amounts.length > 1 && amounts[1] < amounts[0]) continue;
-    const quoted = match[0]
-      .replace(/^minimum(?:\s+of)?\s+/i, "")
+    const withoutLead = match[0].replace(/^minimum(?:\s+of)?\s+/i, "");
+    const quoted = withoutLead
       .replace(/\s+(?:with|and|in|who|that)$/i, "")
       .replace(/[.,;:]+$/, "");
-    const boundary = Math.max(description.lastIndexOf(".", index - 1), description.lastIndexOf("!", index - 1), description.lastIndexOf("?", index - 1), description.lastIndexOf("\n", index - 1));
-    const context = description.slice(boundary + 1, index).trim();
+    const boundary = Math.max(normalized.lastIndexOf(".", index - 1), normalized.lastIndexOf("!", index - 1), normalized.lastIndexOf("?", index - 1), normalized.lastIndexOf("\n", index - 1), normalized.lastIndexOf(";", index - 1));
+    const context = normalized.slice(boundary + 1, index).trim();
     const nearContext = context.slice(-180);
-    const headings = description.slice(0, index).matchAll(new RegExp(patterns.headings, "gmi"));
+    const headings = normalized.slice(0, index).matchAll(new RegExp(patterns.headings, "gmi"));
     let section: "applicant" | "optional" | "other" = "other";
     for (const heading of headings) {
       const text = (heading[1] ?? heading[2] ?? heading[3]).replace(/[:#*]+$/, "").replace(/^[^A-Za-zא-ת]+/, "").trim();
-      if (new RegExp(patterns.optionalHeading, "i").test(text)) section = "optional";
+      if (new RegExp(`^(?:${patterns.optionalScope})`, "i").test(text)
+        && !new RegExp(patterns.headingTenure.replaceAll("{number}", number), "i").test(text)) section = "optional";
       else if (new RegExp(patterns.requiredHeading, "i").test(text)) section = "applicant";
       else if (new RegExp(patterns.otherHeading, "i").test(text)) section = "other";
     }
-    const remainder = description.slice(index + match[0].length);
+    const remainder = normalized.slice(index + match[0].length);
     const suffix = remainder.split(/[.!?\n;]/, 1)[0];
-    const continuation = remainder.match(/^[^\n]*\n[ \t]+(?:or|או)(?=\s)[^\n]*/)?.[0] ?? "";
     const hebrew = /[א-ת]/.test(match[0]);
-    if (new RegExp(patterns.reject, "i").test(`${nearContext} ${hebrew ? "" : match[0]} ${suffix} ${continuation}`)) continue;
+    if (new RegExp(patterns.reject, "i").test(`${nearContext} ${hebrew ? "" : match[0]} ${suffix}`)) continue;
     if (new RegExp(`(?<![A-Za-z0-9_])(?:${number})[ -]*$`, "i").test(nearContext)) continue;
     if (hebrew && !new RegExp(patterns.hebrewPrefix).test(nearContext)) continue;
-    const optional = section === "optional" || /^\s*(?:[,;:–—-]\s*)?(?:is\s+)?(?:not required|not necessary|optional|nice to have|a plus|preferred)\b/i.test(suffix);
+    // Qualifiers bind to the complete clause, including a specialist object after
+    // the quote. Section scope applies until a subsequent heading changes it.
+    const optional = section === "optional"
+      || new RegExp(patterns.optionalScope, "i").test(`${nearContext} ${match[0]} ${suffix}`);
     const company = (/\b(?:has|have)\s*$/i.test(nearContext) && !/\b(?:you|must)\s+have\s*$/i.test(nearContext))
       || /\b(?:our|the|this)\s+(?:company|firm|business)\b[^.!?\n]{0,100}$/i.test(nearContext)
       || /\bour team\s+(?:has|combines|brings|boasts|offers)\b[^.!?\n]{0,80}$/i.test(nearContext)
@@ -71,10 +86,14 @@ export function experiencePhrase(description: string | null): string | null {
     if (!optional && !company && required) {
       // A numeric alternative changes the role threshold: never fall through to
       // an unrelated specialist requirement when that threshold is ambiguous.
-      if (alternativeYears.test(`${suffix} ${continuation}`)) return null;
+      if (alternativeYears.test(`${match[0]} ${suffix}`)) return null;
+      if (amounts.length > 1 && amounts[1] < amounts[0]) continue;
+      // Bare tenure participates in alternatives, but is never display evidence.
+      if (bareYears.test(match[0])) continue;
       const minimum = amounts[0];
       if (minimum !== undefined && (!strongest || minimum > strongest.minimum)) {
-        strongest = { minimum, quote: quoted };
+        const quoteStart = index + match[0].length - withoutLead.length;
+        strongest = { minimum, quote: description.slice(quoteStart, quoteStart + quoted.length) };
       }
     }
   }
