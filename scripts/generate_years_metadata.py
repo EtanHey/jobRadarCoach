@@ -74,11 +74,16 @@ def experience_phrase(description):
             if search(SPEC['numericTenure'], non_team):
                 return None
             continue
-        if search(SPEC['company'], clause[max(0, context_end - 180):context_end]):
-            continue
-        if matches and search(SPEC['company'], clause[matches[0].end():]):
-            continue
-        if search(SPEC['employerVerb'], clause[:context_end]) and not search(SPEC['applicantVerb'], clause[:context_end]):
+        context = clause[:context_end]
+        if (search(SPEC['company'], context[-180:])
+                or (matches and search(SPEC['company'], clause[matches[0].end():]))
+                or (search(SPEC['employerVerb'], context) and not search(SPEC['applicantVerb'], context))):
+            # Exclude only one quantity, not a frame that may include word-number tenure.
+            tenure = search(SPEC['numericTenure'], clause)
+            without_quantity = re.sub(SPEC['exclusionQuantity'], '', tenure[0], count=1, flags=re.I | re.ASCII)
+            non_employer = clause[:tenure.start()] + ('' if without_quantity == tenure[0] else without_quantity) + clause[tenure.end():]
+            if search(SPEC['numericTenure'], non_employer):
+                return None
             continue
         if search(SPEC['precedingNumber'], clause[:context_end]):
             return None
@@ -238,9 +243,19 @@ begin
         if (residue collate "C") ~* '{patterns['numericTenure']}' then experience := null; exit; end if;
         continue;
       end if;
-      if (right(context,180) collate "C") ~* '{patterns['company']}' then continue; end if;
-      if start_at > 0 and (substr(clause,end_at) collate "C") ~* '{patterns['company']}' then continue; end if;
-      if (context collate "C") ~* '{patterns['employerVerb']}' and (context collate "C") !~* '{patterns['applicantVerb']}' then continue; end if;
+      if (right(context,180) collate "C") ~* '{patterns['company']}'
+        or (start_at > 0 and (substr(clause,end_at) collate "C") ~* '{patterns['company']}')
+        or ((context collate "C") ~* '{patterns['employerVerb']}' and (context collate "C") !~* '{patterns['applicantVerb']}') then
+        -- Exclude only one quantity, not a frame that may include word-number tenure.
+        mask_start := regexp_instr(clause collate "C", '{patterns['numericTenure']}', 1, 1, 0, 'i');
+        mask_end := regexp_instr(clause collate "C", '{patterns['numericTenure']}', 1, 1, 1, 'i');
+        matched := substr(clause,mask_start,mask_end-mask_start);
+        quoted := regexp_replace(matched collate "C", '{patterns['exclusionQuantity']}', '', 'i');
+        if quoted = matched then quoted := ''; end if;
+        residue := substr(clause,1,mask_start-1) || quoted || substr(clause,mask_end);
+        if (residue collate "C") ~* '{patterns['numericTenure']}' then experience := null; exit; end if;
+        continue;
+      end if;
       if (context collate "C") ~* '{patterns['precedingNumber']}' then experience := null; exit; end if;
       matched := substr(clause,start_at,end_at-start_at);
       residue := clause;
@@ -278,4 +293,4 @@ commit;
 
 
 if __name__ == '__main__':
-    (ROOT / 'supabase/migrations/0040_years_compact_formats.sql').write_text(generate())
+    (ROOT / 'supabase/migrations/0041_years_employer_tenure.sql').write_text(generate())
