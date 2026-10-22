@@ -23,6 +23,9 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "Haifa",
         "Jerusalem",
         "Ra'anana",
+        "Raanana",
+        "Modiin",
+        "Modi'in",
         "Hod Hasharon",
         "Netanya",
         "Rehovot",
@@ -37,6 +40,7 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "חיפה",
         "ירושלים",
         "רעננה",
+        "מודיעין",
         "הוד השרון",
         "נתניה",
         "רחובות",
@@ -44,7 +48,8 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "באר שבע",
         "יקנעם",
     ),
-    "united states": ("San Francisco",),
+    "united states": ("San Francisco", "New York", "New York City"),
+    "germany": ("Berlin",),
 }
 
 
@@ -328,6 +333,7 @@ US_STATE_IDENTIFIERS = frozenset(
 )
 COUNTRY_OWN_IDENTIFIERS = {
     "israel": frozenset(("israel", "il", "isr")),
+    "germany": frozenset(("germany", "de", "deu")),
     "united states": frozenset(
         (
             "united states",

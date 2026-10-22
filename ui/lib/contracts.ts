@@ -35,7 +35,7 @@ export const ScorePayloadSchema = z.object({
   fit_tier: z.enum(["strong", "good", "stretch", "weak"]),
   recommendation: RecommendationSchema,
   eligibility: EligibilitySchema.optional(),
-  eligibility_reason: nullableText.optional(),
+  eligibility_reason: text.trim().min(1).optional(),
   reasons: z.array(ScoreReasonSchema),
   fit_line: text,
   fit_line_evidence_ids: z.array(text),

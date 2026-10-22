@@ -21,6 +21,35 @@ PROFILE = {
 EVIDENCE = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-triage.json").read_text()
 )
+ADVERSARIAL = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-adversarial.json").read_text()
+)
+
+
+@pytest.mark.parametrize("case_id,location,jd,expected", ADVERSARIAL)
+def test_reviewer_adversarial(case_id, location, jd, expected):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": jd}, None, PROFILE
+    )
+    assert result["eligibility"] == expected, case_id
+
+
+@pytest.mark.parametrize("city", ["Haifa", "Yokneam", "Jerusalem"])
+def test_jd_office_scope_respects_israel_wide_profile(city):
+    profile = {"candidate.open_to.geographies": ["Israel"]}
+    assert decide_location_eligibility(
+        {"location": "Israel", "raw_jd": f"On-site in {city}"}, None, profile
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("location,jd,expected", [
+    ("Remote", "Candidates must reside in Israel", "eligible"),
+    ("Israel", "Not remote worldwide, excluding Israel", "blocked"),
+])
+def test_permission_and_exclusion_survive_neighboring_scope(location, jd, expected):
+    assert decide_location_eligibility(
+        {"location": location, "raw_jd": jd}, None, PROFILE
+    )["eligibility"] == expected
 
 
 @pytest.mark.parametrize("evidence_id,location,quote,expected", EVIDENCE)
