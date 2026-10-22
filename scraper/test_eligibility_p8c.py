@@ -114,3 +114,36 @@ def test_israel_header_cannot_resolve_a_conflicting_country_list(jd):
     assert result["eligibility"] == "unknown"
     assert result["eligibility_reason"].startswith("unresolved location restriction:")
     assert jd.rstrip(".") in result["eligibility_reason"]
+
+
+@pytest.mark.parametrize("jd", [
+    "This role is limited to Atlantis",
+    "The role is restricted to Atlantis",
+    "Atlantis-based applicants may apply",
+    "המשרה מיועדת לאטלנטיס",
+    "דרושים מועמדים מאטלנטיס",
+    "Eligible work locations: Atlantis",
+    "Eligible countries: US",
+    "US residents only",
+])
+@pytest.mark.parametrize("lowercase", [False, True])
+def test_new_frames_supply_positive_nonown_signals(jd, lowercase):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd.lower() if lowercase else jd},
+        None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("jd", [
+    "This role is limited to Tel Aviv",
+    "Tel Aviv-based applicants may apply",
+    "המשרה מיועדת לתל אביב",
+    "Eligible work locations: Tel Aviv",
+    "German-speaking applicants may apply",
+    "דרושים מועמדים דוברי גרמנית",
+    "This role is limited to full-time work",
+])
+def test_new_frames_preserve_own_place_and_nonplace_controls(jd):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"

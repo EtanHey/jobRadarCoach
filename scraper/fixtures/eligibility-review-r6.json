@@ -651,24 +651,24 @@
     "r6-policy-boundary-1",
     "Tel Aviv",
     "Dual citizens only may apply.",
-    "unknown"
+    "eligible"
   ],
   [
     "r6-policy-boundary-2",
     "Tel Aviv",
     "Without regard to citizenship required.",
-    "unknown"
+    "eligible"
   ],
   [
     "r6-policy-boundary-3",
     "Tel Aviv",
     "Without regard to citizenship or national origin required.",
-    "unknown"
+    "eligible"
   ],
   [
     "r6-policy-boundary-4",
     "Tel Aviv",
     "We are an equal opportunity employer and dual citizens only may apply.",
-    "unknown"
+    "eligible"
   ]
 ]

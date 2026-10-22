@@ -98,7 +98,7 @@ def select_postings(
         if claimable_stage else ""
     )
     rows = connection.execute(
-        "select p.id::text, p.raw_jd from public.postings p "
+        "select p.id::text, p.raw_jd, p.title from public.postings p "
         "where p.liveness->'alive' is distinct from 'false'::jsonb "
         "and p.raw_jd is not null and p.raw_jd ~ '[^[:space:]]' "
         "and char_length(regexp_replace(p.raw_jd, "
@@ -112,7 +112,7 @@ def select_postings(
         + ((claimable_stage,) if claimable_stage else ()) + (limit,),
     ).fetchall()
     selected = []
-    for posting_id, raw_jd in rows:
+    for posting_id, raw_jd, title in rows:
         if not isinstance(raw_jd, str) or len(raw_jd.strip()) < MIN_RAW_JD_CHARS:
             continue
         try:
@@ -120,7 +120,7 @@ def select_postings(
         except UnicodeEncodeError:
             continue
         if within_limit:
-            selected.append({"id": str(posting_id), "raw_jd": raw_jd})
+            selected.append({"id": str(posting_id), "raw_jd": raw_jd, "title": title})
     return selected
 
 

@@ -928,7 +928,9 @@ def annotate(
             )
             if annotation is not None:
                 from scraper.eligibility import decide_location_eligibility
+                from scraper.stack_requirements import apply_stack_gap_guard
 
+                annotation = apply_stack_gap_guard(annotation, posting, profile_contract)
                 annotation.update(decide_location_eligibility(posting, posting.get("posting_extractions"), profile_contract))
                 return annotation
         return _invalid_annotation()

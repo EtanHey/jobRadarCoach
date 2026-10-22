@@ -12,7 +12,7 @@ import types
 from scraper.eligibility import decide_location_eligibility
 
 
-BASE = "39a8617"
+BASE = "origin/master"
 PROFILE = {"candidate.open_to.geographies": ["Central Israel", "Remote"]}
 FIGMA_BULLET_MOVES = {
     "3bb98bc9-a402-4adf-9eb7-53054dd6dbf1",
@@ -24,7 +24,11 @@ FIGMA_BULLET_MOVES = {
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("snapshot", type=Path)
+    parser.add_argument("--baseline", default=BASE)
     args = parser.parse_args()
+    baseline_sha = subprocess.check_output(
+        ["git", "rev-parse", args.baseline], text=True
+    ).strip()
     data = args.snapshot.read_bytes()
     assert hashlib.sha256(data).hexdigest() == (
         "520151e36a5a639705a4e56f727ab6ea522ea57bf4490c92a2f4ac8f11a94297"
@@ -33,7 +37,7 @@ def main():
     sys.modules[baseline.__name__] = baseline
     exec(
         subprocess.check_output(
-            ["git", "show", f"{BASE}:scraper/eligibility.py"], text=True
+            ["git", "show", f"{baseline_sha}:scraper/eligibility.py"], text=True
         ),
         baseline.__dict__,
     )
@@ -60,12 +64,16 @@ def main():
             assert after["eligibility"] == "unknown", change
             issue11 = change
     assert len(rows) == 658
-    assert before_counts == {"blocked": 49, "eligible": 271, "unknown": 338}
-    assert after_counts == {"blocked": 52, "eligible": 271, "unknown": 335}
+    assert before_counts["blocked"] == 49
+    assert after_counts == {
+        "blocked": 52,
+        "eligible": before_counts["eligible"],
+        "unknown": before_counts["unknown"] - 3,
+    }
     assert {row["id"] for row in moves} == FIGMA_BULLET_MOVES
     assert issue11 is not None
     print(json.dumps({
-        "baseline": BASE,
+        "baseline": baseline_sha,
         "snapshot_sha256": hashlib.sha256(data).hexdigest(),
         "rows": len(rows),
         "before_counts": dict(before_counts),

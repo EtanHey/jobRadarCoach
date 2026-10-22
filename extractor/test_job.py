@@ -54,7 +54,7 @@ class Connection:
         assert "regexp_replace" in query
         requested = params[2]
         rows = [
-            (posting_id, RAW_JD)
+            (posting_id, RAW_JD, "Senior Backend Engineer")
             for posting_id in POSTING_IDS
             if posting_id not in self.extracted
             and (requested is None or posting_id in requested)
@@ -95,6 +95,7 @@ def test_batch_is_bounded_and_second_run_skips_extracted_explicit_ids(capsys) ->
 
     assert (first, second) == (0, 0)
     assert len(calls) == 2
+    assert all(call[0]["title"] == "Senior Backend Engineer" for call in calls)
     assert all(call[1:] == ({"runtime.brain": "codex"}, 17) for call in calls)
     assert sum("from public.profile" in query for query in connection.queries) == 14
     records = logs(capsys)

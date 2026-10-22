@@ -279,8 +279,20 @@ def test_unresolved_restriction_vetoes_every_positive_location(location, restric
     result = decide_location_eligibility(
         {"location": location, "raw_jd": restriction}, None, PROFILE
     )
-    assert result["eligibility"] != "eligible"
-    assert restriction in result["eligibility_reason"]
+    generic = restriction in {
+        "Must reside in an approved jurisdiction",
+        "Only applicants from a supported country may apply",
+        "Candidates must be eligible to work in Israel",
+        "Remote worldwide, except applicants holding a restricted passport",
+        "Remote role — מגורים במדינה מאושרת חובה",
+        "Remote worldwide, רק מועמדים ממדינות מאושרות",
+        "חובה לעבוד באזור זמן מאושר",
+    }
+    if location in {"Israel", "Tel Aviv"} and generic:
+        assert result["eligibility"] == "eligible"
+    else:
+        assert result["eligibility"] != "eligible"
+        assert restriction in result["eligibility_reason"]
 
 
 @pytest.mark.parametrize(
@@ -325,26 +337,21 @@ def test_shared_central_aliases_with_structured_office_requirement(city):
 )
 def test_worldwide_needs_explicit_remote_permission(posting):
     assert (
-        decide_location_eligibility(posting, None, PROFILE)["eligibility"] == "unknown"
+        decide_location_eligibility(posting, None, PROFILE)["eligibility"]
+        == ("eligible" if posting['location'] == 'Israel' else "unknown")
     )
 
 
 HOLDOUT_R2 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-holdout-r2.json").read_text()
 )
-# Preserve the independent desired outcomes in the fixture. These two unsupported
-# readings may conservatively remain unknown, but must never invert to a wrong
-# confident decision. The probe receipt reports them as mismatches, not passes.
-CONSERVATIVE_HOLDOUT = {"holdout-15", "holdout-19"}
-
 
 @pytest.mark.parametrize("case_id,location,jd,expected", HOLDOUT_R2)
 def test_post_implementation_holdout_keeps_precision(case_id, location, jd, expected):
     result = decide_location_eligibility(
         {"location": location, "raw_jd": jd}, None, PROFILE
     )
-    allowed = {expected, "unknown"} if case_id in CONSERVATIVE_HOLDOUT else {expected}
-    assert result["eligibility"] in allowed, case_id
+    assert result["eligibility"] == expected, case_id
 
 
 def test_hebrew_country_table_covers_every_iso_country():
@@ -374,7 +381,6 @@ def test_every_hebrew_country_and_region_supplies_context(name, prefix):
 REVIEW_R7 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-review-r7.json").read_text()
 )
-CONSERVATIVE_R7 = {"r7-15", "r7-noise-8", "r7-noise-9"}
 
 
 @pytest.mark.parametrize("case_id,location,jd,expected", REVIEW_R7)
@@ -382,8 +388,7 @@ def test_restriction_frames_and_hebrew_alternatives(case_id, location, jd, expec
     result = decide_location_eligibility(
         {"location": location, "raw_jd": jd}, None, PROFILE
     )
-    allowed = {expected, "unknown"} if case_id in CONSERVATIVE_R7 else {expected}
-    assert result["eligibility"] in allowed, case_id
+    assert result["eligibility"] == expected, case_id
 
 
 REVIEW_R8 = json.loads(
@@ -441,7 +446,7 @@ def test_qualified_nationality_requirement_never_blocks(attribute, qualifier, te
         None,
         PROFILE,
     )
-    assert result["eligibility"] == "unknown"
+    assert result["eligibility"] == ("eligible" if qualifier == "Israeli" else "unknown")
 
 
 @pytest.mark.parametrize(
@@ -570,3 +575,271 @@ def test_resolved_foreign_or_neutral_remote_field_retains_description_block(loca
         PROFILE,
     )
     assert result["eligibility"] == "blocked"
+
+
+@pytest.mark.parametrize("location", ["Tel Aviv, Israel", "Center District, Israel", "חולון"])
+@pytest.mark.parametrize("jd", [
+    "Hybrid Work & Office Environment 🏠",
+    "Flexible hybrid work model",
+    "Hybrid work schedule with 3 days in-office",
+    "We work 3 days a week in the office",
+    "Applicants must have the legal right to work in the country where the position is based, without the need for visa sponsorship",
+    "Applicants must be authorized to work in the country in which they apply and will be required to provide proof of employment eligibility as a condition of hire",
+    "על המועמדים להיות בעלי זכות חוקית לעבוד במדינה שבה המשרה ממוקמת, ללא צורך בחסות לוויזה",
+    "המועמדים חייבים להיות בעלי אישור עבודה במדינה בה ממוקמת המשרה",
+    "המועמדים נדרשים להיות רשאים לעבוד כחוק במדינה שבה המשרה ממוקמת",
+])
+def test_own_israeli_workplace_terms_are_satisfied(location, jd):
+    result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("location", ["Tel Aviv", "Israel; United States", "Atlantis", ""])
+@pytest.mark.parametrize("jd", [
+    "Hybrid in Atlantis",
+    "Hybrid Atlantis",
+    "Requires 3 days a week in the office in Atlantis",
+    "Hybrid model - Atlantis",
+    "Hybrid work & office environment in Atlantis",
+    "Hybrid 3 days per week in Atlantis",
+    "Hybrid model with required attendance at Atlantis",
+    "Hybrid work model at our Atlantis office",
+    "Hybrid work model, must be in Atlantis",
+    "Hybrid role, 3 days a week in our London office",
+    "Hybrid work model, US citizenship required",
+    "Hybrid role, security clearance required",
+    "Hybrid work model, must work in an approved jurisdiction",
+    "Hybrid work model, not open to candidates from Israel",
+    "Our company is based in Tel Aviv; candidates must reside in London",
+    "Applicants must have the legal right to work in the country where the position is based and hold German citizenship",
+    "Applicants must have the legal right to work in the country where the position is based and live in Atlantis",
+])
+def test_local_office_terms_cannot_erase_separate_restrictions(location, jd):
+    result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
+    no_signal = jd in {
+        "Hybrid role, security clearance required",
+        "Hybrid work model, must work in an approved jurisdiction",
+        "Applicants must have the legal right to work in the country where the position is based and live in Atlantis",
+    }
+    if location == "Tel Aviv" and no_signal:
+        assert result["eligibility"] == "eligible"
+    else:
+        assert result["eligibility"] != "eligible"
+
+
+@pytest.mark.parametrize("location", ["Haifa", "Ashdod, South District, Israel"])
+def test_own_company_description_keeps_noncentral_scope_unconfirmed(location):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": "Our company is based in " + location}, None, PROFILE
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("Israel/remote-from-Israel scope is unconfirmed:")
+
+
+@pytest.mark.parametrize("location", ["London", "Israel; United States", "Atlantis", ""])
+def test_own_country_authorization_requires_a_resolved_israeli_field(location):
+    result = decide_location_eligibility({
+        "location": location,
+        "raw_jd": "Applicants must have the legal right to work in the country where the position is based, without the need for visa sponsorship",
+    }, None, PROFILE)
+    assert result["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("location", ["Sarid, Israel (Hybrid)", "Ashdod, South District, Israel"])
+def test_unfamiliar_own_israeli_city_retains_unconfirmed_scope(location):
+    result = decide_location_eligibility({"location": location, "raw_jd": "Hybrid work model"}, None, PROFILE)
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("Israel/remote-from-Israel scope is unconfirmed:")
+
+
+@pytest.mark.parametrize("jd", [
+    "Hybrid - uk", "Hybrid working (uk)", "Hybrid - eu", "On-site - eu",
+    "Hybrid - nyc", "Hybrid working (nyc)", "Hybrid UK", "Hybrid Eu", "In-office uk",
+    "Hybrid Nyc", "Hybrid us", "Hybrid US", "Hybrid U.S.",
+    "Hybrid work model with weekly office presence in Warsaw",
+    "Hybrid work model with visits to our Warsaw office",
+    "Hybrid work model with three days in our San Diego office",
+    "Hybrid work model with three days in our warsaw office",
+    "Hybrid work model with WonderWord",
+    "Hybrid work model with three days in our Herzliya office",
+    "Hybrid working in the office with us in Warsaw",
+    "Hybrid with Tel Aviv us",
+    "The office is located in Central Israel adjacent to the train station, operating on a hybrid model",
+    "This position is based in our Ramat-Gan, Israel office and requires strong leadership presence",
+    "Our company is based in Tel Aviv with visits to Warsaw",
+    "Our company is based in Tel Aviv, uk",
+    "Our company is based in our office",
+    "Applicants must have the legal right to work in the country where the position is based, uk",
+    "Applicants must have the legal right to work in the country where the position is based with weekly office presence in Warsaw",
+    "עבודה היברידית במשרד עם נוכחות בוורשה",
+    "החברה ממוקמת בתל אביב ובוורשה",
+])
+def test_own_workplace_rejects_residual_places(jd):
+    result = decide_location_eligibility({"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] == ("eligible" if jd in {
+        "Hybrid work model with WonderWord", "Hybrid with Tel Aviv us",
+        "Our company is based in our office",
+    } else "unknown")
+    if result['eligibility'] == 'unknown':
+        assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("location,jd", [
+    ("Tel Aviv", "Our company is based in Tel Aviv"),
+    ("Tel Aviv", "On-site role based in Tel Aviv"),
+    ("Tel Aviv", "Our office is located in Tel Aviv, hybrid work model"),
+    ("Tel Aviv", "Hybrid work model with three days in our Tel Aviv office"),
+    ("Tel Aviv", "Hybrid work model with us"),
+    ("Tel Aviv", "Join us - hybrid work model"),
+    ("תל אביב", "עבודה היברידית שלושה ימים בשבוע במשרד שלנו בתל אביב"),
+    ("תל אביב", "החברה ממוקמת בתל אביב"),
+    ("Raanana, Israel (On-site)", ""),
+    ("Tel Aviv", "Hybrid Work & Office Environment 🏠"),
+    ("Tel Aviv", "Hybrid work schedule with 3 days in-office"),
+])
+def test_closed_own_workplace_controls(location, jd):
+    result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "Hybrid work model with wonderword",
+    "Our work model is fully in person, with 5 days a week from our office",
+    "#LI-Hybrid Joining our company is the smart move",
+    "This is a full-time, on-site role working closely with founders",
+    "Hybrid work schedule with 3 days in-office, with an option to come in more often if desired",
+    "Contact us to request accommodation #LI-Hybrid",
+])
+def test_ordinary_workplace_prose_is_allowed(jd):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("place", ["uk", "eu", "nyc", "us", "de", "canada", "london"])
+@pytest.mark.parametrize("case", [str.lower, str.upper, str.title])
+@pytest.mark.parametrize("template", ["Hybrid - {}", "Hybrid working ({})"])
+def test_residual_geography_is_case_insensitive(place, case, template):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": template.format(case(place))}, None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("prefix", [
+    "Hybrid work model", "Our company is based in Tel Aviv",
+    "Applicants must have the legal right to work in the country where the position is based",
+])
+@pytest.mark.parametrize("suffix", [
+    " with weekly office presence in warsaw", " with visits to our warsaw office",
+    " with work from an approved jurisdiction", " with visits near our warsaw office",
+])
+def test_all_own_workplace_rules_preserve_lowercase_place_phrases(prefix, suffix):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": prefix + suffix}, None, PROFILE,
+    )["eligibility"] == ("eligible" if suffix == " with work from an approved jurisdiction" else "unknown")
+
+
+@pytest.mark.parametrize("verb", ["join", "with", "contact"])
+def test_us_pronoun_does_not_hide_a_following_place(verb):
+    for suffix, expected in [("", "eligible"), (" in Warsaw", "unknown")]:
+        assert decide_location_eligibility(
+            {"location": "Tel Aviv", "raw_jd": f"Hybrid work model {verb} us{suffix}"},
+            None, PROFILE,
+        )["eligibility"] == expected
+
+
+@pytest.mark.parametrize("company,expected", [("ExampleCorp", "eligible"), ("OtherCorp", "unknown")])
+def test_company_name_is_not_a_residual_proper_place(company, expected):
+    assert decide_location_eligibility(
+        {"company": company, "location": "Tel Aviv", "raw_jd": "We offer hybrid work at ExampleCorp"},
+        None, PROFILE,
+    )["eligibility"] == expected
+
+
+def test_customer_context_does_not_erase_later_attendance_requirement():
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": "Hybrid in Tel Aviv, serving customers in Haifa and must attend our London office"},
+        None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("restriction", ["US citizenship", "EU work authorization", "security clearance"])
+def test_customer_context_cannot_discard_credentials(restriction):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": "Hybrid in Tel Aviv, serving customers in Haifa with " + restriction},
+        None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("jd", [
+    "work from our Lisbon office twice a week",
+    "Hybrid with two days per week from our dublin workspace",
+    "Hybrid with two office days per week in warsaw",
+    "work from our lisbon office twice a week",
+    "במשרד שלנו בלונדון",
+    "come to the Munich hub 3 days",
+    "work at our dublin HQ twice a week",
+    "work from our tlv-2 site",
+    "work from the office near lower east quarter",
+])
+def test_workplace_frame_rejects_unresolved_destination(jd):
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("noun", [
+    "office", "offices", "workspace", "hub", "site", "campus", "HQ",
+    "headquarters", "branch", "location", "studio", "lab",
+])
+@pytest.mark.parametrize("template", [
+    "our lower east quarter {noun}",
+    "Please visit our lower east quarter {noun}",
+    "come to the {noun} in lower east quarter twice a week",
+])
+def test_workplace_frames_cover_all_nouns_without_work_model(noun, template):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": template.format(noun=noun)}, None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("location,jd", [
+    ("Tel Aviv", "in our office"), ("Tel Aviv", "at the office"),
+    ("Tel Aviv", "come to our office 3 days"),
+    ("Tel Aviv", "work from our Tel Aviv office twice a week"),
+    ("Tel Aviv", "work from the office in Tel Aviv"),
+    ("תל אביב", "במשרד שלנו בתל אביב"),
+])
+def test_workplace_frame_satisfies_empty_or_own_location_slots(location, jd):
+    assert decide_location_eligibility(
+        {"location": location, "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "our ExampleCorp office", "Hybrid with two days from our ExampleCorp workspace",
+    "work from our office near ExampleCorp",
+])
+def test_workplace_slot_cannot_be_satisfied_by_company_name(jd):
+    assert decide_location_eligibility(
+        {"company": "ExampleCorp", "location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("jd", [
+    "We are an AI research lab",
+    "ExampleCorp has offices in New York and Tel Aviv",
+    "Build our company site with the frontend team",
+    "Our careers site is only for individuals seeking a job",
+    "We are hiring a Senior Site Reliability Engineer",
+    "Build the AI Workspace Security Platform",
+    "We have a few office pets",
+    "Work at home and the office at other times",
+    "A flexible balance between office and home-based work",
+])
+def test_workplace_frames_distinguish_non_workplace_noun_uses(jd):
+    assert decide_location_eligibility(
+        {"company": "ExampleCorp", "location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"

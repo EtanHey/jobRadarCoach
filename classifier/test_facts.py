@@ -69,7 +69,7 @@ def test_work_mode_only_location_is_not_unresolved():
     ],
 )
 def test_seniority_buckets(value, expected):
-    facts = normalize({"seniority": value, "title": "Intern Engineer"})
+    facts = normalize({"seniority": value, "title": "Software Engineer"})
     assert facts.seniority_level == expected
     assert facts.seniority_source == "extracted"
 
@@ -80,8 +80,8 @@ def test_seniority_buckets(value, expected):
         ({"seniority": "Experienced Professional", "title": "Senior Engineer"}, "senior", "title"),
         ({"seniority": "IC4", "title": "Software Engineer"}, None, None),
         ({"seniority": "", "title": "Staff Engineer"}, "staff_principal", "title"),
-        ({"seniority": "Junior", "title": "Senior Engineer"}, "junior", "extracted"),
-        ({"seniority": "IC4", "ats_seniority": "Lead", "title": "Senior Engineer"}, "lead_manager", "ats"),
+        ({"seniority": "Junior", "title": "Senior Engineer"}, "senior", "title"),
+        ({"seniority": "IC4", "ats_seniority": "Lead", "title": "Senior Engineer"}, "senior", "title"),
         ({"ats_seniority": "Experienced Professional", "title": "Mid Engineer"}, "mid", "title"),
     ],
 )

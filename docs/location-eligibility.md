@@ -5,35 +5,20 @@ The local scorer adds `eligibility` (`eligible`, `blocked`, `unknown`) and a quo
 score and recommendation stay unchanged. Citizenship is not location permission.
 Scorer version 1.3 identifies the precision-first gate.
 
-An eligible decision needs both explicit Israel/central-Israel location or remote
-permission from Israel/worldwide, and no geographic restriction the parser cannot
-positively resolve as allowing Israel. Supported negations are resolved before
-restrictions. Every remaining restriction span vetoes a pass and is quoted in the
-unknown reason, even when the location field says Israel or remote worldwide.
-Unrecognized residency, citizenship, work authorization, time-zone, English and
-Hebrew restriction wording stays unknown. Ordinary skill requirements such as
-“Python and SQL required”, “Candidates must have 5+ years in React” and “What we
-need to see: B.SC.” are not geographic restrictions. Generic requirement words
-need genuine geography in the same clause. Applicant exclusivity, required
-residence/relocation/work-location frames and qualified credentials supply their
-own restriction context even when their adjective or place is unfamiliar.
-Prepositions, candidate nouns,
-pronoun “us” and technical country-code lookalikes such as AI/ML do not supply
-that evidence. Recognized policy phrases, accommodations and technical
-hybrid/data-residency language do not veto a pass; a real requirement in the
-same paragraph still does. Protected attributes in anti-discrimination lists and
-team descriptions are not
-applicant restrictions. Only the bounded list or descriptive phrase is removed;
-a real requirement after it is still evaluated.
-Only bounded policy phrases are removed before restriction parsing; their
-containing clauses are never skipped. Restrictions joined by commas, and,
-but/however/while or semicolons still pass through the same geographic parser.
-Uppercase country codes modifying candidates, applicants, residents, citizens, work permits or work
-authorization supply geographic context. Hebrew attached prefixes (ב/ל/מ/ו/ה/ש,
-including ובקנדה and לארה״ב) and אזרחות with nationality adjectives also count.
-Authorization and citizenship remain unknown unless Israel is explicitly excluded.
-Hebrew restriction words use word boundaries, so אלגוריתמיקה and פריימוורקים do
-not accidentally become residence or exclusivity requirements.
+A positively resolved Israeli posting location supplies permission. A description
+clause can reopen that decision only with a positive non-own place signal: a
+foreign place or another Israeli place, a non-own workplace/proximity slot, a
+foreign nationality credential, or a time zone outside Israel/IST. Capitalized
+workplace/proximity names need not belong to the gazetteer. Own-place names and
+ordinary skill, policy, benefits and technical prose without such signals are
+satisfied, including Israeli work authorization. The central-Israel commute
+scope below is unchanged.
+
+Missing, mixed, foreign and unparsed posting locations retain the precision-first
+restriction parser: unresolved residence, applicant, credential and time-zone
+frames still veto permission. Bounded policy and language-skill phrases are
+removed without discarding independent requirements. Explicit Israel exclusions
+always take priority. A foreign citizenship is not itself proof of residence.
 
 A block needs explicit evidence: a closed foreign-only applicant or role work
 scope, mandatory foreign residence/relocation, an explicit Israel exclusion, or a
@@ -80,8 +65,9 @@ attached
 ו alternatives with their own ב/ל/מ prefixes. Mixed Hebrew conjunctions remain
 unknown when simultaneous residence cannot be ruled out. Every place slot must
 be consumed: דרום אמריקה cannot resolve as the Israeli region דרום. An unparsed
-remainder or unknown alternative prevents a block. Foreign demonyms are not
-enumerated; an unresolved applicant/credential/location frame vetoes eligibility.
+remainder or unknown alternative prevents a block. Recognized foreign nationalities supply positive credential evidence for Israeli
+postings; arbitrary adjectives alone do not. Unresolved applicant/credential
+frames still veto eligibility for postings without a positively Israeli location.
 Israeli demonyms can resolve an applicant slot, but citizenship alone never grants
 location permission. Language-skill frames (speak/fluent/native/proficiency/language
 and לדבר/דוברי/שפה/ברמת שפת אם) remain separate from nationality restrictions.
@@ -170,9 +156,55 @@ P8C extends the same unresolved-slot method to role-limited/restricted wording,
 place-based applicants without exclusivity, Hebrew intended-applicant wording,
 and labeled eligible-country lists. These frames veto an unqualified pass when
 the slot cannot resolve as Israeli. They do not infer a foreign country from a
-demonym. Country-first `US residents only` uses the existing residence policy,
+demonym. Under the positive-Israeli-location rule, these explicit scope slots
+also supply non-own place evidence, including unknown place names and country
+codes; own-location and language-only controls remain satisfied.
+Country-first `US residents only` uses the existing residence policy,
 including the Israeli/unresolved-header downgrade. Bullet-separated ATS location
 alternatives retain every field; recognized US city/state pairs use the shared
 city and state tables. Unknown alternatives prevent a closed foreign scope.
 Run `PYTHONPATH=. python scripts/eligibility_p8c_dryrun.py <snapshot.jsonl>` for
-the frozen offline comparison, including every decision and reason change.
+the frozen offline comparison against `origin/master`, including every decision
+and reason change. Use `--baseline SHA` to pin the comparison. The only snapshot
+decision changes are the three Figma bullet-field rows moving unknown to blocked.
+
+When a posting's location resolves positively to Israel, own-workplace cleanup
+still handles recognized addresses and work models. Residual prose without a
+positive non-own signal no longer vetoes eligibility. An unfamiliar city with an
+explicit Israeli country suffix retains unconfirmed commute scope. Existing
+noncentral commute blocks remain in force.
+
+Own-city matching uses shared geography aliases, including TLV/Tel-Aviv-Yafo,
+Ramat-Gan and common transliteration variants. An Israel/Israeli office matches
+a positive Israeli posting location. Numbered street addresses and recognized
+local landmarks beside an explicit own-city mention do not add a workplace
+restriction. Proximity destinations must resolve to that city, a recognized
+local landmark, a transit noun phrase, or a street-type phrase; both ends of a
+“between” address must resolve to the city, a local landmark, or a street-type
+phrase. Building names require a recognized local landmark. Unrecognized names
+such as Heathrow stay unresolved, including lowercase proximity destinations.
+Address parsing preserves other cities and independent
+attendance, residency or credential requirements. A named office with a numbered
+address repeating the same city can resolve as that city's office. An office
+environment or attendance in the office without a place slot is satisfied locally;
+mixed workplace lists and unresolved cities remain unknown.
+
+The bounded requirement to have legal authorization in the country where the
+position is based is satisfied when that country resolves to Israel, including
+the supported Hebrew equivalent. A separate foreign citizenship or non-own geographic requirement
+remains unresolved. Composite Israeli/foreign fields cannot supply this assumption.
+
+`python -m scripts.replay_own_office --plan PATH --snapshot PATH --out PATH`
+replays the local P8E decision dump, frozen 658-row snapshot and retained probes
+offline against a chosen baseline. The dump contains saved reason excerpts, so
+its replay does not substitute for a full-JD production dry run.
+
+### Recomputing stored unknown decisions
+
+`python -m scripts.eligibility_backfill --recompute-unknown` previews only stored
+`unknown` decisions for the current profile. Add `--apply` to write. Default
+backfill mode still fills missing eligibility only. Recompute merges just
+`eligibility` and `eligibility_reason`, preserves all other payload keys and score
+columns, and skips identical decisions. SQL rechecks the current profile and
+unknown value, preventing a stale plan from overwriting eligible/blocked scores.
+The existing per-batch locks and profile-change guard apply to both modes.

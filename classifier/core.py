@@ -25,6 +25,7 @@ from scraper.annotate import (
     _validated_annotation,
 )
 from scraper.eligibility import decide_location_eligibility
+from scraper.stack_requirements import apply_stack_gap_guard
 from scraper.brain import BrainRequest, BrainResponseError, BrainResult, run_brain
 
 
@@ -175,6 +176,7 @@ def score_projected(
             _diagnose(diagnostic, "semantic")
             return None
         if annotation is not None:
+            annotation = apply_stack_gap_guard(annotation, luna_posting, profile)
             local = posting if local_posting is None else local_posting
             annotation.update(decide_location_eligibility(local, local.get("posting_extractions"), profile))
             return ScoringResult(annotation, result.brain, result.model, rules)
