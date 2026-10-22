@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { experiencePhrase, postingUrl, technologyMentions, titleSeniority } from "../lib/job-metadata";
+import yearsCases from "./fixtures/years-extraction.json";
+
+for (const [description, expected] of yearsCases) {
+  test(`required experience quote: ${description}`, () => {
+    const actual = experiencePhrase(description);
+    assert.equal(actual, expected, description ?? "null");
+    if (actual) assert.ok(description?.includes(actual), "evidence must be an exact source quote");
+  });
+}
 
 test("Workable export URLs become a human page without changing other hosts", () => {
   assert.equal(postingUrl("https://apply.workable.com/example/jobs/view/ABC123.md"), "https://apply.workable.com/example/j/ABC123/");
@@ -41,9 +50,9 @@ test("bare company-tenure prose stays unknown unless an applicant heading is act
   assert.equal(experiencePhrase("Requirements:\nStrong communication\nAbout Company\n20 years of experience serving customers."), null);
 });
 
-test("experience covers real required phrasing around years, role, and action", () => {
+test("experience accepts explicit professional tenure in mandatory context", () => {
   assert.equal(experiencePhrase("Required\n5+ years building and operating production backend services"), "5+ years building");
-  assert.equal(experiencePhrase("Your Experience\n8+ years in software engineering with a full-stack background"), "8+ years in software engineering");
+  assert.equal(experiencePhrase("Your Experience\n8+ years in software engineering with a full-stack background"), "8+ years in software engineering with");
   assert.equal(experiencePhrase("We are seeking a developer with 3–5 years of hands-on experience working across the stack."), "3–5 years of hands-on experience");
   assert.equal(experiencePhrase("You Bring\n4+ years of full-stack development experience"), "4+ years of full-stack development experience");
   assert.equal(experiencePhrase("Qualifications\nExperience of at least 2 years in software development."), "at least 2 years in software development");

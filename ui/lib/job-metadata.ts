@@ -1,3 +1,5 @@
+import patterns from "./experience-patterns.json";
+
 /** Workable's Markdown export is ingestion data, not a human-facing job page. */
 export function postingUrl(value: string): string {
   const url = new URL(value);
@@ -19,41 +21,81 @@ export function titleSeniority(title: string): string | null {
   return null;
 }
 
-/** Quote only an explicit years-of-experience phrase, never infer it from level. */
+/** One-for-one masking preserves source offsets while sharing SQL's clause boundaries. */
+function normalizeExperienceText(description: string): string {
+  let text = description;
+  for (const char of patterns.normalization.space) text = text.replaceAll(char, " ");
+  for (const char of patterns.normalization.newline) text = text.replaceAll(char, "\n");
+  for (const pattern of patterns.normalization.mask) {
+    text = text.replace(new RegExp(pattern, "gmi"), match => " ".repeat(match.length));
+  }
+  return text.replace(new RegExp(patterns.normalization.joinTenure, "gi"), match => " ".repeat(match.length));
+}
+
+/** Quote a mandatory minimum; unresolved tenure blocks specialist fallback. */
 export function experiencePhrase(description: string | null): string | null {
   if (!description) return null;
-  const phrase = /\b(?:(?:at least|minimum(?:[ \t]+of)?|over|around)[ \t]+)?\d{1,2}(?:[ \t]*[-–—][ \t]*\d{1,2})?\+?[ \t]+years?\b(?:(?:[ \t]+of)?(?:[ \t]+(?:[a-z][\w+/-]*,?|\/)){0,7}?[ \t]+experience\b|[ \t]+(?:in|with)[ \t]+[a-z][\w+/-]*(?:[ \t]+[a-z][\w+/-]*){0,2}|(?:[ \t]+of)?[ \t]+(?:(?:professional|hands-on)[ \t]+){0,2}(?:(?:backend|frontend|full[- ]stack|software|platform|infrastructure|devops|data|hardware)[ \t]+)?(?:engineering|development)\b|[ \t]+(?:developing|building|working|operating|maintaining|leading|managing|designing)\b)/gi;
-  for (const match of description.matchAll(phrase)) {
-    const index = match.index;
-    const quoted = match[0]
-      .replace(/^minimum(?:\s+of)?\s+/i, "")
-      .replace(/\s+(?:with|and|in|who|that)$/i, "")
-      .replace(/[.,;:]+$/, "");
-    const boundary = Math.max(description.lastIndexOf(".", index - 1), description.lastIndexOf("!", index - 1), description.lastIndexOf("?", index - 1), description.lastIndexOf("\n", index - 1));
-    const context = description.slice(boundary + 1, index).trim();
-    const nearContext = context.slice(-180);
-    const headings = description.slice(0, index).matchAll(/^[ \t]*(?:#{1,6}[ \t]+([^\n]+)|([^\n]{1,48}))[ \t]*:?[ \t]*$/gm);
-    let section: "applicant" | "optional" | "other" = "other";
-    for (const heading of headings) {
-      const text = (heading[1] ?? heading[2]).replace(/[:#*]+$/, "").trim();
-      if (/^(?:preferred(?: qualifications?)?|nice to have|bonus|advantages?)$/i.test(text)) section = "optional";
-      else if (/^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your experience|skills?\s*(?:&|and)\s*experience|who (?:you are|are you)|all about you|what we value)$/i.test(text)) section = "applicant";
-      else if (/^(?:about(?: the)? company|about us|company|responsibilities|what you(?:'|’)ll do|the role|benefits|what we offer|compensation)$/i.test(text)) section = "other";
+  const normalized = normalizeExperienceText(description);
+  const number = patterns.number;
+  const phrase = new RegExp(patterns.englishTail.map(tail => patterns.englishLead + tail).concat(patterns.hebrew, patterns.simple).join("|"), "gi");
+  const test = (pattern: string, text: string) => new RegExp(pattern, "i").test(text);
+  const amount = (token: string) => /^[0-9]+$/.test(token) ? Number(token) : patterns.words.indexOf(token.toLowerCase());
+  if (test(patterns.fractionalTenure, normalized) || new RegExp(patterns.numberedTenure, "mi").test(normalized)) return null;
+  let selected: { minimum: number; quote: string; rank: number } | null = null;
+  let disagreement = false;
+  for (const clauseMatch of normalized.matchAll(/[^.!?;\n]+/g)) {
+    let clause = clauseMatch[0];
+    // Only a higher numeric preference is exempt; masking keeps source offsets.
+    for (const preference of clause.matchAll(new RegExp(patterns.preference, "gi"))) {
+      const preceding = [...clause.slice(0, preference.index).matchAll(new RegExp(patterns.extraNumber, "gi"))].at(-1)?.[0];
+      const preferred = preference[0].match(new RegExp(patterns.extraNumber, "i"))?.[0];
+      if (preceding && preferred && amount(preferred) >= amount(preceding)) {
+        clause = clause.slice(0, preference.index) + " ".repeat(preference[0].length) + clause.slice(preference.index + preference[0].length);
+      }
     }
-    const suffix = description.slice(index + match[0].length).split(/[.!?\n]/, 1)[0];
-    const negative = /\b(?:no|not|without|ideally|preferably|wish|would|nice to have)\b/i.test(nearContext);
-    const optional = section === "optional" || /^\s*(?:[,;:–—-]\s*)?(?:is\s+)?(?:not required|not necessary|optional|nice to have|a plus|preferred)\b/i.test(suffix);
-    const company = /\b(?:our|the|this)\s+(?:company|firm|business)\b[^.!?\n]{0,100}$/i.test(nearContext)
-      || /\bour team\s+(?:has|combines|brings|boasts|offers)\b[^.!?\n]{0,80}$/i.test(nearContext)
-      || /\bwe(?:'ve| have| bring| offer| boast)\b[^.!?\n]{0,80}$/i.test(nearContext)
-      || /^\s*(?:serving (?:customers|clients)|in business|as a company)\b/i.test(suffix);
-    const required = section === "applicant"
-      || /\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your experience|what you bring|what you(?:'|’)ll need)\b/i.test(nearContext)
-      || /^(?:at least|minimum)\b/i.test(match[0])
-      || /\b(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|product|sre)\b/i.test(`${match[0]} ${suffix.slice(0, 80)}`);
-    if (!negative && !optional && !company && required) return quoted;
+    const domainPreference = new RegExp(patterns.domainPreference, "i").exec(clause);
+    if (domainPreference && !test(patterns.extraNumber, domainPreference[0]) && !test(patterns.tenure, domainPreference[0])) {
+      clause = clause.slice(0, domainPreference.index) + " ".repeat(domainPreference[0].length);
+    }
+    if (!test(patterns.numericTenure, clause)) continue;
+    const matches = [...clause.matchAll(phrase)];
+    const contextEnd = matches[0]?.index ?? clause.length;
+    let section: "applicant" | "optional" | "other" = "other";
+    for (const heading of normalized.slice(0, clauseMatch.index + contextEnd).matchAll(new RegExp(patterns.headings, "gmi"))) {
+      const text = (heading[1] ?? heading[2] ?? heading[3]).replace(/[:#*]+$/, "").replace(/^[^A-Za-zא-ת]+/, "").trim();
+      if (!/[.!?;]/.test(text) && test(patterns.optionalScope, text) && !test(patterns.headingTenure.replaceAll("{number}", number), text)) section = "optional";
+      else if (test(patterns.requiredHeading, text)) section = "applicant";
+      else if (test(patterns.otherHeading, text)) section = "other";
+    }
+    if (test(patterns.inlineRequiredHeading, clause)) section = "applicant";
+    if (section === "optional" || test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
+    if (matches.length > 0 && test(patterns.company, clause.slice(matches[0].index + matches[0][0].length))) continue;
+    const context = clause.slice(0, contextEnd);
+    if (test(patterns.employerVerb, context) && !test(patterns.applicantVerb, context)) continue;
+    if (test(patterns.precedingNumber, context)) return null;
+    const residue = matches.length === 1 ? clause.replace(matches[0][0], "") : clause;
+    if ((matches.length > 0 && test(patterns.complexity, clause.slice(matches[0].index + matches[0][0].length)))
+      || test(patterns.optionalScope, clause)) return null;
+    if (section !== "applicant" && !test(patterns.requiredContext, clause) && !test(patterns.domainContext, clause)) continue;
+    // Unclassified tenure is a veto even when another clause has an admitted frame.
+    if (matches.length !== 1 || test(patterns.tenure, residue) || test(patterns.numericTenure, residue)) return null;
+    if (test(patterns.reject, residue) || test(patterns.alternativeNumber, residue)) return null;
+    const match = matches[0];
+    if (test(patterns.complexity, match[0])
+      || test(patterns.extraNumber, match[0].replace(new RegExp(patterns.quantity, "i"), ""))) return null;
+    const amounts = [...match[0].matchAll(new RegExp(patterns.extraNumber, "gi"))].map(token => amount(token[0]));
+    const minimum = test(patterns.decade, match[0]) ? 10 : amounts[0];
+    if (minimum === undefined || (amounts.length > 1 && amounts[1] < minimum)) return null;
+    const withoutLead = match[0].replace(/^minimum(?:[ \t]+of)?[ \t]+/i, "");
+    const quoteStart = clauseMatch.index + match.index + match[0].length - withoutLead.length;
+    const quote = description.slice(quoteStart, quoteStart + withoutLead.length);
+    const rank = (section === "applicant" ? 2 : 0) + 4 * Number(test(patterns.role, clause));
+    if (!selected || rank > selected.rank) {
+      selected = { minimum, quote, rank };
+      disagreement = false;
+    } else if (rank === selected.rank && minimum !== selected.minimum) disagreement = true;
   }
-  return null;
+  return disagreement ? null : selected?.quote ?? null;
 }
 
 /** Display explicit mentions only; these are not proficiency or must-have claims. */

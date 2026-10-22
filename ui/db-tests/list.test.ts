@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import corpus from "./fixtures/metadata-corpus.json";
+import yearsCases from "../tests/fixtures/years-extraction.json";
 import { experiencePhrase, technologyMentions } from "../lib/job-metadata";
 import { getApiStore, selectSummaries } from "../lib/server";
 
@@ -42,10 +43,12 @@ test("DB-backed default/status/IDs lists preserve card metadata and omit drawer-
 });
 
 
-test("SQL metadata matches the current UI heuristics for the synthetic corpus", async () => {
-  for (const description of corpus) {
+test("SQL metadata matches the current UI heuristics and expected years quotes", async () => {
+  const expectedQuotes = new Map(yearsCases.map(([description, expected]) => [description, expected]));
+  for (const description of [...corpus, ...yearsCases.map(([description]) => description)]) {
     const {data, error} = await rest.rpc("posting_list_metadata", {description});
     assert.equal(error, null);
+    if (expectedQuotes.has(description)) assert.equal(data.experience, expectedQuotes.get(description), description ?? "null");
     assert.deepEqual(data, {stack: technologyMentions(description), experience: experiencePhrase(description), description_available: Boolean(description?.trim())}, JSON.stringify(description));
   }
 });
