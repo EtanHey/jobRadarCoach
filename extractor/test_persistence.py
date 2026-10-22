@@ -3,12 +3,19 @@ from __future__ import annotations
 import hashlib
 import json
 from copy import deepcopy
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
 from extractor import core, persistence
+from extractor.test_salary import (
+    PRECISION_PREVIOUS_SALARY_CASES,
+    ROUND5_SALARY_CASES,
+    ROUND6_SALARY_CASES,
+    ROUND7_SALARY_SPANS,
+    ROUND8_SALARY_CASES,
+    expected_salary_facts,
+)
 from scraper.brain_contract import BrainTransportError
 from scraper.database import persist_postings
 
@@ -240,8 +247,8 @@ def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     raw_jd = RAW_JD if remote else RAW_JD.replace('Remote work is available', 'Office-based work is required')
     facts = deepcopy(FACTS)
     facts['remote'] = {'value': remote, 'evidence_quote': 'Remote work is available' if remote else 'Office-based work is required'}
-    row = dict(source='mode-order', id='hybrid', url='https://example.test/job',
-               title='Engineer', company='Example', location='Tel Aviv, Israel (Hybrid)', jd_text=raw_jd)
+    row = {'source': 'mode-order', 'id': 'hybrid', 'url': 'https://example.test/job',
+           'title': 'Engineer', 'company': 'Example', 'location': 'Tel Aviv, Israel (Hybrid)', 'jd_text': raw_jd}
     posting_id = persist_postings(connection, [row], '2026-10-05T03:00:00Z')[0]
     expected = ('hybrid', 'location', None)
     query = 'select work_mode,work_mode_source,remote from postings where id=%s'
@@ -252,3 +259,100 @@ def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     assert connection.execute(query, (posting_id,)).fetchone() == expected
     persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts, version='1.2'))
     assert connection.execute(query, (posting_id,)).fetchone() == expected
+
+
+@pytest.mark.parametrize("existing", ["competitive salary", None, "$180,000 annually"])
+def test_nonnumeric_salary_persists_remark_and_clears_only_matching_boilerplate(
+    connection, existing,
+):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + " We offer competitive salary."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update postings set salary=%s where id=%s", (existing, posting_id))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {
+        "value": "competitive salary", "evidence_quote": "competitive salary",
+    }
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    salary, stored_facts = connection.execute(
+        "select p.salary, e.facts from postings p join posting_extractions e "
+        "on e.posting_id=p.id where p.id=%s", (posting_id,),
+    ).fetchone()
+    assert salary == (existing if existing == "$180,000 annually" else None)
+    assert stored_facts["salary"] == {"value": None, "evidence_quote": None}
+    assert stored_facts["salary_remark"] == "competitive salary"
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("salary, numeric", [
+    ("401k", False), ("competitive salary + 401k", False),
+    ("2026", False), ("24/7", False), ("2 years", False),
+    ("100% remote", False), ("3 days a week", False),
+    ("שכר 35000 בחודש", True), ('35,000 ש״ח לחודש', True),
+    ("35,000 שקלים בחודש", True), ("up to 180000", True),
+    ("שכר 25,000-30,000 ₪", True), ("עד 35 אלף", True),
+    ("₪30K", True), ("up to $200k", True), ("up to 150,000 EUR", True),
+] + PRECISION_PREVIOUS_SALARY_CASES + ROUND5_SALARY_CASES + ROUND6_SALARY_CASES)
+def test_salary_evidence_survives_extraction_and_database_readback(connection, salary, numeric):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + "\n" + salary
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update postings set salary=%s where id=%s", (salary, posting_id))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    stored_salary, stored_facts = connection.execute(
+        "select p.salary, e.facts from postings p join posting_extractions e "
+        "on e.posting_id=p.id where p.id=%s", (posting_id,),
+    ).fetchone()
+    expected = expected_salary_facts(candidate, salary, numeric)
+    assert stored_salary == expected["salary"]["value"]
+    assert stored_facts == expected
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("existing", ["matching", None, "$180,000 annually"])
+@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS)
+def test_round7_salary_span_persists(connection, salary, span, existing):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + "\n" + salary
+    posting_id = insert_posting(connection, raw_jd)
+    prior = salary if existing == "matching" else existing
+    connection.execute("update postings set salary=%s where id=%s", (prior, posting_id))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    stored_salary, stored_facts = connection.execute(
+        "select p.salary, e.facts from postings p join posting_extractions e "
+        "on e.posting_id=p.id where p.id=%s", (posting_id,),
+    ).fetchone()
+    assert stored_salary == (span if span else (None if prior == salary else prior))
+    assert stored_facts["salary"]["value"] == span
+    assert stored_facts.get("salary_remark") == (salary if span != salary else None)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("quote, value, remark, span", ROUND8_SALARY_CASES)
+def test_round8_case_insensitive_salary_persists_other_facts(connection, quote, value, remark, span):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + "\n" + quote
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update postings set salary=null where id=%s", (posting_id,))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {"value": value, "evidence_quote": quote}
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[:5] == ("Tel Aviv", True, "Senior", ["TypeScript"], span)
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": span, "evidence_quote": quote if span else None}
+    expected["salary_remark"] = remark
+    assert state[11] == expected
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
