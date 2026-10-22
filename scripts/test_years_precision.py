@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from scripts.generate_years_metadata import FRAME, ROOT, SPEC, experience_phrase, generate, sql_regex
+from scripts.generate_years_metadata import COMPLETE_FRAME, FRAME, ROOT, SPEC, experience_phrase, generate, sql_regex
 
 
 class YearsPrecisionTests(unittest.TestCase):
@@ -17,15 +17,17 @@ class YearsPrecisionTests(unittest.TestCase):
                     self.assertIn(actual, description)
 
     def test_sql_uses_shared_grammar_and_preserves_contract(self):
-        sql = (ROOT / 'supabase/migrations/0039_years_metadata.sql').read_text()
+        sql = (ROOT / 'supabase/migrations/0040_years_compact_formats.sql').read_text()
         self.assertEqual(sql, generate())
         for key in ('complexity', 'optionalScope', 'requiredHeading', 'requiredContext',
                     'company', 'tenure', 'extraNumber', 'fractionalTenure', 'numberedTenure',
                     'inlineRequiredHeading', 'quantity', 'preference', 'domainPreference',
                     'numericTenure', 'domainContext', 'role', 'alternativeNumber',
-                    'employerVerb', 'applicantVerb', 'precedingNumber', 'decade'):
+                    'employerVerb', 'applicantVerb', 'precedingNumber', 'decade',
+                    'yoeAnnotation', 'collectiveTenure'):
             self.assertIn(sql_regex(SPEC[key]), sql, key)
         self.assertIn(sql_regex(FRAME), sql)
+        self.assertIn(sql_regex(COMPLETE_FRAME), sql)
         self.assertIn(sql_regex(SPEC['normalization']['joinTenure']), sql)
         for frame in SPEC['simple']:
             self.assertIn(sql_regex(frame), sql)

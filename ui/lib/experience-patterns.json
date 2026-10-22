@@ -43,7 +43,6 @@
       "^[ ]*[-*•●▪◦‣–—]+[ ]*",
       "[.!?;,\\n][ .!?;,\\n]*(?=(?:or\\b|או(?: |$)))",
       "(?<=\\bor|או)[ ]*\\n[ ]*",
-      "(?<=\\bexperience)[ ]*\\([ ]*YOE[ ]*\\)",
       "(?<=\\bexp)\\."
     ],
     "joinTenure": "(?:(?<=[0-9+])|(?<=one)|(?<=two)|(?<=three)|(?<=four)|(?<=five)|(?<=six)|(?<=seven)|(?<=eight)|(?<=nine)|(?<=ten)|(?<=eleven)|(?<=twelve)|(?<=thirteen)|(?<=fourteen)|(?<=fifteen)|(?<=sixteen)|(?<=seventeen)|(?<=eighteen)|(?<=nineteen)|(?<=twenty))[ ]*\\n[ ]*(?=\\+?[ ]*(?:years?|yrs?|yoe|y/o/e)\\b|שנות|שנים|שנה)"
@@ -51,10 +50,10 @@
   "optionalScope": "\\b(?:prefer(?:red|ably)?|optional|nice[ -]to[ -]have|bonus|advantages?|desirable|helpful|useful|a plus)\\b|(?:^|[^א-ת])(?:יתרונות|יתרון|רשות|אינן חובה|אינו חובה|אין חובה)(?![א-ת])",
   "headingTenure": "\\b(?:years?|yrs?|yoe|y/o/e|decades?)\\b|(?:שנות|שנים|שנה|שנתיים|עשור)|\\b{number}\\b",
   "tenure": "\\b(?:years?|yrs?|yoe|y/o/e|decades?)\\b|(?:שנות|שנים|שנה|שנתיים|עשור)",
-  "complexity": "\\b(?:equivalent|in lieu)\\b|\\bor[ ]+(?:(?:a|an|the)[ ]+)?(?:relevant[ ]+)?(?:degree|diploma|doctorate|masters?|bachelors?)\\b|(?:^|[^א-ת])או[ ]+תואר",
+  "complexity": "\\b(?:equivalent|in lieu)\\b|\\bor[ ]+(?:(?:a|an|the)[ ]+)?(?:relevant[ ]+)?(?:degree|diploma|doctorate|masters?|bachelors?)\\b|(?:^|[^א-ת])או[ ]+תואר|\\bplus[ ]+(?:[a-z-]+[ ]+){0,4}(?:work|experience)\\b",
   "numberedTenure": "^[ ]*(?:\\(?[0-9]+[.):]|\\(?[A-Za-z][.):])[ ]+[^\\n]*(?:\\b(?:years?|yrs?|yoe|y/o/e|decades?)\\b|(?:שנות|שנים|שנה|שנתיים|עשור))",
   "requiredContext": "\\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|qualifications?|minimum|all about you|your (?:experience|expertise)|what you bring|what you(?:'|’)ll need|at least)\\b|נדרש|דרישות|לפחות|מינימום",
-  "company": "\\b(?:our|the|this)\\s+(?:company|firm|business)\\b|\\bour team\\s+(?:has|combines|brings|boasts|offers)\\b|\\bwe(?:'ve| have| bring| offer| boast)\\b|\\bserving (?:customers|clients)\\b|\\bin business\\b|\\bas a company\\b|(?:^|[^א-ת])(?:לחברה|לחברת|בחברה|החברה|חברתנו)(?![א-ת])",
+  "company": "\\b(?:our|the|this)\\s+(?:company|firm|business)\\b|\\bour team\\s+(?:has|combines|brings|boasts|offers)\\b|\\bwe(?:'ve| have| bring| offer| boast)\\b|\\bserving (?:customers|clients)\\b|\\bin business\\b|\\bas a company\\b|(?:^|[^א-ת])(?:לחברה|לחברת|בחברה|החברה|חברתנו)(?![א-ת])|\\b(?:our|the)[ ]+(?:founding[ ]+)?(?:team|group)[ ]+(?:has|have|combines|brings|boasts|offers|contributes)\\b|\\bwe[ ]+are[ ]+(?:a|an|the)[ ]+(?:company|firm|business)\\b",
   "inlineRequiredHeading": "^[ ]*(?:(?:must[ -]haves?|required qualifications?|required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your (?:experience|expertise)|skills?\\s*(?:&|and)\\s*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\\??))[ ]*:",
   "extraNumber": "(?<![A-Za-z0-9_])(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z0-9_])",
   "fractionalTenure": "[0-9]+\\.[0-9]+[^.!?;\\n]*(?:\\b(?:years?|yrs?|yoe|y/o/e|decades?)\\b|(?:שנות|שנים|שנה|שנתיים|עשור))",
@@ -63,7 +62,7 @@
   "englishLead": "(?<![A-Za-z0-9_.])(?:(?:at least|minimum(?:[ \\t]+of)?|over)[ \\t]+)?(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?:[ \\t]*(?:[-–—]|to)[ \\t]*(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))?[ \\t]*\\+?(?:[ \\t]+or more)?[ \\t]+(?:overall[ \\t]+)?years?\\b(?:[ \\t]+or more)?",
   "role": "\\boverall\\b|\\b(?:software|engineering|development|developer|programming|professional|industry|relevant|commercial|automation|platform|robotics|embedded|simulation)[ -]+(?:[a-z-]+[ ]+){0,3}experience\\b|\\bexperience[ ]+(?:as[ ]+(?:a[ ]+)?(?:software[ ]+)?(?:engineer|developer)|in[ ]+(?:software|engineering|development))\\b|נ[י]?סיון[ ]+בפיתוח|\\byears?(?:[ ]+of)?[ ]+experience(?:[ ]+(?:is[ ]+)?required)?[ ]*$|\\b(?:professional|commercial)[ -]+(?:[a-z-]+[ ]+){0,3}track record\\b|\\bpaid[ ]+(?:[a-z-]+[ ]+){0,3}roles?\\b|\\b(?:yrs?|yoe)(?:[ ]+exp)?[ ]*$",
   "domainContext": "\\b(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|products?|industry|commercial|sre)\\b",
-  "numericTenure": "(?:בין[ ]+)?(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?:[ \\t]*(?:[-–—]|to|עד|ל-?)[ \\t]*(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))?[ \\t]*\\+?(?:[ ]+or more)?[ ]+(?:overall[ ]+)?years?\\b|[0-9]+[^.!?;\\n]{0,30}(?:שנות|שנים)|שנתיים|(?<![A-Za-z0-9_])(?:[0-9]+|(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))[ \\t+–—/():-]*(?:years?|yrs?|yoe|y/o/e)\\b|[0-9]+[^.!?;\\n]{0,30}(?:שנה|שנתיים)|\\bdecades?\\b|עשור",
+  "numericTenure": "(?:בין[ ]+)?(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?:[ \\t]*(?:[-–—]|to|עד|ל-?)[ \\t]*(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))?[ \\t]*\\+?(?:[ ]+or more)?[ ]+(?:overall[ ]+)?years?\\b|[0-9]+[^.!?;\\n]{0,30}(?:שנות|שנים)|שנתיים|(?<![A-Za-z0-9_])(?:[0-9]+|(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))[ \\t+–—/():-]*(?:years?|yrs?|yoe|y/o/e)\\b|[0-9]+[^.!?;\\n]{0,30}(?:שנה|שנתיים)|\\bdecades?\\b|עשור|(?<![A-Za-z0-9_])[0-9]+(?:[ ]*[-–—][ ]*[0-9]+)?[ ]*\\+?[ ]*y\\b|\\b(?:experience|exp|yoe)(?:[ ]*\\([ ]*YOE[ ]*\\))?[ ]*:[ ]*(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z_])|(?<![A-Za-z0-9_])(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\\+?[ ]*\\([^()\\n]*\\)[ ]*(?:years?|yrs?|yoe)\\b",
   "alternativeNumber": "(?:\\([^)]*|\\b(?:or|plus)\\b[^.!?;\\n]*|(?:/|[–—])[^.!?;\\n]*|או[^.!?;\\n]*)(?<![A-Za-z0-9_])(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z0-9_])",
   "domainPreference": ",?[ ]+\\b(?:ideally|preferably)[ ]+(?:in|with|within)[ ]+[^.!?;\\n]*$",
   "precedingNumber": "(?<![A-Za-z0-9_])(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z0-9_])[ -]*$",
@@ -75,5 +74,7 @@
     "(?<![A-Za-z0-9_.א-ת])עשור(?![א-ת])(?:[ \\t]+(?:של[ \\t]+)?נ[י]?סיון(?![א-ת]))?",
     "(?<![A-Za-z0-9_.א-ת])[0-9]{1,2}\\+?[ \\t]+שנים[ \\t]+ומעלה(?![א-ת])"
   ],
-  "decade": "\\bdecade\\b|עשור"
+  "decade": "\\bdecade\\b|עשור",
+  "yoeAnnotation": "[ ]*\\([ ]*YOE[ ]*\\)(?![ ]*:)",
+  "collectiveTenure": "\\b(?:combined|collective|cumulative)[ ]+(?:team|group)[ ]+experience\\b"
 }

@@ -9,6 +9,7 @@ SPEC = json.loads((ROOT / "ui/lib/experience-patterns.json").read_text())
 NUMBER = SPEC['number']
 LEAD = SPEC['englishLead']
 FRAME = '|'.join([LEAD + tail for tail in SPEC['englishTail']] + [SPEC['hebrew']] + SPEC['simple'])
+COMPLETE_FRAME = '(?:' + FRAME + ')[ ]*$'
 
 
 def search(pattern, text):
@@ -33,13 +34,16 @@ def experience_phrase(description):
     selected, disagreement = None, False
     for clause_match in re.finditer(r'[^.!?;\n]+', text):
         clause = clause_match[0]
-        # Mask only a numeric higher preference, preserving source quote offsets.
+        # An annotation may follow a complete frame, but must never create one.
+        for annotation in list(re.finditer(SPEC['yoeAnnotation'], clause, re.I | re.ASCII)):
+            if search(COMPLETE_FRAME, clause[:annotation.start()]):
+                clause = clause[:annotation.start()] + ' ' * len(annotation[0]) + clause[annotation.end():]
         for preference in list(re.finditer(SPEC['preference'], clause, re.I | re.ASCII)):
             before = clause[:preference.start()]
             numbers = re.findall(SPEC['extraNumber'], before, re.I | re.ASCII)
             preferred = re.search(SPEC['extraNumber'], preference[0], re.I | re.ASCII)[0]
             value = lambda token: int(token) if token.isdigit() else SPEC['words'].index(token.lower())
-            if numbers and value(preferred) >= value(numbers[-1]):
+            if search(COMPLETE_FRAME, before) and numbers and value(preferred) >= value(numbers[-1]):
                 clause = clause[:preference.start()] + ' ' * len(preference[0]) + clause[preference.end():]
         domain_preference = search(SPEC['domainPreference'], clause)
         if domain_preference and not search(SPEC['extraNumber'], domain_preference[0]) and not search(SPEC['tenure'], domain_preference[0]):
@@ -60,7 +64,7 @@ def experience_phrase(description):
                 section = 'other'
         if search(SPEC['inlineRequiredHeading'], clause):
             section = 'applicant'
-        if section == 'optional' or search(SPEC['company'], clause[max(0, context_end - 180):context_end]):
+        if section == 'optional' or search(SPEC['collectiveTenure'], clause) or search(SPEC['company'], clause[max(0, context_end - 180):context_end]):
             continue
         if matches and search(SPEC['company'], clause[matches[0].end():]):
             continue
@@ -155,7 +159,17 @@ begin
       clause_end := regexp_instr(normalized, '[^.!?;\\n]+', position, 1, 1);
       position := clause_end;
       clause := substr(normalized,clause_start,clause_end-clause_start);
-      -- Remove only a higher numeric preference; never remove optional requirement scope.
+      -- An annotation may follow a complete frame, but must never create one.
+      mask_start := 1;
+      loop
+        mask_start := regexp_instr(clause collate "C", '{patterns['yoeAnnotation']}', mask_start, 1, 0, 'i');
+        exit when mask_start = 0;
+        mask_end := regexp_instr(clause collate "C", '{patterns['yoeAnnotation']}', mask_start, 1, 1, 'i');
+        if (substr(clause,1,mask_start-1) collate "C") ~* '{sql_regex(COMPLETE_FRAME)}' then
+          clause := overlay(clause placing repeat(' ',mask_end-mask_start) from mask_start for mask_end-mask_start);
+        end if;
+        mask_start := mask_end;
+      end loop;
       preference_start := 1;
       loop
         preference_start := regexp_instr(clause collate "C", '{patterns['preference']}', preference_start, 1, 0, 'i');
@@ -169,7 +183,7 @@ begin
         preference_token := (regexp_match(substr(clause,preference_start,preference_end-preference_start) collate "C",'({patterns['extraNumber']})','i'))[1];
         preferred := case when preference_token ~ '^[0-9]+$' then preference_token::integer
           else array_position(array{SPEC['words']}::text[],lower(preference_token)) - 1 end;
-        if preceding is not null and preferred >= preceding then
+        if (substr(clause,1,preference_start-1) collate "C") ~* '{sql_regex(COMPLETE_FRAME)}' and preceding is not null and preferred >= preceding then
           clause := overlay(clause placing repeat(' ',preference_end-preference_start) from preference_start for preference_end-preference_start);
         end if;
         preference_start := preference_end;
@@ -205,7 +219,7 @@ begin
         elsif (heading collate "C") ~* '{patterns['otherHeading']}' then section := 'other'; end if;
       end loop;
       if (clause collate "C") ~* '{patterns['inlineRequiredHeading']}' then section := 'applicant'; end if;
-      if section = 'optional' or (right(context,180) collate "C") ~* '{patterns['company']}' then continue; end if;
+      if section = 'optional' or (clause collate "C") ~* '{patterns['collectiveTenure']}' or (right(context,180) collate "C") ~* '{patterns['company']}' then continue; end if;
       if start_at > 0 and (substr(clause,end_at) collate "C") ~* '{patterns['company']}' then continue; end if;
       if (context collate "C") ~* '{patterns['employerVerb']}' and (context collate "C") !~* '{patterns['applicantVerb']}' then continue; end if;
       if (context collate "C") ~* '{patterns['precedingNumber']}' then experience := null; exit; end if;
@@ -245,4 +259,4 @@ commit;
 
 
 if __name__ == '__main__':
-    (ROOT / 'supabase/migrations/0039_years_metadata.sql').write_text(generate())
+    (ROOT / 'supabase/migrations/0040_years_compact_formats.sql').write_text(generate())
