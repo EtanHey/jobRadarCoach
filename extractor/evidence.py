@@ -202,8 +202,8 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
         offset = start + len(quote)
 
 
-# Currency and units establish an amount, but a pay governor must identify it
-# as compensation. Competing funding/count wording makes the amount ambiguous.
+# A salary fact supplies pay context for currency amounts. Mixed funding/count
+# strings require an independently governed pay amount with no competing owner.
 _AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d+)(?:\.\d+)?"
 _CURRENCY = r"""(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD|ש[״"']?ח|שקל(?:ים)?)\b)"""
 _AMOUNT_UNIT = r"(?:k|m|b|thousand|million|billion|אלף|מיליון)\b"
@@ -268,8 +268,9 @@ _PAY_RAISED_RE = re.compile(
 
 
 def has_numeric_salary(value: str) -> bool:
-    """Keep only governed numeric pay with no competing non-pay context."""
+    """Keep numeric compensation unless a competing non-pay owner is attached."""
     value = _RETIREMENT_RE.sub(" ", value)
+    has_non_pay = bool(_NON_PAY_RE.search(value))
     amounts = list(_NUMERIC_AMOUNT_RE.finditer(value))
     index = 0
     while index < len(amounts):
@@ -292,7 +293,11 @@ def has_numeric_salary(value: str) -> bool:
         before = " ".join(before.split()[-4:]) + " "
         after = " " + " ".join(after.split()[:4])
         context = before + value[amounts[first].start():amounts[last].end()] + after
-        if not _PAY_GOVERNOR_RE.search(before + after) or _NON_PAY_RE.search(context):
+        if _NON_PAY_RE.search(context):
+            continue
+        # Without competing non-pay wording, currency already identifies pay.
+        # Otherwise require pay ownership in this candidate's bounded window.
+        if has_non_pay and not _PAY_GOVERNOR_RE.search(before + after):
             continue
         # Endpoints share an explicit currency or K unit; otherwise each must
         # independently meet the earlier unmarked-amount rules.

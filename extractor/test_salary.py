@@ -87,16 +87,8 @@ ROUND4_SALARY_CASES = [
 ]
 
 
-# Precision-first lead decision: currency alone does not identify compensation.
-# Keep historical ROUND2-4 corpora above intact so every demotion is auditable.
+# Preserve the historical corpora; only genuine competing governors demote pay.
 CONSERVATIVE_SALARY_REMARKS = {
-    value: "Currency without a pay governor is ambiguous."
-    for value in (
-        "30 אלף שקל", "30 אלף שקלים", "30 אלף ₪", "₪30 אלף",
-        "30 שקל", "30 שקלים", '30 ש"ח', "30 ₪", "30 K שקל",
-        "30 thousand שקל", "₪30 thousand", "€70.000", "USD 120K-150K", "₪30K",
-    )
-} | {
     "salary raised to $150k in funding announcement":
         "Funding competes with the raised-pay construction in the same window.",
 }
@@ -158,8 +150,28 @@ ROUND5_SALARY_CASES = [
 ]
 
 
+# The salary fact itself supplies pay context for unopposed currency amounts.
+# Mixed non-pay strings still need an independently governed pay candidate.
+ROUND6_SALARY_CASES = [
+    ("120k-150k EUR", True), ("$200k", True), ('30K-40K ש"ח', True),
+    ("₪ 25,000", True), ("$105,000 - $110,000", True),
+    ("$200,000 — $235,000 USD", True), ("$110-160k DOE", True),
+    ("between $123,000 USD and $172,000 USD", True),
+    ("California: $165,000–$225,000. All other states: $146,000–$206,000.", True),
+    ("raised $10M; $150k", False), ("$150k; funding $10M", False),
+    ("raised $10M and $150k", False), ("$150k and raised $10M", False),
+    ("raised $10M and pay $150k base", True),
+    ("competitive salary; funding $10M and $150k", False),
+    ("headcount $150k", False), ("$150k graduates", False),
+    ("$150k years of experience", False), ("$120k–$150k employees", False),
+    ("funding $120k–$150k", False), ("$120k–funding $150k", False),
+    ("US employees (any location): $150,000–$180,000 USD", False),
+]
+
+
 @pytest.mark.parametrize(
-    "salary, numeric", PRECISION_PREVIOUS_SALARY_CASES + ROUND5_SALARY_CASES,
+    "salary, numeric",
+    PRECISION_PREVIOUS_SALARY_CASES + ROUND5_SALARY_CASES + ROUND6_SALARY_CASES,
 )
 def test_round2_salary_extraction_and_payload(salary, numeric):
     candidate = facts()
@@ -205,7 +217,6 @@ TRIAGE_SALARIES = [
     TRIAGE_SALARIES
     + list(CONSERVATIVE_SALARY_REMARKS)
     + [
-        "120k-150k EUR",
         "competitive salary",
         "equity + benefits",
         "DOE",
