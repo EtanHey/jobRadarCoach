@@ -8,6 +8,8 @@ import aliases from "../lib/employer-aliases.json";
 for (const [publisher, employer, expected] of [
   ["EngRadar", "Monday.com", "Monday.com via EngRadar"],
   ["Torentify", null, "Torentify (agency — client undisclosed)"],
+  ["Mertens - MalamTeam", null, "Mertens - MalamTeam (agency — client undisclosed)"],
+  ["מרטנס | Mertens – מקבוצת מלם תים", null, "מרטנס | Mertens – מקבוצת מלם תים (agency — client undisclosed)"],
   ["Wix", "Wix", "Wix"],
   ["1Password", null, "1Password"],
   ["Aiven", null, "Aiven"],
@@ -104,7 +106,7 @@ print(json.dumps([resolve_employer(row['publisher'], row['jd'], source)
   }
 });
 
-test("r12 nomination-only client prose never produces an agency badge", () => {
+test("r12 client prose never produces an agency badge", () => {
   const probe = spawnSync("python3", ["-c", `
 import json
 from pathlib import Path

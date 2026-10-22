@@ -1,4 +1,4 @@
-"""Conservative role attribution; client prose only nominates list-review candidates."""
+"""Conservative role attribution; client prose vetoes inference, never badges."""
 from __future__ import annotations
 
 import re
@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '13'
+VERSION = '14'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -37,7 +37,8 @@ THIRD_PARTY = (
     r"|(?:עבור|מטעם)\s+(?:הלקוח שלנו|לקוח שלנו|אחד מלקוחותינו)"
 )
 INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
-# INTERMEDIARY is consumed by the offline dry-run report, never by attribution.
+# Client wording can veto employer inference and nominate offline list reviews;
+# it never supplies publisher agency evidence.
 # Keep the service adjacent to the provider verb; product subjects are checked below.
 STAFFING_BUSINESS = (
     r"\b(?:is|are) (?:an?|the) (?:(?:leading|global|international|specialist|specialized) ){0,3}"
@@ -187,12 +188,12 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
     publisher_statement = next(_publisher_staffing_statements(attributable, publisher), None)
-    # Client wording nominates publishers for offline list review only.
     # Only a statement about this publisher can supply free-text badge evidence.
     if _staffing_statement(attributable, publisher, require_complete=False):
         staffing_about.add(publisher.casefold())
     agency_evidence = raw_evidence(publisher_statement) if publisher_statement else None
     publisher_is_agency = publisher_statement is not None or publisher.casefold() in PUBLISHER_KEYS
+    client_wording_seen = bool(INTERMEDIARY.search(raw_jd))
     staffing_candidate_seen = publisher.casefold() in staffing_about
     role_intermediary_seen = bool(publisher_statement and role_heading
                                   and publisher_statement.start() > role_heading.start())
@@ -209,7 +210,8 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
             is_blurb = index == 3 or (index == 2 and role_heading is not None
                                      and match.start() < role_heading.start())
             if (name.casefold() in STAFFING_KEYS
-                    or name.casefold() in staffing_about):
+                    or name.casefold() in staffing_about
+                    or (index >= 2 and INTERMEDIARY.search(match[0]))):
                 # A recruiter description excludes that company as the employer;
                 # it says nothing about the publisher's own staffing business.
                 staffing_candidate_seen = True
@@ -220,10 +222,12 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
             candidates = blurb_names if is_blurb else role_names
             candidates[name.casefold()] = (name, raw_evidence(match))
     employer, evidence = None, None
-    candidates = role_names if role_names or role_intermediary_seen else blurb_names
+    candidates = (role_names if role_names or role_intermediary_seen or client_wording_seen
+                  else blurb_names)
     if len(candidates) == 1:
         employer, evidence = next(iter(candidates.values()))
     elif (not candidates and not publisher_is_agency and not staffing_candidate_seen
+          and not client_wording_seen
           and source in ATS_SOURCES):
         employer, evidence = publisher, f'source:{source}; company:{publisher}'
     relationship = ('unknown' if employer is None else
