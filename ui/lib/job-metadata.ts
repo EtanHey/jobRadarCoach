@@ -83,10 +83,18 @@ export function experiencePhrase(description: string | null): string | null {
       if (test(patterns.numericTenure, nonTeam)) return null;
       continue;
     }
-    if (test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
-    if (matches.length > 0 && test(patterns.company, clause.slice(matches[0].index + matches[0][0].length))) continue;
     const context = clause.slice(0, contextEnd);
-    if (test(patterns.employerVerb, context) && !test(patterns.applicantVerb, context)) continue;
+    if (test(patterns.company, context.slice(-180))
+      || (matches.length > 0 && test(patterns.company, clause.slice(matches[0].index + matches[0][0].length)))
+      || (test(patterns.employerVerb, context) && !test(patterns.applicantVerb, context))) {
+      // Exclude only one quantity: even an admitted frame can swallow another word-number tenure.
+      const nonEmployer = clause.replace(new RegExp(patterns.numericTenure, "i"), tenure => {
+        const withoutQuantity = tenure.replace(new RegExp(patterns.exclusionQuantity, "i"), "");
+        return withoutQuantity === tenure ? "" : withoutQuantity;
+      });
+      if (test(patterns.numericTenure, nonEmployer)) return null;
+      continue;
+    }
     if (test(patterns.precedingNumber, context)) return null;
     const residue = matches.length === 1 ? clause.replace(matches[0][0], "") : clause;
     if ((matches.length > 0 && test(patterns.complexity, clause.slice(matches[0].index + matches[0][0].length)))
