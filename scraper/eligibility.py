@@ -680,7 +680,8 @@ def _own_workplace_terms(
     ):
         noun = phrase['noun'].casefold()
         following = (phrase['next'] or '').casefold()
-        if (following in {"office", "offices", "site", "hub", "headquarters"}
+        if (following in {"office", "offices", "site", "hub", "headquarters",
+                          "tower", "towers", "building", "buildings"}
                 and noun not in {"office", "local", "own", "new"}):
             return None
         before = remainder[:phrase.start()]
