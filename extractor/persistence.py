@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from scraper.annotate import location_mode, posting_mode
 from scraper.employer_identity import VERSION, resolve_employer
+from scraper.seniority import title_seniority
 from scraper.deadlines import SOURCE as DEADLINE_SOURCE, extract_deadline
 
 from collections.abc import Mapping
@@ -28,6 +29,15 @@ class Connection(Protocol):
 PersistOutcome = Literal["stored", "unchanged", "stale"]
 
 
+def _stale_title_seniority(facts: Mapping[str, object], title: object, raw_jd: str) -> bool:
+    """A title-only receipt must still have evidence in the current title."""
+    if "seniority_remark" in facts:
+        explicit = title_seniority(title)
+        return explicit is None or explicit.remark != facts["seniority_remark"]
+    quote = facts.get("seniority", {}).get("evidence_quote")
+    return bool(quote and quote not in raw_jd and (not isinstance(title, str) or quote not in title))
+
+
 def has_current_extraction(
     connection: Connection,
     posting_id: str,
@@ -50,18 +60,26 @@ def has_current_extraction(
     jd_sha256 = hashlib.sha256(raw_jd.encode()).hexdigest()
     result_fingerprint = fingerprint(brain, model, version, schema_sha256, jd_sha256)
     row = connection.execute(
-        "select exists (select 1 from public.postings p join public.posting_extractions e "
+        "select p.title, e.facts from public.postings p join public.posting_extractions e "
         "on e.posting_id = p.id where p.id = %s and p.raw_jd = %s and e.brain = %s "
         "and e.model = %s and e.extractor_version = %s and e.schema_sha256 = %s "
         "and e.jd_sha256 = %s and e.fingerprint = %s "
         "and e.facts->'employer_identity'->>'resolver_version' = %s "
-        "and e.facts->'employer_identity'->>'publisher' = p.company)",
+        "and e.facts->'employer_identity'->>'publisher' = p.company",
         (
             posting_id, raw_jd, brain, model, version, schema_sha256, jd_sha256,
             result_fingerprint, VERSION,
         ),
     ).fetchone()
-    return row == (True,)
+    if row is None:
+        return False
+    explicit = title_seniority(row[0])
+    if explicit is None:
+        return not _stale_title_seniority(row[1], row[0], raw_jd)
+    return (
+        row[1].get("seniority") == explicit.fact()
+        and row[1].get("seniority_remark") == explicit.remark
+    )
 
 
 def persist_extraction(
@@ -75,16 +93,16 @@ def persist_extraction(
     posting_id = require_text(posting_id, "posting_id")
     if not isinstance(captured_raw_jd, str) or not captured_raw_jd.strip():
         raise ValueError("captured raw JD must be a nonblank string")
-    payload = build_payload(extraction, captured_raw_jd)
     with connection.transaction():
         posting = connection.execute(
-            "select raw_jd, company, source from public.postings where id = %s for update",
+            "select raw_jd, company, source, title from public.postings where id = %s for update",
             (posting_id,),
         ).fetchone()
         if posting is None:
             raise LookupError("posting does not exist")
         if posting[0] != captured_raw_jd:
             return "stale"
+        payload = build_payload(extraction, captured_raw_jd, posting_title=posting[3])
         deadline = extract_deadline(captured_raw_jd)
         encoded_deadline = json.dumps(deadline, ensure_ascii=False)
         # Separate from page/list verdicts. Refresh even for an unchanged LLM
@@ -108,6 +126,11 @@ def persist_extraction(
         ).fetchone()
         if current == payload.metadata():
             return "unchanged"
+        previous_seniority = current[6].get("seniority", {}) if current else {}
+        clear_title_seniority = bool(
+            current and current[4] == payload.jd_sha256
+            and _stale_title_seniority(current[6], posting[3], captured_raw_jd)
+        )
         mode, mode_source = posting_mode({
             "work_mode": location_mode(payload.facts["location"]["value"]),
             "location": payload.facts["location"]["value"],
@@ -123,7 +146,9 @@ def persist_extraction(
             "work_mode = case when %s::text is not null then nullif(%s, 'unknown') when work_mode_source in ('structured', 'location') then work_mode "
             "else coalesce(%s, work_mode) end, "
             "work_mode_source = case when %s::text is not null then case when %s = 'unknown' then null else 'extracted' end when work_mode_source in ('structured', 'location') then work_mode_source "
-            "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
+            "else coalesce(%s, work_mode_source) end, "
+            "seniority = case when %s then null else coalesce(%s, "
+            "case when %s and seniority is not distinct from %s then null else seniority end) end, "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
             "salary = coalesce(%s, case when lower(salary) = lower(%s) then null else salary end) "
             "where id = %s and raw_jd = %s returning id",
@@ -131,7 +156,9 @@ def persist_extraction(
                 payload.facts["location"]["value"], attendance_mode, attendance_mode, mode,
                 payload.facts["remote"]["value"], attendance_mode, attendance_mode, mode,
                 attendance_mode, attendance_mode, "extracted" if mode_source else None,
+                "seniority_remark" in payload.facts,
                 payload.facts["seniority"]["value"],
+                clear_title_seniority, previous_seniority.get("value"),
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],
                 payload.facts["salary"]["value"], payload.facts.get("salary_remark"),

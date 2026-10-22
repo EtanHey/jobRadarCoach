@@ -6,6 +6,7 @@ import re
 
 from extractor.quotes import ExtractionValidationError, validate_quote
 from extractor.salary import normalize_salary
+from scraper.seniority import apply_title_seniority
 
 _DAYS = r"(?:[1-4]|one|two|three|four)\s+days?"
 _WEEK = r"(?:(?:a|per|each)\s+week|weekly)"
@@ -250,14 +251,16 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
         offset = start + len(quote)
 
 
-def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
+def validate_facts(facts: dict[str, object], raw_jd: str, posting_title: object = None) -> None:
     """Reject extracted facts that are not supported by their source quotes."""
 
     normalize_salary(facts, raw_jd)
+    explicit = apply_title_seniority(facts, posting_title)
     for field in ("location", "remote", "seniority"):
         fact = facts[field]
         assert isinstance(fact, dict)
-        validate_quote(field, fact["value"], fact["evidence_quote"], raw_jd)
+        source = posting_title if field == "seniority" and explicit is not None else raw_jd
+        validate_quote(field, fact["value"], fact["evidence_quote"], source)
     _validate_location_context(facts["location"], raw_jd)
     remote = facts["remote"]
     assert isinstance(remote, dict)
