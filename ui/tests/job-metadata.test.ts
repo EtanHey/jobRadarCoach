@@ -50,19 +50,19 @@ test("bare company-tenure prose stays unknown unless an applicant heading is act
   assert.equal(experiencePhrase("Requirements:\nStrong communication\nAbout Company\n20 years of experience serving customers."), null);
 });
 
-test("experience covers real required phrasing around years, role, and action", () => {
-  assert.equal(experiencePhrase("Required\n5+ years building and operating production backend services"), "5+ years building");
-  assert.equal(experiencePhrase("Your Experience\n8+ years in software engineering with a full-stack background"), "8+ years in software engineering");
+test("experience requires an explicit experience frame in mandatory context", () => {
+  assert.equal(experiencePhrase("Required\n5+ years building and operating production backend services"), null);
+  assert.equal(experiencePhrase("Your Experience\n8+ years in software engineering with a full-stack background"), null);
   assert.equal(experiencePhrase("We are seeking a developer with 3–5 years of hands-on experience working across the stack."), "3–5 years of hands-on experience");
   assert.equal(experiencePhrase("You Bring\n4+ years of full-stack development experience"), "4+ years of full-stack development experience");
-  assert.equal(experiencePhrase("Qualifications\nExperience of at least 2 years in software development."), "at least 2 years in software development");
+  assert.equal(experiencePhrase("Qualifications\nExperience of at least 2 years in software development."), null);
   assert.equal(experiencePhrase("Required Qualifications • 7+ years of professional, hands-on experience building production software"), "7+ years of professional, hands-on experience");
-  assert.equal(experiencePhrase("5+ years professional backend engineering, with distributed systems depth"), "5+ years professional backend engineering");
+  assert.equal(experiencePhrase("5+ years professional backend engineering, with distributed systems depth"), null);
   assert.equal(experiencePhrase("What you'll need: 5+ years of experience managing business-critical teams"), "5+ years of experience");
   assert.equal(experiencePhrase("Minimum qualifications: 10 years of experience working with hardware verification languages"), "10 years of experience");
   assert.equal(experiencePhrase("What You Bring Required Qualifications • 8+ years of experience as a software engineer"), "8+ years of experience");
   assert.equal(experiencePhrase("Work closely with the team to strengthen our culture. What You Bring Required Qualifications • 8+ years of experience as a software engineer"), "8+ years of experience");
-  assert.equal(experiencePhrase("Team standards. 4+ years of hands-on software development. Practical security experience."), "4+ years of hands-on software development");
+  assert.equal(experiencePhrase("Team standards. 4+ years of hands-on software development. Practical security experience."), null);
   assert.equal(experiencePhrase("Required\n8+ Years of hands-on software development and architecture experience. Proven experience leading teams."), "8+ Years of hands-on software development and architecture experience");
 });
 

@@ -24,18 +24,13 @@
     "twenty"
   ],
   "englishTail": [
-    "(?:(?:[ \\t]+of)?(?:[ \\t]+(?:[a-z][\\w+/-]*,?|/)){0,7}?[ \\t]+experience\\b|[’'][ \\t]*experience\\b)",
-    "[ \\t]+(?:in|with)[ \\t]+[a-z][\\w+/-]*(?:[ \\t]+[a-z][\\w+/-]*){0,2}",
-    "(?:[ \\t]+of)?[ \\t]+(?:(?:professional|hands-on)[ \\t]+){0,2}(?:(?:backend|frontend|full[- ]stack|software|platform|infrastructure|devops|data|hardware)[ \\t]+)?(?:engineering|development)\\b",
-    "[ \\t]+(?:developing|building|working|operating|maintaining|leading|managing|designing)\\b"
+    "(?:(?:[ \\t]+of)?(?:[ \\t]+(?:[a-z][\\w+/-]*,?|/)){0,7}?[ \\t]+experience\\b|[’'][ \\t]*experience\\b)"
   ],
   "hebrew": "(?<![A-Za-z0-9_.א-ת])(?:(?:לפחות|מינימום(?: של)?)[ \\t]+)?[0-9]{1,2}(?:[ \\t]*(?:[-–—]|עד)[ \\t]*[0-9]{1,2})?\\+?[ \\t]+שנות[ \\t]+נ[י]?סיון(?![א-ת])|(?<![A-Za-z0-9_.א-ת])נ[י]?סיון[ \\t]+של[ \\t]+(?:לפחות[ \\t]+)?[0-9]{1,2}(?:[ \\t]*(?:[-–—]|עד)[ \\t]*[0-9]{1,2})?\\+?[ \\t]+שנים(?![א-ת])",
   "headings": "^[ \\t]*(?:#{1,6}[ \\t]+([^\\n]+)|([^\\n:]+))[ \\t]*:?[ \\t*]*$|(what we need to see|ways to stand out from a crowd|your expertise):",
-  "requiredHeading": "^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your (?:experience|expertise)|skills?\\s*(?:&|and)\\s*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\\??)$",
+  "requiredHeading": "^(?:must[ -]haves?|required qualifications?|required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your (?:experience|expertise)|skills?\\s*(?:&|and)\\s*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\\??)$",
   "otherHeading": "^(?:about(?: the)? company|about us|company|responsibilities|what you(?:'|’)ll do|the role|benefits|what we offer|compensation|ways to stand out from a crowd)$",
   "reject": "\\b(?:no|not|without|ideally|preferably|wish|would|nice to have|up to|around|approximately|preferred|optional|desirable|bonus|advantage|a plus)\\b|(?:^|[^א-ת])(?:לא|ללא|עד|יתרון|אינן חובה|אינו חובה|אין חובה)(?![א-ת])|\\bencouraged to apply\\b",
-  "hebrewPrefix": "^[^A-Za-zא-ת]*(?:(?:דרישות(?: התפקיד)?|נדרש(?:ת)?(?: נ[י]?סיון)?)[ :\\t]*)?$",
-  "alternativeYears": "(?:\\bor\\b|(?:^|[^א-ת])או)[ ]+(?:[^\\d\\n.!?;,]+[ ]+)?(?:{number})\\+?(?:[ ]*(?:[-–—]|to)[ ]*(?:{number})\\+?)?[ ]+(?:(?:overall[ ]+)?(?:years?\\b|שנות|שנים)|with\\b|עם(?: |$))",
   "normalization": {
     "space": " \t\u000b\f\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\ufeff",
     "newline": "\n\r\u2028\u2029",
@@ -46,5 +41,14 @@
     ]
   },
   "optionalScope": "\\b(?:prefer(?:red|ably)?|optional|nice[ -]to[ -]have|bonus|advantages?|desirable|helpful|useful|a plus)\\b|(?:^|[^א-ת])(?:יתרונות|יתרון|רשות|אינן חובה|אינו חובה|אין חובה)(?![א-ת])",
-  "headingTenure": "\\b(?:years?|{number})\\b|שנות|שנים"
+  "headingTenure": "\\b(?:years?|{number})\\b|שנות|שנים",
+  "tenure": "\\byears?\\b|שנות|שנים|שנתיים",
+  "complexity": "\\b(?:or|plus|preferred|preferably|advantage|ideally|equivalent)\\b|/|[–—]|(?:^|[^א-ת])או(?:$|[^א-ת])|\\([^)]*(?:[0-9]|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten|optional|preferred|preferably|advantage|ideally)\\b|יתרון)[^)]*\\)",
+  "numberedTenure": "^[ ]*(?:\\(?[0-9]+[.):]|\\(?[A-Za-z][.):])[ ]+[^\\n]*(?:\\byears?\\b|שנות|שנים)",
+  "requiredContext": "\\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your (?:experience|expertise)|what you bring|what you(?:'|’)ll need|at least)\\b|נדרש|דרישות|לפחות|מינימום",
+  "company": "\\b(?:our|the|this)\\s+(?:company|firm|business)\\b|\\bour team\\s+(?:has|combines|brings|boasts|offers)\\b|\\bwe(?:'ve| have| bring| offer| boast)\\b|\\bserving (?:customers|clients)\\b|\\bin business\\b|\\bas a company\\b|(?:^|[^א-ת])(?:לחברה|לחברת|בחברה|החברה|חברתנו)(?![א-ת])",
+  "inlineRequiredHeading": "^[ ]*(?:(?:must[ -]haves?|required qualifications?|required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your (?:experience|expertise)|skills?\\s*(?:&|and)\\s*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\\??))[ ]*:",
+  "extraNumber": "(?<![A-Za-z0-9_])(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z0-9_])",
+  "fractionalTenure": "[0-9]+\\.[0-9]+[^.!?;\\n]*(?:\\byears?\\b|שנות|שנים)",
+  "quantity": "(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?:[ \\t]*(?:[-–—]|to|עד)[ \\t]*(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))?"
 }
