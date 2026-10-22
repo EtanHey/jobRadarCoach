@@ -78,5 +78,5 @@
   "yoeAnnotation": "[ ]*\\([ ]*YOE[ ]*\\)(?![ ]*:)",
   "collectiveTenure": "\\b(?:combined|collective|cumulative)[ ]+(?:team|group)[ ]+experience\\b",
   "interruptedPreferencePrefix": "(?:^|\\n)[ ]*(?:requirements?|required qualifications?|minimum qualifications?)[ ]*:?[ ]*(?:\\n[ ]*)?(?:at least|we require)[ ]+(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)[ ]*$",
-  "exclusionQuantity": "(?:בין[ ]+)?(?:[0-9]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?:[ \\t]*(?:[-–—]|to|עד|ל-?)[ \\t]*(?:[0-9]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))?"
+  "exclusionQuantity": "(?:בין[ ]+)?(?<![A-Za-z0-9_])(?:[0-9]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z0-9_])(?:[ \\t]*(?:[-–—]|to|עד|ל-?)[ \\t]*(?<![A-Za-z0-9_])(?:[0-9]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)(?![A-Za-z0-9_]))?"
 }
