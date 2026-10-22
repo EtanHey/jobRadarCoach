@@ -141,7 +141,7 @@ test("JD identity reaches all board list paths and globe schema without sending 
   const db = createClient("https://database.example.test", "synthetic", {global: {fetch: async input => {
     const selected = new URL(String(input)).searchParams.get("select") ?? "";
     if (selected === "id,identity_evidence:raw_jd") {
-      return Response.json(rows.map(row=>({id:row.id,identity_evidence:"Build reliable services."})));
+      return Response.json(rows.map(row=>({id:row.id,identity_evidence:"Build reliable services. ".repeat(20)})));
     }
     assert.doesNotMatch(selected,/raw_jd/u);
     return Response.json(rows);
@@ -154,4 +154,21 @@ test("JD identity reaches all board list paths and globe schema without sending 
     assert.deepEqual(wire[0].employer_identity, raw.posting_extractions.employer_identity);
     assert.equal(groupDuplicateJobs(wire.map(row => GlobeJobSchema.parse(row))).length, 1);
   }
+});
+
+test("all board list paths survive a JD evidence read failure", async (t) => {
+  const errors = t.mock.method(console,"error",()=>{});
+  const rows = [slim(), {...slim(),id:"00000000-0000-4000-8000-000000000002"}];
+  const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async input => {
+    const selected = new URL(String(input)).searchParams.get("select");
+    if (selected === "id,identity_evidence:raw_jd") return Response.json({message:"unavailable"},{status:400});
+    return Response.json(rows);
+  }}});
+  const base = {filter:"all",availability:"all",limit:100} as const;
+  for (const input of [base,{...base,sort:"fit" as const},{...base,ids:[id]}]) {
+    const wire = JobListResponseSchema.parse({jobs:await selectSummaries(db,input)}).jobs;
+    assert.equal(wire.length,2);
+    assert.ok(wire.every(row=>row.vacancy_identity?.jd_fingerprint === null));
+  }
+  assert.equal(errors.mock.callCount(),3);
 });

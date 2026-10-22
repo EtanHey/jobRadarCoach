@@ -51,7 +51,7 @@ def test_drop_location_preserves_facts_and_stops_retries(connection, row, full_q
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
-@pytest.mark.parametrize("failure", ["location_quote", "remote_quote", "seniority_quote", "salary_quote", "stack_quote", "stack_duplicate", "schema"])
+@pytest.mark.parametrize("failure", ["location_quote", "remote_quote", "seniority_quote", "stack_quote", "stack_duplicate", "schema"])
 def test_other_failures_still_reject(failure, caplog):
     row = ROWS[-1]
     candidate = candidate_for(row)
@@ -89,3 +89,16 @@ def test_r1_absent_city_and_lexical_controls_still_reject(value, jd):
     candidate["location"] = {"value": value, "evidence_quote": "Harbor City"}
     with pytest.raises(BrainValidationError):
         core.extract_posting({"raw_jd": jd + " " + OTHER_JD}, {}, runner=runner_for(candidate))
+
+
+def test_location_and_salary_failure_drop_only_those_facts():
+    row = ROWS[-1]
+    raw_jd = row["jd"] + " " + OTHER_JD
+    candidate = candidate_for(row)
+    candidate["salary"]["evidence_quote"] = "ABSENT_PRIVATE_SENTINEL"
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["location"] = UNKNOWN
+    expected["salary"] = UNKNOWN
+    expected["salary_remark"] = candidate["salary"]["value"]
+    assert result["facts"] == expected
