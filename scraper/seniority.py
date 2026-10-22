@@ -14,7 +14,35 @@ _LEVELS = {
     "lead": "lead_manager", "staff": "staff_principal", "principal": "staff_principal",
     "junior": "junior", "ג'וניור": "junior",
 }
-_MANAGEMENT_HEAD = re.compile(r"\b(?:manager|head|director)\b", re.IGNORECASE | re.ASCII)
+_MANAGER = re.compile(r"(?<!\w)(?ai:manager)(?!\w)")
+_MANAGEMENT_HEAD = re.compile(
+    r"(?<!\w)(?:(?ai:head(?=\s+of\b)|director|vp)|ראש\s+צוות|מנהל\s+פיתוח)(?!\w)",
+)
+_PEOPLE_ORG = re.compile(
+    r"(?<!\w)(?ai:engineering|software|r&d|development|developer|team|group)(?!\w)",
+)
+_FUNCTION_HEAD = re.compile(
+    r"(?<!\w)(?ai:program|product|project|account|marketing|partner|customer\s+success|delivery)\s*$",
+)
+
+
+def _management_head(title: str) -> str | None:
+    if head := _MANAGEMENT_HEAD.search(title):
+        return head[0]
+    for manager in _MANAGER.finditer(title):
+        modifier = title[:manager.start()]
+        grades = list(_TITLE_LEVEL.finditer(modifier))
+        if grades:
+            modifier = modifier[grades[-1].end():]
+        # Inverted titles put the organization after an otherwise bare Manager.
+        if not modifier.strip() and title[manager.end():].lstrip().startswith(","):
+            modifier = title[manager.end():].lstrip()[1:]
+        modifier = re.split(r"[,;()/]|\s[-–—]\s", modifier)[0].strip()
+        # A functional head owns its preceding domain: Engineering Program
+        # Manager is program management, even though Engineering appears earlier.
+        if not _FUNCTION_HEAD.search(modifier) and _PEOPLE_ORG.search(modifier):
+            return manager[0]
+    return None
 
 
 @dataclass(frozen=True)
@@ -29,24 +57,25 @@ class TitleSeniority:
 
 
 def title_seniority(title: object) -> TitleSeniority | None:
-    """Return a quoted level, or unknown for conflicting explicit title levels."""
+    """Return a quoted title grade, or an explicit abstention for ambiguous roles."""
     if not isinstance(title, str):
         return None
     matches = list(_TITLE_LEVEL.finditer(title))
-    if not matches:
-        return None
     levels = {
         _LEVELS[match[0].casefold().rstrip(".").replace("׳", "'").replace("’", "'")]
         for match in matches
     }
-    if len(levels) != 1:
+    if len(levels) > 1:
         return TitleSeniority(None, None, None, title[:1000])
-    level = levels.pop()
-    value = matches[0][0]
-    if level == "senior" and (head := _MANAGEMENT_HEAD.search(title)):
-        # Senior modifies the management role in both the scalar and the bucket.
-        level = "lead_manager"
-        value = head[0]
+    if head := _management_head(title):
+        level, value = "lead_manager", head
+    elif matches:
+        level, value = levels.pop(), matches[0][0]
+    elif _MANAGER.search(title):
+        # Prevent extracted/ATS fallback from promoting an ungraded function.
+        return TitleSeniority(None, None, None, title[:1000])
+    else:
+        return None
     return TitleSeniority(level, value, title if len(title) <= 1000 else value)
 
 

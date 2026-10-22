@@ -83,9 +83,9 @@ def test_conflicting_title_levels_are_unknown_with_exact_remark():
 
 
 @pytest.mark.parametrize(("title", "head"), [
-    ("Senior Platform Manager", "Manager"),
+    ("Senior Engineering Manager", "Manager"),
     ("Senior Manager, Platform Engineering", "Manager"),
-    ("Sr. Platform Manager", "Manager"),
+    ("Sr. Software Engineering Manager", "Manager"),
     ("Senior Director of Platform Engineering", "Director"),
     ("Senior Head of Platform Engineering", "Head"),
 ])
@@ -104,3 +104,45 @@ def test_title_cannot_supply_evidence_for_other_fields():
     with pytest.raises(BrainValidationError):
         # Title evidence is available only for the deterministic seniority fact.
         extract_posting({**posting(), "title": "Senior Engineer Berlin"}, {}, runner=runner_for(candidate))
+
+
+FUNCTIONS = [
+    "Program", "Product", "Project", "Account", "Marketing", "Partner",
+    "Customer Success", "Delivery", "Platform", "Inventory",
+    "Hardware Engineering Program", "Software Delivery", "Team Marketing",
+]
+
+
+@pytest.mark.parametrize("function", FUNCTIONS)
+@pytest.mark.parametrize(("grade", "value", "level"), [
+    ("Senior ", "Senior", "senior"), ("Staff ", "Staff", "staff_principal"),
+    ("", None, None),
+])
+def test_function_manager_keeps_grade_or_abstains(function, grade, value, level):
+    title = f"{grade}{function} Manager"
+    extracted = extract_posting({**posting(), "title": title}, {}, runner=runner_for(facts()))
+    expected = {"value": value, "evidence_quote": title if value else None}
+    assert extracted["facts"]["seniority"] == expected
+    assert build_payload(extracted, RAW_JD, posting_title=title).facts["seniority"] == expected
+    normalized = normalize({"title": title, "seniority": "Manager", "ats_seniority": "Manager"})
+    assert (normalized.seniority_level, normalized.seniority_source) == (level, "title")
+
+
+@pytest.mark.parametrize(("role", "head"), [
+    ("Engineering Manager", "Manager"), ("Software Engineering Manager", "Manager"),
+    ("Software Manager", "Manager"), ("R&D Manager", "Manager"),
+    ("Development Manager", "Manager"), ("Team Manager", "Manager"),
+    ("Group Manager", "Manager"), ("Developer Relations Manager", "Manager"),
+    ("Cloud Engineering Build Manager", "Manager"),
+    ("Head of Infrastructure", "Head"),
+    ("Director of Operations", "Director"), ("VP of Engineering", "VP"),
+    ("ראש צוות", "ראש צוות"), ("מנהל פיתוח", "מנהל פיתוח"),
+])
+@pytest.mark.parametrize("grade", ["", "Senior "])
+def test_people_management_heads_keep_management_grade(role, head, grade):
+    title = grade + role
+    extracted = extract_posting({**posting(), "title": title}, {}, runner=runner_for(facts()))
+    expected = {"value": head, "evidence_quote": title}
+    assert extracted["facts"]["seniority"] == expected
+    assert build_payload(extracted, RAW_JD, posting_title=title).facts["seniority"] == expected
+    assert normalize({"title": title}).seniority_level == "lead_manager"

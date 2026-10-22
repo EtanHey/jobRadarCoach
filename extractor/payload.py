@@ -86,7 +86,7 @@ def _owned_facts(facts: object, captured_raw_jd: str, posting_title: object = No
         normalize_salary(owned, captured_raw_jd)
         explicit = apply_title_seniority(owned, posting_title)
         if "seniority_remark" in owned and (explicit is None or explicit.remark is None):
-            raise ValueError("seniority remark requires conflicting title levels")
+            raise ValueError("seniority remark requires an ambiguous title")
         Draft202012Validator(schema).validate(owned)
         validate_facts(owned, captured_raw_jd, posting_title)
     except (AssertionError, KeyError, TypeError, ValidationError) as error:

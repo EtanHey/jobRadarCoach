@@ -173,7 +173,7 @@ def test_title_seniority_is_quoted_from_locked_posting_and_tracks_title_edits(co
         assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "unchanged"
 
 
-@pytest.mark.parametrize("title", ["Senior Platform Manager", "Senior Manager, Platform Engineering"])
+@pytest.mark.parametrize("title", ["Senior Engineering Manager", "Senior Manager, Platform Engineering"])
 def test_management_title_persists_management_scalar(connection, title) -> None:
     posting_id = insert_posting(connection)
     connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
@@ -181,6 +181,19 @@ def test_management_title_persists_management_scalar(connection, title) -> None:
     state = durable_state(connection, posting_id)
     assert state[2] == "Manager"
     assert state[11]["seniority"] == {"value": "Manager", "evidence_quote": title}
+
+
+@pytest.mark.parametrize(("title", "value"), [
+    ("Senior Hardware Engineering Program Manager", "Senior"),
+    ("Hardware Engineering Program Manager", None),
+])
+def test_function_manager_persists_grade_or_unknown(connection, title) -> None:
+    posting_id = insert_posting(connection)
+    connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
+    assert persistence.persist_extraction(connection, posting_id, RAW_JD, extraction()) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[2] == value
+    assert state[11]["seniority"] == {"value": value, "evidence_quote": title if value else None}
 
 
 @pytest.mark.parametrize("old_title", ["Senior Platform Engineer", "Junior / Senior Platform Engineer"])
