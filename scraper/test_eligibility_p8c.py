@@ -187,3 +187,56 @@ def test_scope_slot_keeps_geography_separate_from_qualifications(jd, expected):
     assert decide_location_eligibility(
         {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
     )["eligibility"] == expected
+
+
+@pytest.mark.parametrize("jd", [
+    # R1: recruiting prose must not consume an unresolved list operand.
+    "We welcome Atlantis and Israel-based candidates",
+    "We welcome Atlantis or Israel-based candidates",
+    "We are seeking New Atlantis and Tel Aviv-based applicants",
+    "Applicants must be New Atlantis and Israel-based candidates",
+    # R2: the base/from relation supplies context independently of word count.
+    "We welcome Atlantis-based candidates",
+    "This role is limited to candidates from Atlantis",
+    "Israel and Atlantis-based applicants may apply",
+    "We welcome New Atlantis-based candidates",
+    "We are seeking New Atlantis-based applicants",
+    "Applicants must be New Atlantis-based candidates",
+    "This role is limited to candidates from New Atlantis",
+    "The position is restricted to applicants located in New Atlantis",
+    "This role is limited to candidates from Israel and Atlantis",
+    "This role is limited to candidates from New Atlantis with Python experience",
+    "We welcome Israel and New Atlantis-based candidates with German-speaking skills",
+])
+@pytest.mark.parametrize("lowercase", [False, True])
+def test_explicit_unknown_applicant_destinations_preserve_complete_scope(jd, lowercase):
+    from scraper.eligibility import _positive_nonown_signal
+
+    jd = jd.lower() if lowercase else jd
+    assert _positive_nonown_signal(jd, "Tel Aviv", "")
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("jd", [
+    "We are seeking Tel Aviv and Israel-based applicants",
+    "Applicants must be Tel Aviv-based candidates",
+    "This role is limited to candidates from Tel Aviv with Python experience",
+    "The position is restricted to applicants located in Israel",
+    "This role is limited to candidates with New Atlantis-based experience",
+    "This role is limited to candidates with German native level",
+    # P8G: generic fictional residency/credential labels have no positive signal.
+    "Candidates must reside in Atlantis",
+    "Quuxian applicants only",
+    "Valid Atlantis work permit mandatory",
+])
+def test_unknown_scope_repair_preserves_own_qualification_and_p8g_controls(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
