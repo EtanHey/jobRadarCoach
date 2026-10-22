@@ -29,8 +29,8 @@ try:
     from scraper.geography import (  # noqa: E402
         _city_matches_country, _contains_normalized_phrase, _normalized_location,
     )
-except ImportError:
-    from geography import (
+except ModuleNotFoundError:
+    from geography import (  # noqa: E402
         _city_matches_country, _contains_normalized_phrase, _normalized_location,
     )
 

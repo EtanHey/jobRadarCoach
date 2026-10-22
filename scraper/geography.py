@@ -30,6 +30,10 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "Netanya",
         "Rehovot",
         "Kfar Saba",
+        "Holon",
+        "Rishon",
+        "Rishon LeZion",
+        "Rishon Le Zion",
         "Be'er Sheva",
         "Yokneam",
         "תל אביב",
@@ -45,11 +49,22 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "נתניה",
         "רחובות",
         "כפר סבא",
+        "חולון",
+        "ראשון לציון",
         "באר שבע",
         "יקנעם",
     ),
-    "united states": ("San Francisco", "New York", "New York City"),
+    "united states": (
+        "San Francisco",
+        "New York",
+        "New York City",
+        "Austin",
+        "NYC",
+        "SF",
+    ),
     "germany": ("Berlin",),
+    "united kingdom": ("London", "לונדון"),
+    "canada": ("Toronto",),
 }
 
 
@@ -334,6 +349,8 @@ US_STATE_IDENTIFIERS = frozenset(
 COUNTRY_OWN_IDENTIFIERS = {
     "israel": frozenset(("israel", "il", "isr")),
     "germany": frozenset(("germany", "de", "deu")),
+    "united kingdom": frozenset(("united kingdom", "uk", "gb", "gbr")),
+    "canada": frozenset(("canada", "ca", "can")),
     "united states": frozenset(
         (
             "united states",
@@ -345,6 +362,112 @@ COUNTRY_OWN_IDENTIFIERS = {
         )
     ),
 }
+
+# Eligibility uses this same vocabulary as ingestion, with explicit region policy.
+# Unknown places are deliberately unresolved, never presumed foreign or Israeli.
+NONCENTRAL_ISRAEL_PLACES = (
+    "Sasa",
+    "Kibbutz Sasa",
+    "Galilee",
+    "Upper Galilee",
+    "Haifa",
+    "Jerusalem",
+    "Be'er Sheva",
+    "Yokneam",
+    "northern Israel",
+    "southern Israel",
+    "סאסא",
+    "גליל",
+    "חיפה",
+    "ירושלים",
+    "באר שבע",
+    "יקנעם",
+    "צפון",
+    "דרום",
+)
+GEOGRAPHIC_ALIASES = {
+    **{name: "foreign" for name in COUNTRY_IDENTIFIERS},
+    **{city: "foreign" for cities in COUNTRY_CITY_ALIASES.values() for city in cities},
+    **{city: "israel" for city in COUNTRY_CITY_ALIASES["israel"]},
+    **{name: "noncentral" for name in NONCENTRAL_ISRAEL_PLACES},
+    **dict.fromkeys(
+        (
+            "Israel",
+            "State of Israel",
+            "IL",
+            "ISR",
+            "ישראל",
+            "Central Israel",
+            "Gush Dan",
+            "מרכז ישראל",
+            "גוש דן",
+        ),
+        "israel",
+    ),
+    **dict.fromkeys(
+        (
+            "United States",
+            "U.S.",
+            "U.S.A.",
+            "US",
+            "USA",
+            "Continental United States",
+            "ארצות הברית",
+            "ארה״ב",
+            'ארה"ב',
+            "ארהב",
+            "קנדה",
+            "בריטניה",
+            "אירופה",
+            "Europe",
+            "European Union",
+            "EU",
+            "UK",
+            "New Jersey",
+        ),
+        "foreign",
+    ),
+    **dict.fromkeys(("EMEA", "APAC", "EST", "PST"), "uncertain"),
+    **dict.fromkeys(
+        ("worldwide", "globally", "global", "anywhere in the world", "all countries"),
+        "worldwide",
+    ),
+}
+_PLACE_KINDS = {
+    _normalized_location(name): kind for name, kind in GEOGRAPHIC_ALIASES.items()
+}
+_PLACE_PATTERN = re.compile(
+    r"(?:"
+    + "|".join(
+        r"[\W_]+".join(map(re.escape, name.split()))
+        for name in sorted(_PLACE_KINDS, key=len, reverse=True)
+    )
+    + r")(?!\w)",
+    re.I,
+)
+
+
+def match_geographic_place(text: str, start: int = 0) -> tuple[str, int] | None:
+    """Resolve one place at a geographic scope boundary, preserving unknowns.
+
+    ISO codes need uppercase input (except conventional US/UK/EU); ordinary
+    words such as 'in', 'it', 'be' must not become countries in prose.
+    """
+    match = _PLACE_PATTERN.match(text, start)
+    if not match:
+        return None
+    name = _normalized_location(match.group())
+    if (
+        len(name) <= 3
+        and name in COUNTRY_IDENTIFIERS
+        and name not in {"us", "u s", "uk", "eu"}
+    ):
+        if not match.group().isupper():
+            return None
+    end = match.end()
+    if name in {"u s", "u s a"} and text[end : end + 1] == ".":
+        end += 1
+    return _PLACE_KINDS[name], end
 
 
 def _city_matches_country(raw_location: object, country: str) -> bool:

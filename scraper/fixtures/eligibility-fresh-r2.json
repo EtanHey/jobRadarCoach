@@ -1,0 +1,122 @@
+[
+  [
+    "fresh-01",
+    "Israel",
+    "Candidates must reside in Atlantis",
+    "unknown"
+  ],
+  [
+    "fresh-02",
+    "Israel",
+    "Worldwide remote, but Israel is not eligible",
+    "blocked"
+  ],
+  [
+    "fresh-03",
+    "Tel Aviv",
+    "Must be legally eligible to work in Canada",
+    "unknown"
+  ],
+  [
+    "fresh-04",
+    "Israel",
+    "Only citizens of Israel may apply",
+    "unknown"
+  ],
+  [
+    "fresh-05",
+    "Remote",
+    "Remote worldwide; must overlap the PST time zone",
+    "unknown"
+  ],
+  [
+    "fresh-06",
+    "Israel",
+    "Required to be based in the UK or Israel",
+    "eligible"
+  ],
+  [
+    "fresh-07",
+    "Israel",
+    "Not required to relocate to London",
+    "eligible"
+  ],
+  [
+    "fresh-08",
+    "Remote",
+    "Work remotely from Israel; except contractors based in France",
+    "unknown"
+  ],
+  [
+    "fresh-09",
+    "Tel Aviv",
+    "Candidates based in the US preferred",
+    "unknown"
+  ],
+  [
+    "fresh-10",
+    "Israel",
+    "היברידי בלונדון",
+    "blocked"
+  ],
+  [
+    "fresh-11",
+    "Remote",
+    "Remote work from Holon",
+    "eligible"
+  ],
+  [
+    "fresh-12",
+    "Holon",
+    "Python and SQL required",
+    "eligible"
+  ],
+  [
+    "fresh-13",
+    "Israel",
+    "Only candidates located in Toronto",
+    "blocked"
+  ],
+  [
+    "fresh-14",
+    "Israel",
+    "Remote from anywhere in the world; only residents of Wakanda",
+    "unknown"
+  ],
+  [
+    "fresh-15",
+    "Remote",
+    "Open to applicants in Israel or Germany",
+    "eligible"
+  ],
+  [
+    "fresh-16",
+    "Israel",
+    "On-site in London or Tel Aviv",
+    "eligible"
+  ],
+  [
+    "fresh-17",
+    "Israel",
+    "Must reside in Berlin and have US work authorization",
+    "blocked"
+  ],
+  [
+    "fresh-18",
+    "Remote",
+    "Remote worldwide excluding applicants from Canada",
+    "eligible"
+  ],
+  [
+    "fresh-19",
+    "Israel",
+    "ניתן לעבוד מרחוק מכל מקום; נדרש להתגורר בקנדה",
+    "blocked"
+  ],
+  [
+    "fresh-20",
+    "Tel Aviv",
+    "Remote worldwide except Israel and Canada",
+    "blocked"
+  ]
+]
