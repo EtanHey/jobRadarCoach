@@ -14,6 +14,7 @@ from extractor.test_salary import (
     ROUND5_SALARY_CASES,
     ROUND6_SALARY_CASES,
     ROUND7_SALARY_SPANS,
+    ROUND8_SALARY_CASES,
     expected_salary_facts,
 )
 from scraper.brain_contract import BrainTransportError
@@ -338,4 +339,24 @@ def test_round7_salary_span_persists(connection, salary, span, existing):
     assert stored_salary == (span if span else (None if prior == salary else prior))
     assert stored_facts["salary"]["value"] == span
     assert stored_facts.get("salary_remark") == (salary if span != salary else None)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("quote, value, remark, span", ROUND8_SALARY_CASES)
+def test_round8_case_insensitive_salary_persists_other_facts(connection, quote, value, remark, span):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + "\n" + quote
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update postings set salary=null where id=%s", (posting_id,))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {"value": value, "evidence_quote": quote}
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[:5] == ("Tel Aviv", True, "Senior", ["TypeScript"], span)
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": span, "evidence_quote": quote if span else None}
+    expected["salary_remark"] = remark
+    assert state[11] == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
