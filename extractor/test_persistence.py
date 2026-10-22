@@ -9,6 +9,7 @@ import pytest
 
 from extractor import core, persistence
 from extractor.test_salary import (
+    P9C_SALARY_SPANS,
     PRECISION_PREVIOUS_SALARY_CASES,
     ROUND5_SALARY_CASES,
     ROUND6_SALARY_CASES,
@@ -315,7 +316,10 @@ def test_salary_evidence_survives_extraction_and_database_readback(connection, s
 
 
 @pytest.mark.parametrize("existing", ["matching", None, "$180,000 annually"])
-@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS)
+@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS + [
+    pytest.param(salary, span, id=f"p9c-{index}")
+    for index, (salary, span) in enumerate(P9C_SALARY_SPANS)
+])
 def test_round7_salary_span_persists(connection, salary, span, existing):
     from extractor.test_core import runner_for
 

@@ -239,7 +239,8 @@ _RETIREMENT_RE = re.compile(
     re.IGNORECASE,
 )
 _FUNDING_RE = re.compile(
-    r"\b(?:raised|funding|series|seed|round|investors?|valuation|ARR|revenue|גייסנו)\b",
+    r"\b(?:raised|funding|series|seed|round|investors?|valuation|ARR|revenue|"
+    r"גייסנו|הכנסות|מחזור)\b",
     re.IGNORECASE,
 )
 _NUMERIC_AMOUNT_RE = re.compile(
@@ -252,6 +253,7 @@ _AMOUNT_BOUNDARY_RE = re.compile(
 _RANGE_JOIN_RE = re.compile(r"\s*(?:[-–—]|to|and|עד)\s*", re.IGNORECASE)
 _NON_PAY_RE = re.compile(
     rf"{_FUNDING_RE.pattern}|%|"
+    r"\bbase\s+(?:of|is)\b|"
     r"\b(?:customers?|users?|graduates?|headcount|people|investment|capital|"
     r"years|days?|offices?|retirement|pension|percent|לקוחות|משתמשים)\b|"
     rf"(?<!\w){_AMOUNT}\s*(?:(?:k|thousand|אלף)\s*)?(?:employees?|locations?|עובדים)\b",
@@ -275,14 +277,18 @@ _PAY_BEFORE_RE = re.compile(
     re.IGNORECASE,
 )
 _PAY_AFTER_RE = re.compile(
-    r"^\s*(?:base(?:\s+(?:salary|pay|comp(?:ensation)?))?"
-    r"(?!\s+(?:capital|investment|customers?|users?)\b)|"
+    r"^\s*(?:base(?:\s+(?:salary|pay|comp(?:ensation)?)\b|(?=\s*(?:$|[).!?])))|"
     r"salary|pay|compensation|(?:signing\s+)?bonus|commissions?|שכר|"
     r"(?:\+?\s*/|per\s+)(?:hr|hour|month|year|annum)|"
     r"annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b",
     re.IGNORECASE,
 )
 _CLAUSE_BOUNDARY_RE = re.compile(r"[;\n]|,(?!\d)|(?<=[.!?])\s+")
+_OWNERSHIP_BOUNDARY_RE = re.compile(r"[;\n]|(?<=[.!?])\s+")
+_EXPLICIT_PAY_AFTER_RE = re.compile(
+    r"^\s*(?:base\s+(?:salary|pay|comp(?:ensation)?)|salary|pay|compensation|שכר)\b",
+    re.IGNORECASE,
+)
 
 
 def salary_span(value: str) -> str | None:
@@ -311,13 +317,31 @@ def salary_span(value: str) -> str | None:
         before = scanned[start:left]
         after = scanned[right:end]
         before = _AMOUNT_BOUNDARY_RE.split(before)[-1]
-        # Separate additions/parentheses without hiding them from clause checks.
-        after = re.split(r"\+(?!\s*/)|\(|\b(?:and|but)\b", after, maxsplit=1, flags=re.IGNORECASE)[0]
+        # Parentheses can name this amount's owner; additions can name another.
+        ownership_after = re.split(
+            r"\+(?!\s*/)|\b(?:and|but)\b", after, maxsplit=1, flags=re.IGNORECASE,
+        )[0]
+        after = ownership_after.split("(", 1)[0]
         pay_before = _PAY_BEFORE_RE.search(before)
         pay_after = _PAY_AFTER_RE.search(after)
+        if re.match(r"\s*base\b", ownership_after, re.IGNORECASE) and not _PAY_AFTER_RE.search(ownership_after):
+            continue
         governed_before = _PAY_RAISED_RE.sub(r"\g<pay> ", before)
         context = governed_before + scanned[left:right] + after
-        if _NON_PAY_RE.search(context):
+        if _NON_PAY_RE.search(governed_before + scanned[left:right] + ownership_after):
+            continue
+        # A comma does not reset revenue/ARR ownership. Only a fresh pay noun
+        # can claim the next amount; "up to", cadence and bare "base" cannot.
+        ownership_start = max(
+            (m.end() for m in _OWNERSHIP_BOUNDARY_RE.finditer(scanned, 0, left)), default=0,
+        )
+        inherited = scanned[ownership_start:clause_start]
+        explicit_pay_before = pay_before and not re.match(
+            r"(?:up\s+to|עד)\b", pay_before.group(), re.IGNORECASE,
+        )
+        if _NON_PAY_RE.search(inherited) and not (
+            explicit_pay_before or _EXPLICIT_PAY_AFTER_RE.search(after)
+        ):
             continue
         # A cadence cannot take an inherited revenue/funding amount; a fresh
         # adjacent pay noun can establish ownership after an earlier amount.

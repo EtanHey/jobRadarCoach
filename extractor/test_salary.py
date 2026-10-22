@@ -395,7 +395,49 @@ ROUND7_SALARY_SPANS = [
 ]
 
 
-@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS)
+P9C_SALARY_SPANS = [
+    ("Competitive salary; $5M base (capital investment)", None),
+    ("Competitive salary; $5M base (annual recurring revenue)", None),
+    ("Competitive salary; $5M base (ARR)", None),
+    ("Competitive salary; ARR $10M, up to $20M annually", None),
+    ("Competitive salary; revenue $8M, up to $10M annually", None),
+    ("Competitive salary; revenue $8M, $10M annually, up to $12M yearly", None),
+    ("Competitive salary; ARR $10M, $20M base", None),
+    ("שכר תחרותי; הכנסות שנתיות של ₪20 מיליון", None),
+    ("שכר תחרותי; מחזור שנתי של ₪20 מיליון", None),
+    ("שכר תחרותי; הכנסות ₪10 מיליון, עד ₪20 מיליון בשנה", None),
+    ("שכר תחרותי; ARR של ₪20 מיליון", None),
+    ("שכר תחרותי; ARR של ₪10 מיליון, עד ₪20 מיליון בשנה", None),
+    ("Competitive salary; installed base of 120k", None),
+    ("Competitive salary; subscriber base of 250k", None),
+    ("Competitive salary; client base of 40k", None),
+    ("Competitive salary; knowledge base of 10k articles", None),
+    ("Competitive salary; our base is $5M", None),
+    ("base of $120k", None),
+    ("base is $120k", None),
+    ("Competitive salary; $5M base subscribers", None),
+    ("Competitive salary; $5M base (subscribers)", None),
+    ("ARR $10M, salary $150k", "salary $150k"),
+    ("ARR $10M, up to $200k base salary", "up to $200k base salary"),
+    ("revenue $8M, base pay is $150k", "base pay is $150k"),
+    ("הכנסות ₪20 מיליון, שכר ₪32,000 בחודש", "שכר ₪32,000 בחודש"),
+    ("מחזור ₪20 מיליון; שכר ₪32,000 בחודש", "שכר ₪32,000 בחודש"),
+    ("שכר בסיס של ₪32,000 בחודש", "₪32,000 בחודש"),
+    ("base salary of $120k", "base salary of $120k"),
+    ("base pay is $120k", "base pay is $120k"),
+    ("base comp $120k", "base comp $120k"),
+    ("$120k base", "$120k base"),
+    ("$120k base salary", "$120k base salary"),
+    ("$150k–$180k base + equity (we raised $40M)", "$150k–$180k base"),
+    ("Salary €90k–£110k base; funding $8M", "Salary €90k–£110k base"),
+    ("Salary USD 120,000–CAD 160,000 per year", "Salary USD 120,000–CAD 160,000 per year"),
+]
+
+
+@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS + [
+    pytest.param(salary, span, id=f"p9c-{index}")
+    for index, (salary, span) in enumerate(P9C_SALARY_SPANS)
+])
 def test_round7_clean_salary_span(salary, span):
     candidate = facts()
     candidate["salary"] = {"value": salary, "evidence_quote": salary}
