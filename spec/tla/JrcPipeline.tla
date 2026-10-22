@@ -56,6 +56,7 @@ Visible == {Min(g) : g \in VisibleGroups}
 Fresh(p) == latest[p] = "success" /\ checkedAt[p] >= 0 /\
             now - checkedAt[p] <= FreshFor /\ now <= Deadline(p)
 DisplayedAlive == {p \in Visible : IF CurrentCode THEN historical[p] ELSE Fresh(p)}
+DisplayedClosed == {p \in Visible : p \in closed \/ (~CurrentCode /\ now > Deadline(p))}
 
 Init == /\ fixture \in {"city", "requisition", "distinct", "title", "location", "jd", "role"}
         /\ registryCase \in {"fresh", "stale", "disabled"}
@@ -163,6 +164,9 @@ AliveImpliesFreshCheck ==
     /\ \A p \in DisplayedAlive : Fresh(p)
     /\ \A p \in Visible : latest[p] = "unknown" =>
           (p \in closed <=> priorClosed[p])
+DeadlinePassedImpliesClosed ==
+    \A p \in Visible : now > Deadline(p) =>
+        (p \in DisplayedClosed /\ p \notin DisplayedAlive)
 LocationAcceptsCityOnly == phase \in {"upsert", "live"} =>
     \A p \in fetched : (p \in geo <=> Location(p) \in {"Israel", "Tel Aviv-Yafo", "Herzliya",
                                                                     "Tel Aviv, Israel", "Haifa, Israel"})

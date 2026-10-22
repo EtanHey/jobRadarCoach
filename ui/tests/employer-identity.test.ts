@@ -1,9 +1,26 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
+import { z } from "zod";
 import { employerLabel } from "../lib/employer-identity";
 import { EmployerIdentitySchema } from "../lib/contracts";
 import aliases from "../lib/employer-aliases.json";
+
+test("2827-character resolver lines fit both evidence contracts as exact prefixes", () => {
+  const probe = spawnSync("python3", ["-c", `
+import json
+from scraper.employer_identity import resolve_employer
+cases = [('agency_evidence', 'HireCo is a staffing firm. '),
+         ('employer_evidence', 'Acme Labs is hiring engineers. ')]
+print(json.dumps([dict(field=field, line=(line := opening + 'x' * (2827-len(opening))),
+    identity=resolve_employer('HireCo', line, source))
+    for field, opening in cases for source in ['linkedin', 'greenhouse']]))
+`], { cwd: import.meta.dirname + "/../..", encoding: "utf8" });
+  assert.equal(probe.status, 0, probe.stderr);
+  const results = z.array(z.object({ field: z.enum(["agency_evidence", "employer_evidence"]),
+    line: z.string(), identity: EmployerIdentitySchema })).parse(JSON.parse(probe.stdout));
+  for (const result of results) assert.equal(result.identity[result.field], result.line.slice(0, 2000));
+});
 
 for (const [publisher, employer, expected] of [
   ["EngRadar", "Monday.com", "Monday.com via EngRadar"],

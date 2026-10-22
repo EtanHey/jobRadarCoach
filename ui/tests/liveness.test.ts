@@ -31,7 +31,7 @@ test("summary readers preserve stale history without returning fresh alive", () 
     { liveness_checked_at: "2026-10-22T09:30:00Z", application_deadline: "2026-10-18T23:59:59Z" },
   ]) {
     const [job] = parseSummaryRows([{ ...raw, liveness: { alive: true, ...evidence } }], now).jobs;
-    assert.equal(job.alive, null);
+    assert.equal(job.alive, "application_deadline" in evidence ? false : null);
     assert.equal(job.liveness?.state, "application_deadline" in evidence ? "deadline_passed" : "stale");
     assert.equal(job.liveness?.last_confirmed_at, evidence.liveness_checked_at);
   }
@@ -62,7 +62,7 @@ test("all list paths fetch and project latest-attempt and deadline evidence", as
     const base = { filter: "all", availability: "all", limit: 50 } as const;
     for (const query of [base, { ...base, sort: "fit" as const }, { ...base, ids: [raw.id] }]) {
       const [job] = await selectSummaries(db, query);
-      assert.equal(job.alive, null);
+      assert.equal(job.alive, "application_deadline" in evidence ? false : null);
       assert.equal(job.liveness?.state, "application_deadline" in evidence ? "deadline_passed" : "stale");
     }
   }

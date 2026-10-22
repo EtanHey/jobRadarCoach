@@ -32,7 +32,7 @@ run() {
 }
 cp JrcPipeline.cfg "$run_dir/target.cfg"
 run target pass
-for invariant in NoSilentSourceLoss OneVisibleVacancy AliveImpliesFreshCheck LocationAcceptsCityOnly; do
+for invariant in NoSilentSourceLoss OneVisibleVacancy AliveImpliesFreshCheck DeadlinePassedImpliesClosed LocationAcceptsCityOnly; do
   cp JrcPipeline_current.cfg "$run_dir/$invariant.cfg"
   printf '\nINVARIANT %s\n' "$invariant" >>"$run_dir/$invariant.cfg"
   case $invariant in

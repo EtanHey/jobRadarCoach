@@ -25,13 +25,14 @@ def test_report_preserves_unicode_line_separators_inside_jsonl_records(tmp_path)
 
 
 def test_report_projects_list_governor_corpus(tmp_path):
-    from extractor.test_salary import P9D_SALARY_SPANS
+    from extractor.test_salary import P9D_SALARY_SPANS, P9E_SALARY_SPANS
 
+    cases = P9D_SALARY_SPANS + P9E_SALARY_SPANS
     snapshot = tmp_path / "governors.jsonl"
     snapshot.write_text("\n".join(json.dumps({"id": index, "salary": value})
-                                  for index, (value, _) in enumerate(P9D_SALARY_SPANS)))
+                                  for index, (value, _) in enumerate(cases)))
     output = report(snapshot)
-    set_count = sum(span is not None for _, span in P9D_SALARY_SPANS)
-    null_count = len(P9D_SALARY_SPANS) - set_count
-    remark_count = sum(value != span for value, span in P9D_SALARY_SPANS)
+    set_count = sum(span is not None for _, span in cases)
+    null_count = len(cases) - set_count
+    remark_count = sum(value != span for value, span in cases)
     assert f"| after | {set_count} | {null_count} | {remark_count} |" in output
