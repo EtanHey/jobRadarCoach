@@ -27,6 +27,8 @@ export function experiencePhrase(description: string | null): string | null {
   const number = patterns.number;
   const lead = `(?<![A-Za-z0-9_.])(?:(?:at least|minimum(?:[ \\t]+of)?|over|around)[ \\t]+)?${number}(?:[ \\t]*(?:[-–—]|to)[ \\t]*${number})?\\+?(?:[ \\t]+or more)?[ \\t]+(?:overall[ \\t]+)?years?\\b`;
   const phrase = new RegExp(patterns.englishTail.map(tail => lead + tail).concat(patterns.hebrew).join("|"), "gi");
+  let strongest: { minimum: number; quote: string } | null = null;
+  const alternativeYears = new RegExp(patterns.alternativeYears.replaceAll("{number}", number), "i");
   for (const match of description.matchAll(phrase)) {
     const index = match.index;
     const tokens = [...match[0].matchAll(new RegExp(`(?<![A-Za-z0-9_])${number}(?![A-Za-z0-9_])`, "gi"))];
@@ -62,13 +64,21 @@ export function experiencePhrase(description: string | null): string | null {
       || /\bwe(?:'ve| have| bring| offer| boast)\b[^.!?\n]{0,80}$/i.test(nearContext)
       || /^\s*(?:serving (?:customers|clients)|in business|as a company)\b/i.test(suffix);
     const required = section === "applicant"
-      || /\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your experience|what you bring|what you(?:'|’)ll need)\b/i.test(nearContext)
+      || /\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your (?:experience|expertise)|what you bring|what you(?:'|’)ll need)\b/i.test(nearContext)
       || /^(?:at least|minimum)\b/i.test(match[0])
       || (hebrew && (/^(?:לפחות|ניסיון של לפחות|נסיון של לפחות)/.test(match[0]) || /נדרש|דרישות/.test(nearContext)))
       || (!wordNumber && /\b(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|product|sre)\b/i.test(`${match[0]} ${suffix.slice(0, 80)}`));
-    if (!optional && !company && required) return quoted;
+    if (!optional && !company && required) {
+      // A numeric alternative changes the role threshold: never fall through to
+      // an unrelated specialist requirement when that threshold is ambiguous.
+      if (alternativeYears.test(`${suffix} ${continuation}`)) return null;
+      const minimum = amounts[0];
+      if (minimum !== undefined && (!strongest || minimum > strongest.minimum)) {
+        strongest = { minimum, quote: quoted };
+      }
+    }
   }
-  return null;
+  return strongest?.quote ?? null;
 }
 
 /** Display explicit mentions only; these are not proficiency or must-have claims. */

@@ -30,7 +30,7 @@ def generate():
     sql_pattern_5 = sql_regex(r'\bour team\s+(?:has|combines|brings|boasts|offers)\b[^.!?\n]{0,80}$')
     sql_pattern_6 = sql_regex(r"\bwe(?:'ve| have| bring| offer| boast)\b[^.!?\n]{0,80}$")
     sql_pattern_7 = sql_regex(r'^\s*(?:serving (?:customers|clients)|in business|as a company)\b')
-    sql_pattern_8 = sql_regex(r"\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your experience|what you bring|what you(?:'|’)ll need)\b")
+    sql_pattern_8 = sql_regex(r"\b(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your (?:experience|expertise)|what you bring|what you(?:'|’)ll need)\b")
     sql_pattern_9 = sql_regex(r'^(?:at least|minimum)\b')
     sql_pattern_10 = sql_regex(r'\b(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|product|sre)\b')
     sql_pattern_11 = original.split("'description_available',coalesce((description collate \"C\") ~ '")[1].split("',false)")[0]
@@ -51,6 +51,7 @@ declare
   utf16_units integer; heading text; captures text[]; section text;
   amounts integer[]; hebrew boolean; word_number boolean; optional boolean; company boolean; required boolean;
   experience text := null;
+  strongest_minimum integer := -1;
 begin
 {technologies}  loop
     start_at := 0;
@@ -101,7 +102,14 @@ begin
       or (matched collate "C") ~* '{sql_pattern_9}'
       or (hebrew and (matched ~ '^(?:לפחות|ניסיון של לפחות|נסיון של לפחות)' or near_context ~ 'נדרש|דרישות'))
       or (not word_number and ((matched || ' ' || short_suffix) collate "C") ~* '{sql_pattern_10}');
-    if not optional and not company and required then experience := quoted; exit; end if;
+    if not optional and not company and required then
+      if ((suffix || ' ' || continuation) collate "C") ~* '{sql_regex(spec['alternativeYears'].replace("{number}", number))}' then
+        experience := null; exit;
+      end if;
+      if amounts[1] > strongest_minimum then
+        strongest_minimum := amounts[1]; experience := quoted;
+      end if;
+    end if;
   end loop;
   return jsonb_build_object('stack',technologies,'experience',experience,
     'description_available',coalesce((description collate "C") ~ '{sql_pattern_11}',false));

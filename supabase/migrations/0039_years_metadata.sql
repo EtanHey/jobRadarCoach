@@ -19,6 +19,7 @@ declare
   utf16_units integer; heading text; captures text[]; section text;
   amounts integer[]; hebrew boolean; word_number boolean; optional boolean; company boolean; required boolean;
   experience text := null;
+  strongest_minimum integer := -1;
 begin
   select coalesce(array_agg(name order by ordinal), '{}'::text[]) into technologies
   from (values
@@ -98,16 +99,16 @@ begin
       near_context := substr(near_context,2);
     end loop;
     section := 'other';
-    for captures in select regexp_matches(prefix collate "C",'^[ \t]*(?:#{1,6}[ \t]+([^\n]+)|([^\n:]{1,48}))[ \t]*:?[ \t]*$|(what we need to see|ways to stand out from a crowd):','gin') loop
+    for captures in select regexp_matches(prefix collate "C",'^[ \t]*(?:#{1,6}[ \t]+([^\n]+)|([^\n:]{1,48}))[ \t]*:?[ \t*]*$|(what we need to see|ways to stand out from a crowd|your expertise):','gin') loop
       heading := btrim(regexp_replace(regexp_replace(coalesce(captures[1],captures[2],captures[3]),'[:#*]+$',''),'^[^A-Za-zא-ת]+',''));
       if (heading collate "C") ~* '^(?:preferred(?: qualifications?)?|nice to have|bonus|advantages?|יתרונות|יתרון)$' then section := 'optional';
-      elsif (heading collate "C") ~* '^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:''|’)re looking for|you bring|you(?:''|’)ll need|it takes)|you bring|your experience|skills?[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(?:&|and)[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\??)$' then section := 'applicant';
+      elsif (heading collate "C") ~* '^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:''|’)re looking for|you bring|you(?:''|’)ll need|it takes)|you bring|your (?:experience|expertise)|skills?[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(?:&|and)[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\??)$' then section := 'applicant';
       elsif (heading collate "C") ~* '^(?:about(?: the)? company|about us|company|responsibilities|what you(?:''|’)ll do|the role|benefits|what we offer|compensation|ways to stand out from a crowd)$' then section := 'other'; end if;
     end loop;
     suffix := (regexp_split_to_array(substr(description,end_at),'[.!?\n;]'))[1];
     continuation := coalesce(substring(substr(description,end_at) from '^[^\n]*\n[ \t]+(?:or|או)(?=[[:space:]])[^\n]*'),'');
     hebrew := matched ~ '[א-ת]';
-    if ((near_context || ' ' || case when hebrew then '' else matched end || ' ' || suffix || ' ' || continuation) collate "C") ~* '(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))(?:no|not|without|ideally|preferably|wish|would|nice to have|up to|around|approximately|preferred|optional|desirable|bonus|advantage|a plus)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))|(?:^|[^א-ת])(?:לא|ללא|עד|יתרון|אינן חובה|אינו חובה|אין חובה)(?![א-ת])|(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))or(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))(?![ \t]+more(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_])))|(?:^|[^א-ת])או(?![א-ת])' then continue; end if;
+    if ((near_context || ' ' || case when hebrew then '' else matched end || ' ' || suffix || ' ' || continuation) collate "C") ~* '(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))(?:no|not|without|ideally|preferably|wish|would|nice to have|up to|around|approximately|preferred|optional|desirable|bonus|advantage|a plus)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))|(?:^|[^א-ת])(?:לא|ללא|עד|יתרון|אינן חובה|אינו חובה|אין חובה)(?![א-ת])|(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))encouraged to apply(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))' then continue; end if;
     if (near_context collate "C") ~* '(?<![A-Za-z0-9_])(?:(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))[ -]*$' then continue; end if;
     if hebrew and not (near_context ~ '^[^A-Za-zא-ת]*(?:(?:דרישות(?: התפקיד)?|נדרש(?:ת)?(?: נ[י]?סיון)?)[ :\t]*)?$') then continue; end if;
     short_suffix := left(suffix,80);
@@ -124,11 +125,18 @@ begin
       or (near_context collate "C") ~* '(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))we(?:''ve| have| bring| offer| boast)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))[^.!?\n]{0,80}$'
       or (suffix collate "C") ~* '^[ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]*(?:serving (?:customers|clients)|in business|as a company)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))';
     required := section = 'applicant'
-      or (near_context collate "C") ~* '(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your experience|what you bring|what you(?:''|’)ll need)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))'
+      or (near_context collate "C") ~* '(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))(?:you (?:need|have|bring)|we (?:require|seek)|looking for|seeking|must(?: have)?|required|requirements?|minimum|all about you|your (?:experience|expertise)|what you bring|what you(?:''|’)ll need)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))'
       or (matched collate "C") ~* '^(?:at least|minimum)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))'
       or (hebrew and (matched ~ '^(?:לפחות|ניסיון של לפחות|נסיון של לפחות)' or near_context ~ 'נדרש|דרישות'))
       or (not word_number and ((matched || ' ' || short_suffix) collate "C") ~* '(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))(?:software|engineering|developer|development|backend|frontend|full[- ]stack|devops|platform|infrastructure|data|hardware|verification|technical|programming|manufacturing|managing|product|sre)(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))');
-    if not optional and not company and required then experience := quoted; exit; end if;
+    if not optional and not company and required then
+      if ((suffix || ' ' || continuation) collate "C") ~* '(?:(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))or(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))|(?:^|[^א-ת])או)[ \t]+(?:[^\d\n.!?;,]+[ \t]+)?(?:(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))\+?(?:[ \t]*(?:[-–—]|to)[ \t]*(?:(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))\+?)?[ \t]+(?:overall[ \t]+)?(?:years?(?:(?<![A-Za-z0-9_])(?=[A-Za-z0-9_])|(?<=[A-Za-z0-9_])(?![A-Za-z0-9_]))|שנות|שנים)' then
+        experience := null; exit;
+      end if;
+      if amounts[1] > strongest_minimum then
+        strongest_minimum := amounts[1]; experience := quoted;
+      end if;
+    end if;
   end loop;
   return jsonb_build_object('stack',technologies,'experience',experience,
     'description_available',coalesce((description collate "C") ~ '[^ \t\n\r\f\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]',false));

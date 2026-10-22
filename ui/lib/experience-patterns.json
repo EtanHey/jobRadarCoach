@@ -30,10 +30,11 @@
     "[ \\t]+(?:developing|building|working|operating|maintaining|leading|managing|designing)\\b"
   ],
   "hebrew": "(?<![A-Za-z0-9_.א-ת])(?:(?:לפחות|מינימום(?: של)?)[ \\t]+)?[0-9]{1,2}(?:[ \\t]*(?:[-–—]|עד)[ \\t]*[0-9]{1,2})?\\+?[ \\t]+שנות[ \\t]+נ[י]?סיון(?![א-ת])|(?<![A-Za-z0-9_.א-ת])נ[י]?סיון[ \\t]+של[ \\t]+(?:לפחות[ \\t]+)?[0-9]{1,2}(?:[ \\t]*(?:[-–—]|עד)[ \\t]*[0-9]{1,2})?\\+?[ \\t]+שנים(?![א-ת])",
-  "headings": "^[ \\t]*(?:#{1,6}[ \\t]+([^\\n]+)|([^\\n:]{1,48}))[ \\t]*:?[ \\t]*$|(what we need to see|ways to stand out from a crowd):",
+  "headings": "^[ \\t]*(?:#{1,6}[ \\t]+([^\\n]+)|([^\\n:]{1,48}))[ \\t]*:?[ \\t*]*$|(what we need to see|ways to stand out from a crowd|your expertise):",
   "optionalHeading": "^(?:preferred(?: qualifications?)?|nice to have|bonus|advantages?|יתרונות|יתרון)$",
-  "requiredHeading": "^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your experience|skills?\\s*(?:&|and)\\s*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\\??)$",
+  "requiredHeading": "^(?:required|requirements?|qualifications?|minimum qualifications?|what (?:we(?:'|’)re looking for|you bring|you(?:'|’)ll need|it takes)|you bring|your (?:experience|expertise)|skills?\\s*(?:&|and)\\s*experience|who (?:you are|are you)|all about you|what we value|what we need to see|דרישות(?: התפקיד)?|מה אנחנו מחפשים\\??)$",
   "otherHeading": "^(?:about(?: the)? company|about us|company|responsibilities|what you(?:'|’)ll do|the role|benefits|what we offer|compensation|ways to stand out from a crowd)$",
-  "reject": "\\b(?:no|not|without|ideally|preferably|wish|would|nice to have|up to|around|approximately|preferred|optional|desirable|bonus|advantage|a plus)\\b|(?:^|[^א-ת])(?:לא|ללא|עד|יתרון|אינן חובה|אינו חובה|אין חובה)(?![א-ת])|\\bor\\b(?![ \\t]+more\\b)|(?:^|[^א-ת])או(?![א-ת])",
-  "hebrewPrefix": "^[^A-Za-zא-ת]*(?:(?:דרישות(?: התפקיד)?|נדרש(?:ת)?(?: נ[י]?סיון)?)[ :\\t]*)?$"
+  "reject": "\\b(?:no|not|without|ideally|preferably|wish|would|nice to have|up to|around|approximately|preferred|optional|desirable|bonus|advantage|a plus)\\b|(?:^|[^א-ת])(?:לא|ללא|עד|יתרון|אינן חובה|אינו חובה|אין חובה)(?![א-ת])|\\bencouraged to apply\\b",
+  "hebrewPrefix": "^[^A-Za-zא-ת]*(?:(?:דרישות(?: התפקיד)?|נדרש(?:ת)?(?: נ[י]?סיון)?)[ :\\t]*)?$",
+  "alternativeYears": "(?:\\bor\\b|(?:^|[^א-ת])או)[ \\t]+(?:[^\\d\\n.!?;,]+[ \\t]+)?(?:{number})\\+?(?:[ \\t]*(?:[-–—]|to)[ \\t]*(?:{number})\\+?)?[ \\t]+(?:overall[ \\t]+)?(?:years?\\b|שנות|שנים)"
 }
