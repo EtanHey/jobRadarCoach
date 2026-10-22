@@ -617,8 +617,7 @@ def test_own_israeli_workplace_terms_are_satisfied(location, jd):
 def test_local_office_terms_cannot_erase_separate_restrictions(location, jd):
     result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
     no_signal = jd in {
-        "Hybrid work & office environment in Atlantis", "Hybrid 3 days per week in Atlantis",
-        "Hybrid work model, must be in Atlantis", "Hybrid role, security clearance required",
+        "Hybrid role, security clearance required",
         "Hybrid work model, must work in an approved jurisdiction",
         "Applicants must have the legal right to work in the country where the position is based and live in Atlantis",
     }

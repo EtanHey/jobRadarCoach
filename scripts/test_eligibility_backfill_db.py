@@ -117,6 +117,7 @@ def test_recompute_unknown_real_sql_guards_and_idempotency():
                         "values (%s,'fixture',%s,'https://example.test','Engineer','Example',%s,'Israeli work permit required')",
                         (posting_id, str(posting_id), location))
                     payload = structured_annotation(str(posting_id))
+                    payload['luna_status'] = 'ok'
                     if value is not None:
                         payload.update(eligibility=value, eligibility_reason='old')
                     connection.execute(

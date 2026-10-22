@@ -6,6 +6,7 @@ import re
 from typing import Literal, TypedDict
 
 from scraper.geography import (
+    COUNTRY_IDENTIFIERS,
     ISRAELI_CITY_NAMES,
     ISRAELI_PLACE_EQUIVALENTS,
     _normalized_location,
@@ -196,7 +197,7 @@ WORKPLACE_WORD = (
 )
 WORKPLACE_FRAMES = tuple(re.compile(pattern, re.I) for pattern in (
     rf"\b(?:our|the|an?)\s+(?P<slot>(?:{WORKPLACE_WORD}\s+)*){WORKPLACE_NOUN}\b",
-    rf"\b{WORKPLACE_NOUN}\s+(?:is\s+)?"
+    rf"\b{WORKPLACE_NOUN}\s+"
     r"(?:(?:(?:\d+|one|two|three|four|five)\s+)?days?\s+(?:per|a|each)\s+week\s+)?"
     rf"(?:in|at|near)\s+(?P<slot>{WORKPLACE_WORD}(?:\s+{WORKPLACE_WORD})*)",
     r"(?<!\w)[בהלמ]*משרד(?:י|ים)?\s+(?:(?:שלנו|החברה)\s+)?"
@@ -296,10 +297,17 @@ def _without_own_address(clause: str, own_location: str) -> str:
     return re.sub(rf"(?i:the heart of|central|north)\s+(?=(?i:{city})(?!\w))", "", clause)
 
 
-def _unresolved_workplace_phrase(clause: str, own_location: str, company: str) -> bool:
+def _unresolved_workplace_phrase(
+    clause: str, own_location: str, company: str, *, positive_signal: bool = False,
+) -> bool:
     clause = normalize_israeli_location(clause)
     places = _own_location_names(own_location) if own_location else set()
     company_name = _normalized_location(normalize_israeli_location(company)) if company else ""
+    if positive_signal:
+        clause = re.sub(
+            rf"(\b{WORKPLACE_NOUN}\s+)(?:is\s+)?(?:(?:located|situated)\s+)?(?=in\b|at\b|near\b)",
+            r"\1", clause, flags=re.I,
+        )
     for frame in WORKPLACE_FRAMES:
         for phrase in frame.finditer(clause):
             slot = _normalized_location(normalize_israeli_location(phrase["slot"]))
@@ -357,7 +365,7 @@ OWN_SITE = re.compile(
 # Outside scopes can be explicit without a residence or office verb.
 OUTSIDE_SCOPE = re.compile(
     r"\b(?:DACH|LATAM|APAC|EMEA|abroad|overseas|foreign countries)\b|"
-    r"(?<!\w)חו[\"״']?ל(?!\w)", re.I,
+    r"(?<!\w)[בלמוהש]*חו[\"״']?ל(?!\w)", re.I,
 )
 FOREIGN_NATIONALITY = re.compile(
     r"\b(?:American|British|German|French|Canadian|Australian|European|Swiss|"
@@ -366,6 +374,12 @@ FOREIGN_NATIONALITY = re.compile(
     r"Austrian|Belgian|Romanian|Czech|Greek|Turkish|Singaporean)\b|"
     r"(?<!\w)(?:אמריקאי|בריטי|גרמני|צרפתי|קנדי|אירופי|אוסטרלי|הודי|רוסי)"
     r"(?:ת|ם|ות)?(?!\w)", re.I,
+)
+# Country-derived adjectives supplement irregular demonyms above, including
+# compound names such as South African, without accepting fictional labels.
+COUNTRY_NATIONALITY = re.compile(
+    r"\b(?:" + "|".join(re.escape(name) for name in sorted(COUNTRY_IDENTIFIERS)
+                         if len(name) > 3 and name != "israel") + r")(?:n|an|ian)\b", re.I,
 )
 OUTSIDE_TIME_ZONE = re.compile(
     r"\b(?:[PECM][SD]T|[ECW]EST|[ECW]ET|GMT|UTC|JST|AEST|AEDT|NZST)\b|"
@@ -382,11 +396,74 @@ NAMED_WORKPLACE = re.compile(
     r"work|working|attendance|office presence)\s+(?:in|at|from)\s+)"
     r"(?P<place>[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*)"
 )
+SCHEDULED_WORKPLACE = re.compile(
+    r"\b(?:hybrid|on[ -]?site|office[ -]?based)"
+    r"(?:\s+(?:work|office|environment|model|schedule|role|\d+|one|two|three|four|five|days?|per|week|must|be|&)|,)*"
+    r"\s+(?:in|at|from)\s+(?P<place>[\w'-]+(?:\s+[\w'-]+)*)", re.I,
+)
+
+
+def _nonown_work_destination(slot: str, own_location: str) -> bool:
+    slot = slot.strip(" .")
+    # These are work arrangements and generic jurisdictions, not destinations.
+    if re.match(r"(?:our|the)\s+office\b|(?:a\s+)?hybrid\b", slot, re.I):
+        return False
+    if re.fullmatch(
+        r"(?:(?:an?|the)\s+)?(?:approved|supported)\s+(?:jurisdiction|country|time zone)|"
+        r"(?:an?\s+)?(?:office|home|person)|anywhere|worldwide|באזור זמן מאושר|אזור זמן מאושר|"
+        r"בני?ין (?:החדש|הישן) של החברה",
+        slot, re.I,
+    ):
+        return False
+    slot = OWN_WORK_MODEL.sub(" ", slot).strip()
+    scope = _scope(slot, 0)
+    if scope.kinds and re.match(r"\s+involves?\b", slot[scope.end:], re.I):
+        slot = slot[:scope.end]
+    return bool(slot) and _normalized_location(slot) not in _own_location_names(own_location)
+
+
+def _without_workplace_context(clause: str) -> str:
+    # Customer/team geography describes others, not the applicant's workplace.
+    # Do not discard a continuation that introduces another obligation.
+    context = re.search(
+        r"[, ]+(?:(?:supporting|serving) (?:clients?|customers?)|"
+        r"and work daily with teammates)\b", clause, re.I,
+    )
+    if context and not (
+        CREDENTIAL.search(clause[context.start():])
+        or NATIONALITY_CREDENTIAL.search(clause[context.start():])
+        or re.search(
+            r"\b(?:must|required|requires?|only|attendance|attend|visits?|"
+            r"reside|live|relocat(?:e|ion)|except|excluding|not open|security clearance)\b|חובה|נדרש",
+            clause[context.start():], re.I,
+        )
+    ):
+        clause = clause[:context.start()]
+
+    return clause
 
 
 def _positive_nonown_signal(clause: str, own_location: str, company: str) -> bool:
     """Require positive place evidence, not unexplained restriction wording."""
-    clause = re.sub(r"\bAsia/Jerusalem\b", " ", clause, flags=re.I)
+    clause = _without_workplace_context(clause)
+    clause = re.sub(r"נדרש לעבוד בבני?ין (?:החדש|הישן) של החברה", " ", clause)
+    clause = re.sub(r"\b(?:Asia/Jerusalem|MS Office)\b", " ", clause, flags=re.I)
+    # Only consume the geographic span of non-applicant context; an appended
+    # restriction must remain visible to the same signal and scope parsers.
+    context = re.compile(
+        r"\boccasional business trips to\s+|"
+        rf"\b(?:we|our company|the company|{re.escape(company) if company else '(?!)'})\s+"
+        r"(?:has|have) offices in\s+|"
+        r"\bour clients offer remote opportunities within\s+", re.I,
+    )
+    for phrase in reversed(list(context.finditer(clause))):
+        scope = _scope(clause, phrase.end())
+        if scope.kinds and scope.complete:
+            clause = clause[:phrase.start()] + " " + clause[scope.end:]
+    clause = re.sub(
+        r"\b(?:[\w-]+\s*/\s*)?[\w-]+-based\s+(?:CDN|infrastructure|cloud)\s+experience\b",
+        " ", clause, flags=re.I,
+    )
     if OUTSIDE_SCOPE.search(clause) or OUTSIDE_TIME_ZONE.search(clause):
         return True
     # Recognized own addresses have already been removed. Any remaining
@@ -396,29 +473,42 @@ def _positive_nonown_signal(clause: str, own_location: str, company: str) -> boo
             and re.search(rf"\b{WORKPLACE_NOUN}\b|\bhybrid\b", address_clause, re.I)):
         return True
     if re.search(r"(?i:\b(?:in|at)\s+(?:the\s+)?)"
-                 r"[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*\s+(?i:building|towers?)\b", clause):
+                 r"[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*\s+(?i:building|towers?)\b", clause, re.I):
         return True
     if (CREDENTIAL.search(clause) or NATIONALITY_CREDENTIAL.search(clause)
             or re.search(r"\b(?:citizens?|applicants?|candidates?|residents?)\b|אזרח|מועמד|תושב", clause, re.I)):
-        if FOREIGN_NATIONALITY.search(LANGUAGE_SKILL.sub(" ", clause)):
+        if (FOREIGN_NATIONALITY.search(LANGUAGE_SKILL.sub(" ", clause))
+                or COUNTRY_NATIONALITY.search(LANGUAGE_SKILL.sub(" ", clause))):
             return True
     workplace_clause = re.sub(
         r"\b(?:(?:Chief Architect|CTO) Office|Cath lab|production branch|"
         r"secure workspace|accessible location|(?:local engineering|innovation) hub|"
         r"(?:live|CMS-driven) site|lab or field reference data|location intelligence|"
-        r"App Studio|posting location)\b", " ", clause, flags=re.I,
+        r"App Studio|MS Office|posting location)\b", " ", clause, flags=re.I,
     )
     workplace_clause = re.sub(r"\bdedicated\s+(?=office\b)", "", workplace_clause, flags=re.I)
-    if _unresolved_workplace_phrase(workplace_clause, own_location, company):
+    if _unresolved_workplace_phrase(workplace_clause, own_location, company, positive_signal=True):
         return True
+    for destination in LOCATION_FRAME.finditer(clause):
+        if re.search(r"\bwork\b|לעבוד", destination.group(), re.I):
+            if _nonown_work_destination(destination['slot'], own_location):
+                return True
     places = _own_location_names(own_location)
     annotation = re.fullmatch(
         r"(?i:(?:hybrid|on[ -]?site|office[ -]?based)(?: work)?(?: model)?\s*[-:]?\s+)"
         r"(?P<place>[A-Z][\w'-]*(?:\s+[A-Z][\w'-]*)*)[. ]*", clause,
     )
-    for workplace in [*NAMED_WORKPLACE.finditer(clause), *([annotation] if annotation else [])]:
-        place = OWN_WORK_MODEL.sub(" ", workplace['place']).strip()
-        if place and _normalized_location(place) not in places | {_normalized_location(company)}:
+    for workplace in [*NAMED_WORKPLACE.finditer(clause), *SCHEDULED_WORKPLACE.finditer(clause),
+                      *([annotation] if annotation else [])]:
+        place = workplace['place']
+        if re.search(r"\b(?:experience|expertise|proficiency)\b", clause[:workplace.start()], re.I):
+            continue
+        if re.match(r"\s+(?:environments?|architectures?|methodology)\b", clause[workplace.end():], re.I):
+            continue
+        if place.casefold() in {"excel", "java"}:
+            continue
+        if (_nonown_work_destination(place, own_location)
+                and _normalized_location(place) != _normalized_location(company)):
             return True
     for proximity in NAMED_PROXIMITY.finditer(clause):
         if _normalized_location(proximity['place']) not in places:
@@ -433,13 +523,18 @@ def _positive_nonown_signal(clause: str, own_location: str, company: str) -> boo
                 r"\s*(?:Location\s*:\s*)?(?:hybrid|on[ -]?site|remote)(?: work(?:ing)?(?: model)?)?\s*[-(]?\s*",
                 clause[:pos], re.I,
             )
-            code_slot = re.match(r"[A-Za-z]{2,3}(?=[ -]based (?:applicants?|candidates?)\b)", clause[pos:], re.I)
+            code_slot = re.match(
+                r"[A-Za-z]{2,3}(?=(?:[ -]based)?\s+(?:applicants?|candidates?|"
+                r"citizens?(?:hip)?|persons?|residents?|visa|passport)\b)", clause[pos:], re.I,
+            )
             if not place and (annotation or code_slot):
                 place = match_description_place(clause.upper(), pos)
             if not place or place[0] == "worldwide":
                 continue
             name = _normalized_location(clause[pos:place[1]])
             if name in places:
+                continue
+            if name in {"in", "at", "to", "or", "and", "as", "be", "by", "it"} and not clause[pos:place[1]].isupper():
                 continue
             if (place[0] == "israel" and not (places & ISRAELI_CITY_NAMES)
                     and places & {"israel", "central israel"}):
@@ -459,7 +554,7 @@ def _positive_nonown_signal(clause: str, own_location: str, company: str) -> boo
                         or re.fullmatch(r"\s*(?:Location\s*:\s*)?(?:hybrid|on[ -]?site|remote)(?: work(?:ing)?(?: model)?)?\s*[-(]?\s*", before, re.I)):
                     continue
                 if (name == "us" and not annotation and not clause[pos:place[1]].isupper()
-                        and not re.match(r"(?:[ -]based)?\s+(?:applicants?|candidates?|persons?|citizens?|visa|passport)\b", after, re.I)):
+                        and not re.match(r"(?:[ -]based)?\s+(?:applicants?|candidates?|persons?|citizens?(?:hip)?|visa|passport)\b", after, re.I)):
                     continue
             return True
     return False
@@ -491,22 +586,7 @@ def _own_workplace_terms(
     if re.search(rf"\b(?:{ADDRESS_PROXIMITY}|between)\s+", clause, re.I):
         return None
 
-    # Customer/team geography describes others, not the applicant's workplace.
-    # Do not discard a continuation that introduces another obligation.
-    context = re.search(
-        r"[, ]+(?:(?:supporting|serving) (?:clients?|customers?)|"
-        r"and work daily with teammates)\b", clause, re.I,
-    )
-    if context and not (
-        CREDENTIAL.search(clause[context.start():])
-        or NATIONALITY_CREDENTIAL.search(clause[context.start():])
-        or re.search(
-            r"\b(?:must|required|requires?|only|attendance|attend|visits?|"
-            r"reside|live|relocate|except|excluding|not open|security clearance)\b|חובה|נדרש",
-            clause[context.start():], re.I,
-        )
-    ):
-        clause = clause[:context.start()]
+    clause = _without_workplace_context(clause)
 
     # Role titles and company introductions before the site verb are not places.
     # Their geography still gets checked below; only capitalization is exempt.
@@ -960,7 +1040,7 @@ def decide_location_eligibility(
                         own_location=own_field,
                         company=str(posting.get("company") or ""),
                     )
-                    if clause is None:
+                    if clause is None or (nonown_signal and not clause.strip()):
                         own_workplace_unresolved = True
                         clause = before_own_terms
                     if (
@@ -1409,13 +1489,17 @@ def decide_location_eligibility(
                 if not is_covered(restriction.start()):
                     if has_geographic_context(clause):
                         unknown.append(excerpt)
-            if (not is_location and own_israeli and nonown_signal
-                    and clause.strip() and not covered and (
-                        OUTSIDE_SCOPE.search(clause) or OUTSIDE_TIME_ZONE.search(clause)
-                        or NAMED_PROXIMITY.search(clause)
-                        or re.search(r"\b(?:applicants?|candidates?|persons?)\b", clause, re.I)
-                    )):
-                unknown.append(excerpt)
+            if not is_location and own_israeli and nonown_signal:
+                # Only parsed spans can discharge evidence. A covered local
+                # permission cannot erase a separate foreign destination.
+                residual = list(clause)
+                for left, right in covered:
+                    residual[left:right] = " " * (right - left)
+                if _positive_nonown_signal(
+                    "".join(residual), own_field, str(posting.get("company") or ""),
+                ):
+                    unknown.append(excerpt)
+
         if is_location and unknown:
             description_blocks_uncertain = True
     if israel_excluded:
