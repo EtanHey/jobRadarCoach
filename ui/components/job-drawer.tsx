@@ -56,6 +56,7 @@ export function JobDrawer({ actions, detail, detailError, openerRef, relatedJobs
         {detail && <>
           <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground"><span>{detail.location ?? "Location unspecified"}</span><span aria-hidden="true">·</span><WorkModeIcon job={detail} showLabel /></p>
           <p className="mt-1 text-sm text-muted-foreground">{experienceStatus(detail)}{detail.seniority ? ` · ${detail.seniority}` : ""}</p>
+          {detail.salary && <p data-job-salary className="mt-1 text-sm text-muted-foreground">Salary: {detail.salary}</p>}
           <div className="mt-3"><TechnologyChips key={detail.id} names={detail.stack} /></div>
         </>}
       </SheetHeader>

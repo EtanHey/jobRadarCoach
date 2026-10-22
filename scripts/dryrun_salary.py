@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from extractor.evidence import has_numeric_salary
+from extractor.evidence import salary_span
 
 
 def report(snapshot: Path) -> str:
@@ -26,8 +26,9 @@ def report(snapshot: Path) -> str:
         for phase in ("before", "after"):
             value, note = salary, remark
             if phase == "after" and isinstance(value, str) and value.strip():
-                if not has_numeric_salary(value):
-                    value, note = None, value
+                span = salary_span(value)
+                if span != value:
+                    value, note = span, value
             sample = {"id": row["id"], "salary": value, "salary_remark": note}
             groups[f"{phase} {'set' if value else 'null'}"].append(sample)
             if note:
@@ -38,8 +39,8 @@ def report(snapshot: Path) -> str:
         f"Rows: {len(rows)}",
         f"Snapshot SHA-256: {hashlib.sha256(snapshot.read_bytes()).hexdigest()}",
         "",
-        "Read-only projection of displayed posting salary through has_numeric_salary; no LLM, DB, or service calls.",
-        "Remarks overlap the null category. Salaries meeting the evidence policy survive; other strings become raw remarks.",
+        "Read-only projection of displayed posting salary through salary_span; no LLM, DB, or service calls.",
+        "Remarks preserve the full original string when salary is trimmed or rejected, and may overlap set or null salaries.",
         "This projects the policy over all stored salaries, not a backfill or a claim that every source quote was revalidated.",
         "Runtime persistence clears a preexisting salary only when it matches the rejected extraction value; unrelated harvested amounts remain intact.",
         "The UI still reads nullable postings.salary; raw remarks live additively in posting_extractions.facts.salary_remark.",

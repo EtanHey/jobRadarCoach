@@ -6,7 +6,7 @@ import pytest
 
 from extractor import core
 from extractor.payload import build_payload
-from extractor.test_core import facts, posting, runner_for, RAW_JD
+from extractor.test_core import RAW_JD, facts, posting, runner_for
 from scraper.brain_contract import BrainValidationError
 
 # Shared extraction/SQL regression corpus from both round-2 reviews and the fix brief.
@@ -38,9 +38,9 @@ ROUND2_SALARY_CASES = [
     ("401(k)", False), ("401k matching", False),
     ("raised at a valuation of $500k", False), ("funding $10M", False),
     ("78,100 to 88,950", False),
-    ("Engineer Level One 90000 to 120000 requires a Bachelor of Science degree\n\n"
+    (("Engineer Level One 90000 to 120000 requires a Bachelor of Science degree\n\n"
      "Engineer Level Two 110000 to 140000 requires BS plus 2 years or MS plus 0 years\n\n"
-     "Staff Engineer 130000 to 160000 requires BS plus 5 years MS plus 3 years or PhD", False),
+     "Staff Engineer 130000 to 160000 requires BS plus 5 years MS plus 3 years or PhD"), False),
 ]
 
 
@@ -89,6 +89,7 @@ ROUND4_SALARY_CASES = [
 
 # Preserve the historical corpora; only genuine competing governors demote pay.
 CONSERVATIVE_SALARY_REMARKS = {
+    "base raised to £90k": "Bare base before the amount does not establish pay ownership.",
     "salary raised to $150k in funding announcement":
         "Funding competes with the raised-pay construction in the same window.",
 }
@@ -165,8 +166,47 @@ ROUND6_SALARY_CASES = [
     ("headcount $150k", False), ("$150k graduates", False),
     ("$150k years of experience", False), ("$120k–$150k employees", False),
     ("funding $120k–$150k", False), ("$120k–funding $150k", False),
-    ("US employees (any location): $150,000–$180,000 USD", False),
+    ("US employees (any location): $150,000–$180,000 USD", True),
 ]
+
+
+# Explicit source-span expectations replace the old whole-string contract.
+CLEAN_SALARY_SPANS = {
+    "salary 120k + 401(k) match up to 6%": "salary 120k",
+    "we raised $10M and pay $150k base": "pay $150k base",
+    "OTE $200k, Series B $40M": "OTE $200k",
+    "salary $150k, funding $10M": "salary $150k",
+    "funding $10M, salary $150k": "salary $150k",
+    "שכר 30–40 אלף; גייסנו $20M": "שכר 30–40 אלף",
+    "salary up to 180000; funding $20M": "salary up to 180000",
+    "raised $12M with salary $160k": "salary $160k",
+    "גייסנו $20M ושכר ₪35,000 בחודש": "ושכר ₪35,000 בחודש",
+    "$150k–$180k base + equity (we raised $40M)": "$150k–$180k base",
+    "salary ($160k), funding ($20M)": "$160k",
+    "we raised $10M; salary $150k": "salary $150k",
+    "שכר ₪40,000 and raised $10M": "שכר ₪40,000",
+    "raised $10M, שכר 25,000 ₪": "שכר 25,000 ₪",
+    "up to $200k base, raised $40M": "up to $200k base",
+    "(raised $40M) salary $150k": "salary $150k",
+    "funding $40M and up to 180000": "up to 180000",
+    "OTE $200k–$250k; investors raised $40M": "OTE $200k–$250k",
+    "$110-160k DOE": "$110-160k",
+    "between $123,000 USD and $172,000 USD": "$123,000 USD and $172,000 USD",
+    "California: $165,000–$225,000. All other states: $146,000–$206,000.": "$165,000–$225,000",
+    "raised $10M and pay $150k base": "pay $150k base",
+    "US employees (any location): $150,000–$180,000 USD": "$150,000–$180,000 USD",
+    "salary $150k plus 401k matching": "salary $150k",
+    "Salary $120k. Raised $10M": "Salary $120k",
+}
+
+
+def expected_salary_facts(candidate, salary, numeric):
+    expected = deepcopy(candidate)
+    span = CLEAN_SALARY_SPANS.get(salary, salary) if numeric else None
+    expected["salary"] = {"value": span, "evidence_quote": salary if span else None}
+    if span != salary:
+        expected["salary_remark"] = salary
+    return expected
 
 
 @pytest.mark.parametrize(
@@ -178,10 +218,7 @@ def test_round2_salary_extraction_and_payload(salary, numeric):
     candidate["salary"] = {"value": salary, "evidence_quote": salary}
     raw_jd = RAW_JD + "\n" + salary
     result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
-    expected = deepcopy(candidate)
-    if not numeric:
-        expected["salary"] = {"value": None, "evidence_quote": None}
-        expected["salary_remark"] = salary
+    expected = expected_salary_facts(candidate, salary, numeric)
     assert result["facts"] == expected
     assert build_payload(result, raw_jd).facts == expected
     assert candidate["salary"]["value"] == salary
@@ -233,9 +270,9 @@ TRIAGE_SALARIES = [
         "401k retirement plan", "salary includes 401k matching",
         "pay 2 years", "salary 100% remote", "pay 3 days a week",
         "salary 120k retirement-plan benefit",
-        "Engineer Level One 90000 to 120000 requires a Bachelor of Science degree\n\n"
+        ("Engineer Level One 90000 to 120000 requires a Bachelor of Science degree\n\n"
         "Engineer Level Two 110000 to 140000 requires BS plus 2 years or MS plus 0 years\n\n"
-        "Staff Engineer 130000 to 160000 requires BS plus 5 years MS plus 3 years or PhD",
+        "Staff Engineer 130000 to 160000 requires BS plus 5 years MS plus 3 years or PhD"),
     ],
 )
 def test_boilerplate_is_preserved_only_as_raw_remark(salary):
@@ -270,8 +307,9 @@ def test_numeric_compensation_preserves_salary_contract(salary):
     candidate["salary"] = {"value": salary, "evidence_quote": salary}
     raw_jd = RAW_JD + "\n" + salary
     result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
-    assert result["facts"] == candidate
-    assert build_payload(result, raw_jd).facts == candidate
+    expected = expected_salary_facts(candidate, salary, True)
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
 
 
 def test_boilerplate_still_requires_exact_source_support():
@@ -321,3 +359,51 @@ def test_payload_normalizes_legacy_salary_without_mutating_input():
     assert payload.facts["salary"] == {"value": None, "evidence_quote": None}
     assert payload.facts["salary_remark"] == "competitive salary"
     assert original == saved
+
+
+# Round 7 explicitly asserts the persisted pay span, not just numeric presence.
+ROUND7_SALARY_SPANS = [
+    ("$90-$150+/hr", "$90-$150+/hr"),
+    ("between $123,000 USD and $172,000 USD", "$123,000 USD and $172,000 USD"),
+    ("US$185,000–$300,000", "US$185,000–$300,000"),
+    ("salary $130k–$160k; raised €25M", "salary $130k–$160k"),
+    ("שכר ₪30,000 בחודש; גייסנו $20M", "שכר ₪30,000 בחודש"),
+    ("competitive salary; funding $10M–$20M", None),
+    ("competitive pay; 500 employees", None),
+    ("Competitive salary; our customer base now totals 150k", None),
+    ("Competitive salary; our customer base has now reached 150k", None),
+    ("Competitive salary; revenue grew to a total of $10M annually", None),
+    ("Competitive salary; we raised a total of approximately $10M at our base", None),
+    ("Competitive salary; funding secured by our growing company: $10M base investment", None),
+    ("Competitive salary; funding $10M and $20M base capital", None),
+    ("$150k–$180k base + equity (we raised $40M)", "$150k–$180k base"),
+    ("US employees (any location): $200,700 — $250,900 USD", "$200,700 — $250,900 USD"),
+    ("US employees (any location): $150,000–$180,000 USD", "$150,000–$180,000 USD"),
+    ("500 employees", None), ("500 locations", None),
+    ("500 עובדים", None), ("500 employees: $150k", None),
+    ("$150k base", "$150k base"), ("base salary $150k", "base salary $150k"),
+    ("salary: $150k", "salary: $150k"), ("$40/hr", "$40/hr"),
+    ("₪30,000 בחודש", "₪30,000 בחודש"),
+    ("Competitive salary; our customer base serves more than a million users at $150k", None),
+    ("Competitive salary; $150k base customers", None),
+    ("Competitive salary; $150k base investment", None),
+    ("Competitive salary; $150k base capital", None),
+    ("Competitive salary; base capital $150k", None),
+    ("Competitive salary; investment of $150k", None),
+    ("Competitive salary; revenue $10M and $20M annually", None),
+    ("Competitive salary; funding $10M and $20M at our base", None),
+]
+
+
+@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS)
+def test_round7_clean_salary_span(salary, span):
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    payload = build_payload(result, raw_jd)
+    assert payload.facts == result["facts"]
+    assert payload.facts["salary"]["value"] == span
+    assert payload.facts["salary"]["evidence_quote"] == (salary if span else None)
+    assert payload.facts.get("salary_remark") == (salary if span != salary else None)
+    assert candidate["salary"]["value"] == salary
