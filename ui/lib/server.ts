@@ -1,4 +1,6 @@
 import "server-only";
+import { vacancyIdentity } from "./vacancy-identity";
+import { withVacancyIdentity } from "./vacancy-server";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -38,6 +40,7 @@ const scoreSchema = summaryScoreSchema.extend({
 const rawBaseSchema = z.object({
   relevance_filtered: z.boolean().optional(),
   relevance_gate: z.object({ rule: z.string().nullable().optional() }).passthrough().optional(),
+  raw_jd: z.string().nullable().optional(),
   source: z.string(), last_seen_at: z.string(),
   list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
@@ -64,6 +67,7 @@ const boardScoreFields = "posting_scores(score,recommendation:score_payload->rec
 // Exhaustive over the wire schema, including optional fields. A new card field
 // must name its DB projection here, so optional schema additions cannot vanish silently.
 export const BOARD_FIELD_ALIASES = {
+  vacancy_identity: "url,apply_url",
   relevance_filtered: "relevance_filtered", relevance_rule: "relevance_rule:relevance_gate->rule",
   source: "source", last_seen_at: "last_seen_at", experience: "experience:list_metadata->experience",
   alive: "alive:liveness->alive", linkedin_reposted_signal: "linkedin_reposted_signal:liveness->linkedin_reposted_signal", linkedin_closed_signal: "linkedin_closed_signal:liveness->linkedin_closed_signal",
@@ -99,10 +103,10 @@ function checked<T>(schema: z.ZodType<T>, value: unknown): T {
 }
 
 function listSummary(base: z.infer<typeof rawListSchema>, now = Date.now()): JobSummary {
-  const { posting_scores: score, posting_status: status, list_stack, alive, liveness_checked_at, last_attempt_verdict, application_deadline, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
+  const { raw_jd, posting_scores: score, posting_status: status, list_stack, alive, liveness_checked_at, last_attempt_verdict, application_deadline, linkedin_reposted_signal, linkedin_closed_signal, ...posting } = base;
   const level = posting.seniority ?? titleSeniority(posting.title);
   return checked(JobSummarySchema, {
-    ...posting, url: postingUrl(posting.url),
+    ...posting, vacancy_identity: vacancyIdentity({ ...posting, raw_jd }), url: postingUrl(posting.url),
     apply_url: posting.apply_url ? postingUrl(posting.apply_url) : null,
     stack: posting.stack.length ? posting.stack : list_stack,
     seniority: level,
@@ -159,10 +163,10 @@ export function usesBoardRpc(input: JobListQuery): boolean {
 
 export async function selectSummaries(db: SupabaseClient, input: JobListQuery): Promise<JobSummary[]> {
   if (input.ids) {
-    return parseListRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs;
+    return withVacancyIdentity(db, parseListRows(await data(db.from("postings").select(SUMMARY).in("id", input.ids).limit(input.limit))).jobs);
   }
   if (usesBoardRpc(input)) {
-    return parseListRows(await data(db.rpc("board_postings", {
+    return withVacancyIdentity(db, parseListRows(await data(db.rpc("board_postings", {
       filter: input.filter, availability: input.availability, fit: input.fit ?? "",
       statuses: input.statuses ?? [], sort: input.sort ?? "fit", max: input.limit,
       ...(input.source !== undefined ? { source: input.source } : {}),
@@ -171,7 +175,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
       ...(input.location !== undefined ? { location: input.location } : {}),
       ...(input.seniority !== undefined ? { seniority: input.seniority } : {}),
       ...(input.found_within ? { found_within: input.found_within } : {}),
-    }).select(SUMMARY))).jobs;
+    }).select(SUMMARY))).jobs);
   }
   let query = db.from("postings").select(["all", "not-scored"].includes(input.filter) ? SUMMARY : STATUS_SUMMARY);
   query = query.eq("relevance_filtered", input.filter === "not-scored");
@@ -183,7 +187,7 @@ export async function selectSummaries(db: SupabaseClient, input: JobListQuery): 
   if (cutoff !== null) query = query.gte("first_seen_at", new Date(cutoff).toISOString());
   if (input.since) query = query.gt("first_seen_at", input.since);
   query = query.order("first_seen_at", { ascending: false }).order("id").limit(input.limit);
-  return parseListRows(await data(query)).jobs;
+  return withVacancyIdentity(db, parseListRows(await data(query)).jobs);
 }
 
 async function readDetail(db: SupabaseClient, id: string): Promise<z.infer<typeof rawDetailSchema> | null> {

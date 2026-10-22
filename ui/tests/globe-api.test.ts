@@ -74,7 +74,16 @@ test("one RPC fixes deletion/reordering and new-for-me cutoff for the entire req
     const captured = structuredClone(raw);
     raw.shift(); raw.reverse(); // Later deletion/reordering cannot shift a second page.
     return { data: {jobs: captured, geo: []}, error: null };
-  }, from: () => { throw new Error("Must not reread visits or fetch offset pages"); } };
+  }, from: (table: string) => {
+    assert.equal(table, "postings");
+    return { select: (columns: string) => {
+      assert.equal(columns, "id,identity_evidence:raw_jd");
+      return { in: async (column: string, ids: string[]) => {
+        assert.equal(column, "id"); assert.deepEqual(ids, jobs.slice(0,4).map(j => j.id));
+        return {data: [], error: null};
+      } };
+    } };
+  } };
   const result = await globeResponse(getGlobeStore(db as unknown as Parameters<typeof getGlobeStore>[0]), GlobeQuerySchema.parse({filter:"new-for-me"}));
   assert.deepEqual(new Set(result.jobs.map(j => j.id)), new Set(jobs.slice(0,4).map(j => j.id)));
   assert.equal(result.total_count, 4); assert.equal(calls, 1);
