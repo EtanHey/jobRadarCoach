@@ -22,3 +22,16 @@ def test_report_preserves_unicode_line_separators_inside_jsonl_records(tmp_path)
         "id": "synthetic", "salary": "$150k", "raw_jd": "first\u2028second\u0085third",
     }, ensure_ascii=False) + "\n")
     assert "| after | 1 | 0 | 0 |" in report(snapshot)
+
+
+def test_report_projects_list_governor_corpus(tmp_path):
+    from extractor.test_salary import P9D_SALARY_SPANS
+
+    snapshot = tmp_path / "governors.jsonl"
+    snapshot.write_text("\n".join(json.dumps({"id": index, "salary": value})
+                                  for index, (value, _) in enumerate(P9D_SALARY_SPANS)))
+    output = report(snapshot)
+    set_count = sum(span is not None for _, span in P9D_SALARY_SPANS)
+    null_count = len(P9D_SALARY_SPANS) - set_count
+    remark_count = sum(value != span for value, span in P9D_SALARY_SPANS)
+    assert f"| after | {set_count} | {null_count} | {remark_count} |" in output

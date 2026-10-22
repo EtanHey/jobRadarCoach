@@ -10,6 +10,7 @@ import pytest
 from extractor import core, persistence
 from extractor.test_salary import (
     P9C_SALARY_SPANS,
+    P9D_SALARY_SPANS,
     PRECISION_PREVIOUS_SALARY_CASES,
     ROUND5_SALARY_CASES,
     ROUND6_SALARY_CASES,
@@ -382,5 +383,30 @@ def test_review_base_counts_do_not_abort_other_fact_persistence(connection, sala
     expected = deepcopy(candidate)
     expected["salary"] = {"value": None, "evidence_quote": None}
     expected["salary_remark"] = salary
+    assert state[11] == expected
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("existing", ["matching", "case-variant", None, "$180,000 annually"])
+@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS)
+def test_list_governor_salary_persists_other_facts(connection, salary, span, existing):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + "\n" + salary
+    posting_id = insert_posting(connection, raw_jd)
+    prior = salary if existing == "matching" else salary.upper() if existing == "case-variant" else existing
+    connection.execute("update postings set salary=%s where id=%s", (prior, posting_id))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    state = durable_state(connection, posting_id)
+    rejected_prior = isinstance(prior, str) and prior.lower() == salary.lower()
+    expected_salary = span if span else (None if rejected_prior else prior)
+    assert state[:5] == ("Tel Aviv", True, "Senior", ["TypeScript"], expected_salary)
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": span, "evidence_quote": salary if span else None}
+    if span != salary:
+        expected["salary_remark"] = salary
     assert state[11] == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"

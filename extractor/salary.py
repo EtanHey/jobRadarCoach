@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import re
 
 from extractor.quotes import ExtractionValidationError, validate_quote
+
+LOGGER = logging.getLogger("coach.jobfeed.extractor")
 
 # A salary fact supplies pay context for currency amounts. Mixed funding/count
 # strings require an independently governed pay amount with no competing owner.
@@ -84,9 +87,11 @@ _PAY_AFTER_RE = re.compile(
     re.IGNORECASE,
 )
 _CLAUSE_BOUNDARY_RE = re.compile(r"[;\n]|,(?!\d)|(?<=[.!?])\s+")
-_OWNERSHIP_BOUNDARY_RE = re.compile(r"[;\n]|(?<=[.!?])\s+")
+_OWNERSHIP_BOUNDARY_RE = re.compile(r"\n|(?<=[.!?])\s+")
 _EXPLICIT_PAY_AFTER_RE = re.compile(rf"^\s*{_PAY_NOUN}\b", re.IGNORECASE)
 _UNOWNED_PREFIX_RE = re.compile(r"\s*(?:(?:up\s+to|between|from|or|עד)\s*)?[:(=\s]*$", re.IGNORECASE)
+# A complete salary-only list label carries no competing business governor.
+_UNOWNED_PAY_LABEL_RE = re.compile(rf"\s*(?:competitive\s+)?{_PAY_NOUN}\s*[,;]\s*", re.IGNORECASE)
 # Geographic/role band labels do not own a business quantity. Keep this
 # separate from the pay vocabulary so labels cannot override metric ownership.
 _REGION_PREFIX_RE = re.compile(
@@ -104,6 +109,9 @@ _BAND_NOTE_RE = re.compile(
 
 
 def _has_unknown_governor(before: str, after: str) -> bool:
+    if _UNOWNED_PAY_LABEL_RE.fullmatch(before):
+        return False
+    # Pay ownership must touch the amount in the original prefix.
     pay = _PAY_BEFORE_RE.search(before)
     if _has_explicit_pay_owner(pay, ""):
         return False
@@ -112,6 +120,8 @@ def _has_unknown_governor(before: str, after: str) -> bool:
         r"\s*rate(?:\s+raised\s+to)?\s*", before, re.IGNORECASE,
     ):
         return False
+    # List punctuation preserves a governor, but cannot create a pay owner.
+    before = re.sub(r"[,;/–—\s-]+$", " ", before)
     return not (_UNOWNED_PREFIX_RE.fullmatch(before) or _REGION_PREFIX_RE.fullmatch(before))
 
 
@@ -129,26 +139,26 @@ def _has_explicit_pay_owner(before: re.Match[str] | None, after: str) -> bool:
     )
 
 
-def _inherits_non_pay_owner(scanned: str, left: int) -> bool:
+def _inherits_non_pay_owner(scanned: str, left: int, after: str) -> bool:
     ownership_start = max(
         (m.end() for m in _OWNERSHIP_BOUNDARY_RE.finditer(scanned, 0, left)), default=0,
     )
     prefix = scanned[ownership_start:left]
     previous = list(_NUMERIC_AMOUNT_RE.finditer(prefix))
-    if not previous:
-        return False
-    if _NON_PAY_RE.search(prefix[:previous[-1].end()]):
+    if previous and _NON_PAY_RE.search(prefix[:previous[-1].end()]):
         return True
     for index, amount in enumerate(previous):
         start = previous[index - 1].end() if index else 0
-        before = _AMOUNT_BOUNDARY_RE.split(prefix[start:amount.start()])[-1]
+        before = prefix[start:amount.start()]
         if _has_unknown_governor(before, prefix[amount.end():]):
             return True
-    return False
+    # Include the pending amount's governor even when no earlier amount exists.
+    start = previous[-1].end() if previous else 0
+    return _has_unknown_governor(prefix[start:], after)
 
 
 def salary_span(value: str | None) -> str | None:
-    """Select one source pay span, retaining whole clauses for ownership checks."""
+    """Check governor, suffix, veto, inherited owner, non-pay gate, then money."""
     if value is None:
         return None
     scanned = _RETIREMENT_RE.sub(lambda m: " " * len(m.group()), value)
@@ -192,9 +202,9 @@ def salary_span(value: str | None) -> str | None:
             continue
         governed_before = _PAY_RAISED_RE.sub(r"\g<pay> ", before)
         context = governed_before + scanned[left:right] + after
-        # A comma does not reset revenue/ARR ownership. Only a fresh pay noun
-        # can claim the next amount; "up to", cadence and bare "base" cannot.
-        if _inherits_non_pay_owner(scanned, left) and not (
+        # List punctuation preserves ownership, including before a first amount.
+        # Only a fresh pay noun can supersede it; cadence/qualifiers cannot.
+        if _inherits_non_pay_owner(scanned, left, after) and not (
             _has_explicit_pay_owner(pay_before, after)
         ):
             continue
@@ -267,9 +277,13 @@ def normalize_salary(facts: dict[str, object], raw_jd: str) -> None:
         # A failed salary must not lose independently supported facts, or turn
         # unsupported provider text into a persisted source remark.
         remark = None
+    if span is None and salary != {"value": None, "evidence_quote": None}:
+        LOGGER.warning("extraction_fact_dropped field=salary category=evidence_quote")
     facts["salary"] = {"value": span, "evidence_quote": quote if span else None}
     if source is not None and span != source:
         remark = source
+    if span is None and isinstance(remark, str):
+        remark = remark[:1000]
     if isinstance(remark, str) and remark.strip() and remark in raw_jd:
         facts["salary_remark"] = remark
     else:
