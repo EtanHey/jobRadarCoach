@@ -193,6 +193,8 @@ def test_product_company_about_is_not_recruiter(description):
     ('Greenhouse', 'building talent acquisition solutions for modern HR teams'),
     ('Workday', 'a software company selling talent acquisition solutions'),
     ('Acme Labs', 'building recruitment solutions for HR teams'),
+    ('Acme Labs', 'a software platform for a recruitment company'),
+    ('Acme Labs', 'a software vendor serving a staffing agency'),
 ])
 def test_talent_product_copy_is_not_staffing_evidence(publisher, description):
     jd = (f'**About The Company**\n\n{publisher} is {description}.\n\n'
@@ -257,3 +259,10 @@ def test_unnamed_third_party_statement_cannot_use_ats_or_blurb(jd):
     result = resolve_employer('New Publisher', jd, 'greenhouse')
     assert result['hiring_employer'] is None
     assert result['agency_evidence'] in jd
+
+
+def test_talent_acquisition_firm_is_a_staffing_business():
+    jd = '**About The Company**\nBridge Partners is a talent acquisition firm.'
+    result = resolve_employer('Bridge Partners', jd, 'greenhouse')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] == jd.splitlines()[1]

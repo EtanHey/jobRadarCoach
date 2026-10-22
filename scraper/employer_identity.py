@@ -28,14 +28,12 @@ THIRD_PARTY = (
     r"|\ba client of ours\b"
     r"|\bon behalf of (?:our|an?) (?:[\w,-]+ ){0,8}(?:client|company|organization|firm)\b"
 )
-INTERMEDIARY = re.compile(
-    r"\b(?:staffing|recruiting|recruitment) (?:firm|agency|company)\b"
-    r"|" + THIRD_PARTY,
-    re.I,
-)
+INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
 # Service-provider framing, rather than product mentions of talent solutions.
 STAFFING_SERVICES = re.compile(
-    r"\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}"
+    r"\bis an? (?:(?:leading|global|international|specialist|specialized) ){0,3}"
+    r"(?:staffing|recruiting|recruitment|talent acquisition|placement) (?:agency|firm|company)\b"
+    r"|\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}"
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
     r"(?: and (?:staffing|recruiting|recruitment))? services\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}staffing solutions\b"
