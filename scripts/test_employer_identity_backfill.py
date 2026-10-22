@@ -29,6 +29,17 @@ def test_missing_or_older_identity_is_planned_without_changing_input(version):
     assert original == before
 
 
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_p7bf2_backfill_preserves_distinct_employer_with_publisher_prefix(source):
+    original = row(version=str(int(VERSION) - 1))
+    jd = 'Armis is hiring engineers.'
+    original.update(company='Arm', source=source, raw_jd=jd,
+                    jd_sha256=hashlib.sha256(jd.encode()).hexdigest())
+    identity = plan_identity(original)
+    assert identity['hiring_employer'] == 'Armis'
+    assert identity['relationship'] == 'resolved-different'
+
+
 @pytest.mark.parametrize('version', [VERSION, str(int(VERSION) + 1), 'unknown', ''])
 def test_current_future_or_unrecognized_versions_are_not_downgraded(version):
     assert plan_identity(row(version=version)) is None

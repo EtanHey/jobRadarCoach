@@ -100,10 +100,25 @@ def test_p7bf1_company_suffixes_and_non_head_org_words_are_preserved(source, nam
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
-def test_p7b_publisher_prefix_does_not_erase_distinct_company(source):
-    result = resolve_employer('Acme', 'Acme Labs is looking for engineers.', source)
-    assert result['hiring_employer'] == 'Acme Labs'
+@pytest.mark.parametrize('publisher,name', [
+    ('Arm', 'Armis'), ('Meta', 'Metabase'), ('Wix', 'Wixel'),
+    ('Monday', 'Mondaycom'), ('Acme', 'Acme Labs'),
+])
+def test_p7b_publisher_prefix_does_not_erase_distinct_company(source, publisher, name):
+    result = resolve_employer(publisher, f'{name} is hiring engineers.', source)
+    assert result['hiring_employer'] == name
     assert result['relationship'] == 'resolved-different'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('name', [
+    'Acme', 'ACME', 'Acme Israel', 'Acme(Israel)',
+    "Acme's", 'Acme’s', "Acme's AI", 'Acme’s AI',
+])
+def test_p7bf2_publisher_boundary_preserves_exact_names_and_suffixes(source, name):
+    result = resolve_employer('Acme', f'{name} is hiring engineers.', source)
+    assert result['hiring_employer'] == 'Acme'
+    assert result['relationship'] == 'unchanged'
 
 
 @pytest.mark.parametrize('publisher,name', [

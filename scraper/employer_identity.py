@@ -251,8 +251,9 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
                 role_intermediary_seen |= not is_blurb
                 continue
             suffix = name[len(publisher):] if name.casefold().startswith(publisher.casefold()) else None
-            if suffix is not None and (not suffix or suffix.startswith(("'s ", '’s '))
-                                       or _generic_hiring_subject(suffix.strip(' ()'))):
+            if suffix is not None and (not suffix or re.match(r"['’]s(?:\s|$)", suffix)
+                                       or (re.match(r'\W', suffix)
+                                           and _generic_hiring_subject(suffix.strip(' ()')))):
                 name = publisher
             candidates = blurb_names if is_blurb else role_names
             candidates[name.casefold()] = (name, raw_evidence(match))
