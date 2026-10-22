@@ -100,6 +100,134 @@ NON_LOCATION_POLICY = re.compile(
     re.I,
 )
 
+# Lists consume only protected attributes, never the requirement after the list.
+PROTECTED_ATTRIBUTE = (
+    r"race|colou?r|national origin|citizenship(?: status)?|immigration status|"
+    r"ancestry|religion|creed|sex|sexual orientation|gender(?: identity| expression)?|"
+    r"age|disability|veteran(?: or military)? status|military status|marital status|"
+    r"pregnancy|disabled veteran|status as a protected veteran|Veteran status|"
+    r"מין|גזע|דת|לאום|אזרחות|מעמד הגירה|גיל|מוגבלות"
+)
+EEO_LIST = re.compile(
+    rf"(?:\b(?:without regard to|regardless of)\b|בלי קשר ל|ללא הבדל)\s*"
+    rf"(?>(?:{PROTECTED_ATTRIBUTE})(?!\w)"
+    rf"(?:\s*(?:,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s+או\s+|\s+ו)"
+    rf"(?:{PROTECTED_ATTRIBUTE})(?!\w))*)"
+    r"(?!\s+(?:is\s+)?(?:required|only|mandatory)\b)",
+    re.I,
+)
+TEAM_CITIZENS = re.compile(
+    r"(\bour team is made up of\b[^.;\n]*?)(\bdual citizens\b)"
+    r"(?!\s+(?:only|required|must|may apply)\b)",
+    re.I,
+)
+APPLICANT = (
+    r"(?:applicants?|candidates?|residents?|citizens?|"
+    r"[לוהש]*מועמד(?:ים|ות|ת)?|[לוהש]*תושב(?:י|ים|ות)?|[לוהש]*אזרח(?:י|ים|יות|ית)?)"
+)
+SLOT = r"[^;.!?\n]+?"
+APPLICANT_FRAMES = tuple(
+    re.compile(pattern, re.I)
+    for pattern in (
+        rf"(?<!\w){APPLICANT}\s+(?P<slot>{SLOT})\s+(?:only\b|בלבד(?!\w))",
+        rf"(?<!\w)(?:only|[והש]*רק)\s+{APPLICANT}\s+(?P<slot>{SLOT})(?=$|[.!?]|\s+(?:may|can|רשאים)\b)",
+        rf"(?<!\w)(?:only|[והש]*רק)\s+(?P<slot>{SLOT})\s+{APPLICANT}(?!\w)",
+        rf"(?<!\w)(?P<slot>[\w׳״'-]+(?:\s+[\w׳״'-]+)*)\s+{APPLICANT}\s+(?:only\b|בלבד(?!\w))",
+    )
+)
+LOCATION_FRAME = re.compile(
+    r"(?<!\w)(?:(?:must|required to)\s+(?:live|reside|relocate|work)\s+(?:in|to)\s+|"
+    r"[והש]*(?:חובה|נדרש(?:ת|ים|ות)?)\s+(?:לגור|להתגורר|לעבור|לעבוד|רילוקיישן)\s+(?:רק\s+)?[בל])"
+    rf"(?P<slot>{SLOT})(?=$|[.!?])",
+    re.I,
+)
+CREDENTIAL = re.compile(
+    r"\b(?:passports?|work permits?|work authori[sz]ation|visas?|citizenship)\b|"
+    r"(?<!\w)[בלמהוש]*(?:דרכון|אישור עבודה|ויזה|אזרחות)(?!\w)",
+    re.I,
+)
+LANGUAGE_SKILL = re.compile(
+    r"\b(?:speak|fluent|native|proficiency|language)\b|לדבר|דוברי|שפה|ברמת שפת אם",
+    re.I,
+)
+
+
+def _without_policy(text: str) -> str:
+    text = EEO_LIST.sub(" ", text)
+    text = TEAM_CITIZENS.sub(r"\1 ", text)
+    return NON_LOCATION_POLICY.sub(" ", text)
+
+
+def _qualified_credential(text: str) -> bool:
+    for credential in CREDENTIAL.finditer(text):
+        if re.match(
+            r"\s+(?:for|of|in|from)\s+(?:the\s+)?"
+            r"(?!(?:this|our|your|their|position|role|job)\b)\S+",
+            text[credential.end() :],
+            re.I,
+        ):
+            return True
+        before = re.search(r"[\w׳״'-]+\s*$", text[: credential.start()])
+        after = re.match(r"\s+([\w׳״'-]+)", text[credential.end() :])
+        qualifiers = [
+            before.group().strip() if before else "",
+            after[1] if after else "",
+        ]
+        if any(
+            q.casefold()
+            not in {
+                "",
+                "a",
+                "an",
+                "the",
+                "any",
+                "our",
+                "your",
+                "their",
+                "valid",
+                "current",
+                "work",
+                "for",
+                "of",
+                "is",
+                "are",
+                "required",
+                "mandatory",
+                "only",
+                "hold",
+                "have",
+                "obtain",
+                "sponsor",
+                "applicants",
+                "must",
+                "and",
+                "or",
+                "not",
+                "to",
+                "with",
+            }
+            for q in qualifiers
+        ):
+            return True
+    return False
+
+
+def _is_israeli_slot(slot: str) -> bool:
+    # Only Israeli demonyms are needed: every other adjective stays unresolved.
+    slot = re.sub(
+        r"^(?:from|in|of|based in|located in)\s+", "", slot.strip(), flags=re.I
+    )
+    slot = re.sub(
+        r"(?<!\w)(?:Israeli|ישראלי(?:ם|ות|ת)?)(?!\w)", "Israel", slot, flags=re.I
+    )
+    scope = _scope(slot, 0)
+    return (
+        scope.complete
+        and bool(scope.kinds)
+        and all(kind in {"israel", "noncentral"} for kind in scope.kinds)
+        and not slot[scope.end :].strip(" .)")
+    )
+
 
 def _clauses(source: str) -> Iterator[str]:
     for original in CLAUSES.split(source):
@@ -107,7 +235,7 @@ def _clauses(source: str) -> Iterator[str]:
         if contrast and NON_LOCATION_POLICY.search(original[: contrast.start()]):
             # Split only when the prefix contains no remaining geography; a
             # later alternative must stay bound to its original restriction.
-            prefix = NON_LOCATION_POLICY.sub(" ", original[: contrast.start()])
+            prefix = _without_policy(original[: contrast.start()])
             if not has_geographic_context(prefix):
                 yield original[: contrast.start()]
                 yield original[contrast.end() :]
@@ -146,10 +274,11 @@ def _scope(text: str, start: int) -> Scope:
         re.I,
     )
     pos = start + prefix.end()
-    if not match_geographic_place(text, pos) and text[pos : pos + 1] in {"ב", "מ"}:
+    if not match_geographic_place(text, pos) and text[pos : pos + 1] in {"ב", "מ", "ל"}:
         pos += 1
     kinds: list[str] = []
     comma_qualifier = False
+    conjunctive = False
     while match := match_geographic_place(text, pos):
         kind, end = match
         # 'Haifa, Israel' names one noncentral workplace, not an alternative
@@ -157,18 +286,38 @@ def _scope(text: str, start: int) -> Scope:
         if not (comma_qualifier and kinds[-1:] == ["noncentral"] and kind == "israel"):
             kinds.append(kind)
         separator = re.match(
-            r"\s*(?:,\s*(?:(?:and|or)\s+)?|/\s*|\b(?:and|or|including)\s+)(?:the\s+)?",
+            r"\s*(?:,\s*(?:(?:and|or|או)\s+)?|/\s*|\b(?:and|or|including|או)\s+|ו(?=[א-ת]))(?:the\s+)?",
             text[end:],
             re.I,
         )
         if not separator:
-            return Scope(tuple(kinds), end, True)
+            # A prefix of a noun phrase is not a complete place ('דרום אמריקה').
+            complete = bool(
+                re.match(
+                    r"\s*(?:$|[.()]|only\b|בלבד(?!\w)|[- ]based\b|office\b|hubs?\b|opportunity\b|"
+                    r"(?:[-–—]\s*)?remote\b|full[ -]time\b|except\b|excluding\b|are eligible\b|may apply\b|"
+                    r"(?:\d+|one|two|three|four|five|שלושה|ארבעה|חמישה)\s+(?:days?|ימים)\b)",
+                    text[end:],
+                    re.I,
+                )
+            )
+            complete &= not (
+                conjunctive
+                and "foreign" in kinds
+                and any(k in {"israel", "noncentral"} for k in kinds)
+            )
+            return Scope(tuple(kinds), end, complete)
         next_pos = end + separator.end()
+        conjunctive |= separator.group().strip() == "ו"
+        if not match_geographic_place(text, next_pos) and text[
+            next_pos : next_pos + 1
+        ] in {"ב", "מ", "ל"}:
+            next_pos += 1
         if not match_geographic_place(text, next_pos):
             # An unknown alternative can include Israel. A conjunction introducing
             # a second obligation does not erase an explicit first obligation.
             uncertain_alternative = bool(
-                re.search(r"\bor\b|/", separator.group(), re.I)
+                re.search(r"\bor\b|/|או|ו", separator.group(), re.I)
             )
             if not re.match(
                 r"(?:serving|supporting|with|without|excluding|except|"
@@ -284,7 +433,7 @@ def decide_location_eligibility(
             if is_location:
                 clause = normalize_israeli_location(clause)
             else:
-                clause = NON_LOCATION_POLICY.sub(" ", clause)
+                clause = _without_policy(clause)
             covered: list[tuple[int, int]] = []
             unrelated = bool(OTHER_ROLES.search(clause))
 
@@ -492,7 +641,7 @@ def decide_location_eligibility(
                 elif is_location or re.fullmatch(
                     r"\s*(?:\d+\s+days)?[. ]*", clause[office.end() :]
                 ):
-                    loc_scope = _scope(location, 0)
+                    loc_scope = _scope(normalize_israeli_location(location), 0)
                     if loc_scope.kinds:
                         scope_rule(
                             office.start(),
@@ -656,6 +805,30 @@ def decide_location_eligibility(
                         positive.append(excerpt)
                     elif office_required and scope.excludes_israel(True, central):
                         blocked.append(excerpt)
+
+            # Frames supply their own context. The slot vocabulary is unbounded;
+            # a known substring or a positive ATS location cannot resolve it.
+            for frame in LOCATION_FRAME.finditer(clause):
+                if not is_covered(frame.start()):
+                    if _is_israeli_slot(frame["slot"]):
+                        cover(frame.start(), frame.end())
+                    else:
+                        unknown.append(excerpt)
+            for pattern in APPLICANT_FRAMES:
+                for frame in pattern.finditer(clause):
+                    if not is_covered(frame.start()) and not LANGUAGE_SKILL.search(
+                        frame.group()
+                    ):
+                        if re.search(r"\bcitizens?\b|אזרח", frame.group(), re.I):
+                            unknown.append(excerpt)
+                        elif _is_israeli_slot(frame["slot"]):
+                            cover(frame.start(), frame.end())
+                        elif not re.fullmatch(
+                            r"(?:hire\s+)?the best", frame["slot"], re.I
+                        ):
+                            unknown.append(excerpt)
+            if _qualified_credential(clause):
+                unknown.append(excerpt)
 
             for restriction in RESTRICTION.finditer(clause):
                 if not is_covered(restriction.start()):

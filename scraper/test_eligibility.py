@@ -369,3 +369,18 @@ def test_every_hebrew_country_and_region_supplies_context(name, prefix):
             {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE
         )
         assert result["eligibility"] != "eligible", jd
+
+
+REVIEW_R7 = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-review-r7.json").read_text()
+)
+CONSERVATIVE_R7 = {"r7-15", "r7-noise-8", "r7-noise-9"}
+
+
+@pytest.mark.parametrize("case_id,location,jd,expected", REVIEW_R7)
+def test_restriction_frames_and_hebrew_alternatives(case_id, location, jd, expected):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": jd}, None, PROFILE
+    )
+    allowed = {expected, "unknown"} if case_id in CONSERVATIVE_R7 else {expected}
+    assert result["eligibility"] in allowed, case_id

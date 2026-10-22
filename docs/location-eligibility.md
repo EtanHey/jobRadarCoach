@@ -14,12 +14,17 @@ Unrecognized residency, citizenship, work authorization, time-zone, English and
 Hebrew restriction wording stays unknown. Ordinary skill requirements such as
 “Python and SQL required”, “Candidates must have 5+ years in React” and “What we
 need to see: B.SC.” are not geographic restrictions. Generic requirement words
-need genuine geography in the same clause. Prepositions, candidate nouns,
+need genuine geography in the same clause. Applicant exclusivity, required
+residence/relocation/work-location frames and qualified credentials supply their
+own restriction context even when their adjective or place is unfamiliar.
+Prepositions, candidate nouns,
 pronoun “us” and technical country-code lookalikes such as AI/ML do not supply
 that evidence. Recognized policy phrases, accommodations and technical
 hybrid/data-residency language do not veto a pass; a real requirement in the
-same paragraph still does. Unresolved citizenship wording remains unknown even
-in longer EEO lists or team descriptions.
+same paragraph still does. Protected attributes in anti-discrimination lists and
+team descriptions are not
+applicant restrictions. Only the bounded list or descriptive phrase is removed;
+a real requirement after it is still evaluated.
 Only bounded policy phrases are removed before restriction parsing; their
 containing clauses are never skipped. Restrictions joined by commas, and,
 but/however/while or semicolons still pass through the same geographic parser.
@@ -60,8 +65,17 @@ scopes, except conventional US/UK/EU abbreviations. IL means Israel in that scop
 this does not infer an Israeli alternative from an arbitrary address. Holon,
 Rishon/Rishon LeZion and their Hebrew aliases join the existing central cities.
 London, Austin and Toronto use the same shared city table as other ingestion
-consumers. Inclusive lists can name Israel first or last. Excluding another
-country from worldwide remote does not exclude Israel.
+consumers. Inclusive lists can name Israel first or last, including Hebrew או and
+attached
+ו alternatives with their own ב/ל/מ prefixes. Mixed Hebrew conjunctions remain
+unknown when simultaneous residence cannot be ruled out. Every place slot must
+be consumed: דרום אמריקה cannot resolve as the Israeli region דרום. An unparsed
+remainder or unknown alternative prevents a block. Foreign demonyms are not
+enumerated; an unresolved applicant/credential/location frame vetoes eligibility.
+Israeli demonyms can resolve an applicant slot, but citizenship alone never grants
+location permission. Language-skill frames (speak/fluent/native/proficiency/language
+and לדבר/דוברי/שפה/ברמת שפת אם) remain separate from nationality restrictions.
+Excluding another country from worldwide remote does not exclude Israel.
 
 Compatible Israeli ATS city/district/country qualifiers are normalized by the
 shared geography module before parsing (for example, “Tel Aviv-Yafo, Tel Aviv
@@ -132,3 +146,10 @@ residency and weekly London attendance now block. Two intended readings remain
 conservative unknowns: client residency in London and an Israel-based remote
 phrase. Tests allow the intended result or unknown only for those two; replay
 receipts count them as exact mismatches, not passes.
+
+`eligibility-review-r7.json` retains both R7 reviewers' reported probes, Hebrew
+alternatives, credentials, unseen demonyms and noun phrases, language controls,
+and EEO-list/team-description controls followed by real restrictions. The 658-row
+frozen snapshot restores exactly the 17 EEO/team rows to eligible: 52 blocked,
+271 eligible, 335 unknown. The Benin/building and Peru/Pro homographs remain
+conservative unknowns, as does the unsupported London-office attendance probe.
