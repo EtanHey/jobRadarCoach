@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from scripts.generate_years_metadata import COMPLETE_FRAME, FRAME, ROOT, SPEC, experience_phrase, generate, sql_regex
+from scripts.generate_years_metadata import COLLECTIVE_FRAME, COMPLETE_FRAME, FRAME, ROOT, SPEC, experience_phrase, generate, sql_regex
 
 
 class YearsPrecisionTests(unittest.TestCase):
@@ -24,10 +24,11 @@ class YearsPrecisionTests(unittest.TestCase):
                     'inlineRequiredHeading', 'quantity', 'preference', 'domainPreference',
                     'numericTenure', 'domainContext', 'role', 'alternativeNumber',
                     'employerVerb', 'applicantVerb', 'precedingNumber', 'decade',
-                    'yoeAnnotation', 'collectiveTenure'):
+                    'yoeAnnotation', 'collectiveTenure', 'interruptedPreferencePrefix'):
             self.assertIn(sql_regex(SPEC[key]), sql, key)
         self.assertIn(sql_regex(FRAME), sql)
         self.assertIn(sql_regex(COMPLETE_FRAME), sql)
+        self.assertIn(sql_regex(COLLECTIVE_FRAME), sql)
         self.assertIn(sql_regex(SPEC['normalization']['joinTenure']), sql)
         for frame in SPEC['simple']:
             self.assertIn(sql_regex(frame), sql)

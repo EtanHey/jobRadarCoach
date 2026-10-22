@@ -10,6 +10,7 @@ NUMBER = SPEC['number']
 LEAD = SPEC['englishLead']
 FRAME = '|'.join([LEAD + tail for tail in SPEC['englishTail']] + [SPEC['hebrew']] + SPEC['simple'])
 COMPLETE_FRAME = '(?:' + FRAME + ')[ ]*$'
+COLLECTIVE_FRAME = LEAD + '[ ]+(?:of[ ]+)?' + SPEC['collectiveTenure']
 
 
 def search(pattern, text):
@@ -43,7 +44,8 @@ def experience_phrase(description):
             numbers = re.findall(SPEC['extraNumber'], before, re.I | re.ASCII)
             preferred = re.search(SPEC['extraNumber'], preference[0], re.I | re.ASCII)[0]
             value = lambda token: int(token) if token.isdigit() else SPEC['words'].index(token.lower())
-            if search(COMPLETE_FRAME, before) and numbers and value(preferred) >= value(numbers[-1]):
+            interrupted_requirement = search(SPEC['interruptedPreferencePrefix'], text[:clause_match.start() + preference.start()])
+            if (search(COMPLETE_FRAME, before) or interrupted_requirement) and numbers and value(preferred) >= value(numbers[-1]):
                 clause = clause[:preference.start()] + ' ' * len(preference[0]) + clause[preference.end():]
         domain_preference = search(SPEC['domainPreference'], clause)
         if domain_preference and not search(SPEC['extraNumber'], domain_preference[0]) and not search(SPEC['tenure'], domain_preference[0]):
@@ -64,7 +66,15 @@ def experience_phrase(description):
                 section = 'other'
         if search(SPEC['inlineRequiredHeading'], clause):
             section = 'applicant'
-        if section == 'optional' or search(SPEC['collectiveTenure'], clause) or search(SPEC['company'], clause[max(0, context_end - 180):context_end]):
+        if section == 'optional':
+            continue
+        if search(SPEC['collectiveTenure'], clause):
+            # Excluding a team frame must not discard another, possibly higher, requirement.
+            non_team = re.sub(COLLECTIVE_FRAME, '', clause, flags=re.I | re.ASCII)
+            if search(SPEC['numericTenure'], non_team):
+                return None
+            continue
+        if search(SPEC['company'], clause[max(0, context_end - 180):context_end]):
             continue
         if matches and search(SPEC['company'], clause[matches[0].end():]):
             continue
@@ -183,7 +193,9 @@ begin
         preference_token := (regexp_match(substr(clause,preference_start,preference_end-preference_start) collate "C",'({patterns['extraNumber']})','i'))[1];
         preferred := case when preference_token ~ '^[0-9]+$' then preference_token::integer
           else array_position(array{SPEC['words']}::text[],lower(preference_token)) - 1 end;
-        if (substr(clause,1,preference_start-1) collate "C") ~* '{sql_regex(COMPLETE_FRAME)}' and preceding is not null and preferred >= preceding then
+        if ((substr(clause,1,preference_start-1) collate "C") ~* '{sql_regex(COMPLETE_FRAME)}'
+          or (substr(normalized,1,clause_start+preference_start-2) collate "C") ~* '{patterns['interruptedPreferencePrefix']}')
+          and preceding is not null and preferred >= preceding then
           clause := overlay(clause placing repeat(' ',preference_end-preference_start) from preference_start for preference_end-preference_start);
         end if;
         preference_start := preference_end;
@@ -219,7 +231,14 @@ begin
         elsif (heading collate "C") ~* '{patterns['otherHeading']}' then section := 'other'; end if;
       end loop;
       if (clause collate "C") ~* '{patterns['inlineRequiredHeading']}' then section := 'applicant'; end if;
-      if section = 'optional' or (clause collate "C") ~* '{patterns['collectiveTenure']}' or (right(context,180) collate "C") ~* '{patterns['company']}' then continue; end if;
+      if section = 'optional' then continue; end if;
+      if (clause collate "C") ~* '{patterns['collectiveTenure']}' then
+        -- Only proven team frames may be excluded; any remaining tenure vetoes fallback.
+        residue := regexp_replace(clause collate "C", '{sql_regex(COLLECTIVE_FRAME)}', '', 'gi');
+        if (residue collate "C") ~* '{patterns['numericTenure']}' then experience := null; exit; end if;
+        continue;
+      end if;
+      if (right(context,180) collate "C") ~* '{patterns['company']}' then continue; end if;
       if start_at > 0 and (substr(clause,end_at) collate "C") ~* '{patterns['company']}' then continue; end if;
       if (context collate "C") ~* '{patterns['employerVerb']}' and (context collate "C") !~* '{patterns['applicantVerb']}' then continue; end if;
       if (context collate "C") ~* '{patterns['precedingNumber']}' then experience := null; exit; end if;

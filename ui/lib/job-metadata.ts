@@ -55,7 +55,8 @@ export function experiencePhrase(description: string | null): string | null {
     for (const preference of clause.matchAll(new RegExp(patterns.preference, "gi"))) {
       const preceding = [...clause.slice(0, preference.index).matchAll(new RegExp(patterns.extraNumber, "gi"))].at(-1)?.[0];
       const preferred = preference[0].match(new RegExp(patterns.extraNumber, "i"))?.[0];
-      if (completeFrame.test(clause.slice(0, preference.index)) && preceding && preferred && amount(preferred) >= amount(preceding)) {
+      const interruptedRequirement = test(patterns.interruptedPreferencePrefix, normalized.slice(0, clauseMatch.index + preference.index));
+      if ((completeFrame.test(clause.slice(0, preference.index)) || interruptedRequirement) && preceding && preferred && amount(preferred) >= amount(preceding)) {
         clause = clause.slice(0, preference.index) + " ".repeat(preference[0].length) + clause.slice(preference.index + preference[0].length);
       }
     }
@@ -74,7 +75,15 @@ export function experiencePhrase(description: string | null): string | null {
       else if (test(patterns.otherHeading, text)) section = "other";
     }
     if (test(patterns.inlineRequiredHeading, clause)) section = "applicant";
-    if (section === "optional" || test(patterns.collectiveTenure, clause) || test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
+    if (section === "optional") continue;
+    if (test(patterns.collectiveTenure, clause)) {
+      // Excluding a team frame must not discard another, possibly higher, requirement.
+      const teamFrame = new RegExp(patterns.englishLead + "[ ]+(?:of[ ]+)?" + patterns.collectiveTenure, "gi");
+      const nonTeam = clause.replace(teamFrame, "");
+      if (test(patterns.numericTenure, nonTeam)) return null;
+      continue;
+    }
+    if (test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
     if (matches.length > 0 && test(patterns.company, clause.slice(matches[0].index + matches[0][0].length))) continue;
     const context = clause.slice(0, contextEnd);
     if (test(patterns.employerVerb, context) && !test(patterns.applicantVerb, context)) continue;

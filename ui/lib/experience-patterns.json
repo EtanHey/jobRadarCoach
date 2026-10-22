@@ -76,5 +76,6 @@
   ],
   "decade": "\\bdecade\\b|עשור",
   "yoeAnnotation": "[ ]*\\([ ]*YOE[ ]*\\)(?![ ]*:)",
-  "collectiveTenure": "\\b(?:combined|collective|cumulative)[ ]+(?:team|group)[ ]+experience\\b"
+  "collectiveTenure": "\\b(?:combined|collective|cumulative)[ ]+(?:team|group)[ ]+experience\\b",
+  "interruptedPreferencePrefix": "(?:^|\\n)[ ]*(?:requirements?|required qualifications?|minimum qualifications?)[ ]*:?[ ]*(?:\\n[ ]*)?(?:at least|we require)[ ]+(?:[0-9]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)[ ]*$"
 }

@@ -1,7 +1,8 @@
 # YEARS-2 fail-closed formats
 
-Status: IMPLEMENTED; offline gates passed. SQL runtime verification is delegated
-to the requested Python/DB workflow. No PR or deployment is part of this packet.
+Status: F1 IMPLEMENTED; local gates passed for PR #512. The F1 receipt below
+supersedes the original packet's counts and preference/collective behavior.
+SQL runtime verification remains a CI/lead gate; no migration was applied locally.
 Base: `0ce4156` on `origin/master`.
 
 ## Behavior
@@ -83,3 +84,46 @@ Gold descriptions are not committed.
   wiring; no hosted database or production cache was modified or verified.
 - Docs — Checked: historical `years-extraction-f5.md`; this receipt supersedes
   its preference-masking and migration-generation behavior.
+
+## F1 final correction
+
+The collective-tenure exclusion previously discarded an entire mixed clause,
+including applicant years, allowing a lower specialist frame to win. It now
+removes only a recognized combined/collective/cumulative team tenure frame for
+the exclusion check. Any remaining tenure makes the entire result null,
+including an already selected specialist result. The TS, Python, and generated
+0040 implementations use the same fixed team-frame grammar. This implements
+the lead's abstention option for mixed clauses in either ordering.
+
+Interrupted higher preferences are admitted only after an immediately adjacent
+Requirements / Required qualifications / Minimum qualifications heading and
+an explicit `At least N` or `We require N` prefix. The ordinary frame and all
+existing ambiguity checks must still pass after masking. This restores U04 and
+F4-10 while keeping the other 93 frozen outputs identical to `588d6ca`, including
+F3 N01. YOE annotations still cannot create frames. Lower preferences,
+qualification alternatives, compact unsupported tenure, and optional scope
+retain their guards. Quotes remain contiguous substrings of the original input.
+
+Executed sequentially, using one `nice -n 10 npx --no-install tsx` replay followed
+by pure-Python parity and unittest checks:
+
+- Reviewer twenty: **7 correct / 13 abstain / 0 wrong-known**. Both complete
+  mixed-clause reproducers are committed fixtures expecting null.
+- Original 95: **51 correct / 44 abstain / 0 wrong-known**. Exactly U04 and
+  F4-10 changed, both restored to correct; zero master-correct regressions.
+- Gold: **390 correct / 268 abstain / 0 wrong-known**, all 658 inputs replayed.
+  Known-value coverage is **390 / 542 = 71.9557195572%**.
+- Exact TS/Python quote parity: **1,284 / 1,284**, comprising 20 new cases,
+  95 original cases, 453 shared fixtures, 58 corpus inputs, and 658 gold inputs.
+- Pure-Python unittest: **2 passed**, covering all 453 fixture quotes plus
+  generated SQL equality and function/ACL contracts. Twenty fixtures were added;
+  only the two authorized regression expectations changed.
+- Migration 0039 SHA-256 remains
+  `7737a907602990f83bb4a4a436cf8e96fb76a767982549cb736a9d3fa16b6f87`.
+  Migration 0040 was regenerated in place and matches the generator exactly.
+
+Private replay inputs, assertions, outputs, parity audit, and source hashes are
+under root `docs.local/plan/2026-10-22-triage-fixes/surge/YEARS2-F1-receipts/`.
+No Vitest, Docker, synthetic load, database process, or production service
+operation ran. SQL runtime parity and hosted migration application remain
+unverified for F1 and belong to the lead's CI/application gate.
