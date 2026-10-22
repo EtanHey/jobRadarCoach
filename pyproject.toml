@@ -40,6 +40,7 @@ py-modules = [
   "extractor.persistence",
   "scraper.annotate",
   "scraper.eligibility",
+  "scraper.stack_requirements",
   "scraper.deadlines",
   "scraper.geography",
   "scraper.relevance",
