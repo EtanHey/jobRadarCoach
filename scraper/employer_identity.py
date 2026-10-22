@@ -8,7 +8,7 @@ from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 from scraper.geography import COUNTRY_CITY_ALIASES, COUNTRY_IDENTIFIERS, _normalized_location
 
-VERSION = '16'
+VERSION = '17'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus'}

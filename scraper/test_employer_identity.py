@@ -12,6 +12,23 @@ ROWS = json.loads((Path(__file__).parents[1] / 'test_support/fixtures/employer_i
 
 
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('row', json.loads((Path(__file__).parents[1] / 'test_support/fixtures/employer_self_alias.json').read_text()))
+def test_p7c_self_alias_labels(source, row):
+    from scraper.employer_aliases import is_alias
+    from scripts.employer_identity_backfill import _label
+
+    publisher, employer = row['publisher'], row['employer']
+    assert is_alias(publisher, employer) == row['alias']
+    assert is_alias(employer, publisher) == row['alias']
+    identity = resolve_employer(publisher, f'{employer} is hiring engineers.', source)
+    # Generic subjects remain unknown; all real company names retain their evidence.
+    if employer != 'Labs':
+        assert identity['hiring_employer'] == employer
+        assert identity['relationship'] == ('alias' if row['alias'] else 'resolved-different')
+        assert _label(publisher, identity) == (publisher if row['alias'] else f'{employer} via {publisher}')
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
 @pytest.mark.parametrize('field,opening', [
     ('agency_evidence', 'HireCo is a staffing firm. '),
     ('employer_evidence', 'Acme Labs is hiring engineers. '),
@@ -102,7 +119,7 @@ def test_p7bf1_company_suffixes_and_non_head_org_words_are_preserved(source, nam
 @pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
 @pytest.mark.parametrize('publisher,name', [
     ('Arm', 'Armis'), ('Meta', 'Metabase'), ('Wix', 'Wixel'),
-    ('Monday', 'Mondaycom'), ('Acme', 'Acme Labs'),
+    ('Monday', 'Mondaycom'),
 ])
 def test_p7b_publisher_prefix_does_not_erase_distinct_company(source, publisher, name):
     result = resolve_employer(publisher, f'{name} is hiring engineers.', source)
