@@ -22,15 +22,9 @@ export function vacancyBodyCandidates<T extends GlobeJob>(jobs: T[]): T[] {
 export async function withVacancyIdentity<T extends GlobeJob>(db: SupabaseClient, jobs: T[]): Promise<T[]> {
   const identities = new Map(jobs.map(job => [job.id, vacancyIdentity(job)]));
   const candidates = vacancyBodyCandidates(jobs);
-  const selected = candidates.slice(0, 300);
-  if (candidates.length > selected.length) {
-    console.warn("Vacancy identity body fetch capped", {
-      candidates: candidates.length, fetched: selected.length, skipped: candidates.length - selected.length,
-    });
-  }
   const schema = z.array(z.object({ id: JobIdSchema, identity_evidence: z.string().nullable() }));
-  for (let offset = 0; offset < selected.length; offset += 100) {
-    const batch = selected.slice(offset, offset + 100);
+  for (let offset = 0; offset < candidates.length; offset += 100) {
+    const batch = candidates.slice(offset, offset + 100);
     try {
       const response = await db.from("postings").select("id,identity_evidence:raw_jd").in("id", batch.map(job => job.id));
       if (response.error) throw response.error;
