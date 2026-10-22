@@ -83,12 +83,14 @@ NEGATION = re.compile(
     r"\bnot\s+(?:remote|on[ -]?site|office[ -]based|hybrid)\b",
     re.I,
 )
+ATTRIBUTE_REQUIREMENT = (
+    r"\s+(?:must|should|needs?\s+to|(?:is\s+)?required|only|mandatory|"
+    r"(?:[\w׳״'-]+\s+)?(?:חובה|נדרש(?:ת|ים|ות)?))(?!\w)"
+)
 # Match bounded policy phrases, never their containing clause. Anything after
 # the phrase still goes through the same geographic restriction parser.
 NON_LOCATION_POLICY = re.compile(
     r"\b(?:equal (?:employment )?opportunit\w*(?: employer)?|"
-    r"(?:without regard to|regardless of)\s+citizenship\s+or\s+national origin"
-    r"(?!\s+(?:is\s+)?(?:required|only|mandatory))|"
     r"(?:salary range|annual (?:base )?salary)\s+is\s+only applicable to\s+"
     r"(?:U\.S\.|US|United States)[ -]based candidates|"
     r"on[ -]?site (?:courses|wellness(?: centers)?|caf[ée])|"
@@ -100,7 +102,8 @@ NON_LOCATION_POLICY = re.compile(
     re.I,
 )
 
-# Lists consume only protected attributes, never the requirement after the list.
+# Lists stop before a requirement's subject. Atomic attributes prevent falling
+# back from 'citizenship status must' to the shorter 'citizenship'.
 PROTECTED_ATTRIBUTE = (
     r"race|colou?r|national origin|citizenship(?: status)?|immigration status|"
     r"ancestry|religion|creed|sex|sexual orientation|gender(?: identity| expression)?|"
@@ -110,10 +113,10 @@ PROTECTED_ATTRIBUTE = (
 )
 EEO_LIST = re.compile(
     rf"(?:\b(?:without regard to|regardless of)\b|בלי קשר ל|ללא הבדל)\s*"
-    rf"(?>(?:{PROTECTED_ATTRIBUTE})(?!\w)"
+    rf"(?>(?>(?:{PROTECTED_ATTRIBUTE})(?!\w))(?!{ATTRIBUTE_REQUIREMENT})"
     rf"(?:\s*(?:,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+|\s+או\s+|\s+ו)"
-    rf"(?:{PROTECTED_ATTRIBUTE})(?!\w))*)"
-    r"(?!\s+(?:is\s+)?(?:required|only|mandatory)\b)",
+    rf"(?>(?:{PROTECTED_ATTRIBUTE})(?!\w))(?!{ATTRIBUTE_REQUIREMENT}))*)"
+    rf"(?!\s+(?:and|or)\s+(?:{PROTECTED_ATTRIBUTE})(?!\w){ATTRIBUTE_REQUIREMENT})",
     re.I,
 )
 TEAM_CITIZENS = re.compile(
@@ -130,7 +133,7 @@ APPLICANT_FRAMES = tuple(
     re.compile(pattern, re.I)
     for pattern in (
         rf"(?<!\w){APPLICANT}\s+(?P<slot>{SLOT})\s+(?:only\b|בלבד(?!\w))",
-        rf"(?<!\w)(?:only|[והש]*רק)\s+{APPLICANT}\s+(?P<slot>{SLOT})(?=$|[.!?]|\s+(?:may|can|רשאים)\b)",
+        rf"(?<!\w)(?:only|[והש]*רק)\s+{APPLICANT}\s+(?P<slot>{SLOT})(?=$|[.!?]|\s+(?:may|can|are eligible|רשאים)\b)",
         rf"(?<!\w)(?:only|[והש]*רק)\s+(?P<slot>{SLOT})\s+{APPLICANT}(?!\w)",
         rf"(?<!\w)(?P<slot>[\w׳״'-]+(?:\s+[\w׳״'-]+)*)\s+{APPLICANT}\s+(?:only\b|בלבד(?!\w))",
     )
@@ -147,7 +150,9 @@ CREDENTIAL = re.compile(
     re.I,
 )
 LANGUAGE_SKILL = re.compile(
-    r"\b(?:speak|fluent|native|proficiency|language)\b|לדבר|דוברי|שפה|ברמת שפת אם",
+    r"\b[\w׳״']+(?:[- ]speaking|\s+speakers?)\b|"
+    r"\b(?:speaks?|speaking|fluent(?:\s+in)?|native|proficiency(?:\s+in)?|language)\s+[\w׳״']+|"
+    r"(?<!\w)(?:לדבר|דובר(?:/ת|י|ת|ים|ות)?|שפה|ברמת שפת אם)\s+(?:שפה\s+)?[\w׳״']+",
     re.I,
 )
 
@@ -492,8 +497,9 @@ def decide_location_eligibility(
                 scope = _scope(clause, negation.end())
                 cover(negation.start(), scope.end)
 
-            def is_covered(start: int) -> bool:
-                return any(left <= start < right for left, right in covered)
+            def is_covered(start: int, end: int | None = None) -> bool:
+                end = start + 1 if end is None else end
+                return any(left <= start and end <= right for left, right in covered)
 
             for technical in re.finditer(r"\bdata residency\b", clause, re.I):
                 cover(technical.start(), technical.end())
@@ -527,7 +533,8 @@ def decide_location_eligibility(
                     )
                 )
                 if (
-                    any(kind in {"israel", "noncentral"} for kind in scope.kinds)
+                    scope.complete
+                    and any(kind in {"israel", "noncentral"} for kind in scope.kinds)
                     and role_exclusion
                 ):
                     blocked.append(excerpt)
@@ -809,19 +816,22 @@ def decide_location_eligibility(
             # Frames supply their own context. The slot vocabulary is unbounded;
             # a known substring or a positive ATS location cannot resolve it.
             for frame in LOCATION_FRAME.finditer(clause):
-                if not is_covered(frame.start()):
+                if not is_covered(frame.start(), frame.end()):
                     if _is_israeli_slot(frame["slot"]):
                         cover(frame.start(), frame.end())
                     else:
                         unknown.append(excerpt)
             for pattern in APPLICANT_FRAMES:
                 for frame in pattern.finditer(clause):
-                    if not is_covered(frame.start()) and not LANGUAGE_SKILL.search(
-                        frame.group()
-                    ):
+                    if not is_covered(frame.start(), frame.end()):
+                        # A language skill cannot erase another nationality or place.
+                        slot, language_spans = LANGUAGE_SKILL.subn(" ", frame["slot"])
+                        if language_spans:
+                            slot = re.sub(r"\b(?:with|and)\b", " ", slot, flags=re.I)
+                        slot = slot.strip()
                         if re.search(r"\bcitizens?\b|אזרח", frame.group(), re.I):
                             unknown.append(excerpt)
-                        elif _is_israeli_slot(frame["slot"]):
+                        elif not slot or _is_israeli_slot(slot):
                             cover(frame.start(), frame.end())
                         elif not re.fullmatch(
                             r"(?:hire\s+)?the best", frame["slot"], re.I

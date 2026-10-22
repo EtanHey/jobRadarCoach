@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scraper.eligibility import decide_location_eligibility
+from scraper.eligibility import _without_policy, decide_location_eligibility
 from scraper.geography import HEBREW_COUNTRY_NAMES, HEBREW_REGION_NAMES
 
 PROFILE = {
@@ -384,3 +384,28 @@ def test_restriction_frames_and_hebrew_alternatives(case_id, location, jd, expec
     )
     allowed = {expected, "unknown"} if case_id in CONSERVATIVE_R7 else {expected}
     assert result["eligibility"] in allowed, case_id
+
+
+REVIEW_R8 = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-review-r8.json").read_text()
+)
+
+
+@pytest.mark.parametrize("case_id,location,jd,expected", REVIEW_R8)
+def test_complete_restriction_slots_and_language_spans(case_id, location, jd, expected):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": jd}, None, PROFILE
+    )
+    assert result["eligibility"] == expected, case_id
+
+
+@pytest.mark.parametrize(
+    "attribute", ["citizenship", "citizenship status", "nationality", "residency"]
+)
+@pytest.mark.parametrize(
+    "requirement",
+    ["must", "should", "needs to", "is required", "required", "only", "mandatory", "חובה", "נדרש"],
+)
+def test_policy_mask_preserves_requirement_subject(attribute, requirement):
+    restriction = f"{attribute} {requirement} be German"
+    assert restriction in _without_policy(f"We hire regardless of race, {restriction}.")
