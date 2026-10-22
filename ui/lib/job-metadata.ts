@@ -29,7 +29,7 @@ function normalizeExperienceText(description: string): string {
   for (const pattern of patterns.normalization.mask) {
     text = text.replace(new RegExp(pattern, "gmi"), match => " ".repeat(match.length));
   }
-  return text;
+  return text.replace(new RegExp(patterns.normalization.joinTenure, "gi"), match => " ".repeat(match.length));
 }
 
 /** Quote a mandatory minimum; unresolved tenure blocks specialist fallback. */
@@ -37,7 +37,7 @@ export function experiencePhrase(description: string | null): string | null {
   if (!description) return null;
   const normalized = normalizeExperienceText(description);
   const number = patterns.number;
-  const phrase = new RegExp(patterns.englishTail.map(tail => patterns.englishLead + tail).concat(patterns.hebrew).join("|"), "gi");
+  const phrase = new RegExp(patterns.englishTail.map(tail => patterns.englishLead + tail).concat(patterns.hebrew, patterns.simple).join("|"), "gi");
   const test = (pattern: string, text: string) => new RegExp(pattern, "i").test(text);
   const amount = (token: string) => /^[0-9]+$/.test(token) ? Number(token) : patterns.words.indexOf(token.toLowerCase());
   if (test(patterns.fractionalTenure, normalized) || new RegExp(patterns.numberedTenure, "mi").test(normalized)) return null;
@@ -77,18 +77,19 @@ export function experiencePhrase(description: string | null): string | null {
     if ((matches.length > 0 && test(patterns.complexity, clause.slice(matches[0].index + matches[0][0].length)))
       || test(patterns.optionalScope, clause)) return null;
     if (section !== "applicant" && !test(patterns.requiredContext, clause) && !test(patterns.domainContext, clause)) continue;
+    // Unclassified tenure is a veto even when another clause has an admitted frame.
+    if (matches.length !== 1 || test(patterns.tenure, residue) || test(patterns.numericTenure, residue)) return null;
     if (test(patterns.reject, residue) || test(patterns.alternativeNumber, residue)) return null;
-    if (matches.length !== 1 || test(patterns.tenure, residue)) return null;
     const match = matches[0];
     if (test(patterns.complexity, match[0])
       || test(patterns.extraNumber, match[0].replace(new RegExp(patterns.quantity, "i"), ""))) return null;
     const amounts = [...match[0].matchAll(new RegExp(patterns.extraNumber, "gi"))].map(token => amount(token[0]));
-    const minimum = amounts[0];
+    const minimum = test(patterns.decade, match[0]) ? 10 : amounts[0];
     if (minimum === undefined || (amounts.length > 1 && amounts[1] < minimum)) return null;
     const withoutLead = match[0].replace(/^minimum(?:[ \t]+of)?[ \t]+/i, "");
     const quoteStart = clauseMatch.index + match.index + match[0].length - withoutLead.length;
     const quote = description.slice(quoteStart, quoteStart + withoutLead.length);
-    const rank = (section === "applicant" ? 2 : 0) + Number(test(patterns.role, clause));
+    const rank = (section === "applicant" ? 2 : 0) + 4 * Number(test(patterns.role, clause));
     if (!selected || rank > selected.rank) {
       selected = { minimum, quote, rank };
       disagreement = false;

@@ -23,9 +23,12 @@ class YearsPrecisionTests(unittest.TestCase):
                     'company', 'tenure', 'extraNumber', 'fractionalTenure', 'numberedTenure',
                     'inlineRequiredHeading', 'quantity', 'preference', 'domainPreference',
                     'numericTenure', 'domainContext', 'role', 'alternativeNumber',
-                    'employerVerb', 'applicantVerb', 'precedingNumber'):
+                    'employerVerb', 'applicantVerb', 'precedingNumber', 'decade'):
             self.assertIn(sql_regex(SPEC[key]), sql, key)
         self.assertIn(sql_regex(FRAME), sql)
+        self.assertIn(sql_regex(SPEC['normalization']['joinTenure']), sql)
+        for frame in SPEC['simple']:
+            self.assertIn(sql_regex(frame), sql)
         for key in ('space', 'newline'):
             self.assertIn(' || '.join(f'chr({ord(c)})' for c in SPEC['normalization'][key]), sql)
         self.assertIn('immutable security invoker set search_path =', sql)
