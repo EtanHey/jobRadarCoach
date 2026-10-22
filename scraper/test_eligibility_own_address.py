@@ -28,6 +28,8 @@ PROFILE = {'candidate.open_to.geographies': ['Central Israel', 'Remote']}
     ('Tel Aviv', 'Our office is located in Tel Aviv, close to Sarona Market'),
     ('Tel Aviv', 'Ready to work in an office environment most days of the week'),
     ('Tel Aviv', 'Work in the office most days a week'),
+    ('Tel Aviv', 'Hybrid Model: A flexible balance between office and home-based work'),
+    ('Ramat Gan', 'Location: Ramat Gan, Israel (Hybrid, walking distance from both train stations)'),
     ('Tel Aviv', 'Hybrid in our Israeli office'),
     ('Tel-Aviv-Yafo, Israel', 'Hybrid in our TLV office'),
     ('Ramat-Gan, Israel', 'Hybrid in our Ramat Gan office'),
@@ -61,6 +63,52 @@ def test_own_city_and_address(location, jd):
 ])
 def test_address_does_not_hide_other_places_or_obligations(jd):
     assert decide_location_eligibility({'location': 'Tel Aviv', 'raw_jd': jd}, None, PROFILE)['eligibility'] == 'unknown'
+
+
+@pytest.mark.parametrize('detail', [
+    'close to Heathrow',
+    'in the Heathrow Tower',
+    'next to JFK',
+    'near the Berlin hub',
+    'walking distance from Heathrow',
+    'within walking distance of Heathrow',
+    'close to heathrow',
+    'near the heathrow hub',
+    'next to an unfamiliar terminal',
+    'close to the light rail at Heathrow',
+    'close to the light rail and Heathrow',
+    'between Rothschild and the Berlin hub',
+    'between Rothschild Blvd and Heathrow',
+    'between Heathrow and Allenby St',
+    'between Rothschild Blvd and heathrow',
+    'between Rothschild Blvd and Allenby St near Heathrow',
+])
+def test_unresolved_address_destination(detail):
+    jd = f'Hybrid in our Tel Aviv office, {detail}'
+    assert decide_location_eligibility({'location': 'Tel Aviv', 'raw_jd': jd}, None, PROFILE)['eligibility'] == 'unknown'
+
+
+@pytest.mark.parametrize('detail', [
+    'close to the light rail',
+    'next to the train station',
+    'near the metro',
+    'walking distance from the bus station',
+    'within walking distance from the bus terminal',
+    'close to highway 20',
+    'near road 4',
+    'near רכבת',
+    'near רכבת קלה',
+    'near תחנה',
+    'close to Tel Aviv',
+    'next to Allenby St',
+    'walking distance from Rothschild Blvd',
+    'between Rothschild Blvd and Allenby St',
+    'between Tel Aviv and Allenby St',
+    'between Rothschild Boulevard and Neve Tzedek',
+])
+def test_recognized_address_destination(detail):
+    jd = f'Hybrid in our Tel Aviv office, {detail}'
+    assert decide_location_eligibility({'location': 'Tel Aviv', 'raw_jd': jd}, None, PROFILE)['eligibility'] == 'eligible'
 
 
 @pytest.mark.parametrize('alias,canonical', [

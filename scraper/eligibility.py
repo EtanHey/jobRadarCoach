@@ -202,6 +202,16 @@ WORKPLACE_FRAMES = tuple(re.compile(pattern, re.I) for pattern in (
     r"ב(?P<slot>[א-ת'-]+(?:\s+(?!(?:עם|שלנו|של|שלושה|ימים|בשבוע)(?!\w))[א-ת'-]+)*)",
 ))
 
+ADDRESS_PROXIMITY = (
+    r"close to|near|next to|(?:within )?walking distance (?:of|from)|"
+    r"just a short walk from"
+)
+# These local landmarks have an explicit city identity; arbitrary building or
+# landmark names are not evidence that the address belongs to the posting city.
+OWN_CITY_LANDMARKS = {
+    "tel aviv": ("Sarona Market", "Neve Tzedek", "Azrieli"),
+}
+
 
 def _own_location_names(own_location: str) -> set[str]:
     own_location = normalize_israeli_location(own_location)
@@ -233,16 +243,26 @@ def _without_own_address(clause: str, own_location: str) -> str:
             r"to|of|with|citizenship|reside|live|relocate)\b)[A-Zא-ת][\w׳'’-]*")
     name = rf"{word}(?:\s+{word}){{0,3}}"
     street = r"(?i:Street|St|Road|Rd|Avenue|Ave|Blvd|Boulevard)\b\.?"
-    landmark = rf"(?:{name}|(?i:the (?:light rail(?: and train station)?|train stations?)))"
+    local_names = [re.escape(place) for own_city in cities
+                   for place in OWN_CITY_LANDMARKS.get(own_city, ())]
+    local_place = "|".join(local_names) or r"(?!)"
+    street_phrase = rf"(?:{name}\s+{street}|(?:רחוב|רח[׳']|שדרות)\s+{name})"
+    destination = rf"(?:{street_phrase}|(?i:{city}|{local_place})(?!\w))"
+    transit = (r"(?i:(?:the\s+)?(?:light rail(?: and train station)?|(?:both\s+)?train stations?|"
+               r"metro|bus (?:station|terminal)|(?:highway|road)\s+\d+)|"
+               r"ה?(?:רכבת(?: קלה)?|תחנה))(?!\w)")
+    # Do not consume just a safe prefix of an unresolved destination. Separate
+    # obligations may follow, but remain intact for the restriction parser.
+    end = (r"(?=$|[,;.!?)]|\s+(?:and\s+(?:must|requires?|required|only)\b|"
+           r"וחובה(?!\w)))")
     patterns = (
         rf"\b\d+\s+{name}\s+{street}(?:\s+(?i:in)\s+)?",
         rf"{name}\s+{street}\s+\d+\b",
         rf"(?:רחוב|רח[׳']|שדרות)\s+{name}\s+\d+\b",
-        rf"(?i:between)\s+{name}\s+(?i:and)\s+{name}",
-        rf"(?i:close to|near|within walking distance (?:of|from)|"
-        rf"just a short walk from)\s+{landmark}",
+        rf"(?i:between)\s+{destination}\s+(?i:and)\s+{destination}{end}",
+        rf"(?i:{ADDRESS_PROXIMITY})\s+(?:{transit}|{destination}){end}",
         rf"(?i:in the)\s+{name}\s+(?i:area of)\s+(?=(?i:{city})(?!\w))",
-        rf"(?i:in|at)\s+(?i:the\s+)?{name}\s+(?i:building|towers?)\b",
+        rf"(?i:in|at)\s+(?i:the\s+)?(?i:{local_place})\s+(?i:building|towers?)\b{end}",
         r"(?i:in Midtown)\b",
     )
 
@@ -353,6 +373,11 @@ def _own_workplace_terms(
         return clause
     if workplace and not attendance:
         return clause
+    clause = re.sub(r"\bbetween office and home-based work\b", " ", clause, flags=re.I)
+    # Address cleanup accepts complete, recognized destinations only. Preserve
+    # every leftover relation, including lowercase unknown names.
+    if re.search(rf"\b(?:{ADDRESS_PROXIMITY}|between)\s+", clause, re.I):
+        return None
 
     # Customer/team geography describes others, not the applicant's workplace.
     # Do not discard a continuation that introduces another obligation.
