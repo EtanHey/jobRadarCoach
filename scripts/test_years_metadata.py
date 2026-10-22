@@ -29,10 +29,16 @@ def years_sql():
                 original = (ROOT / "supabase/migrations/0024_list_metadata.sql").read_text()
                 function = original[original.index("create function"):original.index("revoke all")]
                 connection.execute(function)
-                migration = ROOT / "supabase/migrations/0039_years_metadata.sql"
-                if migration.exists():
-                    connection.execute("create role anon; create role authenticated; create role service_role")
-                    connection.execute(migration.read_text())
+                connection.execute("create role anon; create role authenticated; create role service_role")
+                connection.execute((ROOT / "supabase/migrations/0039_years_metadata.sql").read_text())
+                migration = ROOT / "supabase/migrations/0040_years_compact_formats.sql"
+                connection.execute(migration.read_text())
+                before = [connection.execute("select public.posting_list_metadata(%s)", (description,)).fetchone()[0]
+                          for description, _ in CASES]
+                connection.execute(migration.read_text())
+                after = [connection.execute("select public.posting_list_metadata(%s)", (description,)).fetchone()[0]
+                         for description, _ in CASES]
+                assert after == before
                 yield connection
         finally:
             subprocess.run([bindir / "pg_ctl", "-D", data, "-m", "fast", "-w", "stop"], check=True, capture_output=True)
@@ -56,4 +62,4 @@ def test_sql_matches_typescript_metadata_corpus(years_sql):
 def test_generated_migration_is_current():
     from scripts.generate_years_metadata import generate
 
-    assert (ROOT / "supabase/migrations/0039_years_metadata.sql").read_text() == generate()
+    assert (ROOT / "supabase/migrations/0040_years_compact_formats.sql").read_text() == generate()

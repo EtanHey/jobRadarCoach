@@ -38,6 +38,7 @@ export function experiencePhrase(description: string | null): string | null {
   const normalized = normalizeExperienceText(description);
   const number = patterns.number;
   const phrase = new RegExp(patterns.englishTail.map(tail => patterns.englishLead + tail).concat(patterns.hebrew, patterns.simple).join("|"), "gi");
+  const completeFrame = new RegExp(`(?:${phrase.source})[ ]*$`, "i");
   const test = (pattern: string, text: string) => new RegExp(pattern, "i").test(text);
   const amount = (token: string) => /^[0-9]+$/.test(token) ? Number(token) : patterns.words.indexOf(token.toLowerCase());
   if (test(patterns.fractionalTenure, normalized) || new RegExp(patterns.numberedTenure, "mi").test(normalized)) return null;
@@ -45,11 +46,17 @@ export function experiencePhrase(description: string | null): string | null {
   let disagreement = false;
   for (const clauseMatch of normalized.matchAll(/[^.!?;\n]+/g)) {
     let clause = clauseMatch[0];
-    // Only a higher numeric preference is exempt; masking keeps source offsets.
+    // An annotation may follow a complete frame, but must never create one.
+    for (const annotation of clause.matchAll(new RegExp(patterns.yoeAnnotation, "gi"))) {
+      if (completeFrame.test(clause.slice(0, annotation.index))) {
+        clause = clause.slice(0, annotation.index) + " ".repeat(annotation[0].length) + clause.slice(annotation.index + annotation[0].length);
+      }
+    }
     for (const preference of clause.matchAll(new RegExp(patterns.preference, "gi"))) {
       const preceding = [...clause.slice(0, preference.index).matchAll(new RegExp(patterns.extraNumber, "gi"))].at(-1)?.[0];
       const preferred = preference[0].match(new RegExp(patterns.extraNumber, "i"))?.[0];
-      if (preceding && preferred && amount(preferred) >= amount(preceding)) {
+      const interruptedRequirement = test(patterns.interruptedPreferencePrefix, normalized.slice(0, clauseMatch.index + preference.index));
+      if ((completeFrame.test(clause.slice(0, preference.index)) || interruptedRequirement) && preceding && preferred && amount(preferred) >= amount(preceding)) {
         clause = clause.slice(0, preference.index) + " ".repeat(preference[0].length) + clause.slice(preference.index + preference[0].length);
       }
     }
@@ -68,7 +75,15 @@ export function experiencePhrase(description: string | null): string | null {
       else if (test(patterns.otherHeading, text)) section = "other";
     }
     if (test(patterns.inlineRequiredHeading, clause)) section = "applicant";
-    if (section === "optional" || test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
+    if (section === "optional") continue;
+    if (test(patterns.collectiveTenure, clause)) {
+      // Excluding a team frame must not discard another, possibly higher, requirement.
+      const teamFrame = new RegExp(patterns.englishLead + "[ ]+(?:of[ ]+)?" + patterns.collectiveTenure, "gi");
+      const nonTeam = clause.replace(teamFrame, "");
+      if (test(patterns.numericTenure, nonTeam)) return null;
+      continue;
+    }
+    if (test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
     if (matches.length > 0 && test(patterns.company, clause.slice(matches[0].index + matches[0][0].length))) continue;
     const context = clause.slice(0, contextEnd);
     if (test(patterns.employerVerb, context) && !test(patterns.applicantVerb, context)) continue;

@@ -32,6 +32,9 @@ def test_ui_list_database(tmp_path):
             for migration in sorted(migrations.glob("[0-9][0-9][0-9][0-9]_*.sql")):
                 if 23 < int(migration.name[:4]) <= latest:
                     db.execute(migration.read_text())
+                    if migration.name == "0040_years_compact_formats.sql":
+                        # The RPC fixture suite runs after reapplication, including on Ubuntu CI.
+                        db.execute(migration.read_text())
             db.execute("insert into posting_status(posting_id,status) select id,case when external_id='two' then 'seen' else 'new' end from postings")
         with psycopg.connect(url) as db:
             db.execute("update postings set raw_jd='Requirements: 4 years of software engineering experience with React', stack=array['Extracted'] where external_id='three'")
