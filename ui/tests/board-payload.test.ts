@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { JobListItemSchema, JobListResponseSchema, type JobListQuery } from "../lib/contracts";
 import { BOARD_FIELD_ALIASES, getApiStore, parseSummaryRows, selectSummaries } from "../lib/server";
 import { filterJobGroups, type ViewOptions } from "../lib/job-filters";
+import { employerLabel } from "../lib/employer-identity";
 
 const id = "00000000-0000-4000-8000-000000000001";
 const signal = { phrase: "no longer accepting applications", checked_at: "2026-10-07T10:00:00Z", url: "https://www.linkedin.com/jobs/view/123" };
@@ -29,6 +30,35 @@ const slim = () => {
 
   return projected;
 };
+
+test("invalid identity is dropped per row on every board path, without hiding other invalid fields", async t => {
+  const errors = t.mock.method(console, "error", () => {});
+  const identity = { publisher: raw.company, hiring_employer: "Acme Labs", employer_evidence: "Acme Labs is hiring.",
+    relationship: "resolved-different", resolver_version: "14", agency_evidence: null };
+  for (const field of ["agency_evidence", "employer_evidence"] as const) {
+    const invalid = { ...identity, [field]: "x".repeat(2827) };
+    const validRow = { ...slim(), id: "00000000-0000-4000-8000-000000000002", posting_extractions: { employer_identity: identity } };
+    const db = createClient("https://database.example.test", "synthetic", { global: { fetch: async input => {
+      if (new URL(String(input)).searchParams.get("select") === "id,identity_evidence:raw_jd") {
+        return Response.json([{ id, identity_evidence: null }, { id: validRow.id, identity_evidence: null }]);
+      }
+      return Response.json([{ ...slim(), posting_extractions: { employer_identity: invalid } }, validRow]);
+    } } });
+    const base = { filter: "all", availability: "all", limit: 100 } as const;
+    for (const query of [base, { ...base, sort: "fit" as const }, { ...base, ids: [id] }]) {
+      const jobs = await selectSummaries(db, query);
+      assert.equal(jobs.length, 2);
+      assert.equal(jobs[0].employer_identity, undefined);
+      assert.equal(employerLabel(jobs[0]), raw.company);
+      assert.equal(employerLabel(jobs[1]), `Acme Labs via ${raw.company}`);
+    }
+    const legacy = parseSummaryRows([{ ...raw, posting_extractions: { employer_identity: invalid } }]).jobs[0];
+    assert.equal(legacy.employer_identity, undefined);
+  }
+  assert.equal(errors.mock.callCount(), 8);
+  assert.ok(!JSON.stringify(errors.mock.calls).includes("x".repeat(100)), "diagnostics must not expose JD evidence");
+  assert.throws(() => parseSummaryRows([{ ...raw, id: "invalid" }]), /invalid response/);
+});
 
 test("all list paths select only JSON keys used by the board", async () => {
   const selections: string[] = [];
