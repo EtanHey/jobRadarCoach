@@ -6,6 +6,7 @@ import { GlobeJobSchema } from "../lib/globe-contract";
 import { getNewRolesStore } from "../lib/new-roles-server";
 import { NewRolesQuerySchema } from "../lib/new-roles-contract";
 import { defaultBoardPreferences } from "../lib/job-board-preferences";
+import { groupDuplicateJobs } from "../lib/job-dedup";
 const job = (n: number) => GlobeJobSchema.parse({id:`00000000-0000-4000-8000-${String(n).padStart(12,"0")}`,
   title:"Engineer",company:"Fixture",source:"fixture",location:null,remote:null,seniority:null,stack:[],
   url:"https://example.test",apply_url:null,posted_at:null,first_seen_at:"2026-10-07T00:00:00Z",status:"new",status_reason:null,score:90,recommendation:"apply",alive:true});
@@ -87,9 +88,12 @@ test("singleton and URL-identified responses perform no body read", async () => 
   assert.ok(result.every(job=>job.vacancy_identity?.requisitions[0] === "JR12345"));
 });
 
-test("body enrichment caps unique candidates at 300 and warns once", async (t) => {
-  const jobs = Array.from({length:405}, (_, n) => job(n));
-  const warnings = t.mock.method(console,"warn",()=>{});
+test("late board candidates retain distinct requisitions for grouping", async () => {
+  const jobs = Array.from({length:405}, (_, n) => ({
+    ...job(n),
+    title: "Senior Engineer",
+    company: "Synthetic Employer",
+  }));
   const sizes: number[] = [];
   const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async input => {
     const url = new URL(String(input));
@@ -97,16 +101,19 @@ test("body enrichment caps unique candidates at 300 and warns once", async (t) =
     const offset = sizes.reduce((sum,size)=>sum+size,0);
     assert.deepEqual(ids,jobs.slice(offset,offset+100).map(job=>job.id));
     sizes.push(ids.length);
-    return Response.json(ids.map(id=>({id,identity_evidence:"Build services. ".repeat(30)})));
+    return Response.json(ids.map(id=>({
+      id,
+      identity_evidence: id === jobs[403].id ? "Job Req: 3273523124. Build services."
+        : id === jobs[404].id ? "Job Req: 3273523125. Build services."
+        : "Build services. ".repeat(30),
+    })));
   }}});
   const result = await withVacancyIdentity(db,[...jobs,jobs[0]]);
-  assert.deepEqual(sizes,[100,100,100]);
-  assert.equal(warnings.mock.callCount(),1);
-  assert.deepEqual(warnings.mock.calls[0].arguments,["Vacancy identity body fetch capped",{candidates:405,fetched:300,skipped:105}]);
+  assert.deepEqual(sizes,[100,100,100,100,5]);
   assert.equal(result.length,406);
-  assert.ok(result[299].vacancy_identity?.jd_fingerprint);
-  assert.equal(result[300].vacancy_identity?.jd_fingerprint,null);
-  assert.ok(result[405].vacancy_identity?.jd_fingerprint);
+  assert.deepEqual(result[403].vacancy_identity?.requisitions,["3273523124"]);
+  assert.deepEqual(result[404].vacancy_identity?.requisitions,["3273523125"]);
+  assert.equal(groupDuplicateJobs(result).length,3, "same fallback identity stays grouped while late distinct requisitions stay separate");
 });
 
 for (const failure of ["transport", "invalid evidence"] as const) {
