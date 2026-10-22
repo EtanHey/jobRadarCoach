@@ -96,6 +96,43 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
     )
 
 
+def _role_type(title: object) -> str | None:
+    """Title-only identity; unknown occupational modifiers default to abstention.
+
+    Frontend/fullstack require a developer/engineer/architect head, directly
+    modified by the specialty and optional closed software-domain modifiers,
+    or an explicit software occupation followed by the specialty. Hardware
+    domains veto every specialty. Voice specializes AI, so exactly that pair
+    resolves to voice; all other multiple matches remain ambiguous.
+    """
+    if not isinstance(title, str) or re.search(
+        r"\b(?:hardware|chip|RTL|power|silicon|analog|ASIC|FPGA)\b", title, re.IGNORECASE
+    ):
+        return None
+    patterns = {
+        "fullstack": r"\bfull[ -]?stack\b",
+        "frontend": r"\bfront[ -]?end\b",
+        "ai": r"\b(?:AI|ML|LLM|machine learning|artificial intelligence)\b",
+        "voice": r"\b(?:voice|speech|audio)\b",
+    }
+    matches = {label for label, pattern in patterns.items() if re.search(pattern, title, re.IGNORECASE)}
+    if matches == {"voice", "ai"}:
+        return "voice"
+    if len(matches) != 1:
+        return None
+    label = matches.pop()
+    if label in {"frontend", "fullstack"}:
+        specialty = patterns[label]
+        head = r"(?:developer|engineer|architect)\b"
+        modifiers = r"(?:(?:software|web|applications?)\s+)*"
+        direct = rf"{specialty}\s+{modifiers}{head}"
+        # Accept inverted titles such as "Software Engineer II - Front-End".
+        inverted = rf"\bsoftware\s+{head}(?:\s+(?:I|II|III|IV))?\s*[-,(/:]\s*{specialty}"
+        if not re.search(rf"(?:{direct}|{inverted})", title, re.IGNORECASE):
+            return None
+    return label
+
+
 def _labels(
     annotation: Mapping[str, object], posting: Mapping[str, object]
 ) -> dict[str, object]:
@@ -109,18 +146,8 @@ def _labels(
         raise ValueError("withheld preferences must remain unknown")
     # The advertised title is the role's identity frame. Comparison reasons,
     # company names and incidental JD technology mentions are not role titles.
-    title = posting.get("title")
-    title = title if isinstance(title, str) else ""
-    matches = [
-        label for label, pattern in (
-            ("fullstack", r"\bfull[ -]?stack\b"),
-            ("frontend", r"\bfront[ -]?end\b"),
-            ("ai", r"\b(?:AI|LLM|machine learning|artificial intelligence)\b"),
-            ("voice", r"\b(?:voice|speech|audio)\b"),
-        ) if re.search(pattern, title, re.IGNORECASE)
-    ]
     return {
-        "role_type": matches[0] if len(matches) == 1 else None,
+        "role_type": _role_type(posting.get("title")),
         "seniority_match": seniority,
         "remote_ok": remote,
         "red_flag_count": sum(

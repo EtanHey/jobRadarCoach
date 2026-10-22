@@ -14,6 +14,11 @@ from scraper.test_annotate import structured_annotation
     ("Senior Full Stack Developer", "fullstack"),
     ("Front-end Engineer", "frontend"),
     ("AI Engineer", "ai"),
+    ("Voice Engineer", "voice"),
+    ("Audio Engineer", "voice"),
+    ("Voice AI Engineer", "voice"),
+    ("Speech ML Engineer", "voice"),
+    ("Speech Machine Learning Engineer", "voice"),
     ("Speech Engineer", "voice"),
     ("Senior Backend Developer", None),
     ("Software Engineer", None),
@@ -67,3 +72,38 @@ def test_persisted_role_uses_posting_title_only(monkeypatch, title, expected, ca
     assert json.loads(stored[2]) == original["reasons"]
     assert json.loads(stored[-1]) == original
     assert annotation == original
+
+
+@pytest.mark.parametrize("title, expected", [
+    ("Senior Front-End Power Engineer", None),
+    ("Front-End Integration Engineer", None),
+    ("Senior Front-End CAD Engineer", None),
+    ("Frontend Sales Engineer", None),
+    ("Frontend Product Manager", None),
+    ("Full Stack Integration Engineer", None),
+    ("Frontend", None),
+    ("Full Stack", None),
+    ("Senior Frontend Software Engineer", "frontend"),
+    ("Front End Web Applications Developer", "frontend"),
+    ("Software Engineer II - Front-End", "frontend"),
+    ("Senior Software Engineer, Full Stack", "fullstack"),
+    ("Full Stack Software Developer", "fullstack"),
+    ("Full Stack AI Engineer", None),
+    ("Frontend Voice AI Engineer", None),
+    ("Full Stack Voice AI Engineer", None),
+])
+def test_role_requires_software_occupation(title, expected):
+    assert persistence._labels(structured_annotation("synthetic-role"), {"title": title})[
+        "role_type"
+    ] == expected
+
+
+@pytest.mark.parametrize("domain", [
+    "hardware", "chip", "RTL", "power", "silicon", "analog", "ASIC", "FPGA",
+])
+@pytest.mark.parametrize("role", ["Frontend", "Full Stack", "AI", "Voice AI"])
+def test_hardware_domain_vetoes_even_a_software_head(domain, role):
+    title = f"{role} Software Engineer - {domain}"
+    assert persistence._labels(structured_annotation("synthetic-role"), {"title": title})[
+        "role_type"
+    ] is None
