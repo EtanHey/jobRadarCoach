@@ -16,12 +16,15 @@ Hebrew restriction wording stays unknown. Ordinary skill requirements such as
 need to see: B.SC.” are not geographic restrictions. Generic requirement words
 need genuine geography in the same clause. Prepositions, candidate nouns,
 pronoun “us” and technical country-code lookalikes such as AI/ML do not supply
-that evidence. Hiring policy, accommodations and technical hybrid/data-residency
-language do not veto a pass; a real requirement in the same paragraph still does.
-Policy clauses separated by but/however/while or semicolons are checked separately;
-policy text cannot discard a geographic applicant restriction. Uppercase country
-codes modifying candidates, applicants, residents, citizens, work permits or work
-authorization supply geographic context. Hebrew attached prefixes (ב/ל/מ/ו/ה,
+that evidence. Recognized policy phrases, accommodations and technical
+hybrid/data-residency language do not veto a pass; a real requirement in the
+same paragraph still does. Unresolved citizenship wording remains unknown even
+in longer EEO lists or team descriptions.
+Only bounded policy phrases are removed before restriction parsing; their
+containing clauses are never skipped. Restrictions joined by commas, and,
+but/however/while or semicolons still pass through the same geographic parser.
+Uppercase country codes modifying candidates, applicants, residents, citizens, work permits or work
+authorization supply geographic context. Hebrew attached prefixes (ב/ל/מ/ו/ה/ש,
 including ובקנדה and לארה״ב) and אזרחות with nationality adjectives also count.
 Authorization and citizenship remain unknown unless Israel is explicitly excluded.
 Hebrew restriction words use word boundaries, so אלגוריתמיקה and פריימוורקים do
@@ -50,7 +53,8 @@ based in US”) preserves it; a later exception offering Israel remains unresolv
 
 Place knowledge comes from `scraper/geography.py`, shared with ingestion. Scope
 parsing reads adjacent place alternatives, not every city in a sentence. Country
-identifiers, configured city aliases and English/Hebrew regions are shared there;
+identifiers, Hebrew names for all 249 ISO countries and territories (Unicode
+CLDR 48.0.0), configured city aliases and English/Hebrew regions are shared there;
 unknown places stay unresolved. ISO country codes need uppercase in geographic
 scopes, except conventional US/UK/EU abbreviations. IL means Israel in that scope;
 this does not infer an Israeli alternative from an arbitrary address. Holon,
@@ -118,6 +122,10 @@ locations and their conflicting/unknown-place controls.
 `eligibility-review-r5.json` retains all round-5 probes plus policy-free controls,
 contrast/semicolon variants, country-code applicant/authorization modifiers, Hebrew
 prefixes/citizenship, and incidental-word/technical/policy controls.
+`eligibility-review-r6.json` retains both round-6 reviewers' country, mixed-policy,
+attendance and citizenship probes plus policy-free and technical controls.
+The country/region matrix checks every Hebrew entry with all six attached
+prefixes and common prefix combinations, including short names such as סין.
 
 The 20 independent holdout intentions stay unchanged. Prefix-only Ireland
 residency and weekly London attendance now block. Two intended readings remain

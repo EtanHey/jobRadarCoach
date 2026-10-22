@@ -1,0 +1,674 @@
+[
+  [
+    "r6-001",
+    "Tel Aviv",
+    "המשרה פתוחה רק למועמדים מארה״ב",
+    "unknown"
+  ],
+  [
+    "r6-002",
+    "Tel Aviv",
+    "חובה לעבוד בבריטניה",
+    "unknown"
+  ],
+  [
+    "r6-003",
+    "Tel Aviv",
+    "חובה לעבור לגרמניה",
+    "unknown"
+  ],
+  [
+    "r6-004",
+    "Tel Aviv",
+    "This position accepts US applicants only.",
+    "unknown"
+  ],
+  [
+    "r6-005",
+    "Tel Aviv",
+    "UK residents only may be considered for this position.",
+    "unknown"
+  ],
+  [
+    "r6-006",
+    "Tel Aviv",
+    "EU citizens only may apply for this role.",
+    "unknown"
+  ],
+  [
+    "r6-007",
+    "Tel Aviv",
+    "US work permits are mandatory for applicants.",
+    "unknown"
+  ],
+  [
+    "r6-008",
+    "Tel Aviv",
+    "UK candidates only can be considered for this vacancy.",
+    "unknown"
+  ],
+  [
+    "r6-009",
+    "Tel Aviv",
+    "EU applicants must already hold a local work permit.",
+    "unknown"
+  ],
+  [
+    "r6-010",
+    "Tel Aviv",
+    "We are an equal opportunity employer, and candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-011",
+    "Tel Aviv",
+    "We are an equal opportunity employer; only applicants from Canada can apply.",
+    "unknown"
+  ],
+  [
+    "r6-012",
+    "Tel Aviv",
+    "Benefits program available; however, UK applicants only may apply.",
+    "unknown"
+  ],
+  [
+    "r6-013",
+    "Tel Aviv",
+    "We are an equal opportunity employer, however only EU residents may apply.",
+    "unknown"
+  ],
+  [
+    "r6-014",
+    "Tel Aviv",
+    "AWS US-East region experience required.",
+    "eligible"
+  ],
+  [
+    "r6-015",
+    "Tel Aviv",
+    "AWS US-East region experience required; CI/CD and AI/ML skills are mandatory.",
+    "eligible"
+  ],
+  [
+    "r6-016",
+    "Tel Aviv",
+    "חובה לעבור לארה״ב",
+    "unknown"
+  ],
+  [
+    "r6-017",
+    "Tel Aviv",
+    "חובה לעבור לבריטניה",
+    "unknown"
+  ],
+  [
+    "r6-018",
+    "Tel Aviv",
+    "חובה לעבור לקנדה",
+    "unknown"
+  ],
+  [
+    "r6-019",
+    "Tel Aviv",
+    "חובה לעבור לGermany",
+    "unknown"
+  ],
+  [
+    "r6-020",
+    "Tel Aviv",
+    "חובה לעבוד רק בגרמניה",
+    "unknown"
+  ],
+  [
+    "r6-021",
+    "Tel Aviv",
+    "Candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-022",
+    "Tel Aviv",
+    "We are an equal opportunity employer, and candidates should work in Canada only.",
+    "unknown"
+  ],
+  [
+    "r6-023",
+    "Tel Aviv",
+    "We are an equal opportunity employer, and applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-024",
+    "Tel Aviv",
+    "Applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-025",
+    "Tel Aviv",
+    "We are an equal opportunity employer, and US work permit holders only may apply.",
+    "unknown"
+  ],
+  [
+    "r6-026",
+    "Tel Aviv",
+    "US work permit holders only may apply.",
+    "unknown"
+  ],
+  [
+    "r6-027",
+    "Tel Aviv",
+    "We are an equal opportunity employer, אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-028",
+    "Tel Aviv",
+    "אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-029",
+    "Tel Aviv",
+    "US applicants only.",
+    "unknown"
+  ],
+  [
+    "r6-030",
+    "Tel Aviv",
+    "US residents only.",
+    "unknown"
+  ],
+  [
+    "r6-031",
+    "Tel Aviv",
+    "US citizens only.",
+    "unknown"
+  ],
+  [
+    "r6-032",
+    "Tel Aviv",
+    "US work permits required.",
+    "unknown"
+  ],
+  [
+    "r6-033",
+    "Tel Aviv",
+    "UK applicants only.",
+    "unknown"
+  ],
+  [
+    "r6-034",
+    "Tel Aviv",
+    "UK residents only.",
+    "unknown"
+  ],
+  [
+    "r6-035",
+    "Tel Aviv",
+    "UK citizens only.",
+    "unknown"
+  ],
+  [
+    "r6-036",
+    "Tel Aviv",
+    "UK work permits required.",
+    "unknown"
+  ],
+  [
+    "r6-037",
+    "Tel Aviv",
+    "EU applicants only.",
+    "unknown"
+  ],
+  [
+    "r6-038",
+    "Tel Aviv",
+    "EU residents only.",
+    "unknown"
+  ],
+  [
+    "r6-039",
+    "Tel Aviv",
+    "EU citizens only.",
+    "unknown"
+  ],
+  [
+    "r6-040",
+    "Tel Aviv",
+    "EU work permits required.",
+    "unknown"
+  ],
+  [
+    "r6-041",
+    "Tel Aviv",
+    "נדרשת רילוקיישן לגרמניה",
+    "unknown"
+  ],
+  [
+    "r6-042",
+    "Tel Aviv",
+    "עבודה בגרמניה בלבד",
+    "unknown"
+  ],
+  [
+    "r6-043",
+    "Tel Aviv",
+    "מועמדים מגרמניה בלבד",
+    "unknown"
+  ],
+  [
+    "r6-044",
+    "Tel Aviv",
+    "מועמדים מצרפת בלבד",
+    "unknown"
+  ],
+  [
+    "r6-045",
+    "Tel Aviv",
+    "מועמדים מהולנד בלבד",
+    "unknown"
+  ],
+  [
+    "r6-046",
+    "Tel Aviv",
+    "חובה לעבור לאוסטרליה",
+    "unknown"
+  ],
+  [
+    "r6-047",
+    "Tel Aviv",
+    "נדרשת מגורים בגרמניה",
+    "unknown"
+  ],
+  [
+    "r6-048",
+    "Tel Aviv",
+    "DE candidates only",
+    "unknown"
+  ],
+  [
+    "r6-049",
+    "Tel Aviv",
+    "Germany candidates only",
+    "unknown"
+  ],
+  [
+    "r6-050",
+    "Tel Aviv",
+    "Must relocate to Germany",
+    "blocked"
+  ],
+  [
+    "r6-051",
+    "Tel Aviv",
+    "חובה לעבור לצרפת",
+    "unknown"
+  ],
+  [
+    "r6-052",
+    "Tel Aviv",
+    "חובה לעבור לשווייץ",
+    "unknown"
+  ],
+  [
+    "r6-053",
+    "Tel Aviv",
+    "חובה לעבוד רק באיחוד האירופי",
+    "unknown"
+  ],
+  [
+    "r6-054",
+    "Tel Aviv",
+    "חובה לעבוד רק באמריקה הלטינית",
+    "unknown"
+  ],
+  [
+    "r6-055",
+    "Tel Aviv",
+    "חובה לעבוד רק באסיה",
+    "unknown"
+  ],
+  [
+    "r6-056",
+    "Tel Aviv",
+    "benefits; candidates must live in London",
+    "blocked"
+  ],
+  [
+    "r6-057",
+    "Tel Aviv",
+    "salary however only residents of Canada",
+    "blocked"
+  ],
+  [
+    "r6-058",
+    "Tel Aviv",
+    "AWS US-East / UK-based CDN experience (noise)",
+    "eligible"
+  ],
+  [
+    "r6-059",
+    "Tel Aviv",
+    "and candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-060",
+    "Tel Aviv",
+    "however only EU residents may apply.",
+    "unknown"
+  ],
+  [
+    "r6-061",
+    "Tel Aviv",
+    "and candidates should work in Canada only.",
+    "unknown"
+  ],
+  [
+    "r6-062",
+    "Tel Aviv",
+    "and applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-063",
+    "Tel Aviv",
+    "and US work permit holders only may apply.",
+    "unknown"
+  ],
+  [
+    "r6-064",
+    "Tel Aviv",
+    "We are an equal opportunity employer, candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-065",
+    "Tel Aviv",
+    "We are an equal opportunity employer; candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-066",
+    "Tel Aviv",
+    "We are an equal opportunity employer, however candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-067",
+    "Tel Aviv",
+    "Benefits program available, and candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-068",
+    "Tel Aviv",
+    "Benefits program available, candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-069",
+    "Tel Aviv",
+    "Benefits program available; candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-070",
+    "Tel Aviv",
+    "Benefits program available, however candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-071",
+    "Tel Aviv",
+    "We offer accommodation, and candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-072",
+    "Tel Aviv",
+    "We offer accommodation, candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-073",
+    "Tel Aviv",
+    "We offer accommodation; candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-074",
+    "Tel Aviv",
+    "We offer accommodation, however candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-075",
+    "Tel Aviv",
+    "Our privacy policy applies, and candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-076",
+    "Tel Aviv",
+    "Our privacy policy applies, candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-077",
+    "Tel Aviv",
+    "Our privacy policy applies; candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-078",
+    "Tel Aviv",
+    "Our privacy policy applies, however candidates should work in Canada.",
+    "unknown"
+  ],
+  [
+    "r6-079",
+    "Tel Aviv",
+    "We are an equal opportunity employer, applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-080",
+    "Tel Aviv",
+    "We are an equal opportunity employer; applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-081",
+    "Tel Aviv",
+    "We are an equal opportunity employer, however applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-082",
+    "Tel Aviv",
+    "Benefits program available, and applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-083",
+    "Tel Aviv",
+    "Benefits program available, applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-084",
+    "Tel Aviv",
+    "Benefits program available; applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-085",
+    "Tel Aviv",
+    "Benefits program available, however applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-086",
+    "Tel Aviv",
+    "We offer accommodation, and applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-087",
+    "Tel Aviv",
+    "We offer accommodation, applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-088",
+    "Tel Aviv",
+    "We offer accommodation; applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-089",
+    "Tel Aviv",
+    "We offer accommodation, however applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-090",
+    "Tel Aviv",
+    "Our privacy policy applies, and applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-091",
+    "Tel Aviv",
+    "Our privacy policy applies, applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-092",
+    "Tel Aviv",
+    "Our privacy policy applies; applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-093",
+    "Tel Aviv",
+    "Our privacy policy applies, however applicants should attend the Toronto branch every day.",
+    "unknown"
+  ],
+  [
+    "r6-094",
+    "Tel Aviv",
+    "We are an equal opportunity employer, and אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-095",
+    "Tel Aviv",
+    "We are an equal opportunity employer; אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-096",
+    "Tel Aviv",
+    "We are an equal opportunity employer, however אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-097",
+    "Tel Aviv",
+    "Benefits program available, and אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-098",
+    "Tel Aviv",
+    "Benefits program available, אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-099",
+    "Tel Aviv",
+    "Benefits program available; אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-100",
+    "Tel Aviv",
+    "Benefits program available, however אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-101",
+    "Tel Aviv",
+    "We offer accommodation, and אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-102",
+    "Tel Aviv",
+    "We offer accommodation, אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-103",
+    "Tel Aviv",
+    "We offer accommodation; אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-104",
+    "Tel Aviv",
+    "We offer accommodation, however אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-105",
+    "Tel Aviv",
+    "Our privacy policy applies, and אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-106",
+    "Tel Aviv",
+    "Our privacy policy applies, אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-107",
+    "Tel Aviv",
+    "Our privacy policy applies; אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-108",
+    "Tel Aviv",
+    "Our privacy policy applies, however אזרחות אמריקאית בלבד.",
+    "unknown"
+  ],
+  [
+    "r6-policy-boundary-1",
+    "Tel Aviv",
+    "Dual citizens only may apply.",
+    "unknown"
+  ],
+  [
+    "r6-policy-boundary-2",
+    "Tel Aviv",
+    "Without regard to citizenship required.",
+    "unknown"
+  ],
+  [
+    "r6-policy-boundary-3",
+    "Tel Aviv",
+    "Without regard to citizenship or national origin required.",
+    "unknown"
+  ],
+  [
+    "r6-policy-boundary-4",
+    "Tel Aviv",
+    "We are an equal opportunity employer and dual citizens only may apply.",
+    "unknown"
+  ]
+]

@@ -83,80 +83,36 @@ NEGATION = re.compile(
     r"\bnot\s+(?:remote|on[ -]?site|office[ -]based|hybrid)\b",
     re.I,
 )
+# Match bounded policy phrases, never their containing clause. Anything after
+# the phrase still goes through the same geographic restriction parser.
 NON_LOCATION_POLICY = re.compile(
-    r"\b(?:accommodations?|equal (?:employment )?opportunit\w*|"
-    r"without regard to|regardless of|protected (?:personal )?characteristics|"
+    r"\b(?:equal (?:employment )?opportunit\w*(?: employer)?|"
+    r"(?:without regard to|regardless of)\s+citizenship\s+or\s+national origin"
+    r"(?!\s+(?:is\s+)?(?:required|only|mandatory))|"
+    r"(?:salary range|annual (?:base )?salary)\s+is\s+only applicable to\s+"
+    r"(?:U\.S\.|US|United States)[ -]based candidates|"
+    r"on[ -]?site (?:courses|wellness(?: centers)?|caf[ée])|"
+    r"accommodations?|protected (?:personal )?characteristics|"
     r"privacy (?:act|policy)|GDPR|salary range|annual (?:base )?salary|"
     r"benefits (?:program|in this paragraph)|(?:office|on[ -]?site) perks|"
-    r"on[ -]?site (?:courses|wellness|caf[ée])|dual citizens|"
     r"recruiters (?:correspond|only contact)|legitimate communication|"
     r"employment decisions|notify all applicants of their rights)\b",
     re.I,
 )
 
 
-def _non_location_policy(clause: str) -> bool:
-    # A policy paragraph can also contain a real role requirement. Never erase
-    # that requirement merely because accommodations or benefits are mentioned.
-    if not NON_LOCATION_POLICY.search(clause):
-        return False
-    if has_geographic_context(clause) and re.search(
-        r"\b(?:only(?!\s+applicable\b)\b.{0,80}\b(?:candidates?|applicants?|residents?)|"
-        r"(?:candidates?|applicants?|residents?)\b.{0,80}\b(?:only|required|mandatory))\b",
-        clause,
-        re.I,
-    ):
-        return False
-    return not (
-        RESIDENCE.search(clause)
-        or ATTENDANCE.search(clause)
-        or REQUIRED_OFFICE.search(clause)
-        or ISRAEL_EXCLUDED.search(clause)
-        or any(
-            _scope(clause, exclusion.end()).kinds or REMOTE.search(clause)
-            for exclusion in EXCLUSION.finditer(clause)
-        )
-        or (
-            re.search(
-                r"(?<!\w)(?:חובה|נדרש(?:ת|ים|ות)?|מגורים|תושבי\w*|רק)(?!\w)", clause
-            )
-            and has_geographic_context(clause)
-        )
-        or any(
-            has_geographic_context(clause[requirement.end() :])
-            for requirement in re.finditer(
-                r"\b(?:must|required|requires?|mandatory|need to)\b", clause, re.I
-            )
-        )
-        or (
-            OFFICE.search(clause)
-            and not re.search(r"\b(?:perks|courses|wellness|caf[ée])\b", clause, re.I)
-        )
-        or re.search(
-            r"\b(?:must|required|requires?|only|need to)\b.*"
-            r"\b(?:remote|reside|relocate|office|citizens?(?:hip)?|work permits?|work authorization|time[ -]?zone)\b",
-            clause,
-            re.I,
-        )
-        or re.search(
-            r"\b(?:citizens?(?:hip)?|work permits?|work authorization|passport)\b.{0,40}"
-            r"\b(?:required|only|mandatory)\b",
-            clause,
-            re.I,
-        )
-    )
-
-
 def _clauses(source: str) -> Iterator[str]:
     for original in CLAUSES.split(source):
         contrast = re.search(r"\b(?:but|however|while)\b", original, re.I)
-        if contrast and _non_location_policy(original[: contrast.start()]):
-            # Separate policy boilerplate, retaining any later alternatives in
-            # the requirement (e.g. US residence but remote from Israel).
-            yield original[: contrast.start()]
-            yield original[contrast.end() :]
-        else:
-            yield original
+        if contrast and NON_LOCATION_POLICY.search(original[: contrast.start()]):
+            # Split only when the prefix contains no remaining geography; a
+            # later alternative must stay bound to its original restriction.
+            prefix = NON_LOCATION_POLICY.sub(" ", original[: contrast.start()])
+            if not has_geographic_context(prefix):
+                yield original[: contrast.start()]
+                yield original[contrast.end() :]
+                continue
+        yield original
 
 
 @dataclass(frozen=True)
@@ -327,8 +283,8 @@ def decide_location_eligibility(
             excerpt = original.strip()[:1000]
             if is_location:
                 clause = normalize_israeli_location(clause)
-            elif _non_location_policy(clause):
-                continue
+            else:
+                clause = NON_LOCATION_POLICY.sub(" ", clause)
             covered: list[tuple[int, int]] = []
             unrelated = bool(OTHER_ROLES.search(clause))
 

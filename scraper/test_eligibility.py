@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from scraper.eligibility import decide_location_eligibility
+from scraper.geography import HEBREW_COUNTRY_NAMES, HEBREW_REGION_NAMES
 
 PROFILE = {
     "candidate": {
@@ -37,6 +38,10 @@ REVIEW_R5 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-review-r5.json").read_text()
 )
 
+REVIEW_R6 = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-review-r6.json").read_text()
+)
+
 ADVERSARIAL = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-adversarial.json").read_text()
 )
@@ -44,7 +49,7 @@ ADVERSARIAL = json.loads(
 
 @pytest.mark.parametrize(
     "case_id,location,jd,expected",
-    ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3 + REVIEW_R4 + REVIEW_R5,
+    ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3 + REVIEW_R4 + REVIEW_R5 + REVIEW_R6,
 )
 def test_reviewer_adversarial(case_id, location, jd, expected):
     result = decide_location_eligibility(
@@ -340,3 +345,27 @@ def test_post_implementation_holdout_keeps_precision(case_id, location, jd, expe
     )
     allowed = {expected, "unknown"} if case_id in CONSERVATIVE_HOLDOUT else {expected}
     assert result["eligibility"] in allowed, case_id
+
+
+def test_hebrew_country_table_covers_every_iso_country():
+    from scraper.geography import COUNTRY_IDENTIFIERS, HEBREW_COUNTRY_NAMES
+
+    iso_codes = {name.upper() for name in COUNTRY_IDENTIFIERS if len(name) == 2}
+    assert set(HEBREW_COUNTRY_NAMES) == iso_codes - {"UK"}
+    assert len(HEBREW_COUNTRY_NAMES) == 249
+
+
+@pytest.mark.parametrize("name", [*HEBREW_COUNTRY_NAMES.values(), *HEBREW_REGION_NAMES])
+@pytest.mark.parametrize(
+    "prefix", ["", "ב", "ל", "מ", "ו", "ה", "ש", "וב", "שב", "ול", "מה"]
+)
+def test_every_hebrew_country_and_region_supplies_context(name, prefix):
+    from scraper.geography import has_geographic_context
+
+    jd = f"חובה לעבוד רק {prefix}{name}"
+    assert has_geographic_context(jd), jd
+    if name != "ישראל":
+        result = decide_location_eligibility(
+            {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE
+        )
+        assert result["eligibility"] != "eligible", jd
