@@ -6,10 +6,31 @@ import json
 import pytest
 
 from classifier import request
-from classifier.test_core import SequenceBrain, posting, profile_snapshot, wire_annotation
+from classifier.test_core import SequenceBrain, posting, wire_annotation
 from classifier import core
-from scraper.test_annotate import safe_projection
 from scraper.brain import BrainResult, BrainValidationError
+
+
+def safe_projection():
+    return {
+        "projection_version": 1,
+        "candidate": {
+            "positioning": "Example software engineer",
+            "tenure_years": 3.7,
+            "location": "Example City",
+            "fit_terms": ["React"],
+            "open_to": {"geographies": ["Remote"], "work_modes": ["remote"], "relocation": False},
+            "preferences": {"product_company": "preferred", "experience_gap": {
+                "max_years_below_requirement": 1.0, "treatment": "weigh-not-wall",
+            }},
+        },
+        "fit_signals": [{
+            "evidence_id": "example-project", "tags": ["React"],
+            "claim": "Built an example web application.", "status": "verified",
+            "ownership": {"verified_scope": "Example application.", "exclusions": []},
+        }],
+        "constraints": {"global_never_claims": [], "evidence_scoped_prohibitions": {}},
+    }
 
 
 def comparisons(jd, claims=()):
@@ -101,12 +122,19 @@ def test_unverified_duration_is_not_candidate_evidence():
 
 
 def test_unknown_specialist_tenure_constrains_real_scoring_request():
-    snapshot = profile_snapshot()
+    profile = safe_projection()
     job = posting("Requirements: 2+ years React.\n" + "Build web applications. " * 15)
     response = wire_annotation(job["id"])
     response["reasons"]["seniority_gap"]["assessment"] = "unknown"
-    runner = SequenceBrain(response)
-    result = core.score_posting(snapshot, job, [], brain_runner=runner)
+    response["reasons"]["stack_domain_evidence"]["evidence_ids"] = ["example-project"]
+
+    def answer(sent):
+        schema = sent.output_schema["properties"]["reasons"]["properties"]["seniority_gap"]
+        response["reasons"]["seniority_gap"]["detail"] = schema["properties"]["detail"]["enum"][0]
+        return response
+
+    runner = SequenceBrain(answer)
+    result = core.score_projected(profile, {**job, "jd_text": job["raw_jd"]}, [], brain_runner=runner)
     assert result is not None
     sent = runner.calls[0][0]
     assert "Deterministic experience comparisons:" in sent.prompt
@@ -149,3 +177,30 @@ def test_company_history_does_not_become_a_candidate_requirement():
     assert comparisons("Our company has 20 years of software development experience.") == []
     assert comparisons("We were founded 10 years ago.") == []
     assert comparisons("You have 2 years of React experience.")[0]["assessment"] == "unknown"
+
+
+@pytest.mark.parametrize("jd", [
+    "5+ years software engineering",
+    "5+ years of professional software development experience",
+    "5+ years of experience as a software engineer",
+    "5+ years of experience",
+    "5+ years of software development experience with React",
+    "5+ years of experience in an unspecified specialty",
+])
+def test_non_skill_duration_preserves_legacy_seniority_contract(jd):
+    profile = safe_projection()
+    sent = request.build_request({"id": "test", "jd_text": jd}, profile, [])
+    baseline = request.build_request({"id": "test", "jd_text": "Build applications."}, profile, [])
+    assert sent.output_schema == baseline.output_schema
+    assert "Deterministic experience comparisons:" not in sent.prompt
+
+
+def test_unknown_subject_is_not_assumed_to_be_a_skill():
+    assert comparisons("5 years of experience as a software engineer")[0]["subject_kind"] == "unknown"
+
+
+def test_overall_shortfall_remains_comparable():
+    result = comparisons("5+ years software engineering")[0]
+    assert result["subject_kind"] == "overall"
+    assert result["candidate_years"] == 3.7
+    assert result["assessment"] == "below"

@@ -12,6 +12,9 @@ _YEARS = re.compile(
     r"(?:years?|yrs?)\b[’']?\s*(?P<tail>[^\n;–—]*?)(?=\.(?:\s|$)|[\n;–—]|$)",
     re.I,
 )
+# Closed duration-subject vocabulary for the supported skill frames. A role,
+# arbitrary sentence tail, or composite subject is not specialist evidence.
+_SPECIALIST_SUBJECTS = frozenset({"react", "angular", "llm-based ai solutions", "backend"})
 _OVERALL = re.compile(r"(?:professional )?software (?:development|engineering)")
 _REQUIREMENT_PREFIX = re.compile(
     r"\s*[-*•]*\s*(?:requirements?\s*:\s*)?"
@@ -30,7 +33,7 @@ def _subject(tail: str) -> tuple[str, str]:
     text = re.sub(r"\s+development$", "", text)
     if not text or text == "experience":
         return "unknown", "unknown"
-    return text, "specialist"
+    return text, "specialist" if text in _SPECIALIST_SUBJECTS else "unknown"
 
 
 def compare_experience(jd: str, profile: Mapping[str, object]) -> list[dict[str, object]]:

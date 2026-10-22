@@ -23,6 +23,8 @@ def main():
     for row in rows:
         comparisons = compare_experience(row.get("raw_jd") or "", profile)
         counts["with_years"] += bool(comparisons)
+        comparisons = [c for c in comparisons if c["subject_kind"] == "specialist"]
+        counts["with_skill_years"] += bool(comparisons)
         counts["unknown_duration"] += any(c["assessment"] == "unknown" for c in comparisons)
         payload = (row.get("posting_scores") or {}).get("score_payload") or {}
         seniority = next((r for r in payload.get("reasons", [])

@@ -147,7 +147,10 @@ def build_request(
         history_ids
     )
     schema = output_schema(posting_evidence_id, professional_ids)
-    experience = compare_experience(posting.get("jd_text", ""), profile)
+    experience = [
+        row for row in compare_experience(posting.get("jd_text", ""), profile)
+        if row["subject_kind"] == "specialist"
+    ]
     seniority_schema = schema["properties"]["reasons"]["properties"]["seniority_gap"]["properties"]
     if any(row["assessment"] == "unknown" for row in experience):
         seniority_schema["assessment"]["enum"] = ["unknown"]
@@ -186,11 +189,13 @@ def build_request(
     prompt = "\n".join(
         [
             base_prompt,
-            "Candidate tenure_years and profile:tenure describe overall career duration only; they never establish specialist duration.",
-            "Compare each years requirement only with candidate evidence for the same subject. Fit terms, depth modes and undated project work establish no duration. Never sum overlapping projects.",
-            "The comparisons below are conservative deterministic inputs. Unknown duration is not zero or a proven shortfall: state it as unknown, never as a positive tenure match or a hard rejection. Unparsed year requirements also remain unknown; do not substitute total tenure. Keep score and explanations consistent with these limits.",
-            "Deterministic experience comparisons:",
-            json.dumps(experience, ensure_ascii=False, sort_keys=True),
+            *([
+                "Candidate tenure_years and profile:tenure describe overall career duration only; they never establish specialist duration.",
+                "Compare explicit skill-specific years only with candidate evidence for the same skill. Fit terms, depth modes and undated project work establish no duration. Never sum overlapping projects.",
+                "Unknown skill duration is not zero or a proven shortfall: state it as unknown, never as a positive tenure match or a hard rejection. Role-level years still compare against overall career tenure. Keep score and explanations consistent with these limits.",
+                "Deterministic experience comparisons:",
+                json.dumps(experience, ensure_ascii=False, sort_keys=True),
+            ] if experience else []),
             "Wire format: reasons is a closed object keyed by the five exact factor names, not an array.",
             "Each keyed reason must repeat its schema-constrained factor and basis. All five keys are required exactly once.",
             "Copy every evidence ID byte-for-byte from its slot-specific schema enum. Never invent, alias, normalize, or add or remove an evidence-ID prefix.",
