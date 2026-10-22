@@ -13,7 +13,7 @@ from typing import Literal, Protocol
 from classifier import core, projection
 from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
 
-SCORER_VERSION = "1.1"
+SCORER_VERSION = "1.3"
 PersistOutcome = Literal["stored", "unchanged", "stale", "failed"]
 
 
@@ -55,16 +55,19 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
             "lock table public.profile, public.application_history in share mode"
         )
     query = (
-        "select id::text, title, company, location, raw_jd from public.postings "
-        "where id = %s for update"
-        if lock else
-        "select id::text, title, company, location, raw_jd from public.postings "
-        "where id = %s"
+        "select id::text, title, company, location, raw_jd, remote, "
+        "to_jsonb(postings)->>'work_mode' from public.postings where id = %s"
+        + (" for update" if lock else "")
     )
     row = connection.execute(query, (posting_id,)).fetchone()
     if row is None:
         raise LookupError("posting does not exist")
-    posting = dict(zip(("id", "title", "company", "location", "raw_jd"), row))
+    posting = dict(zip(("id", "title", "company", "location", "raw_jd", "remote", "work_mode"), row))
+    extraction = connection.execute(
+        "select facts from public.posting_extractions where posting_id = %s"
+        + (" for update" if lock else ""), (posting_id,),
+    ).fetchone()
+    posting["posting_extractions"] = None if extraction is None else {"facts": extraction[0]}
     profile = {
         str(field): value
         for field, value in connection.execute(
@@ -83,7 +86,12 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
     professional_profile = projection.profile_contract(profile)
     selected_history = projection.history_projection(history)
     return _Inputs(
-        posting, profile, history, _sha256(public_posting),
+        posting, profile, history, _sha256({
+            "public_posting": public_posting,
+            "work_mode": posting["work_mode"],
+            "remote": posting["remote"],
+            "posting_extractions": posting["posting_extractions"],
+        }),
         _sha256(professional_profile), _sha256(selected_history),
     )
 

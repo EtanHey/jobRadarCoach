@@ -1,0 +1,578 @@
+[
+  [
+    "r5-review-01",
+    "Tel Aviv",
+    "Must have 5 years experience and be based in Austin",
+    "unknown"
+  ],
+  [
+    "r5-review-02",
+    "Tel Aviv",
+    "Required: React. Location: Remote (US)",
+    "unknown"
+  ],
+  [
+    "r5-review-03",
+    "Tel Aviv",
+    "Must know React; work authorization in Canada required",
+    "unknown"
+  ],
+  [
+    "r5-review-04",
+    "Tel Aviv",
+    "5 years of Python required and candidates must live in London",
+    "unknown"
+  ],
+  [
+    "r5-review-05",
+    "Tel Aviv",
+    "Candidates should know SQL and work EST hours",
+    "unknown"
+  ],
+  [
+    "r5-review-06",
+    "Tel Aviv",
+    "We require React experience and attendance in our Toronto office",
+    "unknown"
+  ],
+  [
+    "r5-review-07",
+    "Tel Aviv",
+    "Must know React and work remotely from Israel",
+    "unknown"
+  ],
+  [
+    "r5-review-08",
+    "Tel Aviv",
+    "Candidates must have 5 years in React",
+    "eligible"
+  ],
+  [
+    "r5-review-09",
+    "Tel Aviv",
+    "We are an equal opportunity employer, but only candidates in Canada may apply",
+    "unknown"
+  ],
+  [
+    "r5-review-10",
+    "Tel Aviv",
+    "Benefits program available, but only candidates in Canada may apply",
+    "unknown"
+  ],
+  [
+    "r5-review-11",
+    "Tel Aviv",
+    "Only candidates in Canada may apply",
+    "unknown"
+  ],
+  [
+    "r5-review-13",
+    "Tel Aviv",
+    "Candidates from Canada only; we are an equal opportunity employer",
+    "unknown"
+  ],
+  [
+    "r5-review-14",
+    "Tel Aviv",
+    "We are an equal opportunity employer, but Canada applicants only",
+    "unknown"
+  ],
+  [
+    "r5-review-15",
+    "Tel Aviv",
+    "Benefits program available, but this role requires candidates to work in Austin",
+    "unknown"
+  ],
+  [
+    "r5-review-16",
+    "Tel Aviv",
+    "We are an equal opportunity employer and US-based candidates only",
+    "unknown"
+  ],
+  [
+    "r5-review-17",
+    "Tel Aviv",
+    "US candidates only",
+    "unknown"
+  ],
+  [
+    "r5-review-18",
+    "Tel Aviv",
+    "UK applicants only",
+    "unknown"
+  ],
+  [
+    "r5-review-19",
+    "Tel Aviv",
+    "US work permit required",
+    "unknown"
+  ],
+  [
+    "r5-review-20",
+    "Tel Aviv",
+    "US work authorization required",
+    "unknown"
+  ],
+  [
+    "r5-review-21",
+    "Tel Aviv",
+    "A US passport is mandatory",
+    "unknown"
+  ],
+  [
+    "r5-review-22",
+    "Tel Aviv",
+    "חובה לדעת React ולעבוד רק בקנדה",
+    "unknown"
+  ],
+  [
+    "r5-review-23",
+    "Tel Aviv",
+    "נדרשת אזרחות אמריקאית",
+    "unknown"
+  ],
+  [
+    "r5-review-24",
+    "Tel Aviv",
+    "חובה אזרחות אמריקאית",
+    "unknown"
+  ],
+  [
+    "r5-review-25",
+    "Tel Aviv",
+    "הטבות לעובדים, אבל המשרה פתוחה רק למועמדים בקנדה",
+    "unknown"
+  ],
+  [
+    "r5-review-26",
+    "Tel Aviv",
+    "Data residency in Canada is required",
+    "unknown"
+  ],
+  [
+    "r5-review-27",
+    "Tel Aviv",
+    "Candidates must meet data residency requirements in Canada",
+    "unknown"
+  ],
+  [
+    "r5-extra-02",
+    "Tel Aviv",
+    "Canada applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-03",
+    "Tel Aviv",
+    "This role requires candidates to work in Austin",
+    "unknown"
+  ],
+  [
+    "r5-extra-04",
+    "Tel Aviv",
+    "We are an equal opportunity employer and only candidates in Canada may apply",
+    "unknown"
+  ],
+  [
+    "r5-extra-05",
+    "Tel Aviv",
+    "Benefits program available and this role requires candidates to work in Austin",
+    "unknown"
+  ],
+  [
+    "r5-extra-06",
+    "Tel Aviv",
+    "We are an equal opportunity employer, however only candidates in Canada may apply",
+    "unknown"
+  ],
+  [
+    "r5-extra-07",
+    "Tel Aviv",
+    "Benefits program available while Canada applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-08",
+    "Tel Aviv",
+    "We are an equal opportunity employer; only candidates in Canada may apply",
+    "unknown"
+  ],
+  [
+    "r5-extra-09",
+    "Tel Aviv",
+    "We are an equal opportunity employer, but candidates must be based in United States but applicants in Israel can work remotely",
+    "unknown"
+  ],
+  [
+    "r5-extra-10",
+    "Tel Aviv",
+    "The salary range is only applicable to U.S.-based candidates",
+    "eligible"
+  ],
+  [
+    "r5-extra-11",
+    "Tel Aviv",
+    "All qualified applicants are considered without regard to citizenship or national origin",
+    "eligible"
+  ],
+  [
+    "r5-extra-12",
+    "Tel Aviv",
+    "We are an equal opportunity employer, but candidates must know React",
+    "eligible"
+  ],
+  [
+    "r5-extra-13",
+    "Tel Aviv",
+    "We are an equal opportunity employer, however only the best candidates work here",
+    "eligible"
+  ],
+  [
+    "r5-extra-14",
+    "Tel Aviv",
+    "WHY JOIN US? Candidates must know React",
+    "eligible"
+  ],
+  [
+    "r5-extra-15",
+    "Tel Aviv",
+    "AI applications require a high-performance network",
+    "eligible"
+  ],
+  [
+    "r5-extra-16",
+    "Tel Aviv",
+    "Must have experience with IT infrastructure",
+    "eligible"
+  ],
+  [
+    "r5-extra-17",
+    "Tel Aviv",
+    "חובה ניסיון באלגוריתמיקה ובפריימוורקים",
+    "eligible"
+  ],
+  [
+    "r5-extra-18",
+    "Tel Aviv",
+    "נדרשת אזרחות ישראלית",
+    "unknown"
+  ],
+  [
+    "r5-extra-19",
+    "Tel Aviv",
+    "US work permit required; applicants from Israel excluded",
+    "blocked"
+  ],
+  [
+    "r5-extra-20",
+    "Tel Aviv",
+    "נדרשת אזרחות אמריקאית; applicants from Israel excluded",
+    "blocked"
+  ],
+  [
+    "r5-extra-22",
+    "Tel Aviv",
+    "US applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-23",
+    "Tel Aviv",
+    "US residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-24",
+    "Tel Aviv",
+    "US citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-25",
+    "Tel Aviv",
+    "US work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-26",
+    "Tel Aviv",
+    "US work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-27",
+    "Tel Aviv",
+    "UK candidates only",
+    "unknown"
+  ],
+  [
+    "r5-extra-29",
+    "Tel Aviv",
+    "UK residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-30",
+    "Tel Aviv",
+    "UK citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-31",
+    "Tel Aviv",
+    "UK work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-32",
+    "Tel Aviv",
+    "UK work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-33",
+    "Tel Aviv",
+    "EU candidates only",
+    "unknown"
+  ],
+  [
+    "r5-extra-34",
+    "Tel Aviv",
+    "EU applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-35",
+    "Tel Aviv",
+    "EU residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-36",
+    "Tel Aviv",
+    "EU citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-37",
+    "Tel Aviv",
+    "EU work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-38",
+    "Tel Aviv",
+    "EU work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-39",
+    "Tel Aviv",
+    "CA candidates only",
+    "unknown"
+  ],
+  [
+    "r5-extra-40",
+    "Tel Aviv",
+    "CA applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-41",
+    "Tel Aviv",
+    "CA residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-42",
+    "Tel Aviv",
+    "CA citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-43",
+    "Tel Aviv",
+    "CA work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-44",
+    "Tel Aviv",
+    "CA work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-45",
+    "Tel Aviv",
+    "DE candidates only",
+    "unknown"
+  ],
+  [
+    "r5-extra-46",
+    "Tel Aviv",
+    "DE applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-47",
+    "Tel Aviv",
+    "DE residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-48",
+    "Tel Aviv",
+    "DE citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-49",
+    "Tel Aviv",
+    "DE work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-50",
+    "Tel Aviv",
+    "DE work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-51",
+    "Tel Aviv",
+    "FR candidates only",
+    "unknown"
+  ],
+  [
+    "r5-extra-52",
+    "Tel Aviv",
+    "FR applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-53",
+    "Tel Aviv",
+    "FR residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-54",
+    "Tel Aviv",
+    "FR citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-55",
+    "Tel Aviv",
+    "FR work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-56",
+    "Tel Aviv",
+    "FR work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-57",
+    "Tel Aviv",
+    "U.S. candidates only",
+    "unknown"
+  ],
+  [
+    "r5-extra-58",
+    "Tel Aviv",
+    "U.S. applicants only",
+    "unknown"
+  ],
+  [
+    "r5-extra-59",
+    "Tel Aviv",
+    "U.S. residents only",
+    "unknown"
+  ],
+  [
+    "r5-extra-60",
+    "Tel Aviv",
+    "U.S. citizens only",
+    "unknown"
+  ],
+  [
+    "r5-extra-61",
+    "Tel Aviv",
+    "U.S. work permit only",
+    "unknown"
+  ],
+  [
+    "r5-extra-62",
+    "Tel Aviv",
+    "U.S. work authorization only",
+    "unknown"
+  ],
+  [
+    "r5-extra-63",
+    "Tel Aviv",
+    "חובה לעבוד רק בקנדה",
+    "unknown"
+  ],
+  [
+    "r5-extra-64",
+    "Tel Aviv",
+    "חובה לעבוד רק לקנדה",
+    "unknown"
+  ],
+  [
+    "r5-extra-65",
+    "Tel Aviv",
+    "חובה לעבוד רק מקנדה",
+    "unknown"
+  ],
+  [
+    "r5-extra-66",
+    "Tel Aviv",
+    "חובה לעבוד רק וקנדה",
+    "unknown"
+  ],
+  [
+    "r5-extra-67",
+    "Tel Aviv",
+    "חובה לעבוד רק הקנדה",
+    "unknown"
+  ],
+  [
+    "r5-extra-68",
+    "Tel Aviv",
+    "חובה לעבוד רק ובקנדה",
+    "unknown"
+  ],
+  [
+    "r5-extra-69",
+    "Tel Aviv",
+    "חובה לעבור לארה״ב",
+    "unknown"
+  ],
+  [
+    "r5-policy-only-country-modifier",
+    "Tel Aviv",
+    "We are an equal opportunity employer and only US candidates may apply",
+    "unknown"
+  ],
+  [
+    "r5-mixed-modifier-1",
+    "Tel Aviv",
+    "We are an equal opportunity employer and US work permit required",
+    "unknown"
+  ],
+  [
+    "r5-mixed-modifier-2",
+    "Tel Aviv",
+    "Benefits program available and US candidates required",
+    "unknown"
+  ],
+  [
+    "r5-mixed-modifier-3",
+    "Tel Aviv",
+    "We are an equal opportunity employer and US residents only",
+    "unknown"
+  ]
+]

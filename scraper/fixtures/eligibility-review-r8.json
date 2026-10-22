@@ -1,0 +1,164 @@
+[
+  [
+    "eeo-reg-01",
+    "Tel Aviv",
+    "We hire regardless of race, citizenship must be German.",
+    "unknown"
+  ],
+  [
+    "eeo-reg-02",
+    "Tel Aviv",
+    "We hire without regard to race and citizenship must be German.",
+    "unknown"
+  ],
+  [
+    "lang-06",
+    "Tel Aviv",
+    "מועמדים גרמנים דוברי אנגלית בלבד",
+    "unknown"
+  ],
+  [
+    "lang-07",
+    "Tel Aviv",
+    "Candidates of German nationality with fluent English only",
+    "unknown"
+  ],
+  [
+    "fb-02",
+    "Tel Aviv",
+    "Not open to candidates from Israel Township, Ohio.",
+    "unknown"
+  ],
+  [
+    "slot-01",
+    "Tel Aviv",
+    "Candidates must live in Israel-based enclave in Germany.",
+    "unknown"
+  ],
+  [
+    "slot-02",
+    "Tel Aviv",
+    "Only candidates based in Israel office in Germany may apply.",
+    "unknown"
+  ],
+  [
+    "slot-03",
+    "Tel Aviv",
+    "Applicants must live in Israel (a town in Germany).",
+    "unknown"
+  ],
+  [
+    "lang-04",
+    "Tel Aviv",
+    "Only German-speaking applicants may apply",
+    "eligible"
+  ],
+  [
+    "fb-01",
+    "Tel Aviv",
+    "Not open to candidates from Israel County in Germany.",
+    "unknown"
+  ],
+  [
+    "r8-language-10",
+    "Tel Aviv",
+    "Candidates speaking German only",
+    "eligible"
+  ],
+  [
+    "r8-language-11",
+    "Tel Aviv",
+    "Candidates German speaker only",
+    "eligible"
+  ],
+  [
+    "r8-language-12",
+    "Tel Aviv",
+    "Candidates German speakers only",
+    "eligible"
+  ],
+  [
+    "r8-language-13",
+    "Tel Aviv",
+    "Candidates speaks German only",
+    "eligible"
+  ],
+  [
+    "r8-language-14",
+    "Tel Aviv",
+    "Candidates speak German only",
+    "eligible"
+  ],
+  [
+    "r8-language-15",
+    "Tel Aviv",
+    "Candidates fluent German only",
+    "eligible"
+  ],
+  [
+    "r8-language-16",
+    "Tel Aviv",
+    "מועמדים דובר אנגלית בלבד",
+    "eligible"
+  ],
+  [
+    "r8-language-17",
+    "Tel Aviv",
+    "מועמדים דוברת אנגלית בלבד",
+    "eligible"
+  ],
+  [
+    "r8-language-18",
+    "Tel Aviv",
+    "מועמדים דוברים אנגלית בלבד",
+    "eligible"
+  ],
+  [
+    "r8-language-19",
+    "Tel Aviv",
+    "מועמדים דוברות אנגלית בלבד",
+    "eligible"
+  ],
+  [
+    "r8-language-20",
+    "Tel Aviv",
+    "מועמדים דוברי אנגלית בלבד",
+    "eligible"
+  ],
+  [
+    "r8-language-21",
+    "Tel Aviv",
+    "מועמדים דובר/ת אנגלית בלבד",
+    "eligible"
+  ],
+  [
+    "r8-language-residence",
+    "Tel Aviv",
+    "Candidates from Germany with fluent English only",
+    "unknown"
+  ],
+  [
+    "r8-language-israel",
+    "Tel Aviv",
+    "Israeli candidates fluent English only",
+    "eligible"
+  ],
+  [
+    "r8-exclusion-israel",
+    "Tel Aviv",
+    "Not open to candidates from Israel.",
+    "blocked"
+  ],
+  [
+    "r8-inclusive-residence",
+    "Tel Aviv",
+    "Only residents of France or Israel are eligible.",
+    "eligible"
+  ],
+  [
+    "eeo-reg-03",
+    "Tel Aviv",
+    "ללא הבדל דת, גזע ואזרחות גרמנית חובה",
+    "unknown"
+  ]
+]
