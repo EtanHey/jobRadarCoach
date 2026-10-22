@@ -481,5 +481,16 @@
   ["Requirements\nWe are a company trusted for over 100 years\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
   ["Requirements\nYou need 7 years of software engineering experience\nWe are a company trusted for over 100 years", "7 years of software engineering experience"],
   ["Required: 7 years of software engineering experience managing a team\n2 years of experience with Milvus", "7 years of software engineering experience"],
-  ["Required: 7 years of experience leading teams", "7 years of experience"]
+  ["Required: 7 years of experience leading teams", "7 years of experience"],
+  ["Requirements\nThe founding group contributes sixteen to twenty years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nYou need 7 years of software engineering experience\nThe founding group contributes sixteen to twenty years of experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes fourteen to twenty years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes fifteen to twenty years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes seventeen to twenty years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes eighteen to twenty years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes nineteen to twenty years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes sixteen to twenty years of experience", null],
+  ["Requirements\nThe founding group contributes 16 to 20 years of experience\nYou need 7 years of software engineering experience", "7 years of software engineering experience"],
+  ["Requirements\nYou need 7 years of software engineering experience\nThe founding group contributes 16 to 20 years of experience", "7 years of software engineering experience"],
+  ["Requirements\nThe founding group contributes 16 to 20 years of experience", null]
 ]
