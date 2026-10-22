@@ -105,7 +105,7 @@ NON_LOCATION_POLICY = re.compile(
 # Lists stop before a requirement's subject. Atomic attributes prevent falling
 # back from 'citizenship status must' to the shorter 'citizenship'.
 PROTECTED_ATTRIBUTE = (
-    r"race|colou?r|national origin|citizenship(?: status)?|immigration status|"
+    r"race|colou?r|national origin|nationality|citizenship(?: status)?|immigration status|residency status|"
     r"ancestry|religion|creed|sex|sexual orientation|gender(?: identity| expression)?|"
     r"age|disability|veteran(?: or military)? status|military status|marital status|"
     r"pregnancy|disabled veteran|status as a protected veteran|Veteran status|"
@@ -149,6 +149,10 @@ CREDENTIAL = re.compile(
     r"(?<!\w)[בלמהוש]*(?:דרכון|אישור עבודה|ויזה|אזרחות)(?!\w)",
     re.I,
 )
+NATIONALITY_CREDENTIAL = re.compile(
+    r"\b(?:nationality|national origin|immigration status|residency status)\b",
+    re.I,
+)
 LANGUAGE_SKILL = re.compile(
     r"\b[\w׳״']+(?:[- ]speaking|\s+speakers?)\b|"
     r"\b(?:speaks?|speaking|fluent(?:\s+in)?|native|proficiency(?:\s+in)?|language)\s+[\w׳״']+|"
@@ -164,6 +168,16 @@ def _without_policy(text: str) -> str:
 
 
 def _qualified_credential(text: str) -> bool:
+    for credential in NATIONALITY_CREDENTIAL.finditer(text):
+        # These attributes are also ordinary EEO-list entries. Require an
+        # adjacent obligation, rather than treating every mention as a rule.
+        if re.match(ATTRIBUTE_REQUIREMENT, text[credential.end() :], re.I) or re.search(
+            r"(?<!\w)(?:must|should|needs?\s+to|required|only|mandatory|חובה|נדרש(?:ת|ים|ות)?)"
+            r"\s+(?:(?:have|hold|be|of|a|an|the)\s+)*(?:[\w׳״'-]+\s+)?$",
+            text[: credential.start()],
+            re.I,
+        ):
+            return True
     for credential in CREDENTIAL.finditer(text):
         if re.match(
             r"\s+(?:for|of|in|from)\s+(?:the\s+)?"
@@ -534,6 +548,9 @@ def decide_location_eligibility(
                 )
                 if (
                     scope.complete
+                    and re.match(
+                        r"\s*(?:$|[.,;]|\b(?:and|or)\b)", clause[scope.end :], re.I
+                    )
                     and any(kind in {"israel", "noncentral"} for kind in scope.kinds)
                     and role_exclusion
                 ):

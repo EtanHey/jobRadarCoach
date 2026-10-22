@@ -409,3 +409,77 @@ def test_complete_restriction_slots_and_language_spans(case_id, location, jd, ex
 def test_policy_mask_preserves_requirement_subject(attribute, requirement):
     restriction = f"{attribute} {requirement} be German"
     assert restriction in _without_policy(f"We hire regardless of race, {restriction}.")
+
+
+@pytest.mark.parametrize(
+    "attribute", ["nationality", "national origin", "immigration status", "residency status"]
+)
+@pytest.mark.parametrize(
+    "requirement",
+    ["must", "should", "needs to", "is required", "required", "only", "mandatory", "חובה", "נדרש"],
+)
+@pytest.mark.parametrize(
+    "prefix", ["", "We hire regardless of race, ", "We hire without regard to race and "]
+)
+def test_nationality_class_requirement_is_unresolved(attribute, requirement, prefix):
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": f"{prefix}{attribute} {requirement} be French."},
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize(
+    "attribute", ["nationality", "national origin", "immigration status", "residency status"]
+)
+@pytest.mark.parametrize("qualifier", ["French", "Israeli"])
+@pytest.mark.parametrize("template", ["{q} {a} required", "Must have {q} {a}", "Only {q} {a}"])
+def test_qualified_nationality_requirement_never_blocks(attribute, qualifier, template):
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": template.format(q=qualifier, a=attribute)},
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize(
+    "attribute", ["nationality", "national origin", "immigration status", "residency status"]
+)
+@pytest.mark.parametrize("requirement", ["", "Must know React. ", "Must know React, "])
+def test_eeo_nationality_mention_is_not_a_requirement(attribute, requirement):
+    result = decide_location_eligibility(
+        {
+            "location": "Tel Aviv",
+            "raw_jd": f"{requirement}We hire regardless of race, {attribute} and religion.",
+        },
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize(
+    "suffix,expected",
+    [
+        (" (Ohio).", "unknown"),
+        ("-based enclave in Germany.", "unknown"),
+        (" office in Germany.", "unknown"),
+        (" Township, Ohio.", "unknown"),
+        (" County in Germany.", "unknown"),
+        (".", "blocked"),
+        ("", "blocked"),
+        (", please note.", "unknown"),
+        ("; please note.", "blocked"),
+        (" and must know React.", "blocked"),
+        (" or must know React.", "unknown"),
+    ],
+)
+def test_exclusion_requires_a_consumed_place_slot(suffix, expected):
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": f"Not open to candidates from Israel{suffix}"},
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == expected
