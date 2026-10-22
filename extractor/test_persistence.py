@@ -262,7 +262,7 @@ def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     assert connection.execute(query, (posting_id,)).fetchone() == expected
 
 
-@pytest.mark.parametrize("existing", ["competitive salary", None, "$180,000 annually"])
+@pytest.mark.parametrize("existing", ["competitive salary", "Competitive Salary", None, "$180,000 annually"])
 def test_nonnumeric_salary_persists_remark_and_clears_only_matching_boilerplate(
     connection, existing,
 ):
@@ -358,5 +358,29 @@ def test_round8_case_insensitive_salary_persists_other_facts(connection, quote, 
     expected = deepcopy(candidate)
     expected["salary"] = {"value": span, "evidence_quote": quote if span else None}
     expected["salary_remark"] = remark
+    assert state[11] == expected
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("salary", [
+    "Competitive salary; installed base: 120k",
+    "Competitive salary; subscriber base = 250k",
+    "Competitive salary; knowledge base contains 10k articles",
+])
+def test_review_base_counts_do_not_abort_other_fact_persistence(connection, salary):
+    from extractor.test_core import runner_for
+
+    raw_jd = RAW_JD + "\n" + salary
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update postings set salary=%s where id=%s", (salary, posting_id))
+    candidate = deepcopy(FACTS)
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    result = core.extract_posting({"raw_jd": raw_jd}, {}, runner=runner_for(candidate))
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[:5] == ("Tel Aviv", True, "Senior", ["TypeScript"], None)
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    expected["salary_remark"] = salary
     assert state[11] == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"

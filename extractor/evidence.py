@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from extractor.quotes import ExtractionValidationError, validate_quote
-from extractor.salary import has_numeric_salary, salary_span
+from extractor.salary import normalize_salary
 
 _REMOTE_WORD = r"\bremote(?:ly)?\b"
 _REMOTE_AVAILABILITY = (
@@ -143,24 +143,11 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
 def validate_facts(facts: dict[str, object], raw_jd: str) -> None:
     """Reject extracted facts that are not supported by their source quotes."""
 
-    for field in ("location", "remote", "seniority", "salary"):
+    normalize_salary(facts, raw_jd)
+    for field in ("location", "remote", "seniority"):
         fact = facts[field]
         assert isinstance(fact, dict)
         validate_quote(field, fact["value"], fact["evidence_quote"], raw_jd)
-    salary = facts["salary"]["value"]
-    if salary is not None and not has_numeric_salary(salary):
-        raise ExtractionValidationError(
-            "salary requires numeric compensation evidence",
-            category="evidence_quote", field="salary",
-        )
-    if "salary_remark" in facts:
-        remark = facts["salary_remark"]
-        validate_quote("salary", remark, remark, raw_jd)
-        if not isinstance(remark, str) or salary_span(remark) != salary:
-            raise ExtractionValidationError(
-                "salary remark must normalize to the accepted salary",
-                category="evidence_quote", field="salary",
-            )
     _validate_location_context(facts["location"], raw_jd)
     remote = facts["remote"]
     assert isinstance(remote, dict)

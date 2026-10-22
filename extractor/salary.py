@@ -16,19 +16,16 @@ _MONEY_AMOUNT_RE = re.compile(
     rf"(?<!\w){_AMOUNT}(?:\s*{_AMOUNT_UNIT})?\s*{_CURRENCY}",
     re.IGNORECASE,
 )
-_PAY_CONTEXT_RE = re.compile(
-    r"\b(?:salary|salaries|base|pay|compensation|rate|wage|OTE|bonus|commissions?|שכר)\b|"
-    r"(?:/|\bper\s+)(?:hr|hour|month|year|annum)\b|"
-    r"\b(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b",
-    re.IGNORECASE,
-)
+# Closed pay vocabulary. A bare rate/base and business-metric nouns cannot
+# acquire pay ownership merely because a currency or cadence follows them.
+_PAY_NOUN = r"(?:salary|salaries|base\s+(?:salary|pay|comp(?:ensation)?)|pay|compensation|wage|OTE|(?:hourly|daily|day)\s+rate|gross|net|ו?שכר|ברוטו|נטו)"
+_CADENCE = r"(?:(?:/|\bper\s+)(?:hr|hour|day|month|year|annum|yr|mo)\b|\b(?:annually|monthly|yearly|hourly|daily|בחודש|לחודש|לשנה|בשנה|לשעה)\b)"
+_PAY_CONTEXT_RE = re.compile(rf"\b{_PAY_NOUN}\b|{_CADENCE}", re.IGNORECASE)
 _CONTEXT_AMOUNT_RE = re.compile(
     rf"\b(?:up\s+to|עד)\s+{_AMOUNT}(?![\w%])|"
     rf"(?<!\w){_AMOUNT}\s*(?:k|thousand|אלף)\b|"
-    r"\b(?:salary|base|pay|compensation|rate|wage|OTE|שכר|up\s+to|עד)\s*:?\s+(?:is\s+)?"
-    r"(?:\d{1,3}(?:[, ]\d{3})+|\d{4,})(?![\w%])|"
-    rf"(?<!\w){_AMOUNT}\s*(?:(?:/|per\s+)(?:hr|hour|month|year|annum)\b|"
-    r"(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b)",
+    rf"\b{_PAY_NOUN}\s*:?\s+(?:is\s+)?{_AMOUNT}(?![\w%])|"
+    rf"(?<!\w){_AMOUNT}\s*{_CADENCE}",
     re.IGNORECASE,
 )
 # Qualifiers do not establish pay on their own for small counts or calendar years.
@@ -52,19 +49,19 @@ _NUMERIC_AMOUNT_RE = re.compile(
     re.IGNORECASE,
 )
 _AMOUNT_BOUNDARY_RE = re.compile(
-    r"[;,\n]|(?<=[.!?])\s+|\b(?:and|but)\b", re.IGNORECASE,
+    r"[;,\n&]|(?<=[.!?])\s+|\b(?:and|but)\b", re.IGNORECASE,
 )
 _RANGE_JOIN_RE = re.compile(r"\s*(?:[-–—]|to|and|עד)\s*", re.IGNORECASE)
 _NON_PAY_RE = re.compile(
     rf"{_FUNDING_RE.pattern}|%|"
     r"\bbase\s+(?:of|is)\b|"
     r"\b(?:customers?|users?|graduates?|headcount|people|investment|capital|"
-    r"years|days?|offices?|retirement|pension|percent|לקוחות|משתמשים)\b|"
+    r"years|offices?|retirement|pension|percent|לקוחות|משתמשים)\b|"
     rf"(?<!\w){_AMOUNT}\s*(?:(?:k|thousand|אלף)\s*)?(?:employees?|locations?|עובדים)\b",
     re.IGNORECASE,
 )
 _PAY_RAISED_RE = re.compile(
-    rf"(?P<pay>{_PAY_CONTEXT_RE.pattern})\s+"
+    rf"(?P<pay>{_PAY_CONTEXT_RE.pattern}|\brate)\s+"
     r"(?:(?:was|is|has\s+been|had\s+been|have\s+been)\s+)?raised\s+to\s*$",
     re.IGNORECASE,
 )
@@ -73,26 +70,49 @@ _PAY_RAISED_RE = re.compile(
 # Pay ownership must touch the amount. Bare "base" before a number can describe
 # a customer/capital base; after an amount it cannot introduce a non-pay noun.
 _PAY_BEFORE_RE = re.compile(
-    r"\b(?:(?:base\s+|hourly\s+)?(?:salary|salaries|pay|comp(?:ensation)?|rate|wage|OTE|bonus|"
-    r"commissions?|ו?שכר)(?:\s+range)?"
+    rf"\b(?:(?:{_PAY_NOUN}|rate)(?:\s+range|\s+בסיס\s+של)?"
     r"(?:\s+(?:(?:was|is|has\s+been|had\s+been|have\s+been)\s+)?raised\s+to|"
     r"\s+הועלה\s+ל-?)?(?:\s+(?:is|of))?(?:\s+(?:up\s+to|עד))?|up\s+to|עד)"
     r"\s*[:(]?\s*$",
     re.IGNORECASE,
 )
 _PAY_AFTER_RE = re.compile(
-    r"^\s*(?:base(?:\s+(?:salary|pay|comp(?:ensation)?)\b|(?=\s*(?:$|[).!?])))|"
-    r"salary|pay|compensation|(?:signing\s+)?bonus|commissions?|שכר|"
-    r"(?:\+?\s*/|per\s+)(?:hr|hour|month|year|annum)|"
-    r"annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b",
+    rf"^\s*(?:(?:(?:annual|monthly|hourly|daily)\s+)?{_PAY_NOUN}\b(?:\s+range)?|\+?\s*{_CADENCE}|"
+    # Terminal base qualifies an otherwise unopposed currency amount. It never
+    # establishes ownership for a number or overrides a preceding metric.
+    r"base\b(?=\s*(?:$|[).!?])))",
     re.IGNORECASE,
 )
 _CLAUSE_BOUNDARY_RE = re.compile(r"[;\n]|,(?!\d)|(?<=[.!?])\s+")
 _OWNERSHIP_BOUNDARY_RE = re.compile(r"[;\n]|(?<=[.!?])\s+")
-_EXPLICIT_PAY_AFTER_RE = re.compile(
-    r"^\s*(?:base\s+(?:salary|pay|comp(?:ensation)?)|salary|pay|compensation|שכר)\b",
+_EXPLICIT_PAY_AFTER_RE = re.compile(rf"^\s*{_PAY_NOUN}\b", re.IGNORECASE)
+_UNOWNED_PREFIX_RE = re.compile(r"\s*(?:(?:up\s+to|between|from|or|עד)\s*)?[:(=\s]*$", re.IGNORECASE)
+# Geographic/role band labels do not own a business quantity. Keep this
+# separate from the pay vocabulary so labels cannot override metric ownership.
+_REGION_PREFIX_RE = re.compile(
+    r"\s*(?:(?:California|Washington|New York|New Jersey|Connecticut|Canada|"
+    r"MA|NYC/NJ|DC Metro|All other (?:U\.S\. |US )?(?:states|Locations)|"
+    r"(?:US|Canadian) employees \(any location\)):\s*(?:Senior [IV]+:\s*)?|Senior [IV]+:\s*)$",
     re.IGNORECASE,
 )
+_BAND_NOTE_RE = re.compile(
+    r"\s*(?:\((?:base|entry-level qualifications|highly experienced)\)|"
+    r"in (?:local currency|our (?:lowest|highest) geographic market)(?:\s+up\s+to)?|"
+    r"or more(?:, depending on experience)?|DOE)\s*[-–—]?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _has_unknown_governor(before: str, after: str) -> bool:
+    pay = _PAY_BEFORE_RE.search(before)
+    if _has_explicit_pay_owner(pay, ""):
+        return False
+    # A bare rate has no pay meaning without its adjacent closed cadence.
+    if _PAY_AFTER_RE.search(after) and re.fullmatch(
+        r"\s*rate(?:\s+raised\s+to)?\s*", before, re.IGNORECASE,
+    ):
+        return False
+    return not (_UNOWNED_PREFIX_RE.fullmatch(before) or _REGION_PREFIX_RE.fullmatch(before))
 
 
 def _adjacent_ownership_veto(before: str, amount: str, after: str) -> bool:
@@ -104,17 +124,27 @@ def _adjacent_ownership_veto(before: str, amount: str, after: str) -> bool:
 
 def _has_explicit_pay_owner(before: re.Match[str] | None, after: str) -> bool:
     return bool(
-        (before and not re.match(r"(?:up\s+to|עד)\b", before.group(), re.IGNORECASE))
+        (before and re.match(rf"{_PAY_NOUN}\b", before.group(), re.IGNORECASE))
         or _EXPLICIT_PAY_AFTER_RE.search(after)
     )
 
 
-def _inherits_non_pay_owner(scanned: str, left: int, clause_start: int) -> bool:
-    # Commas separate amounts without establishing a new subject.
+def _inherits_non_pay_owner(scanned: str, left: int) -> bool:
     ownership_start = max(
         (m.end() for m in _OWNERSHIP_BOUNDARY_RE.finditer(scanned, 0, left)), default=0,
     )
-    return bool(_NON_PAY_RE.search(scanned[ownership_start:clause_start]))
+    prefix = scanned[ownership_start:left]
+    previous = list(_NUMERIC_AMOUNT_RE.finditer(prefix))
+    if not previous:
+        return False
+    if _NON_PAY_RE.search(prefix[:previous[-1].end()]):
+        return True
+    for index, amount in enumerate(previous):
+        start = previous[index - 1].end() if index else 0
+        before = _AMOUNT_BOUNDARY_RE.split(prefix[start:amount.start()])[-1]
+        if _has_unknown_governor(before, prefix[amount.end():]):
+            return True
+    return False
 
 
 def salary_span(value: str | None) -> str | None:
@@ -139,7 +169,6 @@ def salary_span(value: str | None) -> str | None:
         )
         boundary = _CLAUSE_BOUNDARY_RE.search(scanned, right)
         clause_end = boundary.start() if boundary else len(scanned)
-        clause = scanned[clause_start:clause_end]
         start = max(clause_start, amounts[first - 1].end() if first else 0)
         end = min(clause_end, amounts[index].start() if index < len(amounts) else len(scanned))
         before = scanned[start:left]
@@ -147,26 +176,27 @@ def salary_span(value: str | None) -> str | None:
         before = _AMOUNT_BOUNDARY_RE.split(before)[-1]
         # Parentheses can name this amount's owner; additions can name another.
         ownership_after = re.split(
-            r"\+(?!\s*/)|\b(?:and|but)\b", after, maxsplit=1, flags=re.IGNORECASE,
+            r"\+(?!\s*/)|\b(?:and|but|plus)\b", after, maxsplit=1, flags=re.IGNORECASE,
         )[0]
         after = ownership_after.split("(", 1)[0]
         pay_before = _PAY_BEFORE_RE.search(before)
         pay_after = _PAY_AFTER_RE.search(after)
+        if _has_unknown_governor(before, after):
+            continue
+        suffix = ownership_after[pay_after.end():] if pay_after else ownership_after
+        if re.search(r"[^\W\d_]", suffix) and not (
+            _BAND_NOTE_RE.fullmatch(suffix) or _REGION_PREFIX_RE.fullmatch(suffix)
+        ):
+            continue
         if _adjacent_ownership_veto(before, scanned[left:right], ownership_after):
             continue
         governed_before = _PAY_RAISED_RE.sub(r"\g<pay> ", before)
         context = governed_before + scanned[left:right] + after
         # A comma does not reset revenue/ARR ownership. Only a fresh pay noun
         # can claim the next amount; "up to", cadence and bare "base" cannot.
-        if _inherits_non_pay_owner(scanned, left, clause_start) and not (
+        if _inherits_non_pay_owner(scanned, left) and not (
             _has_explicit_pay_owner(pay_before, after)
         ):
-            continue
-        # A cadence cannot take an inherited revenue/funding amount; a fresh
-        # adjacent pay noun can establish ownership after an earlier amount.
-        if _NON_PAY_RE.search(clause) and not (pay_before or (
-            pay_after and re.match(r"\s*(?:base|salary|pay|compensation|שכר)\b", after, re.IGNORECASE)
-        )):
             continue
         if has_non_pay and not (pay_before or pay_after):
             continue
@@ -192,25 +222,55 @@ def has_numeric_salary(value: str) -> bool:
 
 
 def normalize_salary(facts: dict[str, object], raw_jd: str) -> None:
-    """Store the source pay span and preserve trimmed or rejected text as a remark."""
-    salary = facts["salary"]
-    if not isinstance(salary, dict):
-        raise ExtractionValidationError(
-            "salary fact must be an object", category="evidence_quote", field="salary",
-        )
-    value = salary["value"]
-    validate_quote("salary", value, salary["evidence_quote"], raw_jd)
-    if isinstance(value, str):
-        # Quote validation already found this value case-insensitively. Preserve
-        # the JD spelling for both the accepted pay span and any raw remark.
-        value = re.search(
-            rf"(?<!\w){re.escape(value)}(?!\w)",
-            salary["evidence_quote"], re.IGNORECASE,
-        ).group()
-        span = salary_span(value)
-        if span != value:
-            facts["salary_remark"] = value
-            facts["salary"] = {
-                "value": span,
-                "evidence_quote": salary["evidence_quote"] if span else None,
-            }
+    """Degrade salary failures locally, retaining only source-supported raw text."""
+    salary = facts.get("salary")
+    value = salary.get("value") if isinstance(salary, dict) else salary
+    quote = salary.get("evidence_quote") if isinstance(salary, dict) else None
+    remark = facts.get("salary_remark")
+    source = None
+    if isinstance(value, str) and value.strip():
+        # Prefer the provider's exact source quote and spelling. If that quote
+        # failed, the raw JD can still support the rejected text as a remark.
+        haystack = quote if isinstance(quote, str) and quote in raw_jd else raw_jd
+        match = re.search(rf"(?<!\w){re.escape(value)}(?!\w)", haystack, re.IGNORECASE)
+        if match:
+            source = match.group()
+    try:
+        if not isinstance(salary, dict) or set(salary) != {"value", "evidence_quote"}:
+            raise ExtractionValidationError(
+                "salary fact must be an object", category="evidence_quote", field="salary",
+            )
+        if (value is not None and (not isinstance(value, str) or len(value) > 256)) or (
+            isinstance(quote, str) and len(quote) > 1000
+        ):
+            raise ExtractionValidationError(
+                "salary value must be text", category="evidence_quote", field="salary",
+            )
+        validate_quote("salary", value, quote, raw_jd)
+        if remark is not None:
+            validate_quote("salary", remark, remark, raw_jd)
+            if not isinstance(remark, str):
+                raise ExtractionValidationError(
+                    "salary remark must be text", category="evidence_quote", field="salary",
+                )
+        span = salary_span(source)
+        if span is not None:
+            validate_quote("salary", span, quote, raw_jd)
+            if salary_span(span) != span or (remark is not None and salary_span(remark) != span):
+                raise ExtractionValidationError(
+                    "salary span must be stable", category="evidence_quote", field="salary",
+                )
+    except ExtractionValidationError:
+        span = None
+        if source is None and isinstance(quote, str) and quote.strip() and quote in raw_jd:
+            source = quote
+        # A failed salary must not lose independently supported facts, or turn
+        # unsupported provider text into a persisted source remark.
+        remark = None
+    facts["salary"] = {"value": span, "evidence_quote": quote if span else None}
+    if source is not None and span != source:
+        remark = source
+    if isinstance(remark, str) and remark.strip() and remark in raw_jd:
+        facts["salary_remark"] = remark
+    else:
+        facts.pop("salary_remark", None)

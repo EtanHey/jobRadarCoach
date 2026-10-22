@@ -13,7 +13,6 @@ from extractor.evidence import (
     derive_remote_fact,
     validate_facts,
 )
-from extractor.salary import normalize_salary
 from scraper.brain import (
     BrainConfigurationError,
     BrainRequest,
@@ -24,7 +23,7 @@ from scraper.brain import (
 
 LOGGER = logging.getLogger("coach.jobfeed.extractor")
 
-EXTRACTOR_VERSION = "1.6"
+EXTRACTOR_VERSION = "1.7"
 _PROMPT_VERSION = "1.5"  # Salary policy is deterministic; preserve provider input.
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
@@ -157,7 +156,6 @@ def extract_posting(
     remote = facts.get("remote")
     if isinstance(remote, dict):
         facts["remote"] = derive_remote_fact(remote.get("evidence_quote"), raw_jd)
-    normalize_salary(facts, raw_jd)
     try:
         validate_facts(facts, raw_jd)
     except ExtractionValidationError as error:

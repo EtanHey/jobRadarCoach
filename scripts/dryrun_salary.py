@@ -12,7 +12,7 @@ from extractor.salary import salary_span
 
 def report(snapshot: Path) -> str:
     rows = [
-        json.loads(line) for line in snapshot.read_text().splitlines() if line.strip()
+        json.loads(line) for line in snapshot.read_text().split("\n") if line.strip()
     ]
     groups: dict[str, list[dict[str, object]]] = {}
     for phase in ("before", "after"):
