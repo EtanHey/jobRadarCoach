@@ -91,7 +91,7 @@ test("singleton and URL-identified responses perform no body read", async () => 
 test("late board candidates retain distinct requisitions for grouping", async () => {
   const jobs = Array.from({length:405}, (_, n) => ({
     ...job(n),
-    title: "Senior Engineer",
+    title: n < 403 ? "Legacy Engineer" : "Senior Engineer",
     company: "Synthetic Employer",
   }));
   const sizes: number[] = [];
@@ -113,7 +113,15 @@ test("late board candidates retain distinct requisitions for grouping", async ()
   assert.equal(result.length,406);
   assert.deepEqual(result[403].vacancy_identity?.requisitions,["3273523124"]);
   assert.deepEqual(result[404].vacancy_identity?.requisitions,["3273523125"]);
-  assert.equal(groupDuplicateJobs(result).length,3, "same fallback identity stays grouped while late distinct requisitions stay separate");
+  const groups = groupDuplicateJobs(result);
+  const members = (group: typeof groups[number]) => [group.job, ...group.alternates].map(row => row.id).sort();
+  const expectedFallbackIds = jobs.slice(0,403).map(row => row.id).sort();
+  const byMembership = (left: string[], right: string[]) => left.join(",").localeCompare(right.join(","));
+  assert.deepEqual(groups.map(members).sort(byMembership), [
+    expectedFallbackIds,
+    [jobs[403].id],
+    [jobs[404].id],
+  ].sort(byMembership));
 });
 
 for (const failure of ["transport", "invalid evidence"] as const) {
