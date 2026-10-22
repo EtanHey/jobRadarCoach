@@ -11,6 +11,71 @@ from scraper.employer_identity import resolve_employer
 ROWS = json.loads((Path(__file__).parents[1] / 'test_support/fixtures/employer_identity.json').read_text())
 
 
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('field,opening', [
+    ('agency_evidence', 'HireCo is a staffing firm. '),
+    ('employer_evidence', 'Acme Labs is hiring engineers. '),
+])
+def test_p7b_long_evidence_is_exact_bounded_prefix(source, field, opening):
+    line = opening + 'x' * (2827 - len(opening))
+    jd = ('About the role\n' if field == 'agency_evidence' else '') + line
+    result = resolve_employer('HireCo', jd, source)
+    assert result[field] == line[:2000]
+    assert result[field] in jd
+
+
+# All generic subjects in p7-claude-probes.py, plus their Hebrew equivalents.
+@pytest.mark.parametrize('name', [
+    'Data Platform', 'R&D Group', 'Fintech Startup', 'Tel Aviv', 'Hiring Manager',
+    'Customer Success', 'Remote Position', 'Israel', 'Your Next Challenge',
+    'Engineering Team', 'IDF Veterans', 'Applicants In Tel Aviv',
+    'פלטפורמת נתונים', 'קבוצת מחקר ופיתוח', 'מנהל גיוס', 'הצלחת לקוחות',
+    'צוות הנדסה', 'ישראל', 'תל אביב',
+])
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('predicate', ['is hiring', 'is looking for', 'is seeking'])
+def test_p7b_generic_hiring_subject_never_becomes_employer(name, source, predicate):
+    result = resolve_employer('NewPub', f'{name} {predicate} engineers.', source)
+    assert result['hiring_employer'] is None
+    assert result['relationship'] == 'unknown'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('name', ['צוות הנדסה', 'קבוצת מחקר ופיתוח', 'מנהל גיוס', 'ישראל', 'תל אביב'])
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_p7b_hebrew_generic_hiring_subject(name, source):
+    assert resolve_employer('NewPub', f'{name} מגייסים מהנדסים.', source)['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_p7b_publisher_prefix_does_not_erase_distinct_company(source):
+    result = resolve_employer('Acme', 'Acme Labs is looking for engineers.', source)
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['relationship'] == 'resolved-different'
+
+
+@pytest.mark.parametrize('publisher,name', [
+    ('NVIDIA', 'NVIDIA (Networking Business Unit)'), ('TSG', 'TSG Group'),
+    ('Arm', "Arm's Central Technology Machine Learning Group"), ('Coralogix', 'Coralogix AI'),
+    ('comblack', 'COMBLACK'),
+])
+def test_p7b_publisher_department_and_case_remain_publisher(publisher, name):
+    assert resolve_employer(publisher, f'{name} is hiring engineers.', 'linkedin')['hiring_employer'] == publisher
+
+
+@pytest.mark.parametrize('publisher,jd,expected', [
+    ('Acme', 'Acme is looking for a backend engineer', 'Acme'),
+    ('NewPub', 'NewPub is a staffing agency.\nWe place engineers.', None),
+    ('NewPub', 'Our Client Google is hiring.', None),
+    ('Torentify', 'Monday.com is hiring a Senior Engineer\nWe are a staffing firm', 'Monday.com'),
+    ('Acme', 'About the company\nNewCo is a staffing agency that places engineers.\n\nAbout the role\nAcme is hiring', 'Acme'),
+    ('NewPub', 'NewPub is a recruitment agency.\n\nPartner Co is hiring a dev', 'Partner Co'),
+    ('NewPub', 'Our client is hiring.\nBigCo is hiring a dev', 'BigCo'),
+])
+def test_p7b_remaining_claude_probes_preserve_explicit_company_names(publisher, jd, expected):
+    assert resolve_employer(publisher, jd, 'linkedin')['hiring_employer'] == expected
+
+
 @pytest.mark.parametrize('row', ROWS, ids=lambda row: row['company'])
 def test_snapshot_identity(row):
     result = resolve_employer(row['company'], row['raw_jd'], row['source'])
