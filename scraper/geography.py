@@ -757,11 +757,20 @@ _DESCRIPTION_PLACES = re.compile(
 )
 
 
-def match_description_place(text: str, start: int = 0) -> tuple[str, int] | None:
+def match_description_place(
+    text: str, start: int = 0, *, strip_hebrew_prefix: bool = False,
+) -> tuple[str, int] | None:
     """Use the shared place vocabulary plus description-only foreign aliases."""
     if match := _DESCRIPTION_PLACES.match(text, start):
         return "foreign", match.end()
-    return match_geographic_place(text, start)
+    if place := match_geographic_place(text, start):
+        return place
+    if strip_hebrew_prefix:
+        for length in range(1, 4):
+            if re.fullmatch(r"[בלמוהש]+", text[start:start + length]):
+                if place := match_description_place(text, start + length):
+                    return place
+    return None
 
 
 def has_geographic_context(text: str) -> bool:

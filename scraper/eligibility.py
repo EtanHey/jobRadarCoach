@@ -188,6 +188,7 @@ NATIONALITY_CREDENTIAL = re.compile(
 )
 LANGUAGE_SKILL = re.compile(
     r"\b[\w׳״']+(?:[- ]speaking|\s+speakers?)\b|"
+    r"\b[\w׳״']+\s+(?:native\s+level|language\s+skills?)\b|"
     r"\b(?:speaks?|speaking|fluent(?:\s+in)?|native|proficiency(?:\s+in)?|language)\s+[\w׳״']+|"
     r"(?<!\w)(?:לדבר|דובר(?:/ת|י|ת|ים|ות)?|שפה|ברמת שפת אם)\s+(?:שפה\s+)?[\w׳״']+",
     re.I,
@@ -489,13 +490,33 @@ def _positive_nonown_signal(clause: str, own_location: str, company: str) -> boo
     )
     if OUTSIDE_SCOPE.search(clause) or OUTSIDE_TIME_ZONE.search(clause):
         return True
-    # Explicit applicant/role scopes supply their own place context, including
-    # names outside the geography table. Keep local and language-only controls.
+    # Qualification prose is not a destination. Unknown names need a closed
+    # destination frame; recognized places and demonyms use the shared resolver.
     for pattern in (*ROLE_SCOPE_FRAMES, *APPLICANT_SCOPE_FRAMES):
         for frame in pattern.finditer(clause):
-            slot = LANGUAGE_SKILL.sub(" ", frame["slot"])
-            slot = re.sub(rf"^{APPLICANT}\s+|\s+{APPLICANT}$", "", slot, flags=re.I)
-            if not _is_israeli_slot(slot) and _nonown_work_destination(slot, own_location):
+            slot = _applicant_scope_slot(frame)
+            if _is_israeli_role_slot(slot) or _normalized_location(slot) in _own_location_names(own_location):
+                continue
+            slot, languages = LANGUAGE_SKILL.subn(" ", slot)
+            slot = re.sub(rf"^{APPLICANT}\s+|\s+{APPLICANT}$", "", slot, flags=re.I).strip()
+            if FOREIGN_NATIONALITY.search(slot) or COUNTRY_NATIONALITY.search(slot):
+                return True
+            if any(
+                place and place[0] not in {"israel", "noncentral", "worldwide"}
+                for word in re.finditer(r"\b\w", slot)
+                for place in [match_description_place(slot, word.start(), strip_hebrew_prefix=True)]
+            ):
+                return True
+            # Lists explicitly label geography. A bare destination in a role
+            # restriction or applicant-base relation also remains unresolved.
+            # Residual qualification phrases cannot acquire that context.
+            if not languages and (
+                pattern is ROLE_SCOPE_FRAMES[-1]
+                or (re.fullmatch(r"[^\W\d_]+", slot)
+                    and (pattern in ROLE_SCOPE_FRAMES
+                         or pattern is APPLICANT_SCOPE_FRAMES[0]
+                         or re.match(r"מ[א-ת]+$", slot)))
+            ) and _nonown_work_destination(slot, own_location):
                 return True
     for residence in COUNTRY_FIRST_RESIDENCE.finditer(clause):
         if "foreign" in _scope(residence["slot"], 0).kinds:
@@ -774,6 +795,24 @@ def _qualified_credential(text: str) -> bool:
     return False
 
 
+def _applicant_scope_slot(frame: re.Match) -> str:
+    slot = frame["slot"]
+    if not re.match(r"[- ]based\b", frame.string[frame.end("slot"):], re.I):
+        return slot
+    # Greedy X-based captures may begin with recruiting prose. Resolve a place
+    # suffix, preserving every subsequent operand rather than its last place.
+    for word in re.finditer(r"\b\w", slot):
+        tail = slot[word.start():]
+        place = match_description_place(tail, strip_hebrew_prefix=True)
+        if place:
+            return tail
+        if FOREIGN_NATIONALITY.match(tail) or COUNTRY_NATIONALITY.match(tail):
+            return tail
+        if _is_israeli_slot(tail):
+            return tail
+    return slot
+
+
 def _is_israeli_slot(slot: str) -> bool:
     # Only Israeli demonyms are needed: every other adjective stays unresolved.
     slot = re.sub(
@@ -782,6 +821,9 @@ def _is_israeli_slot(slot: str) -> bool:
     slot = re.sub(
         r"(?<!\w)(?:Israeli|ישראלי(?:ם|ות|ת)?)(?!\w)", "Israel", slot, flags=re.I
     )
+    place = match_description_place(slot, strip_hebrew_prefix=True)
+    if place and place[1] == len(slot) and place[0] in {"israel", "noncentral"}:
+        return True
     scope = _scope(slot, 0)
     return (
         scope.complete
@@ -1548,7 +1590,7 @@ def decide_location_eligibility(
                 for frame in pattern.finditer(clause):
                     if not is_covered(frame.start(), frame.end()):
                         # A language skill cannot erase another nationality or place.
-                        slot, language_spans = LANGUAGE_SKILL.subn(" ", frame["slot"])
+                        slot, language_spans = LANGUAGE_SKILL.subn(" ", _applicant_scope_slot(frame))
                         if language_spans:
                             slot = re.sub(r"\b(?:with|and)\b", " ", slot, flags=re.I)
                         slot = slot.strip()

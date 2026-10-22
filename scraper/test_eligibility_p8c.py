@@ -147,3 +147,43 @@ def test_new_frames_preserve_own_place_and_nonplace_controls(jd):
     assert decide_location_eligibility(
         {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
     )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "We welcome Israel-based candidates",
+    "We are seeking Tel Aviv-based applicants",
+    "We welcome Israel-based candidates with Python experience",
+    "Applicants must be Israel-based candidates",
+    "This role is limited to candidates with German-speaking skills",
+    "This role is limited to experienced Python developers",
+    "המשרה מיועדת למפתחי תוכנה",
+    "דרושים מועמדים דוברי גרמנית עם ניסיון בפייתון",
+    # Six variants of the review's own-place and qualification regressions.
+    "We welcome Israeli candidates only",
+    "המשרה מיועדת למועמדים מישראל",
+    "This role is limited to candidates with fluent English",
+    "This role is limited to Hebrew native level",
+    "This role is limited to candidates with React-based experience",
+    "This role is limited to cloud-based experience",
+])
+def test_prefixed_own_applicants_and_qualifications_are_not_foreign_scope(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+
+
+@pytest.mark.parametrize("jd,expected", [
+    ("This role is limited to candidates from Israel with Python experience", "eligible"),
+    ("We welcome German and Israel-based candidates", "unknown"),
+    ("We welcome Germany and Israel-based candidates", "unknown"),
+    ("דרושים מועמדים שמישראל", "eligible"),
+    ("This role is limited to German native level", "eligible"),
+    ("This role is limited to cloud-based", "eligible"),
+])
+def test_scope_slot_keeps_geography_separate_from_qualifications(jd, expected):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == expected
