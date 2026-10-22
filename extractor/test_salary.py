@@ -87,8 +87,79 @@ ROUND4_SALARY_CASES = [
 ]
 
 
+# Precision-first lead decision: currency alone does not identify compensation.
+# Keep historical ROUND2-4 corpora above intact so every demotion is auditable.
+CONSERVATIVE_SALARY_REMARKS = {
+    value: "Currency without a pay governor is ambiguous."
+    for value in (
+        "30 אלף שקל", "30 אלף שקלים", "30 אלף ₪", "₪30 אלף",
+        "30 שקל", "30 שקלים", '30 ש"ח', "30 ₪", "30 K שקל",
+        "30 thousand שקל", "₪30 thousand", "€70.000", "USD 120K-150K", "₪30K",
+    )
+} | {
+    "salary raised to $150k in funding announcement":
+        "Funding competes with the raised-pay construction in the same window.",
+}
+PRECISION_PREVIOUS_SALARY_CASES = [
+    (value, numeric and value not in CONSERVATIVE_SALARY_REMARKS)
+    for value, numeric in ROUND2_SALARY_CASES + ROUND3_SALARY_CASES + ROUND4_SALARY_CASES
+]
+
+# Every concrete probe in both round-5 reviews, including prose controls.
+ROUND5_SALARY_CASES = [
+    ("funding $10M-$20M", False), ("funding $10M to $20M", False),
+    ("raised $10M-$20M", False), ('funding 10–20 מיליון ש"ח', False),
+    ("שכר 30–40 אלף", True), ("שכר 30–40 אלף; גייסנו $20M", True),
+    ("salary up to 180000 after funding $20M", False),
+    ("salary up to 180000; funding $20M", True),
+    ("salary was raised to $150k", True), ("salary has been raised to $150k", True),
+    ("base pay was raised to €90k", True), ("salary raised to $150k", True),
+    ("salary $160k with funding $12M", False),
+    ("raised $12M with salary $160k", True),
+    ("גייסנו $20M ושכר ₪35,000 בחודש", True),
+    ("שכר תחרותי, raised up to $20M", False),
+    ("funding up to $20M; competitive pay", False),
+    ("$150k–$180k base + equity (we raised $40M)", True),
+    ("salary ($160k), funding ($20M)", True),
+    ("competitive salary (raised $20M)", False),
+    ("Salary range $150k–$180k following funding of $20M", False),
+    ("funding $10M–$20M, competitive salary", False),
+    ("we raised $10M; salary $150k", True),
+    ("OTE $200k, Series B $40M", True),
+    ("שכר ₪40,000 and raised $10M", True),
+    ("raised $10M, שכר 25,000 ₪", True),
+    ("up to $200k base, raised $40M", True),
+    ("(raised $40M) salary $150k", True),
+    ("pay $90k–$110k despite Series B of $40M", False),
+    ("funding $40M and up to 180000", True),
+    ("OTE $200k–$250k; investors raised $40M", True),
+    ("competitive salary up to $180k after we raised $50M", False),
+    ("base $150k (raised $40M last year)", False),
+    ("raised $10M–$20M", False), ("Series A $10M-$15M", False),
+    ("salary seed $150k", False), ("salary Series B $150k", False),
+    ("seed salary $150k", False),
+    ("customer base raised $500k", False),
+    ("competitive salary, raised $10M", False),
+    ("competitive salary, raised $500k", False),
+    ("competitive salary, raised €10M", False),
+    ("competitive pay and raised £5 million", False),
+    ("hourly rate raised to $50/hour", True),
+    ("rate raised to €50 per hour", True),
+    ("hourly rate raised to $45/hr", True), ("wage raised to $50", True),
+    ("$1M ARR", False),
+    # Joined endpoints must share both pay context and units, with no competing owner.
+    ("salary 120k–150k", True), ("salary $120k–funding $150k", False),
+    ("salary 30–40 אלף employees", False), ("pay up to 500 employees", False),
+    ("salary $150k customers", False), ("salary raised to $150k funding", False),
+    ("salary raised from $120k to $150k", False),
+    ("hourly rate has been raised to $50/hour", True),
+    ('funding ($10M–$20M), competitive salary', False),
+    ("salary $150k–20%", False), ("salary $150k–20 percent", False),
+]
+
+
 @pytest.mark.parametrize(
-    "salary, numeric", ROUND2_SALARY_CASES + ROUND3_SALARY_CASES + ROUND4_SALARY_CASES,
+    "salary, numeric", PRECISION_PREVIOUS_SALARY_CASES + ROUND5_SALARY_CASES,
 )
 def test_round2_salary_extraction_and_payload(salary, numeric):
     candidate = facts()
@@ -132,7 +203,9 @@ TRIAGE_SALARIES = [
 @pytest.mark.parametrize(
     "salary",
     TRIAGE_SALARIES
+    + list(CONSERVATIVE_SALARY_REMARKS)
     + [
+        "120k-150k EUR",
         "competitive salary",
         "equity + benefits",
         "DOE",
@@ -170,11 +243,10 @@ def test_boilerplate_is_preserved_only_as_raw_remark(salary):
     [
         "$180,000 - $250,000 USD annually",
         "₪35K-45K/month",
-        "120k-150k EUR",
         "$50/hour",
         "50 per hour",
         "שכר 35000 בחודש", '35,000 ש״ח לחודש', "35,000 שקלים בחודש",
-        "שכר 25,000-30,000 ₪", "עד 35 אלף", "₪30K",
+        "שכר 25,000-30,000 ₪", "עד 35 אלף",
         "up to 180000", "up to $200k", "up to 150,000 EUR",
         "salary 120k", "pay 120K", "compensation 120 thousand",
         "שכר 35 אלף", "120k per year", "35k per month", "50 hourly",
