@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '7'
+VERSION = '8'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -51,7 +51,7 @@ PRODUCT = re.compile(r"\b(?:software|platform|tool|saas|app|product)s?\b", re.I)
 PLACEMENT_CONTEXT = re.compile(r"\b(?:clients?|candidates?|placement|placing|connecting (?:talented )?professionals)\b", re.I)
 
 
-def _staffing_statement(text: str, company: str | None = None) -> bool:
+def _staffing_statement(text: str, company: str | None = None, *, allow_self: bool = True) -> bool:
     """Require a self or named-company subject, never a customer's business."""
     for clause in re.split(r'[.;!?]\s+|\n+', text):
         for match in STAFFING_SERVICES.finditer(clause):
@@ -62,6 +62,8 @@ def _staffing_statement(text: str, company: str | None = None) -> bool:
             named_company = bool(re.fullmatch(NAME, subject)) and not (
                 subject.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
                 or any(word[0].islower() and word not in {'of', 'the', 'and'} for word in subject.split()))
+            if self_description and not allow_self:
+                continue
             if not self_description and not named_company:
                 continue
             if company is not None and not self_description and subject.casefold() != company.casefold():
@@ -72,6 +74,36 @@ def _staffing_statement(text: str, company: str | None = None) -> bool:
                 continue
             return True
     return False
+
+
+ABOUT_HEADING = re.compile(
+    r'^[ \t]*(?:\#{1,6}[ \t]+)?\*{0,2}About[ \t]+'
+    r'(?P<title>[^:\n*]+?)\*{0,2}[ \t]*(?::|$)', re.I | re.M)
+NAMED_DESCRIPTION = re.compile(
+    r"(?:^|[.!?]\s+|\n)\*{0,2}" + NAME + r"\*{0,2}\s+(?:is|are|provides|develops|builds)\b")
+
+
+def _publisher_staffing_statements(raw_jd: str, publisher: str, opening_end: int):
+    """Keep first-person voice attached to its About section's company."""
+    headings = list(ABOUT_HEADING.finditer(raw_jd))
+    sections = [(None, 0, headings[0].start() if headings else len(raw_jd))]
+    sections.extend((heading, heading.end(), headings[i + 1].start() if i + 1 < len(headings)
+                     else len(raw_jd)) for i, heading in enumerate(headings))
+    other_company_seen = False
+    for heading, start, end in sections:
+        title = heading['title'].strip().casefold() if heading else ''
+        publisher_section = title == publisher.casefold()
+        if heading and title not in {publisher.casefold(), 'us', 'the company', 'company', 'the role', 'role'}:
+            other_company_seen = True
+        if title == 'us':
+            named = [m['name'].strip().casefold() for m in NAMED_DESCRIPTION.finditer(raw_jd[start:end])]
+            publisher_section = all(name in {publisher.casefold(), 'we'} for name in named)
+            other_company_seen |= not publisher_section
+        for line in re.compile(r'[^\n]+').finditer(raw_jd, start, end):
+            opening_text = line[0][:max(0, opening_end - line.start())]
+            if (_staffing_statement(line[0], publisher, allow_self=publisher_section)
+                    or (not other_company_seen and _staffing_statement(opening_text, publisher))):
+                yield line
 
 
 ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
@@ -89,11 +121,12 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
-    publisher_statement = next((line for line in re.finditer(r'[^\n]+', raw_jd)
-                                if _staffing_statement(line[0], publisher)), None)
+    publisher_statements = list(_publisher_staffing_statements(raw_jd, publisher, len(opening)))
+    publisher_statement = next(iter(publisher_statements), None)
+    publisher_offsets = {hit.start() for hit in publisher_statements}
     agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
                              if INTERMEDIARY.search(line[0])
-                             or _staffing_statement(line[0], publisher)), publisher_statement)
+                             or line.start() in publisher_offsets), publisher_statement)
     if publisher_statement:
         staffing_about[publisher.casefold()] = publisher_statement[0]
     agency_evidence = agency_statement[0] if agency_statement else None
