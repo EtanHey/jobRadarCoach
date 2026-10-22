@@ -19,7 +19,7 @@ export const GlobeJobSchema = JobSummarySchema.pick({
   id:true,title:true,company:true,source:true,location:true,remote:true,work_mode:true,
   seniority:true,stack:true,url:true,apply_url:true,posted_at:true,last_published_at:true,
   first_seen_at:true,status:true,status_reason:true,score:true,recommendation:true,
-  alive:true,relevance_filtered:true,
+  alive:true,relevance_filtered:true,vacancy_identity:true,
 }).strip().transform(job => ({...job, seniority: job.seniority ?? titleSeniority(job.title),
   // Slim marker RPCs carry no freshness evidence. Cards hydrate by ID before display.
   alive: projectLiveness({ alive: job.alive }).alive,

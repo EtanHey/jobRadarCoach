@@ -16,6 +16,7 @@ test('poll returns count only and uses narrow SQL snapshot with view and loaded 
   const clock = t.mock.method(Date, 'now', () => Date.parse('2026-10-07T12:00:00Z'));
   let body: unknown;
   const db = createClient('https://database.example.test','synthetic',{global:{fetch: async (_url,init) => {
+    if (String(_url).includes("/postings?")) return Response.json([]);
     body=JSON.parse(String(init?.body));
     return Response.json({current:[],incoming:[row]});
   }}});

@@ -1,3 +1,4 @@
+import { VacancyIdentitySchema } from "./vacancy-identity";
 import { z } from "zod";
 import { foundWithinOptions, fitOptions, sortOptions } from "./view-options";
 import { pipelineStatusValues } from "./pipeline-status-values";
@@ -61,6 +62,7 @@ export const EmployerIdentitySchema = z.object({
 }).refine(value => value.hiring_employer === null || value.employer_evidence !== null);
 
 export const JobSummarySchema = z.object({
+  vacancy_identity: VacancyIdentitySchema.optional(),
   id: JobIdSchema,
   title: text,
   company: text,
