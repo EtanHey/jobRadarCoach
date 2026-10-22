@@ -22,7 +22,7 @@ from scraper.test_annotate import structured_annotation
     ("Speech Engineer", "voice"),
     ("Senior Backend Developer", None),
     ("Software Engineer", None),
-    ("Full-stack AI Engineer", None),
+    ("Full-stack AI Engineer", "ai"),
     (None, None),
 ])
 @pytest.mark.parametrize("candidate_work", [
@@ -88,7 +88,7 @@ def test_persisted_role_uses_posting_title_only(monkeypatch, title, expected, ca
     ("Software Engineer II - Front-End", "frontend"),
     ("Senior Software Engineer, Full Stack", "fullstack"),
     ("Full Stack Software Developer", "fullstack"),
-    ("Full Stack AI Engineer", None),
+    ("Full Stack AI Engineer", "ai"),
     ("Frontend Voice AI Engineer", None),
     ("Full Stack Voice AI Engineer", None),
 ])
@@ -103,7 +103,6 @@ def test_role_requires_software_occupation(title, expected):
     "System Validation Engineer - Multiple Levels ({specialty} Fabric Products)",
     "Data Center Engineer, Compute and {specialty}",
     "Sales Engineer ({specialty} Software Engineer Tools)",
-    "Software Engineer - {specialty} Developer Tools",
     "{specialty} Validation Engineer",
     "{specialty} Sales Engineer",
     "{specialty} Developer Relations Manager",
@@ -144,3 +143,100 @@ def test_hardware_domain_vetoes_even_a_software_head(domain, role):
     assert persistence._labels(structured_annotation("synthetic-role"), {"title": title})[
         "role_type"
     ] is None
+
+
+@pytest.mark.parametrize("title", [
+    "AI Platform Engineer",
+    "Principal Software Engineer (ML Infrastructure)",
+    "Software Development Engineer, Recommendations AI, Commerce",
+    "Staff Software & AI Engineer",
+    "Software Engineer - AI Compiler",
+    "Software Engineer - Agentic AI & Data",
+    "AI Security - Senior Software Engineer",
+    "Software Engineer (Example AI)",
+    "Sr Software Engineer, Example AI",
+    "AI Security Engineer",
+    "Forward Deployed Engineer (FDE) - AI Transformation",
+    "AI & Software Engineer (12345)",
+    "AI SW Engineer",
+    "Manager, Software Engineering - ML Infrastructure",
+    "AI Data Engineer",
+    "Software Engineer - Verification AI Infrastructure",
+    "AI Systems Engineer",
+    "Software Engineer - Kubernetes AI Foundations",
+    "Software Engineer, AI Agent Platforms",
+    "DevOps Engineer, AI Agent Platforms",
+    "Data and AI Solutions Engineer",
+    "AI Solutions Engineer",
+    "AI Developer Technology Engineer",
+    "C++ Software Engineer - AI Developer Tools",
+    "AI and LLM Solutions Software Engineer",
+    "Software Engineer, Tools, Automation and AI",
+    "Cybersecurity AI Solutions Engineer",
+    "AI Network Simulation Software Engineer",
+    "Software Engineer, LLM Inference",
+    "Software Engineer (Secure Agentic AI - Example City)",
+    "Sr. AI Backend & Data Engineer",
+    "Computer Vision & AI Algorithm Developer",
+    "Software Engineer, Core AI Software - Example City",
+    "Forward Deployed Engineer (AI Enablement)",
+    "Machine Learning Systems Engineer, ML Platform",
+    "Founder Style AI Native Software Engineer",
+    "Backend Engineer with AI Experience",
+    "Software Engineer, AI Enablement",
+    "Backend Engineer - AI Team - Example Product",
+    "AI Solutions Developer",
+    "Backend Engineer - GenAI",
+    "Full Stack Engineer (AI)",
+    "AI Agents Developer",
+    "Software Architect - Agentic Platform",
+    "Frontend Developer, LLM Applications",
+    "Software Engineer, Agents Platform",
+    "AI-Native Software Engineer",
+    "Software Engineer, AI-Powered Applications",
+    "Backend Developer - AI-Assisted Search",
+])
+def test_ai_software_occupation_with_attached_specialisation(title):
+    assert persistence._role_type(title) == "ai"
+
+
+@pytest.mark.parametrize("title", [
+    "System Validation Engineer - Multiple Levels (AI Fabric Products)",
+    "Staff Software Engineer, AI Builder (Python)",
+    "Data Center Engineer, HPC and AI",
+    "Principal HPC and AI Operation Engineer",
+    "Developer Relations Manager - AI Security",
+    "Sales Engineer - AI/AppSec/Cloud Security",
+    "AI-Driven 5G PHY SW Engineer",
+    "System Integration & Infrastructure Engineer (Storage for AI workloads)",
+])
+def test_review_correct_null_occupation_and_assistant_use_shapes(title):
+    assert persistence._role_type(title) is None
+
+
+@pytest.mark.parametrize("title", [
+    "Software Engineer, AI Assisted Development",
+    "AI-Powered Software Engineer",
+    "Software Engineer (AI Fluent)",
+    "Software Engineer using AI Coding Tools",
+    "Sales Engineer - Software Engineer, AI Platforms",
+    "Product Manager (AI Software Engineer Tools)",
+    "AI Developer Relations Engineer",
+    "AI Researcher Relations Manager",
+    "AI Platform Engineer Tools Sales Manager",
+    "Validation Software Engineer - AI Platform",
+])
+def test_ai_qualifiers_do_not_manufacture_software_specialisation(title):
+    assert persistence._role_type(title) is None
+
+
+@pytest.mark.parametrize("specialty", ["AI", "ML", "Machine Learning", "GenAI"])
+def test_software_developer_tools_are_a_valid_ai_product(specialty):
+    assert persistence._role_type(f"Software Engineer - {specialty} Developer Tools") == "ai"
+
+
+@pytest.mark.parametrize("title", [
+    "Voice GenAI Engineer", "Speech Agentic AI Engineer", "Audio LLM Engineer",
+])
+def test_voice_specialisation_still_precedes_ai(title):
+    assert persistence._role_type(title) == "voice"

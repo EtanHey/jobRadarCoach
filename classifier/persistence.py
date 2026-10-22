@@ -96,15 +96,66 @@ def _capture(connection: Connection, posting_id: str, *, lock: bool = False) -> 
     )
 
 
+def _ai_software_occupation(title: str, specialty: str) -> bool:
+    """Resolve a primary software head without discarding its attached AI frame."""
+    occupation = re.sub(specialty, "AI", title, flags=re.IGNORECASE)
+    occupation = re.sub(r"\bAI-native\b", "AI native", occupation, flags=re.IGNORECASE)
+    # These frames describe the worker's use of assistants, not an AI product.
+    # Ambiguous marketing terms need JD corroboration outside this title-only rule.
+    if re.search(
+        r"\bAI[ -]+(?:builder|fluent)\b"
+        r"|\bAI[ -]+(?:driven|powered|assisted)\s+"
+        r"(?:development|coding|(?:software|SW)\s+(?:engineer|developer))\b"
+        r"|\b(?:using|use of|assisted by)\s+AI\b",
+        occupation, re.IGNORECASE,
+    ):
+        return False
+
+    rank = (
+        r"(?:(?:senior|sr\.?|junior|jr\.?|staff|principal|lead|applied|founding|"
+        r"founder style|customer|GTM|C\+\+|C\#|Python|Java|Golang|Angular)\s+)*"
+    )
+    domain = (
+        r"(?:software development|software|SW|back[ -]?end|front[ -]?end|"
+        r"full[ -]?stack|AI|agents?|platform|systems?|data|applications?|web|"
+        r"solutions?|algorithms?|computer vision|cybersecurity|security|DevOps|"
+        r"forward deployed|developer technology|network simulation|native)"
+    )
+    domains = rf"{domain}(?:(?:\s+|\s*[&/]\s*|\s+and\s+){domain})*"
+    # A leading specialisation may precede the occupation: AI Security - SWE.
+    # It is itself a closed domain phrase, never another occupation (e.g. Sales).
+    frame = rf"(?:{domains}\s+[-–—]\s+)?"
+    match = re.match(
+        rf"^{rank}{frame}{rank}(?:manager\s*,\s*)?"
+        rf"(?P<domains>{domains})\s+"
+        rf"(?P<head>engineering\s+manager|engineer|developer|architect|researcher|engineering)\b"
+        rf"(?:\s+(?:I|II|III|IV|V))?"
+        rf"(?=$|\s*[,(/:–—-]|\s+(?:with|for|in|and)\b)",
+        occupation.strip(), re.IGNORECASE,
+    )
+    if match is None:
+        return False
+    fields = match.group("domains")
+    head = match.group("head").lower()
+    if head in {"researcher", "engineering", "engineering manager"}:
+        return bool(re.search(r"\b(?:AI|software|SW)\b", fields, re.IGNORECASE))
+    # Network simulation and security can modify software/AI occupations, but
+    # cannot turn generic network/security operations into software by themselves.
+    return bool(re.search(
+        r"\b(?:AI|software|SW|back[ -]?end|front[ -]?end|full[ -]?stack|"
+        r"platform|systems?|data|applications?|web|solutions?|algorithms?|"
+        r"DevOps|forward deployed|developer technology)\b", fields, re.IGNORECASE,
+    ))
+
+
 def _role_type(title: object) -> str | None:
     """Title-only identity; unknown occupational modifiers default to abstention.
 
     Frontend/fullstack/AI require a software occupation head, directly modified
-    by the specialty and optional closed software-domain modifiers. AI also
-    accepts researcher, but only in the primary occupation clause. Frontend
-    and fullstack also accept an explicit software occupation followed by the
-    specialty. Hardware domains veto every specialty. Voice specializes AI, so
-    exactly that pair resolves to voice; other multiple matches are ambiguous.
+    by the specialty and optional closed software-domain modifiers. AI accepts
+    attached team/product/specialisation frames of an anchored software head.
+    Hardware domains veto every specialty. Voice specializes AI; AI specializes
+    frontend/fullstack. Other multiple matches are ambiguous.
     """
     if not isinstance(title, str) or re.search(
         r"\b(?:hardware|chip|RTL|power|silicon|analog|ASIC|FPGA)\b", title, re.IGNORECASE
@@ -113,38 +164,24 @@ def _role_type(title: object) -> str | None:
     patterns = {
         "fullstack": r"\bfull[ -]?stack\b",
         "frontend": r"\bfront[ -]?end\b",
-        "ai": r"\b(?:AI|ML|LLM|machine learning|artificial intelligence)\b",
+        "ai": r"\b(?:AI|ML|LLM|Gen\s?AI|generative AI|machine learning|artificial intelligence|agentic|agents)\b",
         "voice": r"\b(?:voice|speech|audio)\b",
     }
     matches = {label for label, pattern in patterns.items() if re.search(pattern, title, re.IGNORECASE)}
     if matches == {"voice", "ai"}:
         return "voice"
+    if "ai" in matches:
+        if "voice" in matches:
+            return None
+        return "ai" if _ai_software_occupation(title, patterns["ai"]) else None
     if len(matches) != 1:
         return None
     label = matches.pop()
-    if label in {"frontend", "fullstack", "ai"}:
+    if label in {"frontend", "fullstack"}:
         specialty = patterns[label]
-        head = (
-            r"(?:developer|engineer|architect|researcher)\b" if label == "ai"
-            else r"(?:developer|engineer|architect)\b"
-        )
+        head = r"(?:developer|engineer|architect)\b"
         modifiers = r"(?:(?:software|web|applications?)\s+)*"
         direct = rf"{specialty}\s+{modifiers}{head}"
-        if label == "ai":
-            # AI/ML is one specialty; other slashes separate title clauses.
-            occupation = re.sub(
-                r"\b(?:AI|ML)\s*/\s*(?:AI|ML)\b", "AI", title, flags=re.IGNORECASE
-            )
-            # Product/team qualifiers cannot supply the occupation's specialty.
-            occupation = re.split(
-                r"[(),/:;&\[\]–—]|\s+-\s+|\b(?:and|for|of|in)\b",
-                occupation, maxsplit=1, flags=re.IGNORECASE,
-            )[0]
-            # A head must end the clause, not modify a different occupation
-            # (e.g. Developer Relations Manager) or a product (Developer Tools).
-            return "ai" if re.search(
-                rf"{direct}(?:\s+(?:I|II|III|IV))?\s*$", occupation, re.IGNORECASE
-            ) else None
         # Accept inverted titles such as "Software Engineer II - Front-End".
         inverted = rf"\bsoftware\s+{head}(?:\s+(?:I|II|III|IV))?\s*[-,(/:]\s*{specialty}"
         if not re.search(rf"(?:{direct}|{inverted})", title, re.IGNORECASE):
