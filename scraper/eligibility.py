@@ -808,28 +808,18 @@ def _applicant_scope_slot(frame: re.Match) -> str:
     slot = frame["slot"]
     if not re.match(r"[- ]based\b", frame.string[frame.end("slot"):], re.I):
         return slot
-    # Normalize outer recruiting/modality/only grammar before qualifications.
-    # Never scan for a recognized place: unfamiliar operands belong to the slot.
-    slot = re.sub(
-        r"^(?:we\s+(?:only\s+)?(?:welcome|seek|accept|(?:are\s+)?"
-        r"(?:seeking|hiring|recruiting|looking\s+for))\s+|"
+    # Consume complete prefix constructs as one anchored sequence. Each needs
+    # trailing whitespace; the first destination token ends normalization.
+    return re.sub(
+        r"^(?:(?:we\s+(?:only\s+)?(?:welcome|seek|accept|(?:are\s+)?"
+        r"(?:seeking|hiring|recruiting|looking\s+for))|"
         r"(?:(?:this|the)\s+)?(?:role|position|job|hiring)\s+(?:is\s+)?"
-        r"(?:limited|restricted)\s+to\s+|open\s+to\s+)?"
-        r"(?:only\s+)?"
-        rf"(?:{APPLICANT}\s+(?:must|should|need\s+to|are\s+required\s+to)\s+be\s+)?"
-        r"(?:only\s+)?",
+        r"(?:limited|restricted)\s+to|open\s+to|"
+        rf"{APPLICANT}\s+(?:must|should|need\s+to|are\s+required\s+to)\s+be|"
+        r"applications?\s+from|only|experienced|qualified|senior|junior|entry[- ]level"
+        r")\s+)+",
         "", slot, count=1, flags=re.I,
     )
-    # Recruiting copy can place a short qualification or an application noun
-    # between the recruiting verb and the destination. Strip only these
-    # bounded grammatical prefixes so unknown/coordinated place operands stay
-    # intact for the fail-closed destination check.
-    slot = re.sub(r"^applications?\s+from\s+", "", slot, count=1, flags=re.I)
-    slot = re.sub(
-        r"^(?:(?:experienced|qualified|senior|junior|entry[- ]level)\s+)+",
-        "", slot, count=1, flags=re.I,
-    )
-    return slot
 
 
 def _is_israeli_slot(slot: str) -> bool:
