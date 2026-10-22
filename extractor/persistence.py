@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from scraper.annotate import location_mode, posting_mode
 from scraper.employer_identity import VERSION, resolve_employer
+from scraper.deadlines import SOURCE as DEADLINE_SOURCE, extract_deadline
 
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
@@ -84,6 +85,19 @@ def persist_extraction(
             raise LookupError("posting does not exist")
         if posting[0] != captured_raw_jd:
             return "stale"
+        deadline = extract_deadline(captured_raw_jd)
+        encoded_deadline = json.dumps(deadline, ensure_ascii=False)
+        # Separate from page/list verdicts. Refresh even for an unchanged LLM
+        # receipt; only clear a removed deadline previously owned by this parser.
+        connection.execute(
+            "update public.postings set liveness = liveness || %s::jsonb "
+            "where id = %s and raw_jd = %s "
+            "and (%s or liveness->>'application_deadline_source' = %s) "
+            "and not liveness @> %s::jsonb",
+            (encoded_deadline, posting_id, captured_raw_jd,
+             deadline["application_deadline_evidence_quote"] is not None,
+             DEADLINE_SOURCE, encoded_deadline),
+        )
         payload.facts["employer_identity"] = resolve_employer(
             str(posting[1]), captured_raw_jd, str(posting[2]),
         )
