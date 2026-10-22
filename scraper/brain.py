@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -110,6 +111,7 @@ def _load_json(raw: bytes, label: str) -> object:
         raise BrainResponseError(f"Ollama returned invalid {label} JSON") from error
 
 _PROVIDER_DIAGNOSTIC = ContextVar("provider_diagnostic", default=None)
+_CODEX_VERSION_CACHE = ContextVar("codex_version_cache", default=None)
 _TRANSPORT_CATEGORIES = frozenset({"transport_error", "nonzero_exit", "timeout", "launch_error"}) | STDERR_CATEGORY_MARKERS.keys()
 _PUBLIC_MODELS = frozenset({DEFAULT_CODEX_MODEL, EXTRACTOR_MODEL, SCORER_MODEL})
 
@@ -117,11 +119,68 @@ _PUBLIC_MODELS = frozenset({DEFAULT_CODEX_MODEL, EXTRACTOR_MODEL, SCORER_MODEL})
 @contextmanager
 def provider_diagnostic_scope(callback):
     """Observe safe receipts without changing the library's default output."""
-    token = _PROVIDER_DIAGNOSTIC.set(callback)
+    parent = _PROVIDER_DIAGNOSTIC.get()
+
+    def observe(event):
+        for observer in (parent, callback):
+            if observer is not None:
+                try:
+                    observer(event)
+                except Exception:
+                    pass
+
+    token = _PROVIDER_DIAGNOSTIC.set(observe)
     try:
         yield
     finally:
         _PROVIDER_DIAGNOSTIC.reset(token)
+
+
+@contextmanager
+def codex_cycle_scope():
+    """Bound binary verification results (including failures) to one cycle."""
+    token = _CODEX_VERSION_CACHE.set({})
+    try:
+        yield
+    finally:
+        _CODEX_VERSION_CACHE.reset(token)
+
+
+def _verify_cycle_codex(codex, verifier, *, cwd, env, deadline):
+    cache = _CODEX_VERSION_CACHE.get()
+    key = None
+    if cache is not None:
+        stat = Path(codex).stat()
+        key = (str(Path(codex).resolve()), stat.st_dev, stat.st_ino,
+               stat.st_mtime_ns, stat.st_size, id(verifier))
+        if key in cache:
+            if cache[key] is not None:
+                raise cache[key]
+            return
+    try:
+        for attempt in range(2):
+            budget = min(10, max(0, deadline - time.monotonic()))
+            started = time.monotonic()
+            try:
+                verifier(codex, cwd=cwd, env=env, timeout=budget)
+                break
+            except subprocess.TimeoutExpired as error:
+                if attempt == 0 and time.monotonic() < deadline:
+                    continue
+                raise BrainTransportError(
+                    "Codex version probe timed out", category="timeout",
+                    phase="version_probe", phase_timeout_seconds=budget,
+                    phase_elapsed_ms=(time.monotonic() - started) * 1000,
+                ) from error
+            except RuntimeError as error:
+                raise BrainConfigurationError("Codex runtime is unavailable or unsupported",
+                                              category="unsupported_runtime") from error
+    except BrainError as error:
+        if cache is not None:
+            cache[key] = error
+        raise
+    if cache is not None:
+        cache[key] = None
 
 
 def run_brain(request, profile_snapshot=None, *, env=None, opener=urlopen,
@@ -131,6 +190,7 @@ def run_brain(request, profile_snapshot=None, *, env=None, opener=urlopen,
     settings = os.environ if env is None else env
     category, exit_code, truncated = "provider_error", None, False
     provider = "unknown"
+    phase_details = {}
     try:
         provider = resolve_brain(profile_snapshot, settings)
         result = _run_brain(request, profile_snapshot, env=env, opener=opener,
@@ -142,6 +202,12 @@ def run_brain(request, profile_snapshot=None, *, env=None, opener=urlopen,
         category = error.category if isinstance(error.category, str) and error.category in _TRANSPORT_CATEGORIES else "transport_error"
         exit_code = error.exit_code if type(error.exit_code) is int else None
         truncated = error.stderr_truncated is True
+        if category == "timeout" and error.phase in ("version_probe", "inference"):
+            phase_details["phase"] = error.phase
+            for name in ("phase_timeout_seconds", "phase_elapsed_ms"):
+                value = getattr(error, name)
+                if type(value) in (int, float) and math.isfinite(value) and value >= 0:
+                    phase_details[name] = round(value, 3)
         raise
     except BrainConfigurationError as error:
         category = "unsupported_runtime" if error.category == "unsupported_runtime" else "configuration_error"
@@ -160,7 +226,8 @@ def run_brain(request, profile_snapshot=None, *, env=None, opener=urlopen,
                          reasoning_effort=effort if isinstance(effort, str) and effort in CODEX_REASONING_EFFORTS and provider == "codex" else "configured",
                          category=category, exit_code=exit_code, stderr_truncated=truncated,
                          elapsed_ms=round((time.monotonic() - started) * 1000, 3),
-                         timeout_seconds=timeout_seconds if type(timeout_seconds) in (int, float) and 0 < timeout_seconds <= MAX_TIMEOUT_SECONDS else None)
+                         timeout_seconds=timeout_seconds if type(timeout_seconds) in (int, float) and 0 < timeout_seconds <= MAX_TIMEOUT_SECONDS else None,
+                         **phase_details)
             try:
                 callback(event)
             except Exception:
@@ -252,15 +319,8 @@ def _run_codex(
             codex_home.mkdir()
             (codex_home / "auth.json").symlink_to(auth_path)
             environment = _isolated_codex_environment(codex_home)
-            try:
-                codex_version_verifier(
-                    codex,
-                    cwd=workspace,
-                    env=environment,
-                    timeout=min(10, max(0, deadline - time.monotonic())),
-                )
-            except RuntimeError as error:
-                raise BrainConfigurationError("Codex runtime is unavailable or unsupported", category="unsupported_runtime") from error
+            _verify_cycle_codex(codex, codex_version_verifier, cwd=workspace,
+                                env=environment, deadline=deadline)
             schema_path = workspace / "schema.json"
             output_path = workspace / "result.json"
             schema_path.write_text(
@@ -275,13 +335,15 @@ def _run_codex(
                 model=model,
                 reasoning_effort=reasoning_effort,
             )
+            phase_budget = max(0, deadline - time.monotonic())
+            phase_started = time.monotonic()
             completed = _run_codex_process(
                 command,
                 stdin_text=request.prompt,
                 text=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
-                timeout=max(0, deadline - time.monotonic()),
+                timeout=phase_budget,
                 cwd=workspace,
                 env=environment,
             )
@@ -296,7 +358,11 @@ def _run_codex(
                 )
             raw = _read_codex_output(output_path)
     except subprocess.TimeoutExpired as error:
-        raise BrainTransportError("Codex request timed out", category="timeout") from error
+        raise BrainTransportError(
+            "Codex request timed out", category="timeout", phase="inference",
+            phase_timeout_seconds=phase_budget,
+            phase_elapsed_ms=(time.monotonic() - phase_started) * 1000,
+        ) from error
     except BrainError:
         raise
     except OSError as error:

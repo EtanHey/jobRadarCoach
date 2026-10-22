@@ -16,6 +16,7 @@ from classifier import job as classifier_job
 from classifier import embeddings as job_embeddings
 from classifier.persistence import list_scoring_candidates
 from extractor import job as extractor_job
+from scraper.brain import codex_cycle_scope, provider_diagnostic_scope
 
 STAGES = ("extract", "score")
 MAX_ITEMS = 30
@@ -27,6 +28,16 @@ _embedding_slot = threading.BoundedSemaphore(1)
 
 def _log(**fields: object) -> None:
     print(json.dumps(fields, separators=(",", ":"), sort_keys=True), flush=True)
+
+
+def _summary(*, attempted=0, failed=0, distinct_items=0, completed=0, deferred=0,
+             timeouts_by_phase=None, **fields):
+    status = ("partial" if completed else "failed") if failed else (
+        "succeeded" if attempted else "idle")
+    _log(event="summary", attempted=attempted, failed=failed,
+         distinct_items=distinct_items, completed=completed, deferred=deferred,
+         timeouts_by_phase=timeouts_by_phase or {"version_probe": 0, "inference": 0},
+         status=status, **fields)
 
 
 def claim(connection, stage: str, posting_id: str, worker_id: str, lease_seconds: int):
@@ -162,10 +173,18 @@ def _run_stage(connection, stage: str, posting_id: str, timeout_seconds: float,
                   posting_ids=(posting_id,), allow_legacy_settings=False)
 
 
+@codex_cycle_scope()
 def run_cycle(connection, *, max_items: int, timeout_seconds: float,
               lease_seconds: int, worker_id: str,
               embeddings_enabled: bool = True) -> int:
-    attempted = failed = 0
+    attempted = failed = completed = 0
+    visited = set()
+    timeouts_by_phase = {"version_probe": 0, "inference": 0}
+
+    def observe(event):
+        phase = event.get("phase")
+        if event.get("category") == "timeout" and phase in timeouts_by_phase:
+            timeouts_by_phase[phase] += 1
     if not embeddings_enabled:
         _log(event="embedding", outcome="skipped_remote_db")
     stage_offset = 0
@@ -174,6 +193,8 @@ def run_cycle(connection, *, max_items: int, timeout_seconds: float,
         for offset in range(len(STAGES)):
             stage = STAGES[(stage_offset + offset) % len(STAGES)]
             for posting_id in _candidate_ids(connection, stage):
+                if (stage, posting_id) in visited:
+                    continue
                 attempt = claim(connection, stage, posting_id, worker_id, lease_seconds)
                 if attempt is not None:
                     claimed = stage, posting_id, attempt
@@ -184,13 +205,15 @@ def run_cycle(connection, *, max_items: int, timeout_seconds: float,
         if claimed is None:
             break
         stage, posting_id, attempt = claimed
+        visited.add((stage, posting_id))
         attempted += 1
         _log(event="claimed", stage=stage, posting_id=posting_id, attempt=attempt)
         try:
-            exit_code = _run_stage(
-                connection, stage, posting_id, timeout_seconds,
-                embeddings_enabled=embeddings_enabled,
-            )
+            with provider_diagnostic_scope(observe):
+                exit_code = _run_stage(
+                    connection, stage, posting_id, timeout_seconds,
+                    embeddings_enabled=embeddings_enabled,
+                )
         except Exception as error:
             exit_code = 1
             failure = _safe_failure(error)
@@ -198,6 +221,7 @@ def run_cycle(connection, *, max_items: int, timeout_seconds: float,
             failure = "BatchFailed"
         if exit_code == 0:
             if complete(connection, stage, posting_id, worker_id):
+                completed += 1
                 _log(event="completed", stage=stage, posting_id=posting_id)
             else:
                 failed += 1
@@ -210,7 +234,9 @@ def run_cycle(connection, *, max_items: int, timeout_seconds: float,
             _log(event="deferred", stage=stage, posting_id=posting_id, failure=failure)
     if embeddings_enabled:
         _run_embedding_scan(connection, max_items)
-    _log(event="summary", attempted=attempted, failed=failed)
+    _summary(attempted=attempted, failed=failed,
+             distinct_items=len({posting_id for _stage, posting_id in visited}),
+             completed=completed, deferred=failed, timeouts_by_phase=timeouts_by_phase)
     return 1 if failed else 0
 
 
@@ -227,7 +253,7 @@ def main() -> int:
         parser.error("lease-seconds must exceed timeout by 60 and be at most 3600")
     database_url = os.environ.get("DATABASE_URL", "").strip()
     if not database_url:
-        _log(event="summary", attempted=0, failed=1, failure="MissingDatabaseURL")
+        _summary(failed=1, failure="MissingDatabaseURL")
         return 1
     embeddings_enabled = True
     try:
@@ -240,7 +266,7 @@ def main() -> int:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            _log(event="summary", attempted=0, failed=0, outcome="already_running")
+            _summary(outcome="already_running")
             return 0
         try:
             if embeddings_enabled:
@@ -258,7 +284,7 @@ def main() -> int:
                                  worker_id=str(uuid4()),
                                  embeddings_enabled=embeddings_enabled)
         except Exception as error:
-            _log(event="summary", attempted=0, failed=1, failure=type(error).__name__)
+            _summary(failed=1, failure=_safe_failure(error))
             return 1
 
 

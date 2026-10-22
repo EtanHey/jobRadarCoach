@@ -26,7 +26,7 @@ def test_failed_item_is_deferred_without_a_tight_retry(monkeypatch, capsys) -> N
         lambda _connection, stage: [POSTING_ID] if stage == "extract" else [],
     )
     monkeypatch.setattr(local_analysis, "claim", lambda *_args: next(claims))
-    monkeypatch.setattr(local_analysis, "_run_stage", lambda *_args: 1)
+    monkeypatch.setattr(local_analysis, "_run_stage", lambda *_args, **_kwargs: 1)
     monkeypatch.setattr(
         local_analysis, "defer", lambda *args: deferred.append(args[1:]) or True,
     )
@@ -37,7 +37,11 @@ def test_failed_item_is_deferred_without_a_tight_retry(monkeypatch, capsys) -> N
     ) == 1
     assert len(deferred) == 1
     records = [__import__("json").loads(line) for line in capsys.readouterr().out.splitlines()]
-    assert records[-1] == {"attempted": 1, "event": "summary", "failed": 1}
+    assert records[-1] == {
+        "attempted": 1, "event": "summary", "failed": 1,
+        "distinct_items": 1, "completed": 0, "deferred": 1, "status": "failed",
+        "timeouts_by_phase": {"version_probe": 0, "inference": 0},
+    }
 
 
 def test_embedding_failure_does_not_block_scoring(monkeypatch, capsys) -> None:
