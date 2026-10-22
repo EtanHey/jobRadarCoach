@@ -1,5 +1,10 @@
 // Keys are persisted relevance-gate rule slugs, not display text; keep unknown slugs visible for new rules.
 const labels: Record<string, string> = {
+  "jd-quality-missing-body": "JD quality: description is missing",
+  "jd-quality-unfilled-template": "JD quality: unfilled role and experience placeholders",
+  "jd-quality-mixed-role": "JD quality: description mixes separate roles",
+  "jd-quality-listing-only": "JD quality: job links without a role description",
+  "jd-quality-external-summary": "JD quality: full description is linked but not stored",
   "leadership-title-strict": "Leadership or staff-level role",
   "incompatible-stack-title": "Role requires a different primary stack",
   "years-minimum-7-strict": "Requires at least 7 years of experience",

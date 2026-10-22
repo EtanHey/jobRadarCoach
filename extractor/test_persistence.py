@@ -11,6 +11,7 @@ from extractor import core, persistence
 from extractor.test_salary import (
     P9C_SALARY_SPANS,
     P9D_SALARY_SPANS,
+    P9E_SALARY_SPANS,
     PRECISION_PREVIOUS_SALARY_CASES,
     ROUND5_SALARY_CASES,
     ROUND6_SALARY_CASES,
@@ -61,6 +62,39 @@ def extraction(
         json.dumps(identity, separators=(",", ":"), sort_keys=True).encode()
     ).hexdigest()
     return {**identity, "facts": deepcopy(FACTS if facts is None else facts), "fingerprint": fingerprint}
+
+
+def test_long_employer_identity_is_bounded_before_persistence_without_database():
+    from contextlib import nullcontext
+    line = 'HireCo is a staffing firm. ' + 'x' * (2827 - len('HireCo is a staffing firm. '))
+    raw_jd = line + '\n' + RAW_JD
+
+    class Result:
+        def __init__(self, value):
+            self.value = value
+
+        def fetchone(self):
+            return self.value
+
+    class OfflineConnection:
+        stored_facts = None
+
+        def transaction(self):
+            return nullcontext()
+
+        def execute(self, query, params=()):
+            if query.startswith('select raw_jd'):
+                return Result((raw_jd, 'HireCo', 'linkedin'))
+            if query.startswith('select brain'):
+                return Result(None)
+            if query.startswith('insert into public.posting_extractions'):
+                self.stored_facts = json.loads(params[-1])
+            return Result(('fixture',))
+
+    db = OfflineConnection()
+    assert persistence.persist_extraction(db, 'fixture', raw_jd, extraction(raw_jd)) == 'stored'
+    assert db.stored_facts['employer_identity']['agency_evidence'] == line[:2000]
+    assert db.stored_facts['stack'] == FACTS['stack']
 
 
 def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
@@ -252,6 +286,42 @@ def test_fresh_extraction_updates_extracted_mode(connection):
     assert connection.execute('select work_mode,work_mode_source,remote from postings where id=%s',(posting_id,)).fetchone() == ('remote','extracted',True)
 
 
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+def test_office_schedule_overrides_remote_mode_even_when_quote_omits_it(connection, mode_source):
+    raw_jd = RAW_JD + "\nWe require three days a week in the office and two days at home."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ("hybrid", "extracted", None)
+
+
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+@pytest.mark.parametrize("condition", [
+    "This role requires five days a week in the office.",
+    "This role is full-time in office.",
+])
+def test_full_time_office_schedule_persists_on_site(connection, mode_source, condition):
+    raw_jd = RAW_JD + "\n" + condition
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ("on-site", "extracted", False)
+
+
 @pytest.mark.parametrize('remote', [True, False])
 def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     raw_jd = RAW_JD if remote else RAW_JD.replace('Remote work is available', 'Office-based work is required')
@@ -411,7 +481,7 @@ def test_review_base_counts_do_not_abort_other_fact_persistence(connection, sala
 
 
 @pytest.mark.parametrize("existing", ["matching", "case-variant", None, "$180,000 annually"])
-@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS)
+@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS + P9E_SALARY_SPANS)
 def test_list_governor_salary_persists_other_facts(connection, salary, span, existing):
     from extractor.test_core import runner_for
 
@@ -433,3 +503,38 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
         expected["salary_remark"] = salary
     assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+@pytest.mark.parametrize(("condition", "expected"), [
+    ("Interviews are fully in-person.", "remote"),
+    ("Onboarding requires three days a week in the office.", "remote"),
+    ("Training is full-time in office.", "remote"),
+    ("Onboarding is hybrid work.", "remote"),
+    ("Training requires five days a week in the office.", "remote"),
+    ("The first two weeks are on-site for onboarding.", "remote"),
+    ("Training is in-office.", "remote"),
+    ("Work model: hybrid or fully remote.", None),
+    ("This role offers hybrid work or remote work.", None),
+    ("Hybrid or fully remote.", None),
+    ("Remote or hybrid.", None),
+    ("Flexible: on-site, hybrid or remote.", None),
+    ("We require three days in the office for onboarding.", "remote"),
+    ("We require five office days per quarter.", "remote"),
+    ("This role offers remote or hybrid work arrangements.", None),
+    ("Location: Anywhere (Onsite / Hybrid / Remote - Based on Client Requirement).", None),
+])
+def test_non_permanent_arrangements_do_not_persist_attendance(connection, mode_source, condition, expected):
+    raw_jd = RAW_JD + " " + condition
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    if expected is None:
+        facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ((None, None, None) if expected is None else ("remote", mode_source, True))

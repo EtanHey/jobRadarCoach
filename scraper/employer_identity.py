@@ -6,11 +6,12 @@ import re
 from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
+from scraper.geography import COUNTRY_CITY_ALIASES, COUNTRY_IDENTIFIERS, _normalized_location
 
-VERSION = '14'
+VERSION = '17'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
-STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
+STAFFING_KEYS = PUBLISHER_KEYS | {'alldus'}
 # Reviewed against all 57 family-2 evidence IDs; these are publishers, not clients.
 NAME = r'(?P<name>[A-Z][\w·&.,’\'() \t-]{0,78}?)'
 PATTERNS = [
@@ -22,6 +23,32 @@ PATTERNS = [
 GENERIC = {'i', 'we', 'our', 'you', 'they', 'he', 'she', 'it', 'company', 'agency',
            'firm', 'recruiter', 'business', 'organization', 'team', 'client', 'publisher', 'employer',
            'the company', 'this company', 'the client', 'a company', 'אני', 'אנחנו', 'אנו'}
+GENERIC_ORG_WORDS = frozenset('''data platform r d group hiring manager customer success engineering
+    team department business unit networking ai role position remote fintech startup your next challenge idf veterans applicants in
+    senior backend frontend engineer research development and of the
+    צוות קבוצת קבוצה מחלקת מחלקה פלטפורמת פלטפורמה נתונים מחקר ופיתוח פיתוח מנהל מנהלת גיוס
+    הצלחת לקוחות הנדסה תפקיד משרה מרחוק'''.split())
+ENGLISH_ORG_HEADS = frozenset('''team teams department dept division unit squad crew chapter guild
+    org organization function office desk'''.split())
+HEBREW_ORG_HEAD = re.compile(r'[הובלמש]*(?:צוות|מחלקה|מחלקת|אגף|יחידה|יחידת|קבוצת|דסק)')
+PLACE_NAMES = COUNTRY_IDENTIFIERS | {'ישראל'} | {
+    _normalized_location(city) for cities in COUNTRY_CITY_ALIASES.values() for city in cities
+}
+GENERIC_SUBJECT = re.compile(r'^\*{0,2}' + NAME.replace('[A-Z]', '[A-Zא-ת]')
+    + r'\*{0,2}\s+(?:is (?:hiring|looking for|seeking)|are hiring|מגייס(?:ת|ים|ות)?|מחפש(?:ת|ים|ות)?)\b', re.M)
+
+
+def _generic_hiring_subject(name: str) -> bool:
+    normalized = _normalized_location(name)
+    words = normalized.split()
+    if normalized in PLACE_NAMES or set(words) <= GENERIC_ORG_WORDS:
+        return True
+    # English heads come last; Hebrew construct heads come first, after prefixes.
+    if words[-1] in ENGLISH_ORG_HEADS or HEBREW_ORG_HEAD.fullmatch(words[0]):
+        return True
+    return any(normalized.endswith(' ' + place)
+               and set(normalized[:-len(place)].split()) <= GENERIC_ORG_WORDS
+               for place in PLACE_NAMES)
 
 
 # A company description alone is not client evidence; partner wording is explicit.
@@ -176,7 +203,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     opening = ''.join(attributable.splitlines(keepends=True)[:32])[:2000]
 
     def raw_evidence(match: re.Match) -> str:
-        return raw_jd[match.start():match.end()]
+        return raw_jd[match.start():min(match.end(), match.start() + 2000)]
 
     # Associate service descriptions with their own named company, not every role.
     staffing_about = {
@@ -197,11 +224,17 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     staffing_candidate_seen = publisher.casefold() in staffing_about
     role_intermediary_seen = bool(publisher_statement and role_heading
                                   and publisher_statement.start() > role_heading.start())
+    # Hebrew subjects are recognized only for this veto, not new attribution.
+    generic_subject_seen = any(_generic_hiring_subject(match['name'])
+                               for match in GENERIC_SUBJECT.finditer(opening))
     for index, pattern in enumerate(PATTERNS):
         for match in pattern.finditer(opening):
             if index < 2 and not first_party[match.start():match.end()].strip():
                 continue
             name = match['name'].strip(' .,')
+            if index == 2 and _generic_hiring_subject(name):
+                generic_subject_seen = True
+                continue
             words = name.split()
             if (name.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
                     or name.casefold() in GENERIC
@@ -217,17 +250,20 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
                 staffing_candidate_seen = True
                 role_intermediary_seen |= not is_blurb
                 continue
-            if re.match(re.escape(publisher) + r"(?:\b|[’'])", name, re.I):
+            suffix = name[len(publisher):] if name.casefold().startswith(publisher.casefold()) else None
+            if suffix is not None and (not suffix or re.match(r"['’]s(?:\s|$)", suffix)
+                                       or (re.match(r'\W', suffix)
+                                           and _generic_hiring_subject(suffix.strip(' ()')))):
                 name = publisher
             candidates = blurb_names if is_blurb else role_names
             candidates[name.casefold()] = (name, raw_evidence(match))
     employer, evidence = None, None
-    candidates = (role_names if role_names or role_intermediary_seen or client_wording_seen
+    candidates = (role_names if role_names or role_intermediary_seen or client_wording_seen or generic_subject_seen
                   else blurb_names)
     if len(candidates) == 1:
         employer, evidence = next(iter(candidates.values()))
     elif (not candidates and not publisher_is_agency and not staffing_candidate_seen
-          and not client_wording_seen
+          and not client_wording_seen and not generic_subject_seen
           and source in ATS_SOURCES):
         employer, evidence = publisher, f'source:{source}; company:{publisher}'
     relationship = ('unknown' if employer is None else
