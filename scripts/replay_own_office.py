@@ -118,7 +118,16 @@ def main():
     print(json.dumps({k: len(v) if isinstance(v, list) else v for k,v in summary.items()}, indent=2))
     assert len(snapshot) == 658
     assert summary["snapshot_sha256"] == "520151e36a5a639705a4e56f727ab6ea522ea57bf4490c92a2f4ac8f11a94297"
-    assert not summary["new_blocked"]
+    expected_blocks = {
+        (case_id, location, jd)
+        for path in Path("scraper/fixtures").glob("eligibility*.json")
+        for case_id, location, jd, expected in json.loads(path.read_text())
+        if expected == "blocked"
+    }
+    assert all(
+        (row["id"], row["location"], row.get("jd")) in expected_blocks
+        for row in summary["new_blocked"]
+    ), summary["new_blocked"]
     assert not summary["prior_scope_changes"]
 
 
