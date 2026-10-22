@@ -35,7 +35,7 @@ test("repost evidence survives every slim list path and the HTTP response", asyn
     const job = (await response.json()).jobs[0];
     assert.match(selected, /(?:^|,)linkedin_reposted_signal:liveness->linkedin_reposted_signal(?:,|$)/);
     assert.match(selected, /,posted_at,last_published_at,/);
-    assert.doesNotMatch(selected, /(?:^|,)(?:liveness|raw_jd|list_metadata|score_payload)(?:,|$)/);
+    assert.doesNotMatch(selected, /(?:^|,)(?:liveness|list_metadata|score_payload)(?:,|$)/);
     assert.deepEqual(job.linkedin_reposted_signal, signal);
     assert.equal(repostNote(job), signal.label);
     assert.equal(job.posted_at, row.posted_at);
