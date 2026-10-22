@@ -17,9 +17,14 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
     "israel": (
         "Tel Aviv",
         "Tel Aviv-Yafo",
+        "TLV",
+        "Tel-Aviv-Yafo",
         "Herzliya",
+        "Herzeliya",
         "Ramat Gan",
+        "Ramat-Gan",
         "Petah Tikva",
+        "Petach Tikva",
         "Haifa",
         "Jerusalem",
         "Ra'anana",
@@ -30,6 +35,7 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "Netanya",
         "Rehovot",
         "Kfar Saba",
+        "Kefar Sava",
         "Holon",
         "Rishon",
         "Rishon LeZion",
@@ -790,8 +796,23 @@ def has_geographic_context(text: str) -> bool:
     return False
 
 
+# Exact place identities, separate from the broader central/noncentral policy.
+ISRAELI_PLACE_EQUIVALENTS = {
+    "Tel Aviv": ("tel aviv yafo", "תל אביב יפו", "tel aviv", "תל אביב", "tlv"),
+    "Ramat Gan": ("ramat gan", "רמת גן"),
+    "Raanana": ("ra anana", "raanana", "רעננה"),
+    "Herzliya": ("herzeliya", "herzliya", "הרצליה"),
+    "Petah Tikva": ("petach tikva", "petah tikva", "פתח תקווה"),
+    "Kfar Saba": ("kefar sava", "kfar saba", "כפר סבא"),
+}
+
+
 def normalize_israeli_location(text: str) -> str:
     """Consume known ATS district qualifiers without discarding other places."""
+    for canonical, aliases in ISRAELI_PLACE_EQUIVALENTS.items():
+        for alias in aliases:
+            pattern = r"(?<!\w)" + r"[\W_]+".join(map(re.escape, alias.split())) + r"(?!\w)"
+            text = re.sub(pattern, canonical, text, flags=re.I)
     text = re.sub(r"^\d+\s+Locations?,\s*(Israel)\s*$", r"\1", text, flags=re.I)
     text = re.sub(r"\band across Israel\b", "and Israel", text, flags=re.I)
     text = re.sub(r"\b(Gush Dan|Tel Aviv)\s+Area\b", r"\1", text, flags=re.I)
@@ -806,6 +827,12 @@ def normalize_israeli_location(text: str) -> str:
         text,
         flags=re.I,
     )
+
+
+ISRAELI_CITY_NAMES = frozenset(
+    _normalized_location(normalize_israeli_location(name))
+    for name in COUNTRY_CITY_ALIASES["israel"]
+)
 
 
 def _city_matches_country(raw_location: object, country: str) -> bool:
