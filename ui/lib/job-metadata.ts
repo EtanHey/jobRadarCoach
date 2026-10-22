@@ -32,49 +32,63 @@ function normalizeExperienceText(description: string): string {
   return text;
 }
 
-/** Quote one simple mandatory frame; ambiguity anywhere in tenure blocks fallback. */
+/** Quote a mandatory minimum; unresolved tenure blocks specialist fallback. */
 export function experiencePhrase(description: string | null): string | null {
   if (!description) return null;
   const normalized = normalizeExperienceText(description);
   const number = patterns.number;
-  const lead = `(?<![A-Za-z0-9_.])(?:(?:at least|minimum(?:[ \t]+of)?|over)[ \t]+)?${number}(?:[ \t]*(?:[-–—]|to)[ \t]*${number})?\\+?[ \t]+(?:overall[ \t]+)?years?\\b`;
-  const phrase = new RegExp(patterns.englishTail.map(tail => lead + tail).concat(patterns.hebrew).join("|"), "gi");
+  const phrase = new RegExp(patterns.englishTail.map(tail => patterns.englishLead + tail).concat(patterns.hebrew).join("|"), "gi");
   const test = (pattern: string, text: string) => new RegExp(pattern, "i").test(text);
+  const amount = (token: string) => /^[0-9]+$/.test(token) ? Number(token) : patterns.words.indexOf(token.toLowerCase());
   if (test(patterns.fractionalTenure, normalized) || new RegExp(patterns.numberedTenure, "mi").test(normalized)) return null;
   let selected: { minimum: number; quote: string; rank: number } | null = null;
   let disagreement = false;
   for (const clauseMatch of normalized.matchAll(/[^.!?;\n]+/g)) {
-    const clause = clauseMatch[0];
-    if (!test(patterns.tenure, clause)) continue;
+    let clause = clauseMatch[0];
+    // Only a higher numeric preference is exempt; masking keeps source offsets.
+    for (const preference of clause.matchAll(new RegExp(patterns.preference, "gi"))) {
+      const preceding = [...clause.slice(0, preference.index).matchAll(new RegExp(patterns.extraNumber, "gi"))].at(-1)?.[0];
+      const preferred = preference[0].match(new RegExp(patterns.extraNumber, "i"))?.[0];
+      if (preceding && preferred && amount(preferred) >= amount(preceding)) {
+        clause = clause.slice(0, preference.index) + " ".repeat(preference[0].length) + clause.slice(preference.index + preference[0].length);
+      }
+    }
+    const domainPreference = new RegExp(patterns.domainPreference, "i").exec(clause);
+    if (domainPreference && !test(patterns.extraNumber, domainPreference[0]) && !test(patterns.tenure, domainPreference[0])) {
+      clause = clause.slice(0, domainPreference.index) + " ".repeat(domainPreference[0].length);
+    }
+    if (!test(patterns.numericTenure, clause)) continue;
+    const matches = [...clause.matchAll(phrase)];
+    const contextEnd = matches[0]?.index ?? clause.length;
     let section: "applicant" | "optional" | "other" = "other";
-    for (const heading of normalized.slice(0, clauseMatch.index).matchAll(new RegExp(patterns.headings, "gmi"))) {
+    for (const heading of normalized.slice(0, clauseMatch.index + contextEnd).matchAll(new RegExp(patterns.headings, "gmi"))) {
       const text = (heading[1] ?? heading[2] ?? heading[3]).replace(/[:#*]+$/, "").replace(/^[^A-Za-zא-ת]+/, "").trim();
       if (!/[.!?;]/.test(text) && test(patterns.optionalScope, text) && !test(patterns.headingTenure.replaceAll("{number}", number), text)) section = "optional";
       else if (test(patterns.requiredHeading, text)) section = "applicant";
       else if (test(patterns.otherHeading, text)) section = "other";
     }
     if (test(patterns.inlineRequiredHeading, clause)) section = "applicant";
-    if (section === "optional" || test(patterns.company, clause)) continue;
-    const matches = [...clause.matchAll(phrase)];
-    // Inspect the whole clause even when parentheses prevented a frame match.
+    if (section === "optional" || test(patterns.company, clause.slice(Math.max(0, contextEnd - 180), contextEnd))) continue;
+    if (matches.length > 0 && test(patterns.company, clause.slice(matches[0].index + matches[0][0].length))) continue;
+    const context = clause.slice(0, contextEnd);
+    if (test(patterns.employerVerb, context) && !test(patterns.applicantVerb, context)) continue;
+    if (test(patterns.precedingNumber, context)) return null;
     const residue = matches.length === 1 ? clause.replace(matches[0][0], "") : clause;
-    if (test(patterns.complexity, residue) || test(patterns.optionalScope, clause)) return null;
-    if (section !== "applicant" && !test(patterns.requiredContext, clause)) continue;
-    if (test(patterns.reject, residue) || test(patterns.extraNumber, residue)) return null;
+    if ((matches.length > 0 && test(patterns.complexity, clause.slice(matches[0].index + matches[0][0].length)))
+      || test(patterns.optionalScope, clause)) return null;
+    if (section !== "applicant" && !test(patterns.requiredContext, clause) && !test(patterns.domainContext, clause)) continue;
+    if (test(patterns.reject, residue) || test(patterns.alternativeNumber, residue)) return null;
     if (matches.length !== 1 || test(patterns.tenure, residue)) return null;
     const match = matches[0];
-    // Complexity inside the frame is forbidden too; only the numeric range is exempt.
-    const frameWithoutRange = match[0].replace(new RegExp(`${number}[ \t]*[-–—][ \t]*${number}`, "i"), "");
-    if (test(patterns.complexity, frameWithoutRange)
+    if (test(patterns.complexity, match[0])
       || test(patterns.extraNumber, match[0].replace(new RegExp(patterns.quantity, "i"), ""))) return null;
-    const amounts = [...match[0].matchAll(new RegExp(`(?<![A-Za-z0-9_])${number}(?![A-Za-z0-9_])`, "gi"))]
-      .map(token => /^[0-9]+$/.test(token[0]) ? Number(token[0]) : patterns.words.indexOf(token[0].toLowerCase()));
+    const amounts = [...match[0].matchAll(new RegExp(patterns.extraNumber, "gi"))].map(token => amount(token[0]));
     const minimum = amounts[0];
     if (minimum === undefined || (amounts.length > 1 && amounts[1] < minimum)) return null;
     const withoutLead = match[0].replace(/^minimum(?:[ \t]+of)?[ \t]+/i, "");
     const quoteStart = clauseMatch.index + match.index + match[0].length - withoutLead.length;
     const quote = description.slice(quoteStart, quoteStart + withoutLead.length);
-    const rank = section === "applicant" ? 1 : 0;
+    const rank = (section === "applicant" ? 2 : 0) + Number(test(patterns.role, clause));
     if (!selected || rank > selected.rank) {
       selected = { minimum, quote, rank };
       disagreement = false;

@@ -21,7 +21,9 @@ class YearsPrecisionTests(unittest.TestCase):
         self.assertEqual(sql, generate())
         for key in ('complexity', 'optionalScope', 'requiredHeading', 'requiredContext',
                     'company', 'tenure', 'extraNumber', 'fractionalTenure', 'numberedTenure',
-                    'inlineRequiredHeading', 'quantity'):
+                    'inlineRequiredHeading', 'quantity', 'preference', 'domainPreference',
+                    'numericTenure', 'domainContext', 'role', 'alternativeNumber',
+                    'employerVerb', 'applicantVerb', 'precedingNumber'):
             self.assertIn(sql_regex(SPEC[key]), sql, key)
         self.assertIn(sql_regex(FRAME), sql)
         for key in ('space', 'newline'):

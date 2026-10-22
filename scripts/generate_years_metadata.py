@@ -7,9 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = json.loads((ROOT / "ui/lib/experience-patterns.json").read_text())
 NUMBER = SPEC['number']
-LEAD = rf"(?<![A-Za-z0-9_.])(?:(?:at least|minimum(?:[ \t]+of)?|over)[ \t]+)?{NUMBER}(?:[ \t]*(?:[-–—]|to)[ \t]*{NUMBER})?\+?[ \t]+(?:overall[ \t]+)?years?\b"
+LEAD = SPEC['englishLead']
 FRAME = '|'.join([LEAD + tail for tail in SPEC['englishTail']] + [SPEC['hebrew']])
-RANGE = rf'{NUMBER}[ \t]*[-–—][ \t]*{NUMBER}'
 
 
 def search(pattern, text):
@@ -34,10 +33,23 @@ def experience_phrase(description):
     selected, disagreement = None, False
     for clause_match in re.finditer(r'[^.!?;\n]+', text):
         clause = clause_match[0]
-        if not search(SPEC['tenure'], clause):
+        # Mask only a numeric higher preference, preserving source quote offsets.
+        for preference in list(re.finditer(SPEC['preference'], clause, re.I | re.ASCII)):
+            before = clause[:preference.start()]
+            numbers = re.findall(SPEC['extraNumber'], before, re.I | re.ASCII)
+            preferred = re.search(SPEC['extraNumber'], preference[0], re.I | re.ASCII)[0]
+            value = lambda token: int(token) if token.isdigit() else SPEC['words'].index(token.lower())
+            if numbers and value(preferred) >= value(numbers[-1]):
+                clause = clause[:preference.start()] + ' ' * len(preference[0]) + clause[preference.end():]
+        domain_preference = search(SPEC['domainPreference'], clause)
+        if domain_preference and not search(SPEC['extraNumber'], domain_preference[0]) and not search(SPEC['tenure'], domain_preference[0]):
+            clause = clause[:domain_preference.start()] + ' ' * len(domain_preference[0])
+        if not search(SPEC['numericTenure'], clause):
             continue
+        matches = list(re.finditer(FRAME, clause, re.I | re.ASCII))
+        context_end = matches[0].start() if matches else len(clause)
         section = 'other'
-        for heading in re.finditer(SPEC['headings'], text[:clause_match.start()], re.I | re.M | re.ASCII):
+        for heading in re.finditer(SPEC['headings'], text[:clause_match.start() + context_end], re.I | re.M | re.ASCII):
             heading_text = next(g for g in heading.groups() if g is not None)
             heading_text = re.sub(r'^[^A-Za-zא-ת]+', '', re.sub(r'[:#*]+$', '', heading_text)).strip()
             if not re.search(r'[.!?;]', heading_text) and search(SPEC['optionalScope'], heading_text) and not search(SPEC['headingTenure'].replace('{number}', NUMBER), heading_text):
@@ -48,18 +60,23 @@ def experience_phrase(description):
                 section = 'other'
         if search(SPEC['inlineRequiredHeading'], clause):
             section = 'applicant'
-        if section == 'optional' or search(SPEC['company'], clause):
+        if section == 'optional' or search(SPEC['company'], clause[max(0, context_end - 180):context_end]):
             continue
-        matches = list(re.finditer(FRAME, clause, re.I | re.ASCII))
-        residue = clause[:matches[0].start()] + clause[matches[0].end():] if len(matches) == 1 else clause
-        if search(SPEC['complexity'], residue) or search(SPEC['optionalScope'], clause):
+        if matches and search(SPEC['company'], clause[matches[0].end():]):
+            continue
+        if search(SPEC['employerVerb'], clause[:context_end]) and not search(SPEC['applicantVerb'], clause[:context_end]):
+            continue
+        if search(SPEC['precedingNumber'], clause[:context_end]):
             return None
-        if section != 'applicant' and not search(SPEC['requiredContext'], clause):
+        residue = clause[:matches[0].start()] + clause[matches[0].end():] if len(matches) == 1 else clause
+        if (matches and search(SPEC['complexity'], clause[matches[0].end():])) or search(SPEC['optionalScope'], clause):
+            return None
+        if section != 'applicant' and not search(SPEC['requiredContext'], clause) and not search(SPEC['domainContext'], clause):
             continue
-        if search(SPEC['reject'], residue) or search(SPEC['extraNumber'], residue) or len(matches) != 1 or search(SPEC['tenure'], residue):
+        if search(SPEC['reject'], residue) or search(SPEC['alternativeNumber'], residue) or len(matches) != 1 or search(SPEC['tenure'], residue):
             return None
         match = matches[0]
-        if (search(SPEC['complexity'], re.sub(RANGE, '', match[0], count=1, flags=re.I | re.ASCII))
+        if (search(SPEC['complexity'], match[0])
                 or search(SPEC['extraNumber'], re.sub(SPEC['quantity'], '', match[0], count=1, flags=re.I | re.ASCII))):
             return None
         tokens = re.findall(rf'(?<![A-Za-z0-9_]){NUMBER}(?![A-Za-z0-9_])', match[0], re.I | re.ASCII)
@@ -68,7 +85,7 @@ def experience_phrase(description):
             return None
         quote = re.sub(r'^minimum(?:[ \t]+of)?[ \t]+', '', match[0], flags=re.I | re.ASCII)
         start = clause_match.start() + match.end() - len(quote)
-        rank = int(section == 'applicant')
+        rank = 2 * int(section == 'applicant') + int(bool(search(SPEC['role'], clause)))
         if selected is None or rank > selected[2]:
             selected, disagreement = (amounts[0], description[start:start + len(quote)], rank), False
         elif rank == selected[2] and amounts[0] != selected[0]:
@@ -93,6 +110,7 @@ def generate():
         translations.append(f"  normalized := translate(normalized, {chars}, repeat(chr({ord(target)}), {len(SPEC['normalization'][key])}));")
     normalization = '\n'.join(translations)
     masks = ','.join("'" + sql_regex(pattern) + "'" for pattern in SPEC['normalization']['mask'])
+    frames = ','.join("'" + sql_regex(LEAD + tail) + "'" for tail in SPEC['englishTail']) + ",'" + sql_regex(SPEC['hebrew']) + "'"
     patterns = {key: sql_regex(value) for key, value in SPEC.items() if isinstance(value, str)}
     return f"""-- GENERATED by scripts/generate_years_metadata.py; edit the shared grammar first.
 -- Updates future description writes. Existing cached rows need an operator-owned backfill.
@@ -105,6 +123,8 @@ declare
   mask_pattern text; mask_start integer; mask_end integer;
   position integer; clause_start integer; clause_end integer; clause text;
   captures text[]; heading text; section text;
+  preference_start integer; preference_end integer; preferred integer; preceding integer;
+  preference_token text; context_end integer; context text; frame_pattern text;
   start_at integer; end_at integer; matched text; residue text; quoted text;
   amounts integer[]; rank integer; selected_rank integer := -1;
   selected_minimum integer; disagreement boolean := false;
@@ -131,38 +151,76 @@ begin
       clause_end := regexp_instr(normalized, '[^.!?;\\n]+', position, 1, 1);
       position := clause_end;
       clause := substr(normalized,clause_start,clause_end-clause_start);
-      if (clause collate "C") !~* '{patterns['tenure']}' then continue; end if;
+      -- Remove only a higher numeric preference; never remove optional requirement scope.
+      preference_start := 1;
+      loop
+        preference_start := regexp_instr(clause collate "C", '{patterns['preference']}', preference_start, 1, 0, 'i');
+        exit when preference_start = 0;
+        preference_end := regexp_instr(clause collate "C", '{patterns['preference']}', preference_start, 1, 1, 'i');
+        preceding := null;
+        for captures in select regexp_matches(substr(clause,1,preference_start-1) collate "C",'({patterns['extraNumber']})','gi') loop
+          preceding := case when captures[1] ~ '^[0-9]+$' then captures[1]::integer
+            else array_position(array{SPEC['words']}::text[],lower(captures[1])) - 1 end;
+        end loop;
+        preference_token := (regexp_match(substr(clause,preference_start,preference_end-preference_start) collate "C",'({patterns['extraNumber']})','i'))[1];
+        preferred := case when preference_token ~ '^[0-9]+$' then preference_token::integer
+          else array_position(array{SPEC['words']}::text[],lower(preference_token)) - 1 end;
+        if preceding is not null and preferred >= preceding then
+          clause := overlay(clause placing repeat(' ',preference_end-preference_start) from preference_start for preference_end-preference_start);
+        end if;
+        preference_start := preference_end;
+      end loop;
+      preference_start := regexp_instr(clause collate "C", '{patterns['domainPreference']}', 1, 1, 0, 'i');
+      if preference_start > 0 and (substr(clause,preference_start) collate "C") !~* '{patterns['extraNumber']}'
+        and (substr(clause,preference_start) collate "C") !~* '{patterns['tenure']}' then
+        clause := overlay(clause placing repeat(' ',length(clause)-preference_start+1) from preference_start);
+      end if;
+      if (clause collate "C") !~* '{patterns['numericTenure']}' then continue; end if;
+      start_at := regexp_instr(clause collate "C", '{sql_regex(FRAME)}', 1, 1, 0, 'i');
+      end_at := 0;
+      -- Match JS/Python's ordered alternatives, not ARE's longest overall match.
+      if start_at > 0 then
+        foreach frame_pattern in array array[{frames}] loop
+          if regexp_instr(clause collate "C",frame_pattern,start_at,1,0,'i') = start_at then
+            end_at := regexp_instr(clause collate "C",frame_pattern,start_at,1,1,'i');
+            -- The experience tail is lazy in JS/Python but ARE may prefer a later word.
+            if frame_pattern = '{sql_regex(LEAD + SPEC['englishTail'][0])}' then
+              end_at := regexp_instr(clause collate "C",'(?<![A-Za-z0-9_])experience(?![A-Za-z0-9_])',start_at,1,1,'i');
+            end if;
+            exit;
+          end if;
+        end loop;
+      end if;
+      context_end := case when start_at > 0 then start_at - 1 else length(clause) end;
+      context := substr(clause,1,context_end);
       section := 'other';
-      for captures in select regexp_matches(substr(normalized,1,clause_start-1) collate "C",'{patterns['headings']}','gin') loop
+      for captures in select regexp_matches(substr(normalized,1,clause_start-1+context_end) collate "C",'{patterns['headings']}','gin') loop
         heading := btrim(regexp_replace(regexp_replace(coalesce(captures[1],captures[2],captures[3]),'[:#*]+$',''),'^[^A-Za-zא-ת]+',''));
         if heading !~ '[.!?;]' and (heading collate "C") ~* '{patterns['optionalScope']}' and (heading collate "C") !~* '{sql_regex(SPEC['headingTenure'].replace('{number}', NUMBER))}' then section := 'optional';
         elsif (heading collate "C") ~* '{patterns['requiredHeading']}' then section := 'applicant';
         elsif (heading collate "C") ~* '{patterns['otherHeading']}' then section := 'other'; end if;
       end loop;
       if (clause collate "C") ~* '{patterns['inlineRequiredHeading']}' then section := 'applicant'; end if;
-      if section = 'optional' or (clause collate "C") ~* '{patterns['company']}' then continue; end if;
-      start_at := regexp_instr(clause collate "C", '{sql_regex(FRAME)}', 1, 1, 0, 'i');
-      end_at := regexp_instr(clause collate "C", '{sql_regex(FRAME)}', 1, 1, 1, 'i');
-      -- PostgreSQL ARE chooses a longest alternative; English ends at the first experience.
-      if start_at > 0 and substr(clause,start_at,1) !~ '[א-ת]' and substr(clause,start_at,end_at-start_at) !~ '[א-ת]' then
-        end_at := regexp_instr(clause collate "C", '(?<![A-Za-z0-9_])experience(?![A-Za-z0-9_])', start_at, 1, 1, 'i');
-      end if;
+      if section = 'optional' or (right(context,180) collate "C") ~* '{patterns['company']}' then continue; end if;
+      if start_at > 0 and (substr(clause,end_at) collate "C") ~* '{patterns['company']}' then continue; end if;
+      if (context collate "C") ~* '{patterns['employerVerb']}' and (context collate "C") !~* '{patterns['applicantVerb']}' then continue; end if;
+      if (context collate "C") ~* '{patterns['precedingNumber']}' then experience := null; exit; end if;
       matched := substr(clause,start_at,end_at-start_at);
       residue := clause;
       if start_at > 0 and regexp_instr(clause collate "C", '{sql_regex(FRAME)}', end_at, 1, 0, 'i') = 0 then
         residue := substr(clause,1,start_at-1) || substr(clause,end_at);
       end if;
-      if (residue collate "C") ~* '{patterns['complexity']}' or (clause collate "C") ~* '{patterns['optionalScope']}' then experience := null; exit; end if;
-      if section <> 'applicant' and (clause collate "C") !~* '{patterns['requiredContext']}' then continue; end if;
-      if (residue collate "C") ~* '{patterns['reject']}' or (residue collate "C") ~* '{patterns['extraNumber']}' or start_at = 0 or (residue collate "C") ~* '{patterns['tenure']}'
-        or (regexp_replace(matched collate "C", '{sql_regex(RANGE)}','','i') collate "C") ~* '{patterns['complexity']}'
+      if (start_at > 0 and (substr(clause,end_at) collate "C") ~* '{patterns['complexity']}') or (clause collate "C") ~* '{patterns['optionalScope']}' then experience := null; exit; end if;
+      if section <> 'applicant' and (clause collate "C") !~* '{patterns['requiredContext']}' and (clause collate "C") !~* '{patterns['domainContext']}' then continue; end if;
+      if (residue collate "C") ~* '{patterns['reject']}' or (residue collate "C") ~* '{patterns['alternativeNumber']}' or start_at = 0 or (residue collate "C") ~* '{patterns['tenure']}'
+        or (matched collate "C") ~* '{patterns['complexity']}'
         or (regexp_replace(matched collate "C", '{patterns['quantity']}','','i') collate "C") ~* '{patterns['extraNumber']}' then experience := null; exit; end if;
       select array_agg(case when m[1] ~ '^[0-9]+$' then m[1]::integer
         else array_position(array{SPEC['words']}::text[],lower(m[1])) - 1 end)
         into amounts from regexp_matches(matched collate "C", '(?<![A-Za-z0-9_])({patterns['number']})(?![A-Za-z0-9_])','gi') m;
       if amounts[1] is null or (array_length(amounts,1) > 1 and amounts[2] < amounts[1]) then experience := null; exit; end if;
       quoted := regexp_replace(matched collate "C", '^minimum(?:[ \\t]+of)?[ \\t]+','','i');
-      rank := case when section = 'applicant' then 1 else 0 end;
+      rank := case when section = 'applicant' then 2 else 0 end + case when (clause collate "C") ~* '{patterns['role']}' then 1 else 0 end;
       if rank > selected_rank then
         selected_rank := rank; selected_minimum := amounts[1]; disagreement := false;
         experience := substr(description,clause_start + end_at - length(quoted) - 1,length(quoted));
