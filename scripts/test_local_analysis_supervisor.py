@@ -5,9 +5,11 @@ import json
 import os
 from pathlib import Path
 import signal
+import socket
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -141,25 +143,87 @@ def test_credential_boundary_is_durable_before_worker_exec(tmp_path: Path) -> No
     assert {event["run_id"] for event in events} == {status["run_id"]}
 
 
-def test_analysis_gets_full_budget_after_credential_boundary(tmp_path: Path) -> None:
-    command = [
-        sys.executable,
-        "-m",
-        "scripts.local_analysis_supervisor",
-        "--credential-ready-child",
-        "--",
-        sys.executable,
-        "-c",
-        "import time; time.sleep(0.2)",
-    ]
-    assert local_analysis_supervisor.run_once(
-        command,
-        state_dir=tmp_path,
-        timeout_seconds=0.5,
-        credential_boundary=True,
-        credential_timeout_seconds=0.1,
-    ) == 0
-    assert read_status(tmp_path)["phase"] == "analysis"
+def test_analysis_gets_full_budget_after_credential_boundary(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    clock = SimpleNamespace(now=0.0)
+    monkeypatch.setattr(
+        local_analysis_supervisor, "time",
+        SimpleNamespace(monotonic=lambda: clock.now, sleep=time.sleep),
+    )
+    original_popen = subprocess.Popen
+    processes = []
+    control, child_control = socket.socketpair()
+    with control, child_control:
+        # Real fixture startup/exit has a watchdog, separate from virtual budgets.
+        control.settimeout(5)
+        descriptor = child_control.fileno()
+        worker = (
+            f"import os; os.write({descriptor}, b'A'); os.read({descriptor}, 1)"
+        )
+        launcher = (
+            "import os, sys; "
+            "from scripts.local_analysis_supervisor import _credential_ready_child; "
+            f"os.write({descriptor}, b'C'); os.read({descriptor}, 1); "
+            f"_credential_ready_child([sys.executable, '-c', {worker!r}])"
+        )
+        command = [sys.executable, "-c", launcher]
+
+        def popen(*args, **kwargs):
+            process = original_popen(
+                *args, pass_fds=(descriptor,), **kwargs,
+            )
+            processes.append(process)
+            original_wait = process.wait
+            assert control.recv(1) == b'C'
+            waits = 0
+
+            def wait(timeout=None):
+                nonlocal waits
+                waits += 1
+                if waits == 1:
+                    # Credentials consume most of their independent 0.1s budget.
+                    clock.now = 0.09
+                    control.sendall(b'C')
+                    assert control.recv(1) == b'A'
+                elif waits == 2:
+                    # This wait must receive analysis time, not the old remainder.
+                    assert timeout == pytest.approx(
+                        local_analysis_supervisor.PHASE_POLL_SECONDS,
+                    )
+                    clock.now += 0.49
+                else:
+                    control.sendall(b'A')
+                    return original_wait(timeout=5)
+                raise subprocess.TimeoutExpired(command, timeout)
+
+            monkeypatch.setattr(process, "wait", wait)
+            return process
+
+        monkeypatch.setattr(local_analysis_supervisor.subprocess, "Popen", popen)
+        try:
+            assert local_analysis_supervisor.run_once(
+                command,
+                state_dir=tmp_path,
+                timeout_seconds=0.5,
+                credential_boundary=True,
+                credential_timeout_seconds=0.1,
+            ) == 0
+            # Total elapsed time exceeds both original deadlines; analysis alone
+            # remains inside its full, freshly started 0.5s budget.
+            assert clock.now == pytest.approx(0.58)
+            assert read_status(tmp_path)["phase"] == "analysis"
+            assert [event["outcome"] for event in read_supervisor_events(tmp_path)] == [
+                "started", "credential_acquired", "succeeded",
+            ]
+        finally:
+            for process in processes:
+                if process.poll() is None:
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                original_popen.wait(process, timeout=5)
 
 
 def test_timeout_kills_child_that_ignores_sigterm(

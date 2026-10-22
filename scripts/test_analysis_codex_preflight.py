@@ -1,8 +1,10 @@
 from pathlib import Path
 import os
+import socket
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -57,41 +59,68 @@ def test_version_probe_kills_descendants_and_reaps_parent(tmp_path, monkeypatch,
         'success_inherited_stdout': 'print("codex-cli 0.153.4",flush=True)',
         'nonzero': 'sys.exit(2)',
         'overflow': 'os.write(1,b"x"*1048576)',
-        'timeout': 'time.sleep(60)',
+        'timeout': 'signal.pause()',
     }
     child_stdout = 'None' if mode == 'success_inherited_stdout' else 'subprocess.DEVNULL'
-    pinned = synthetic_binary(tmp_path, 'import os,subprocess,sys,time\nfrom pathlib import Path\n'
-        'child=subprocess.Popen([sys.executable,"-c","import time;time.sleep(60)"],'
-        f'stdout={child_stdout},stderr=subprocess.DEVNULL)\n'
-        f'Path({str(pidfile)!r}).write_text(str(child.pid))\n' + actions[mode] + '\n')
     parents = []
     original = subprocess.Popen
+    clock = SimpleNamespace(now=0.0)
+    # Replace this module's clock, not time.monotonic used by subprocess itself.
+    monkeypatch.setattr(preflight, 'time', SimpleNamespace(monotonic=lambda: clock.now))
+    ready, child_ready = socket.socketpair()
+    with ready, child_ready:
+        # A fixture watchdog, independent of the version-probe deadline.
+        ready.settimeout(preflight.VERSION_TIMEOUT)
+        pinned = synthetic_binary(tmp_path, 'import os,signal,subprocess,sys\nfrom pathlib import Path\n'
+            'child=subprocess.Popen([sys.executable,"-c","import signal;signal.pause()"],'
+            f'stdout={child_stdout},stderr=subprocess.DEVNULL)\n'
+            f'Path({str(pidfile)!r}).write_text(str(child.pid))\n'
+            f'os.write({child_ready.fileno()},b"R")\n' + actions[mode] + '\n')
 
-    def popen(*args, **kwargs):
-        process = original(*args, **kwargs)
-        parents.append(process)
-        return process
+        def popen(*args, **kwargs):
+            if args[0][0] != str(pinned):
+                return original(*args, **kwargs)
+            process = original(*args, pass_fds=(child_ready.fileno(),), **kwargs)
+            parents.append(process)
+            assert ready.recv(1) == b'R'
+            if mode == 'timeout':
+                # Expire only after the descendant and its PID receipt exist.
+                clock.now = preflight.VERSION_TIMEOUT + 1
+            return process
 
-    monkeypatch.setattr(preflight.subprocess, 'Popen', popen)
-    # Allow interpreter startup under the shared queue's system load.
-    monkeypatch.setattr(preflight, 'VERSION_TIMEOUT', 2, raising=False)
-    try:
-        if mode.startswith('success'):
-            check_pin(pinned, 'codex-cli 0.153.4', tmp_path)
-        else:
-            with pytest.raises(RuntimeError):
+        monkeypatch.setattr(preflight.subprocess, 'Popen', popen)
+        try:
+            if mode.startswith('success'):
                 check_pin(pinned, 'codex-cli 0.153.4', tmp_path)
-        child = int(pidfile.read_text())
-        deadline = time.monotonic() + 2
-        while running(child) and time.monotonic() < deadline:
-            time.sleep(0.02)
-        assert not running(child), f'{mode} left a version-probe descendant running'
-        assert parents[0].returncode is not None
-        with pytest.raises(ChildProcessError):
-            os.waitpid(parents[0].pid, os.WNOHANG)
-    finally:
-        if pidfile.exists() and running(int(pidfile.read_text())):
-            os.kill(int(pidfile.read_text()), 9)
+            else:
+                diagnostic = {
+                    'nonzero': 'does not match',
+                    'overflow': 'bounded version output',
+                    'timeout': 'version probe failed',
+                }[mode]
+                with pytest.raises(RuntimeError, match=diagnostic):
+                    check_pin(pinned, 'codex-cli 0.153.4', tmp_path)
+            child = int(pidfile.read_text())
+            deadline = time.monotonic() + 2
+            while running(child) and time.monotonic() < deadline:
+                time.sleep(0.02)
+            assert not running(child), f'{mode} left a version-probe descendant running'
+            assert parents[0].returncode is not None
+            with pytest.raises(ChildProcessError):
+                os.waitpid(parents[0].pid, os.WNOHANG)
+        finally:
+            for parent in parents:
+                if parent.poll() is None:
+                    try:
+                        os.killpg(parent.pid, 9)
+                    except ProcessLookupError:
+                        pass
+                    parent.wait()
+            if pidfile.exists() and running(int(pidfile.read_text())):
+                try:
+                    os.kill(int(pidfile.read_text()), 9)
+                except ProcessLookupError:
+                    pass
 
 
 def binary(path, version):
