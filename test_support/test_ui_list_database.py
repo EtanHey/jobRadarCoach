@@ -1,4 +1,5 @@
 """Exercise the real Supabase list builder against a disposable PostgREST/DB."""
+import json
 import os
 from pathlib import Path
 import shutil
@@ -31,10 +32,24 @@ def test_ui_list_database(tmp_path):
                 ('00000000-0000-0000-0000-000000024003','fixture','three','https://example.test/three','Engineer','Fixture',null,'2026-01-01Z','{}')""")
             for migration in sorted(migrations.glob("[0-9][0-9][0-9][0-9]_*.sql")):
                 if 23 < int(migration.name[:4]) <= latest:
+                    if migration.name == "0041_years_employer_tenure.sql":
+                        mixed = "Requirements\nThe founding group contributes 24 years of experience, applicants must bring 7 years of software engineering experience\n2 years of experience with Milvus"
+                        db.execute("update postings set raw_jd=%s where external_id='three'", (mixed,))
+                        assert db.execute("select list_metadata->>'experience' from postings where external_id='three'").fetchone()[0] == '2 years of experience'
                     db.execute(migration.read_text())
-                    if migration.name == "0040_years_compact_formats.sql":
+                    if migration.name == "0041_years_employer_tenure.sql":
                         # The RPC fixture suite runs after reapplication, including on Ubuntu CI.
+                        cases = json.loads((ROOT / "ui/tests/fixtures/years-extraction.json").read_text())
+                        before = [db.execute("select public.posting_list_metadata(%s)", (description,)).fetchone()[0]
+                                  for description, _ in cases]
+                        assert [row['experience'] for row in before] == [expected for _, expected in cases]
                         db.execute(migration.read_text())
+                        after = [db.execute("select public.posting_list_metadata(%s)", (description,)).fetchone()[0]
+                                 for description, _ in cases]
+                        assert after == before
+                        # Function replacement must not rewrite the stored generated column.
+                        assert db.execute("select public.posting_list_metadata(raw_jd)->>'experience' from postings where external_id='three'").fetchone()[0] is None
+                        assert db.execute("select list_metadata->>'experience' from postings where external_id='three'").fetchone()[0] == '2 years of experience'
             db.execute("insert into posting_status(posting_id,status) select id,case when external_id='two' then 'seen' else 'new' end from postings")
         with psycopg.connect(url) as db:
             db.execute("update postings set raw_jd='Requirements: 4 years of software engineering experience with React', stack=array['Extracted'] where external_id='three'")

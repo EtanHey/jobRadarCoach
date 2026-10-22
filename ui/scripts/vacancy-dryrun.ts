@@ -34,7 +34,7 @@ async function main() {
   const rows = await withVacancyIdentity(db,jobs);
   const candidateCount = vacancyBodyCandidates(jobs).length;
   const fetchedCount = batches.reduce((sum,size)=>sum+size,0);
-  assert.ok(fetchedCount <= 300);
+  assert.equal(fetchedCount,candidateCount);
   assert.ok(rows.every(row=>!("raw_jd" in row) && !("identity_evidence" in row)));
   const baselinePath = new URL(`../lib/job-dedup-baseline-${randomUUID()}.local.ts`, import.meta.url);
   writeFileSync(baselinePath, execFileSync("git", ["show", `${baselineRef}:ui/lib/job-dedup.ts`]));
@@ -101,7 +101,7 @@ async function main() {
       `NVIDIA cited subset: ${nvidiaIds.length} rows; ${count(before,nvidiaIds)} before → ${count(after,nvidiaIds)} after (target 21).`,
       `Groups merging different known requisitions: ${conflicts.length}.`, "", "| Triage subgroup | Rows | Before | After | Known requisitions |", "|---|---:|---:|---:|---|",
       ...subgroups.map(group => `| ${group.name} | ${group.ids.length} | ${count(before,group.ids)} | ${count(after,group.ids)} | ${[...new Set(rows.filter(row => group.ids.includes(row.id)).flatMap(row => row.vacancy_identity?.requisitions ?? []))].join(", ") || "none"} |`), "",
-      `Candidate bodies: ${candidateCount}; fetched: ${fetchedCount}; batches: ${batches.join(", ")}; maximum batch: ${Math.max(0,...batches)}; request cap: 300.`, "",
+      `Candidate bodies: ${candidateCount}; fetched: ${fetchedCount}; batches: ${batches.join(", ")}; maximum batch: ${Math.max(0,...batches)}; all candidates fetched in batches of at most 100.`, "",
       "Counts intersect each subgroup with the full snapshot grouping, not a separate isolated run. No row is deleted or written to a database. Source IDs, sources, URLs, locations, per-source liveness and scores are checked against the original rows. Both frozen Unframe and Office Hours pairs group to one in either input order.", "",
       "## Every baseline group that split", "",
       `${splits.length} baseline groups split, adding ${splits.reduce((sum, split) => sum + split.parts.length - 1, 0)} groups before merges elsewhere. Splits without distinct known requisition evidence: ${splits.filter(split => !split.distinct).length}.`, "",
@@ -118,11 +118,11 @@ async function main() {
       "## Identity and fallback rule", "",
       "Strong identity uses employer requisitions from labelled JD fields (including Job Req), unlabelled JR IDs with at least five digits in the JD, or Workday URL path segments _JR<digits> / _R<at least five digits>. Bare R IDs are never extracted from JD text. Greenhouse posting IDs (jobs path, gh_jid, embed token), Lever UUIDs, Comeet position UIDs and Workable shortcodes remain posting/link evidence. They cannot veto a JD match.", "",
       "Without conflicting known requisitions, identical normalized JDs merge even with title/location drift. Different JD fingerprints fall through to the existing title/role-URL and compatible-location heuristic. A changed hash cannot prove distinct headcount: this conservative fallback restores the nine unknown-requisition baseline groups split in R1, including Office Hours. Different titles and posting URLs with substantively different JDs stay separate; known distinct requisitions always stay separate even with matching titles, locations and JDs. This intentionally does not infer distinct headcount from substantive wording changes alone.", "",
-      "Board, globe and new-role membership projections omit raw_jd. Identity uses URLs first; only unique rows of repeated normalized employers without URL requisitions fetch bodies, in batches of at most 100 with a 300-row cap per request and a warning on overflow. This offline run exercises the shared server helper with snapshot-backed evidence responses. Bodies do not cross the browser wire. Identity can reflect a later JD edit; membership/geo/cutoff remain from the original snapshot.", "",
+      "Board, globe and new-role membership projections omit raw_jd. Identity uses URLs first; only unique rows of repeated normalized employers without URL requisitions fetch bodies, in batches of at most 100 with no candidate-count cap. This offline run exercises the shared server helper with snapshot-backed evidence responses. Bodies do not cross the browser wire. Identity can reflect a later JD edit; membership/geo/cutoff remain from the original snapshot.", "",
       "Offline function evidence only. No hosted dashboard, production DB, browser visual QA, or ingest change is claimed.", ""];
     writeFileSync(reportPath, lines.join("\n"));
     process.stdout.write(lines.slice(0,8).join("\n") + "\n");
-    process.stdout.write(`Candidate bodies: ${candidateCount}; fetched: ${fetchedCount}; max batch: ${Math.max(0,...batches)}; request cap: 300.\n`);
+    process.stdout.write(`Candidate bodies: ${candidateCount}; fetched: ${fetchedCount}; max batch: ${Math.max(0,...batches)}; candidate cap: none.\n`);
     assert.equal(before.length,582);
     assert.equal(after.length,574);
     if (conflicts.length || count(after,nvidiaIds) !== 21 || splits.some(split => !split.distinct)) process.exitCode = 1;
