@@ -184,128 +184,66 @@ OWN_ATTENDANCE = re.compile(
 )
 
 
-def _own_workplace_terms(clause: str, *, attendance: bool, own_city: str = "") -> str:
-    """Resolve bounded local terms; keep independent restrictions for parsing."""
-    if not (
-        OFFICE.search(clause)
-        or OWN_ATTENDANCE.search(clause)
-        or OWN_COUNTRY_AUTHORIZATION.search(clause)
-        or re.search(r"\b(?:based|located)\s+in\s+", clause, re.I)
-    ):
-        return clause
-    if re.search(r"\bsecurity clearance\b|סיווג ביטחוני", clause, re.I):
-        return clause
-    clause = OWN_COUNTRY_AUTHORIZATION.sub(
-        lambda match: " " if not clause[match.end() :].strip(" .") else match.group(),
-        clause,
+# These are complete tokens/phrases, never accepted continuation prefixes.
+OWN_WORK_MODEL = re.compile(
+    r"(?<!\w)(?:hybrid|remote|on[ -]?site|in[ -]office|office[ -]based|office|"
+    r"flexible|model|schedule|environment|policy|work|working|"
+    r"(?:\d+|one|two|three|four|five)\s+days?|per\s+week|a\s+week|each\s+week|weekly|"
+    r"from\s+home|WFH|option|"
+    r"a|an|the|and|or|with|in|at|from|our|we|is|"
+    r"[והב]*(?:היברידי(?:ת)?|מרחוק|משרד|גמיש(?:ה)?|מודל|מתכונת|סביבת|סביבה|"
+    r"מדיניות|עבודה|עובדים|שבועי(?:ת)?|אפשרות)|"
+    r"(?:\d+|יום אחד|יומיים|שני|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש)\s*(?:ימים)?|"
+    r"בשבוע|מהבית|שלנו|אנחנו|עם|או|ו)(?!\w)",
+    re.I,
+)
+OWN_SITE = re.compile(
+    r"\b(?:(?:(?:our|the|this)\s+)?(?:company|office|site|role|position|job)\s+(?:is\s+)?)?"
+    r"(?:based|located)\s+in\s+|"
+    r"(?<!\w)(?:החברה|המשרד|המשרה)\s+(?:ממוקמת|ממוקם|מבוססת)\s+ב",
+    re.I,
+)
+
+
+def _own_workplace_terms(
+    clause: str, *, attendance: bool, own_location: str
+) -> str | None:
+    """Consume a whole local workplace clause; None retains an unresolved rule."""
+    authorization = OWN_COUNTRY_AUTHORIZATION.search(clause)
+    site = OWN_SITE.search(clause)
+    workplace = (
+        OFFICE.search(clause) or OWN_ATTENDANCE.search(clause)
+        or re.search(r"\bin[ -]office\b", clause, re.I)
     )
-    if (
-        CREDENTIAL.search(clause)
-        or NATIONALITY_CREDENTIAL.search(clause)
-        or re.search(r"\b(?:clients?|customers?|security clearance)\b", clause, re.I)
-    ):
+    if not (workplace or authorization or site):
         return clause
-    # A foreign place anywhere in the workplace sentence prevents inheriting
-    # the ATS office. Short prose homographs such as 'us' are not place names.
-    for word in re.finditer(r"\b\w", clause):
-        place = match_geographic_place(clause, word.start())
-        if place and (place[0] not in {"israel", "noncentral"} or (
-            attendance and not own_city and place[0] == "noncentral"
-        )):
-            name = clause[word.start() : place[1]]
-            if clause[word.start() - 1 : word.start()] == "#" and re.match(
-                r"LI-", clause[word.start() :], re.I
-            ):
-                continue
-            if name.casefold() in {"ai", "ml", "sc", "it", "ci", "cd"}:
-                continue
-            if len(name) > 3 or name.isupper() or re.search(r"[א-ת]", name):
-                return clause
-
-    # Company/site descriptions are place evidence, not applicant residency.
-    # Remove only the resolved phrase, leaving later credentials/exclusions.
-    for match in reversed(list(re.finditer(
-        r"\b(?:based|located)\s+in\s+(?:our\s+(?:office\s+in\s+)?|the (?:heart|Bursa area) of\s+|central\s+|Midtown\s+)?",
-        clause, re.I
-    ))):
-        scope = _scope(clause, match.end())
-        if not scope.kinds and own_city:
-            city = re.match(re.escape(own_city) + r"(?!\w)", clause[match.end() :], re.I)
-            if city:
-                end = match.end() + city.end()
-                alternative = re.match(r"\s+and\s+", clause[end:], re.I)
-                if alternative:
-                    extra = _scope(clause, end + alternative.end())
-                    scope = Scope(extra.kinds, extra.end, extra.complete)
-                else:
-                    scope = Scope(("noncentral",), end, bool(re.match(
-                        r"\s*(?:$|[.,]|is looking\b)", clause[end:], re.I
-                    )))
-        area = re.match(r"\s+area\b", clause[scope.end :], re.I)
-        if area:
-            end = scope.end + area.end()
-            scope = Scope(scope.kinds, end, bool(re.fullmatch(
-                r"\s*(?:\((?:hybrid|on[ -]?site)\))?[. ]*", clause[end:], re.I
-            )))
-        tail = clause[scope.end :]
-        narrative = re.match(
-            r"\s*(?:,\s*(?:our|we|working|is|the company|between|just|you|and the local)\b|"
-            r"(?:is looking|working|near|within|adjacent|and collaborates|What We Do)\b)", tail, re.I
-        )
-        if scope.kinds and set(scope.kinds) <= {"israel", "noncentral"} and (
-            scope.complete or narrative
-        ):
-            office = re.match(r"\s+office\b", tail, re.I)
-            end = scope.end + (office.end() if office else 0)
-            clause = clause[: match.start()] + " " + clause[end :]
-
-    if attendance:
-        for match in reversed(list(re.finditer(
-            r"\b(?:in|at|from)\s+(?:(?:our|the)\s+)?", clause, re.I
-        ))):
-            scope = _scope(clause, match.end())
-            office = re.match(r"\s+office\b", clause[scope.end :], re.I)
-            if scope.complete and scope.kinds and set(scope.kinds) == {"israel"} and office:
-                clause = clause[: match.start()] + " in the office " + clause[scope.end + office.end() :]
-
-    # A named unknown office must never inherit Israel. The ordinary parser
-    # still handles these place-bearing work-model phrases conservatively.
-    if not attendance or OTHER_ROLES.search(clause) or re.search(
-        r"\boffice\s+(?:in|at|outside|near)\s+", clause, re.I
-    ):
-        return clause
-    clause = OWN_ATTENDANCE.sub(" ", clause)
-    clause = re.sub(r"\b(?:in|at|from)\s+(?:our|the)\s+office\b", " ", clause, flags=re.I)
-    if re.search(
-        r"\b(?:office(?:\s+environment)?|site)\s+(?:in|at|outside|near)\s+|"
-        r"\b(?:in|at|from)\s+(?:our\s+|the\s+)?(?!(?:our|the|office)\b)[\w'-]+\s+office\b|"
-        r"\b(?:hybrid|on[ -]?site|office[ -]based)\s+"
-        r"(?:(?:work|working|role|position|model|schedule|setup)\s+)*"
-        r"(?:in|at|from|within|outside|near)\s+",
-        clause, re.I,
-    ):
-        return clause
-    if RESTRICTION.search(clause):
+    if workplace and not attendance:
         return clause
 
-    def local_mode(match: re.Match[str]) -> str:
-        tail = clause[match.end() :].strip(" :-–—,()")
-        tail = re.sub(
-            r"^(?:(?:work|working|role|position|job|model|schedule|setup|policy|capacity|"
-            r"office|environment|full[ -]time)\b[\s:&()–—,-]*)+", "", tail, flags=re.I
-        )
-        if tail and not re.match(
-            r"(?:with|that|which|and|or|joining|from|at|no|plus|designed|"
-            r"large study fund|stock options|good work|opportunities|closely|a fully equipped|what you|"
-            r"\d+|one|two|three|four|five)\b|[^\w]", tail, re.I
-        ):
-            # An unnamed work model may continue with ordinary descriptive
-            # prose; an unparsed proper place name remains unresolved.
-            if not tail[0].islower():
-                return match.group()
-        return " "
-
-    return OFFICE.sub(local_mode, clause)
+    # Recognize pronouns before removing places, so deletion cannot create a
+    # new 'with us' phrase out of 'with Tel Aviv us'.
+    remainder = re.sub(r"\b(?:join|with)\s+us\b", " ", clause, flags=re.I)
+    remainder = OWN_COUNTRY_AUTHORIZATION.sub(" ", remainder)
+    remainder = OWN_SITE.sub(" ", remainder)
+    # Only places actually present in the resolved ATS field can be inherited.
+    # Normalize separators, but never drop an unfamiliar token or short code.
+    places = {_normalized_location(own_location)}
+    for part in re.split(r"[,;()]|\s+and\s+", own_location, flags=re.I):
+        if part.strip():
+            places.add(_normalized_location(part))
+    remainder = _normalized_location(normalize_israeli_location(remainder))
+    own_place_consumed = False
+    for place in sorted(places, key=len, reverse=True):
+        if place:
+            remainder, count = re.subn(
+                r"(?<!\w)(?:[במל])?" + re.escape(place) + r"(?!\w)",
+                " ", remainder,
+            )
+            own_place_consumed |= bool(count)
+    if site and not own_place_consumed:
+        return None
+    remainder = OWN_WORK_MODEL.sub(" ", remainder)
+    return None if remainder.strip() else " "
 
 
 def _without_policy(text: str) -> str:
@@ -641,6 +579,7 @@ def decide_location_eligibility(
             if not clause:
                 continue
             excerpt = original.strip()[:1000]
+            own_workplace_unresolved = False
             if is_location:
                 clause = normalize_israeli_location(clause)
                 if own_city:
@@ -652,8 +591,11 @@ def decide_location_eligibility(
                     clause = _own_workplace_terms(
                         clause,
                         attendance=bool(own_city) or not (central and "noncentral" in own_scope.kinds),
-                        own_city=own_city,
+                        own_location=own_field,
                     )
+                    if clause is None:
+                        own_workplace_unresolved = True
+                        clause = before_own_terms
                     if (
                         clause != before_own_terms and not own_city
                         and not (central and "noncentral" in own_scope.kinds)
@@ -1065,6 +1007,12 @@ def decide_location_eligibility(
                         ):
                             unknown.append(excerpt)
             if _qualified_credential(clause):
+                unknown.append(excerpt)
+
+            # An independently parsed, complete explicit geographic rule can
+            # resolve itself. Otherwise a failed own-workplace consumption vetoes
+            # eligibility even if its leftover words have no restriction keyword.
+            if own_workplace_unresolved and not is_covered(0, len(clause.rstrip(" ."))):
                 unknown.append(excerpt)
 
             for restriction in RESTRICTION.finditer(clause):

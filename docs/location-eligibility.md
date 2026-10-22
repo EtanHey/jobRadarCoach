@@ -167,9 +167,13 @@ Expim Haifa and Plasan Sasa retain their commute blocks. The Benin/building and 
 conservative unknowns, as does the unsupported London-office attendance probe.
 
 When a posting's location resolves to Israel, its own work-model terms (hybrid,
-onsite, and unnamed weekly office attendance) can be satisfied locally. Known
-foreign places and unresolved named offices still go through the restriction
-parser. A company/site description naming its own Israeli city is place evidence;
+onsite, and unnamed weekly office attendance) can be satisfied locally only
+when the entire clause is consumed by the closed work-model vocabulary and its
+own resolved place. The own-site and own-country authorization rules use the
+same leftover check. Any extra token, including lowercase place codes or unknown
+prose after a connective, leaves an unresolved restriction. Pronoun `us` is
+consumed only in `join us` or `with us`. Foreign places and unresolved named
+offices still go through the restriction parser. A company/site description naming its own Israeli city is place evidence;
 an unfamiliar city with an explicit Israeli country suffix retains unconfirmed
 commute scope. Existing noncentral commute blocks remain in force.
 

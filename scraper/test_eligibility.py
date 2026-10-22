@@ -578,13 +578,6 @@ def test_resolved_foreign_or_neutral_remote_field_retains_description_block(loca
     "Flexible hybrid work model",
     "Hybrid work schedule with 3 days in-office",
     "We work 3 days a week in the office",
-    "Our work model is fully in person, with 5 days a week from our office",
-    "On-site role based in Tel Aviv",
-    "Our company is based in Tel Aviv",
-    "#LI-Hybrid Joining our company is the smart move",
-    "This is a full-time, on-site role working closely with founders",
-    "The office is located in Central Israel adjacent to the train station, operating on a hybrid model",
-    "This position is based in our Ramat-Gan, Israel office and requires strong leadership presence",
     "Applicants must have the legal right to work in the country where the position is based, without the need for visa sponsorship",
     "Applicants must be authorized to work in the country in which they apply and will be required to provide proof of employment eligibility as a condition of hire",
     "על המועמדים להיות בעלי זכות חוקית לעבוד במדינה שבה המשרה ממוקמת, ללא צורך בחסות לוויזה",
@@ -644,3 +637,52 @@ def test_unfamiliar_own_israeli_city_retains_unconfirmed_scope(location):
     result = decide_location_eligibility({"location": location, "raw_jd": "Hybrid work model"}, None, PROFILE)
     assert result["eligibility"] == "unknown"
     assert result["eligibility_reason"].startswith("Israel/remote-from-Israel scope is unconfirmed:")
+
+
+@pytest.mark.parametrize("jd", [
+    "Hybrid - uk", "Hybrid working (uk)", "Hybrid - eu", "On-site - eu",
+    "Hybrid - nyc", "Hybrid working (nyc)", "Hybrid UK", "Hybrid Eu", "In-office uk",
+    "Hybrid Nyc", "Hybrid us", "Hybrid US", "Hybrid U.S.",
+    "Hybrid work model with weekly office presence in Warsaw",
+    "Hybrid work model with visits to our Warsaw office",
+    "Hybrid work model with three days in our San Diego office",
+    "Hybrid work model with three days in our warsaw office",
+    "Hybrid work model with WonderWord", "Hybrid work model with wonderword",
+    "Hybrid work model with three days in our Herzliya office",
+    "Hybrid working in the office with us in Warsaw",
+    "Hybrid with Tel Aviv us",
+    "Our work model is fully in person, with 5 days a week from our office",
+    "#LI-Hybrid Joining our company is the smart move",
+    "This is a full-time, on-site role working closely with founders",
+    "The office is located in Central Israel adjacent to the train station, operating on a hybrid model",
+    "This position is based in our Ramat-Gan, Israel office and requires strong leadership presence",
+    "Our company is based in Tel Aviv with visits to Warsaw",
+    "Our company is based in Tel Aviv, uk",
+    "Our company is based in our office",
+    "Applicants must have the legal right to work in the country where the position is based, uk",
+    "Applicants must have the legal right to work in the country where the position is based with weekly office presence in Warsaw",
+    "עבודה היברידית במשרד עם נוכחות בוורשה",
+    "החברה ממוקמת בתל אביב ובוורשה",
+])
+def test_own_workplace_requires_every_token_to_be_consumed(jd):
+    result = decide_location_eligibility({"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("location,jd", [
+    ("Tel Aviv", "Our company is based in Tel Aviv"),
+    ("Tel Aviv", "On-site role based in Tel Aviv"),
+    ("Tel Aviv", "Our office is located in Tel Aviv, hybrid work model"),
+    ("Tel Aviv", "Hybrid work model with three days in our Tel Aviv office"),
+    ("Tel Aviv", "Hybrid work model with us"),
+    ("Tel Aviv", "Join us - hybrid work model"),
+    ("תל אביב", "עבודה היברידית שלושה ימים בשבוע במשרד שלנו בתל אביב"),
+    ("תל אביב", "החברה ממוקמת בתל אביב"),
+    ("Raanana, Israel (On-site)", ""),
+    ("Tel Aviv", "Hybrid Work & Office Environment 🏠"),
+    ("Tel Aviv", "Hybrid work schedule with 3 days in-office"),
+])
+def test_closed_own_workplace_controls(location, jd):
+    result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] == "eligible"
