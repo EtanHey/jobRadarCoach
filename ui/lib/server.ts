@@ -44,7 +44,10 @@ const rawBaseSchema = z.object({
   source: z.string(), last_seen_at: z.string(),
   list_metadata: z.object({ stack: z.array(z.string()), experience: z.string().nullable(), description_available: z.boolean() }),
   liveness: z.object({ alive: z.unknown().optional() }).passthrough().nullable(),
-  posting_extractions: z.object({ posting_id: JobIdSchema.optional(), employer_identity: EmployerIdentitySchema.nullish() }).nullish(),
+  posting_extractions: z.object({ posting_id: JobIdSchema.optional(), employer_identity: EmployerIdentitySchema.nullish().catch(context => {
+    console.error("invalid_employer_identity", { issues: context.error.issues.map(issue => ({ path: issue.path, code: issue.code })) });
+    return undefined;
+  }) }).nullish(),
   id: JobIdSchema, title: z.string(), company: z.string(), location: z.string().nullable(),
   work_mode: WorkModeSchema.nullable().optional(), remote: z.boolean().nullable(), seniority: z.string().nullable(), stack: z.array(z.string()),
   salary: z.string().nullable(), url: z.string(), apply_url: z.string().nullable(),

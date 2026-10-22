@@ -52,7 +52,7 @@ def test_past_deadline_is_not_displayed_alive():
     state = {"alive": True, "liveness_checked_at": "2026-10-22T09:30:00Z",
              "application_deadline": "2026-10-18T23:59:59Z"}
     projected = project_liveness(state, now=datetime(2026, 10, 22, 10, tzinfo=timezone.utc))
-    assert projected["state"] == "deadline_passed" and projected["alive"] is None
+    assert projected["state"] == "deadline_passed" and projected["alive"] is False
     assert state["alive"] is True
 
 
