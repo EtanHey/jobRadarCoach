@@ -25,6 +25,7 @@ py-modules = [
   "classifier.calibration",
   "classifier.core",
   "classifier.embeddings",
+  "classifier.experience",
   "classifier.facts",
   "classifier.job",
   "classifier.persistence",
