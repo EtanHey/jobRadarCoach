@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { vacancyIdentity } from "../lib/vacancy-identity";
 import { globePoints } from "../lib/globe-model";
 import { JobSummarySchema, type JobSummary } from "../lib/contracts";
 import { groupDuplicateJobs, relatedDuplicateJobs, shortListingId } from "../lib/job-dedup";
@@ -241,4 +242,98 @@ test("ATS grouping preserves each listing's republish evidence separately from g
   assert.equal(repostNote(group.job, "UTC"), "Reposted: republished 2026-10-03");
   const [ordinary] = groupDuplicateJobs([{ ...ats, last_published_at: ats.posted_at }, alternate]);
   assert.equal(repostNote(ordinary.job, "UTC"), null, "aggregate dates alone are not evidence");
+});
+
+const vacancy = (id: number, requisition: string | null, overrides: Partial<JobSummary> & { raw_jd?: string } = {}) => ({
+  ...job(id, { apply_url: requisition ? `https://nvidia.wd5.myworkdayjobs.com/en-US/Careers/job/Israel/Engineer_${requisition}` : null }),
+  ...overrides,
+});
+test("same_requisition_title_drift_has_one_group", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123"), vacancy(302, "JR123", { title: "Updated Engineer" })]).length, 1);
+});
+test("same_requisition_location_variants_have_one_group", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123"), vacancy(302, "JR123", { location: "Haifa, Israel" })]).length, 1);
+});
+test("distinct_requisitions_with_same_title_location_and_jd_stay_separate", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123", {raw_jd: "Build reliable services."}), vacancy(302, "JR456", {raw_jd: "Build reliable services."})]).length, 2);
+});
+test("jd_only_title_variants_have_one_group", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, null, {raw_jd: "Build reliable services. ".repeat(20)}), vacancy(302, null, {title: "Updated Engineer", raw_jd: "Build   reliable\nservices. ".repeat(20)})]).length, 1);
+});
+test("Unframe identical JD reposts with different Greenhouse post IDs stay grouped", () => {
+  // Frozen pair 7c3ef744 / 97994440: identical bodies, distinct source post IDs.
+  const rows = [5009573101, 5003023101].map((posting, index) => vacancy(401 + index, null, {
+    company: "Unframe", title: "Full Stack Software Engineer", location: "Tel Aviv, Israel",
+    url: `https://job-boards.greenhouse.io/unframe/jobs/${posting}`,
+    raw_jd: "Build enterprise AI applications and own features across the stack.",
+  }));
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 1);
+});
+test("Office Hours trivial JD edits preserve the title and location fallback", () => {
+  // Frozen pair 6270b19b / 7cf0dfb5 differs only by the word 'either'.
+  const rows = ["can either be", "can be"].map((wording, index) => vacancy(411 + index, null, {
+    company: "Office Hours", title: "Senior Frontend Engineer", location: "Israel",
+    raw_jd: `Build frontend applications. This role ${wording} fully remote or in our office.`,
+  }));
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 1);
+});
+test("different JD fingerprints alone do not establish distinct headcount", () => {
+  const rows = [vacancy(421, null, {raw_jd: "Build Rust backend services."}),
+    vacancy(422, null, {raw_jd: "Build React frontend applications."})];
+  assert.equal(groupDuplicateJobs(rows).length, 1, "same employer, title and location remain a grouping candidate");
+});
+test("substantively different roles stay separate without a matching title or posting URL", () => {
+  const rows = [vacancy(431, null, {title: "Backend Engineer", raw_jd: "Build Rust backend services."}),
+    vacancy(432, null, {title: "Product Designer", raw_jd: "Design user journeys and conduct user research."})];
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 2);
+});
+test("NVIDIA URL JR ids ignore location and Workday repost suffixes", () => {
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR2023247"), vacancy(302, "JR2023247-1", {title: "Title variant", location: "Yokneam"})]).length, 1);
+});
+
+test("unknown identity cannot bridge different requisitions or split a shared requisition", () => {
+  const unknown = vacancy(300, null);
+  const a = vacancy(301, "JR123"), b = vacancy(302, "JR456");
+  for (const rows of [[unknown, a, b], [b, a, unknown]]) {
+    assert.equal(groupDuplicateJobs(rows).length, 2);
+    assert.equal(groupDuplicateJobs([unknown, a, {...a, id: b.id, location: "Haifa", title: "Changed"}]).length, 2);
+  }
+});
+test("conflicting requisitions are isolated; employers and per-source evidence survive grouping", () => {
+  const a = vacancy(301, "JR123", {raw_jd: "Requisition ID: JR456"});
+  assert.equal(groupDuplicateJobs([a, vacancy(302, "JR123")]).length, 2);
+  assert.equal(groupDuplicateJobs([vacancy(301, "JR123"), vacancy(302, "JR123", {company: "Other"})]).length, 2);
+  const rows = [vacancy(301, "JR123", {alive: true, score: 90}), vacancy(302, "JR123", {alive: false, score: 10, source: "workday", location: "Haifa"})];
+  const [group] = groupDuplicateJobs(rows);
+  assert.deepEqual([group.job, ...group.alternates].map(({id, source, score, alive, location}) => ({id, source, score, alive, location})), rows.map(({id, source, score, alive, location}) => ({id, source, score, alive, location})));
+});
+
+for (const [company, text, titles, duties] of [
+  ["Evolent", "We build healthcare products integrating FHIR R4.", ["Backend Engineer", "Frontend Engineer"], ["Implement Java APIs and healthcare integrations.", "Build React interfaces and patient-facing components."]],
+  ["Latent AI", "Our platform stores customer files in Cloudflare R2.", ["Site Reliability Engineer", "Security Engineer"], ["Operate Kubernetes clusters and manage on-call rotations.", "Perform threat modeling and implement application security."]],
+  ["Latent AI", "Data & Real-Time: Convex, PostgreSQL, object storage (s3/r2)", ["Software Engineer", "Product Designer"], ["Implement durable backend workflow services.", "Run user interviews and design product interaction flows."]],
+] as const) {
+  test(`${company}: distinct ${titles.join(" / ")} roles sharing technology stay split`, () => {
+    const rows = titles.map((title, index) => vacancy(450 + index, null, {
+      company, title, raw_jd: `${text}\n\n${duties[index]}`,
+    }));
+    const compact = rows.map(row => ({...row, raw_jd: undefined, vacancy_identity: vacancyIdentity(row)}));
+    for (const input of [rows, rows.toReversed(), compact, compact.toReversed()]) {
+      assert.equal(groupDuplicateJobs(input).length, 2);
+    }
+  });
+}
+
+test("short matching boilerplate cannot merge different roles", () => {
+  const rows = [vacancy(501, null, {title:"Engineer", raw_jd:"Apply now"}),
+    vacancy(502, null, {title:"Designer", raw_jd:"Apply now"})];
+  for (const input of [rows, rows.toReversed()]) assert.equal(groupDuplicateJobs(input).length, 2);
+});
+test("multiple requisitions merge only when their full sets match", () => {
+  const a = vacancy(501, null, {raw_jd:"Req: ENG-123. Requisition: ENG-456"});
+  const b = vacancy(502, null, {title:"Changed title", location:"Elsewhere", raw_jd:"Req: ENG-456. Req: ENG-123. Req: ENG-123"});
+  for (const input of [[a,b],[b,a]]) assert.equal(groupDuplicateJobs(input).length, 1);
+  for (const raw_jd of ["Req: ENG-123", "Req: ENG-123. Req: ENG-789", ""]) {
+    assert.equal(groupDuplicateJobs([a, vacancy(503, null, {raw_jd})]).length, 2);
+  }
 });
