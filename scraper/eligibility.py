@@ -1,6 +1,6 @@
 """Precision-first local eligibility: unreadable restrictions veto every pass."""
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 import re
 from typing import Literal, TypedDict
@@ -71,11 +71,11 @@ PERMISSION = re.compile(
 # A recognized rule must account for every restriction span. Unsupported grammar,
 # unknown places, citizenship, work authorization and time zones remain unknown.
 RESTRICTION = re.compile(
-    r"\b(?:must|should|need to|required|requires?|only|based in|reside|residents?|located in|live in|"
+    r"\b(?:must|should|need to|required|requires?|mandatory|only|based in|reside|residents?|located in|live in|"
     r"relocate|residence|residency|not (?:open|accepting|available|eligible)|except|excluding|eligible to work|citizens?(?:hip)?|"
     r"work authorization|time[ -]?zone|attendance|attend)\b|"
     r"\bdays?\s*(?:/\s*week|(?:each|per|a)\s+week)\b|"
-    r"(?<!\w)(?:חובה|נדרש(?:ת|ים|ות)?|להתגורר|לגור|מגורים|תושבי\w*|רק|בלבד|למעט|פרט ל|לא)(?!\w)",
+    r"(?<!\w)(?:חובה|נדרש(?:ת|ים|ות)?|אזרחות|להתגורר|לגור|מגורים|תושבי\w*|רק|בלבד|למעט|פרט ל|לא)(?!\w)",
     re.I,
 )
 NEGATION = re.compile(
@@ -98,7 +98,16 @@ NON_LOCATION_POLICY = re.compile(
 def _non_location_policy(clause: str) -> bool:
     # A policy paragraph can also contain a real role requirement. Never erase
     # that requirement merely because accommodations or benefits are mentioned.
-    return bool(NON_LOCATION_POLICY.search(clause)) and not (
+    if not NON_LOCATION_POLICY.search(clause):
+        return False
+    if has_geographic_context(clause) and re.search(
+        r"\b(?:only(?!\s+applicable\b)\b.{0,80}\b(?:candidates?|applicants?|residents?)|"
+        r"(?:candidates?|applicants?|residents?)\b.{0,80}\b(?:only|required|mandatory))\b",
+        clause,
+        re.I,
+    ):
+        return False
+    return not (
         RESIDENCE.search(clause)
         or ATTENDANCE.search(clause)
         or REQUIRED_OFFICE.search(clause)
@@ -116,7 +125,7 @@ def _non_location_policy(clause: str) -> bool:
         or any(
             has_geographic_context(clause[requirement.end() :])
             for requirement in re.finditer(
-                r"\b(?:must|required|need to)\b", clause, re.I
+                r"\b(?:must|required|requires?|mandatory|need to)\b", clause, re.I
             )
         )
         or (
@@ -125,17 +134,29 @@ def _non_location_policy(clause: str) -> bool:
         )
         or re.search(
             r"\b(?:must|required|requires?|only|need to)\b.*"
-            r"\b(?:remote|reside|relocate|office|citizens?(?:hip)?|work authorization|time[ -]?zone)\b",
+            r"\b(?:remote|reside|relocate|office|citizens?(?:hip)?|work permits?|work authorization|time[ -]?zone)\b",
             clause,
             re.I,
         )
         or re.search(
-            r"\b(?:citizens?(?:hip)?|work authorization|passport)\b.{0,40}"
+            r"\b(?:citizens?(?:hip)?|work permits?|work authorization|passport)\b.{0,40}"
             r"\b(?:required|only|mandatory)\b",
             clause,
             re.I,
         )
     )
+
+
+def _clauses(source: str) -> Iterator[str]:
+    for original in CLAUSES.split(source):
+        contrast = re.search(r"\b(?:but|however|while)\b", original, re.I)
+        if contrast and _non_location_policy(original[: contrast.start()]):
+            # Separate policy boilerplate, retaining any later alternatives in
+            # the requirement (e.g. US residence but remote from Israel).
+            yield original[: contrast.start()]
+            yield original[contrast.end() :]
+        else:
+            yield original
 
 
 @dataclass(frozen=True)
@@ -299,7 +320,7 @@ def decide_location_eligibility(
         (location, True),
         *((quote, False) for quote in quotes),
     ]:
-        for original in CLAUSES.split(source):
+        for original in _clauses(source):
             clause = original.replace("**", "").strip()
             if not clause:
                 continue

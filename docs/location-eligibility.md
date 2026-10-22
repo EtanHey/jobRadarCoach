@@ -18,6 +18,12 @@ need genuine geography in the same clause. Prepositions, candidate nouns,
 pronoun “us” and technical country-code lookalikes such as AI/ML do not supply
 that evidence. Hiring policy, accommodations and technical hybrid/data-residency
 language do not veto a pass; a real requirement in the same paragraph still does.
+Policy clauses separated by but/however/while or semicolons are checked separately;
+policy text cannot discard a geographic applicant restriction. Uppercase country
+codes modifying candidates, applicants, residents, citizens, work permits or work
+authorization supply geographic context. Hebrew attached prefixes (ב/ל/מ/ו/ה,
+including ובקנדה and לארה״ב) and אזרחות with nationality adjectives also count.
+Authorization and citizenship remain unknown unless Israel is explicitly excluded.
 Hebrew restriction words use word boundaries, so אלגוריתמיקה and פריימוורקים do
 not accidentally become residence or exclusivity requirements.
 
@@ -109,6 +115,9 @@ semicolons, such as Israel alongside Remote - Europe.
 `eligibility-review-r4.json` adds all supplemental reviewer probes, generic and
 technical wording, Hebrew boundaries, policy/requirement mixtures, qualified ATS
 locations and their conflicting/unknown-place controls.
+`eligibility-review-r5.json` retains all round-5 probes plus policy-free controls,
+contrast/semicolon variants, country-code applicant/authorization modifiers, Hebrew
+prefixes/citizenship, and incidental-word/technical/policy controls.
 
 The 20 independent holdout intentions stay unchanged. Prefix-only Ireland
 residency and weekly London attendance now block. Two intended readings remain

@@ -33,6 +33,9 @@ REVIEW_R3 = json.loads(
 REVIEW_R4 = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-review-r4.json").read_text()
 )
+REVIEW_R5 = json.loads(
+    (Path(__file__).parent / "fixtures/eligibility-review-r5.json").read_text()
+)
 
 ADVERSARIAL = json.loads(
     (Path(__file__).parent / "fixtures/eligibility-adversarial.json").read_text()
@@ -41,7 +44,7 @@ ADVERSARIAL = json.loads(
 
 @pytest.mark.parametrize(
     "case_id,location,jd,expected",
-    ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3 + REVIEW_R4,
+    ADVERSARIAL + REVIEW_R2 + FRESH_R2 + REVIEW_R3 + REVIEW_R4 + REVIEW_R5,
 )
 def test_reviewer_adversarial(case_id, location, jd, expected):
     result = decide_location_eligibility(

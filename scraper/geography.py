@@ -484,7 +484,7 @@ def has_geographic_context(text: str) -> bool:
         r"located (?:in|within)|based (?:in|worldwide)|office|on[ -]?site|citizens?(?:hip)?|passport|"
         r"work authorization|eligible to work|time[ -]?zone|country|countries|"
         r"jurisdiction|location|(?:candidates?|applicants?) (?:in|from))\b|"
-        r"(?<!\w)(?:מגורים|תושבי\w*|להתגורר|לגור|מרחוק|בישראל|"
+        r"(?<!\w)(?:מגורים|תושבי\w*|להתגורר|לגור|מרחוק|בישראל|אזרחות|"
         r"[במ]?מדינ\w*|[במ]?אזור זמן)(?!\w)",
         text,
         re.I,
@@ -493,10 +493,28 @@ def has_geographic_context(text: str) -> bool:
     for word in re.finditer(r"\b\w", text):
         place = match_geographic_place(text, word.start())
         if not place:
+            # Hebrew prepositions/articles attach to country names. Only strip
+            # a bounded Hebrew prefix, never letters inside an arbitrary word.
+            for length in range(1, 4):
+                prefix = text[word.start() : word.start() + length]
+                start = word.start() + length
+                if (
+                    re.fullmatch(r"[בלמוה]+", prefix)
+                    and re.match(r"[א-ת]", text[start : start + 1])
+                    and match_geographic_place(text, start)
+                ):
+                    return True
             continue
         if place[0] == "worldwide":
             continue
         name = _normalized_location(text[word.start() : place[1]])
+        if text[word.start() : place[1]].isupper() and re.match(
+            r"(?:\s+|[ -]based\s+)(?:candidates?|applicants?|residents?|citizens?|"
+            r"work\s+(?:permits?|authorization))\b",
+            text[place[1] :],
+            re.I,
+        ):
+            return True
         if name in {"ai", "ml", "sc", "it", "ci", "cd"}:
             continue
         if len(name) > 3 or place[0] == "uncertain":
