@@ -13,7 +13,7 @@ from typing import Literal, Protocol
 from classifier import core, projection
 from scraper.relevance import refresh_gate, SELECTION_GUARD, VERSION
 
-SCORER_VERSION = "1.3"
+SCORER_VERSION = "1.4"
 PersistOutcome = Literal["stored", "unchanged", "stale", "failed"]
 
 

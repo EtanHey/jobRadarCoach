@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 from classifier.calibration import facts_schema, validate_policy
+from classifier.experience import compare_experience
 
 from scraper.annotate import (
     FACTOR_BASES,
@@ -146,6 +147,20 @@ def build_request(
         history_ids
     )
     schema = output_schema(posting_evidence_id, professional_ids)
+    experience = compare_experience(posting.get("jd_text", ""), profile)
+    seniority_schema = schema["properties"]["reasons"]["properties"]["seniority_gap"]["properties"]
+    if any(row["assessment"] == "unknown" for row in experience):
+        seniority_schema["assessment"]["enum"] = ["unknown"]
+        seniority_schema["detail"]["enum"] = [
+            "Duration for at least one stated experience requirement is unknown from verified candidate evidence; total career tenure does not establish specialist duration."
+        ]
+        seniority_schema["evidence_ids"]["items"]["enum"] = ["profile:tenure"]
+    elif any(row["assessment"] == "below" for row in experience):
+        seniority_schema["assessment"]["enum"] = ["mixed", "negative"]
+    if experience and all(row["assessment"] != "unknown" for row in experience):
+        seniority_schema["evidence_ids"]["items"]["enum"] = sorted({
+            evidence_id for row in experience for evidence_id in row["candidate_evidence_ids"]
+        })
     policy = profile.get("candidate", {}).get("scorer_calibration")
     if policy is not None:
         policy = validate_policy(policy)
@@ -166,10 +181,16 @@ def build_request(
         for factor in REASON_FACTORS
     }
     slot_ids["fit_line"] = sorted(professional_ids)
+    slot_ids["seniority_gap"] = seniority_schema["evidence_ids"]["items"]["enum"]
     mcp_ids = sorted(professional_ids & MCP_EVIDENCE_IDS)
     prompt = "\n".join(
         [
             base_prompt,
+            "Candidate tenure_years and profile:tenure describe overall career duration only; they never establish specialist duration.",
+            "Compare each years requirement only with candidate evidence for the same subject. Fit terms, depth modes and undated project work establish no duration. Never sum overlapping projects.",
+            "The comparisons below are conservative deterministic inputs. Unknown duration is not zero or a proven shortfall: state it as unknown, never as a positive tenure match or a hard rejection. Unparsed year requirements also remain unknown; do not substitute total tenure. Keep score and explanations consistent with these limits.",
+            "Deterministic experience comparisons:",
+            json.dumps(experience, ensure_ascii=False, sort_keys=True),
             "Wire format: reasons is a closed object keyed by the five exact factor names, not an array.",
             "Each keyed reason must repeat its schema-constrained factor and basis. All five keys are required exactly once.",
             "Copy every evidence ID byte-for-byte from its slot-specific schema enum. Never invent, alias, normalize, or add or remove an evidence-ID prefix.",
