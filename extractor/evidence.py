@@ -355,6 +355,12 @@ def normalize_salary(facts: dict[str, object], raw_jd: str) -> None:
     value = salary["value"]
     _validate_quote("salary", value, salary["evidence_quote"], raw_jd)
     if isinstance(value, str):
+        # Quote validation already found this value case-insensitively. Preserve
+        # the JD spelling for both the accepted pay span and any raw remark.
+        value = re.search(
+            rf"(?<!\w){re.escape(value)}(?!\w)",
+            salary["evidence_quote"], re.IGNORECASE,
+        ).group()
         span = salary_span(value)
         if span != value:
             facts["salary_remark"] = value

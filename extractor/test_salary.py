@@ -407,3 +407,24 @@ def test_round7_clean_salary_span(salary, span):
     assert payload.facts["salary"]["evidence_quote"] == (salary if span else None)
     assert payload.facts.get("salary_remark") == (salary if span != salary else None)
     assert candidate["salary"]["value"] == salary
+
+
+# Case changes in model values must not discard unrelated extraction facts.
+ROUND8_SALARY_CASES = [
+    ("We offer a competitive salary", "Competitive Salary", "competitive salary", None),
+    ("We offer $150k base + equity", "$150K BASE + Equity", "$150k base + equity", "$150k base"),
+]
+
+
+@pytest.mark.parametrize("quote, value, remark, span", ROUND8_SALARY_CASES)
+def test_round8_case_insensitive_salary_keeps_source_remark(quote, value, remark, span):
+    candidate = facts()
+    candidate["salary"] = {"value": value, "evidence_quote": quote}
+    raw_jd = RAW_JD + "\n" + quote
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": span, "evidence_quote": quote if span else None}
+    expected["salary_remark"] = remark
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
+    assert candidate["salary"]["value"] == value
