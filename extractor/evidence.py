@@ -206,24 +206,24 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
 # suffix alone is ambiguous (notably retirement plans), as are bare years.
 _AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d+)(?:\.\d+)?"
 _CURRENCY = r"""(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD|ש[״"']?ח|שקל(?:ים)?)\b)"""
-_AMOUNT_UNIT = r"(?:k|m|thousand|אלף)\b"
+_AMOUNT_UNIT = r"(?:k|m|b|thousand|million|billion|אלף|מיליון)\b"
 _MONEY_AMOUNT_RE = re.compile(
     rf"{_CURRENCY}\s*{_AMOUNT}(?:\s*{_AMOUNT_UNIT})?|"
     rf"(?<!\w){_AMOUNT}(?:\s*{_AMOUNT_UNIT})?\s*{_CURRENCY}",
     re.IGNORECASE,
 )
 _PAY_CONTEXT_RE = re.compile(
-    r"\b(?:salary|salaries|pay|compensation|שכר)\b|"
-    r"(?:/|\bper\s+)(?:hour|month|year|annum)\b|"
+    r"\b(?:salary|salaries|base|pay|compensation|rate|wage|OTE|שכר)\b|"
+    r"(?:/|\bper\s+)(?:hr|hour|month|year|annum)\b|"
     r"\b(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b",
     re.IGNORECASE,
 )
 _CONTEXT_AMOUNT_RE = re.compile(
     rf"\b(?:up\s+to|עד)\s+{_AMOUNT}(?![\w%])|"
     rf"(?<!\w){_AMOUNT}\s*(?:k|thousand|אלף)\b|"
-    r"\b(?:salary|pay|compensation|שכר|up\s+to|עד)\s*:?\s+(?:is\s+)?"
+    r"\b(?:salary|base|pay|compensation|rate|wage|OTE|שכר|up\s+to|עד)\s*:?\s+(?:is\s+)?"
     r"(?:\d{1,3}(?:[, ]\d{3})+|\d{4,})(?![\w%])|"
-    rf"(?<!\w){_AMOUNT}\s*(?:(?:/|per\s+)(?:hour|month|year|annum)\b|"
+    rf"(?<!\w){_AMOUNT}\s*(?:(?:/|per\s+)(?:hr|hour|month|year|annum)\b|"
     r"(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b)",
     re.IGNORECASE,
 )
@@ -239,35 +239,54 @@ _RETIREMENT_RE = re.compile(
     re.IGNORECASE,
 )
 _FUNDING_RE = re.compile(
-    r"\bfunding\s+of\b|"
-    r"(?=.*\b(?:raised|funding|גייסנו)\b)"
-    r"(?=.*\b(?:series\s+[a-z]|seed|round|investors?|valuation)\b)",
+    r"\b(?:raised|funding|series|seed|round|investors?|valuation|ARR|revenue|גייסנו)\b",
     re.IGNORECASE,
 )
-_FUNDING_VERB_RE = re.compile(r"\b(?:raised|funding|גייסנו)\b", re.IGNORECASE)
-_PAY_WORD_RE = re.compile(
-    r"\b(?:salary|salaries|pay|compensation|base|שכר)\b", re.IGNORECASE,
-)
-_FUNDING_UNIT = r"(?:k|m|b|thousand|million|billion|אלף|מיליון)\b"
-_FUNDING_AMOUNT_RE = re.compile(
-    rf"{_CURRENCY}\s*{_AMOUNT}(?:\s*{_FUNDING_UNIT})?|"
-    rf"(?<!\w){_AMOUNT}(?:\s*{_FUNDING_UNIT})?\s*{_CURRENCY}",
+_NUMERIC_AMOUNT_RE = re.compile(
+    rf"{_MONEY_AMOUNT_RE.pattern}|(?<!\w){_AMOUNT}(?:\s*{_AMOUNT_UNIT})?(?!\w)",
     re.IGNORECASE,
 )
+_AMOUNT_BOUNDARY_RE = re.compile(
+    r"[;,\n]|(?<=[.!?])\s+|\b(?:and|but)\b", re.IGNORECASE,
+)
+_PAY_RAISED_RE = re.compile(
+    rf"(?:{_PAY_CONTEXT_RE.pattern})\s+(?:raised\s+to)\s*$", re.IGNORECASE,
+)
+
+
+def _amount_is_funding(before: str, after: str) -> bool:
+    """Choose the nearest pay/funding governor within four tokens of one amount."""
+    # In 'salary raised to $150k', raised modifies pay rather than capital.
+    if _PAY_RAISED_RE.search(before):
+        return False
+    governors = []
+    for pattern, funding in ((_FUNDING_RE, True), (_PAY_CONTEXT_RE, False)):
+        for context, preceding in ((before, True), (after, False)):
+            for match in pattern.finditer(context):
+                between = context[match.end():] if preceding else context[:match.start()]
+                distance = len(re.findall(r"\w+", between))
+                governors.append((distance, not funding))
+    # Funding wins ties; unrelated pay wording cannot exempt a funding amount.
+    return bool(governors) and not min(governors)[1]
 
 
 def has_numeric_salary(value: str) -> bool:
     """Recognize numeric pay while excluding benefit-plan and unrelated digits."""
     value = _RETIREMENT_RE.sub(" ", value)
-    for clause in re.split(r"[;\n]|(?<=[.!?])\s+", value):
-        if _FUNDING_RE.search(clause) or (
-            _FUNDING_VERB_RE.search(clause)
-            and _FUNDING_AMOUNT_RE.search(clause)
-            and not _PAY_WORD_RE.search(clause)
-        ):
+    amounts = list(_NUMERIC_AMOUNT_RE.finditer(value))
+    for index, amount in enumerate(amounts):
+        start = amounts[index - 1].end() if index else 0
+        end = amounts[index + 1].start() if index + 1 < len(amounts) else len(value)
+        before, after = value[start:amount.start()], value[amount.end():end]
+        before = _AMOUNT_BOUNDARY_RE.split(before)[-1]
+        after = _AMOUNT_BOUNDARY_RE.split(after)[0]
+        before = " ".join(before.split()[-4:]) + " "
+        after = " " + " ".join(after.split()[:4])
+        if _amount_is_funding(before, after):
             continue
-        if _MONEY_AMOUNT_RE.search(clause) or _QUALIFIED_AMOUNT_RE.search(clause) or (
-            _PAY_CONTEXT_RE.search(clause) and _CONTEXT_AMOUNT_RE.search(clause)
+        context = before + amount.group() + after
+        if _MONEY_AMOUNT_RE.fullmatch(amount.group()) or _QUALIFIED_AMOUNT_RE.search(context) or (
+            _PAY_CONTEXT_RE.search(context) and _CONTEXT_AMOUNT_RE.search(context)
         ):
             return True
     return False

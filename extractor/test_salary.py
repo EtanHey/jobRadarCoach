@@ -61,7 +61,35 @@ ROUND3_SALARY_CASES = [
 ]
 
 
-@pytest.mark.parametrize("salary, numeric", ROUND2_SALARY_CASES + ROUND3_SALARY_CASES)
+ROUND4_SALARY_CASES = [
+    ("competitive salary, raised $10M", False),
+    ("competitive salary, raised $10M in Series A", False),
+    ("competitive salary, raised $500k", False),
+    ("competitive salary, raised €10M", False),
+    ("competitive pay and raised £5 million", False),
+    ("hourly rate raised to $50/hour", True),
+    ("rate raised to €50 per hour", True),
+    ("hourly rate raised to $45/hr", True),
+    ("we raised $10M and pay $150k base", True),
+    ("OTE $200k, Series B $40M", True),
+    ("salary $150k, funding $10M", True),
+    ("funding $10M, salary $150k", True),
+    ("salary raised to $150k in funding announcement", True),
+    ("Series B $40M", False),
+    ("seed $500k", False),
+    ("round of $10M", False),
+    ("investors contributed $10M", False),
+    ("valuation $10M", False),
+    ("$1M ARR", False),
+    ("revenue $10M", False),
+    ("wage raised to $50", True),
+    ("rate 50/hr", True),
+]
+
+
+@pytest.mark.parametrize(
+    "salary, numeric", ROUND2_SALARY_CASES + ROUND3_SALARY_CASES + ROUND4_SALARY_CASES,
+)
 def test_round2_salary_extraction_and_payload(salary, numeric):
     candidate = facts()
     candidate["salary"] = {"value": salary, "evidence_quote": salary}
