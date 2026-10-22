@@ -627,6 +627,16 @@ P9D_REJECTED = [
     "Competitive salary; claims reserve: £7M",
     "Competitive salary; receivables pool, $11M",
     "Competitive salary; settlement float / ₪12 מיליון",
+    "Competitive salary; liquidity / reserves, $4M",
+    "Competitive salary; liquidity (current assets), $4M",
+    "Competitive salary; order book – £6M",
+    "Competitive salary; cloud spend: forecast; $70k annually",
+    "Competitive salary; transaction volume / domestic, $8M annually",
+    "Competitive salary; total company spend on compensation / $4M",
+    "Competitive salary; payroll outlay for all staff salaries - £6M",
+    "Competitive salary; יתרת מזומנים, ₪12 מיליון",
+    "Competitive salary; הוצאה ארגונית על שכר / ₪12 מיליון",
+    "Competitive salary; liquidity; salary benchmark, $4M",
 ]
 P9D_POSITIVE_SPANS = [
     ("$150k–$180k", "$150k–$180k"),

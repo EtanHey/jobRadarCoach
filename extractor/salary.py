@@ -90,6 +90,8 @@ _CLAUSE_BOUNDARY_RE = re.compile(r"[;\n]|,(?!\d)|(?<=[.!?])\s+")
 _OWNERSHIP_BOUNDARY_RE = re.compile(r"\n|(?<=[.!?])\s+")
 _EXPLICIT_PAY_AFTER_RE = re.compile(rf"^\s*{_PAY_NOUN}\b", re.IGNORECASE)
 _UNOWNED_PREFIX_RE = re.compile(r"\s*(?:(?:up\s+to|between|from|or|עד)\s*)?[:(=\s]*$", re.IGNORECASE)
+# A complete salary-only list label carries no competing business governor.
+_UNOWNED_PAY_LABEL_RE = re.compile(rf"\s*(?:competitive\s+)?{_PAY_NOUN}\s*[,;]\s*", re.IGNORECASE)
 # Geographic/role band labels do not own a business quantity. Keep this
 # separate from the pay vocabulary so labels cannot override metric ownership.
 _REGION_PREFIX_RE = re.compile(
@@ -107,8 +109,9 @@ _BAND_NOTE_RE = re.compile(
 
 
 def _has_unknown_governor(before: str, after: str) -> bool:
-    # List punctuation does not erase the label immediately before an amount.
-    before = re.sub(r"[,;/–—\s-]+$", " ", before)
+    if _UNOWNED_PAY_LABEL_RE.fullmatch(before):
+        return False
+    # Pay ownership must touch the amount in the original prefix.
     pay = _PAY_BEFORE_RE.search(before)
     if _has_explicit_pay_owner(pay, ""):
         return False
@@ -117,6 +120,8 @@ def _has_unknown_governor(before: str, after: str) -> bool:
         r"\s*rate(?:\s+raised\s+to)?\s*", before, re.IGNORECASE,
     ):
         return False
+    # List punctuation preserves a governor, but cannot create a pay owner.
+    before = re.sub(r"[,;/–—\s-]+$", " ", before)
     return not (_UNOWNED_PREFIX_RE.fullmatch(before) or _REGION_PREFIX_RE.fullmatch(before))
 
 
