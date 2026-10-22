@@ -177,6 +177,21 @@ offices still go through the restriction parser. A company/site description nami
 an unfamiliar city with an explicit Israeli country suffix retains unconfirmed
 commute scope. Existing noncentral commute blocks remain in force.
 
+Own-city matching uses shared geography aliases, including TLV/Tel-Aviv-Yafo,
+Ramat-Gan and common transliteration variants. An Israel/Israeli office matches
+a positive Israeli posting location. Numbered street addresses and recognized
+local landmarks beside an explicit own-city mention do not add a workplace
+restriction. Proximity destinations must resolve to that city, a recognized
+local landmark, a transit noun phrase, or a street-type phrase; both ends of a
+“between” address must resolve to the city, a local landmark, or a street-type
+phrase. Building names require a recognized local landmark. Unrecognized names
+such as Heathrow stay unresolved, including lowercase proximity destinations.
+Address parsing preserves other cities and independent
+attendance, residency or credential requirements. A named office with a numbered
+address repeating the same city can resolve as that city's office. An office
+environment or attendance in the office without a place slot is satisfied locally;
+mixed workplace lists and unresolved cities remain unknown.
+
 The bounded requirement to have legal authorization in the country where the
 position is based is satisfied when that country resolves to Israel, including
 the supported Hebrew equivalent. Separate citizenship and clearance requirements

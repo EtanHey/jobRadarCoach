@@ -6,6 +6,8 @@ import re
 from typing import Literal, TypedDict
 
 from scraper.geography import (
+    ISRAELI_CITY_NAMES,
+    ISRAELI_PLACE_EQUIVALENTS,
     _normalized_location,
     has_geographic_context,
     match_geographic_place,
@@ -19,7 +21,8 @@ class Eligibility(TypedDict):
 
 
 CLAUSES = re.compile(
-    r"[;\n]|(?<!\bu\.s)(?<!\bu\.s\.a)(?<!\be\.g)(?<!\bincl)(?<=[a-z)א-ת])\.\s+", re.I
+    r"[;\n]|(?<!\bu\.s)(?<!\bu\.s\.a)(?<!\be\.g)(?<!\bincl)"
+    r"(?<!\bst)(?<!\brd)(?<!\bave)(?<!\bblvd)(?<=[a-z)א-ת])\.(?:\s+|(?=This\b))", re.I
 )
 CENTRAL = re.compile(
     r"\b(?:central|cent(?:er|re)(?: of (?:the country|israel))?|gush dan)\b|מרכז", re.I
@@ -199,26 +202,107 @@ WORKPLACE_FRAMES = tuple(re.compile(pattern, re.I) for pattern in (
     r"ב(?P<slot>[א-ת'-]+(?:\s+(?!(?:עם|שלנו|של|שלושה|ימים|בשבוע)(?!\w))[א-ת'-]+)*)",
 ))
 
+ADDRESS_PROXIMITY = (
+    r"close to|near|next to|(?:within )?walking distance (?:of|from)|"
+    r"just a short walk from"
+)
+# These local landmarks have an explicit city identity; arbitrary building or
+# landmark names are not evidence that the address belongs to the posting city.
+OWN_CITY_LANDMARKS = {
+    "tel aviv": ("Sarona Market", "Neve Tzedek", "Azrieli"),
+}
+
 
 def _own_location_names(own_location: str) -> set[str]:
+    own_location = normalize_israeli_location(own_location)
     places = {_normalized_location(own_location)}
     places.update(_normalized_location(part) for part in re.split(
         r"[,;()]|\s+and\s+", own_location, flags=re.I,
     ) if part.strip())
-    if any("tel aviv" in place for place in places):
-        places.update({"tel aviv", "tel aviv yafo", "tlv"})
-    if any(place in {"ra anana", "raanana"} for place in places):
-        places.update({"ra anana", "raanana"})
-    places.update({"israel", "ישראל", "il"})
+    for normalized in ISRAELI_CITY_NAMES:
+        # A street address may precede a city in the structured location.
+        if any(part.endswith(" " + normalized) for part in places):
+            places.add(normalized)
+    for canonical, aliases in ISRAELI_PLACE_EQUIVALENTS.items():
+        if _normalized_location(canonical) in places:
+            places.update(aliases)
+    places.update({"israel", "israeli", "ישראל", "il"})
     return places
 
 
+def _without_own_address(clause: str, own_location: str) -> str:
+    """Consume bounded address details only beside an explicit own-city name."""
+    clause = normalize_israeli_location(clause)
+    cities = _own_location_names(own_location) & ISRAELI_CITY_NAMES
+    city = "|".join(r"[\W_]+".join(map(re.escape, name.split()))
+                    for name in sorted(cities, key=len, reverse=True) if name)
+    if not city or not re.search(rf"(?<!\w)(?:{city})(?!\w)", clause, re.I):
+        return clause
+    # A named address component cannot eat another workplace or obligation.
+    word = (rf"(?!(?i:{WORKPLACE_NOUN}|must|requires?|required|only|and|or|in|at|from|"
+            r"to|of|with|citizenship|reside|live|relocate)\b)[A-Zא-ת][\w׳'’-]*")
+    name = rf"{word}(?:\s+{word}){{0,3}}"
+    street = r"(?i:Street|St|Road|Rd|Avenue|Ave|Blvd|Boulevard)\b\.?"
+    local_names = [re.escape(place) for own_city in cities
+                   for place in OWN_CITY_LANDMARKS.get(own_city, ())]
+    local_place = "|".join(local_names) or r"(?!)"
+    street_phrase = rf"(?:{name}\s+{street}|(?:רחוב|רח[׳']|שדרות)\s+{name})"
+    destination = rf"(?:{street_phrase}|(?i:{city}|{local_place})(?!\w))"
+    transit = (r"(?i:(?:the\s+)?(?:light rail(?: and train station)?|(?:both\s+)?train stations?|"
+               r"metro|bus (?:station|terminal)|(?:highway|road)\s+\d+)|"
+               r"ה?(?:רכבת(?: קלה)?|תחנה))(?!\w)")
+    # Do not consume just a safe prefix of an unresolved destination. Separate
+    # obligations may follow, but remain intact for the restriction parser.
+    end = (r"(?=$|[,;.!?)]|\s+(?:and\s+(?:must|requires?|required|only)\b|"
+           r"וחובה(?!\w)))")
+    patterns = (
+        rf"\b\d+\s+{name}\s+{street}(?:\s+(?i:in)\s+)?",
+        rf"{name}\s+{street}\s+\d+\b",
+        rf"(?:רחוב|רח[׳']|שדרות)\s+{name}\s+\d+\b",
+        rf"(?i:between)\s+{destination}\s+(?i:and)\s+{destination}{end}",
+        rf"(?i:{ADDRESS_PROXIMITY})\s+(?:{transit}|{destination}){end}",
+        rf"(?i:in the)\s+{name}\s+(?i:area of)\s+(?=(?i:{city})(?!\w))",
+        rf"(?i:in|at)\s+(?i:the\s+)?(?i:{local_place})\s+(?i:building|towers?)\b{end}",
+        r"(?i:in Midtown)\b",
+    )
+
+    def consume(match: re.Match[str]) -> str:
+        detail = match.group()
+        for token in re.finditer(r"\b\w", detail):
+            place = match_geographic_place(detail, token.start())
+            if place and _normalized_location(detail[token.start():place[1]]) not in cities:
+                return detail
+        return "in " if re.search(r"\barea of\s+$", detail, re.I) else " "
+
+    # A named office followed by its numbered address and the same city has
+    # one workplace slot. Keep unknown labels without that address evidence.
+    branded_office = re.compile(
+        rf"(?i:the)\s+(?P<brand>{name})\s+(?P<city>(?i:{city}))\s+"
+        rf"(?i:office),\s*(?i:located (?:in|at))\s+"
+        rf"(?P<address>{name}\s+{street}\s+\d+)\s+"
+        rf"(?P<address_city>(?i:{city}))(?!\w)"
+    )
+    for office in tuple(branded_office.finditer(clause)):
+        if _normalized_location(office['city']) != _normalized_location(office['address_city']):
+            continue
+        detail = office['brand'] + " " + office['address']
+        if any(match_geographic_place(detail, token.start())
+               for token in re.finditer(r"\b\w", detail)):
+            continue
+        clause = clause.replace(office.group(), f"the {office['city']} office")
+    for pattern in patterns:
+        clause = re.sub(pattern, consume, clause)
+    return re.sub(rf"(?i:the heart of|central|north)\s+(?=(?i:{city})(?!\w))", "", clause)
+
+
 def _unresolved_workplace_phrase(clause: str, own_location: str, company: str) -> bool:
+    clause = normalize_israeli_location(clause)
     places = _own_location_names(own_location) if own_location else set()
     company_name = _normalized_location(normalize_israeli_location(company)) if company else ""
     for frame in WORKPLACE_FRAMES:
         for phrase in frame.finditer(clause):
             slot = _normalized_location(normalize_israeli_location(phrase["slot"]))
+            slot = re.sub(r"^(?:(?:new|lovely|local|own)\b\s*)+", "", slot)
             if slot and slot == company_name:
                 return True
             before = clause[:phrase.start()].strip(" -*•:")
@@ -263,7 +347,7 @@ OWN_WORK_MODEL = re.compile(
 )
 OWN_SITE = re.compile(
     r"\b(?:(?:(?:our|the|this)\s+)?(?:company|office|site|role|position|job)\s+(?:is\s+)?)?"
-    r"(?:based|located)\s+in\s+|"
+    r"(?:based|located|situated)\s+(?:in|at)\s+|"
     r"(?<!\w)(?:החברה|המשרד|המשרה)\s+(?:ממוקמת|ממוקם|מבוססת)\s+ב",
     re.I,
 )
@@ -279,12 +363,21 @@ def _own_workplace_terms(
     site = OWN_SITE.search(clause)
     workplace = (
         OFFICE.search(clause) or OWN_ATTENDANCE.search(clause)
-        or re.search(r"\bin[ -]office\b|נדרש לעבוד בבני?ין (?:החדש|הישן) של החברה", clause, re.I)
+        or re.search(r"\bin[ -](?:(?:our|the|an?)\s+)?office\b|"
+                     r"\boffice\s+(?:is\s+)?(?:(?:located|situated)\s+)?"
+                     r"(?:in|at|near|close to|between)\b|"
+                     r"\boffice\s+(?:\d+|one|two|three|four|five)\s+days?\b|"
+                     r"נדרש לעבוד בבני?ין (?:החדש|הישן) של החברה", clause, re.I)
     )
     if not (workplace or authorization or site):
         return clause
     if workplace and not attendance:
         return clause
+    clause = re.sub(r"\bbetween office and home-based work\b", " ", clause, flags=re.I)
+    # Address cleanup accepts complete, recognized destinations only. Preserve
+    # every leftover relation, including lowercase unknown names.
+    if re.search(rf"\b(?:{ADDRESS_PROXIMITY}|between)\s+", clause, re.I):
+        return None
 
     # Customer/team geography describes others, not the applicant's workplace.
     # Do not discard a continuation that introduces another obligation.
@@ -310,6 +403,8 @@ def _own_workplace_terms(
         prefix = ""
     # Recognize pronouns before removing names: 'with Tel Aviv us' is not 'with us'.
     remainder = re.sub(r"\b(?:join|with|contact)\s+us\b", " ", clause, flags=re.I)
+    remainder = re.sub(r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)(?:day|sday|nesday|rsday|urday)?\b", " ", remainder)
+    remainder = re.sub(r"\b(?:at|in)\s+(?:other|all|some)\s+times?\b", " ", remainder, flags=re.I)
     remainder = OWN_COUNTRY_AUTHORIZATION.sub(" ", remainder)
     remainder = OWN_SITE.sub(" ", remainder)
     remainder = re.sub(r"\b(?:must|required to|requires?|need to)\s+(?:employees to )?"
@@ -647,7 +742,7 @@ def decide_location_eligibility(
     unknown: list[str] = []
     blocked: list[str] = []
     israel_excluded: list[str] = []
-    normalized_field = normalize_israeli_location(location)
+    normalized_field = _without_own_address(location, location)
     field_scope = _scope(normalized_field, 0)
     own_field = re.sub(r"\s+[-–—]\s+", ", ", OFFICE.sub(" ", normalized_field))
     own_field = re.sub(r"\boffice\b", " ", own_field, flags=re.I)
@@ -715,11 +810,16 @@ def decide_location_eligibility(
             excerpt = original.strip()[:1000]
             own_workplace_unresolved = False
             if is_location:
-                clause = normalize_israeli_location(clause)
+                clause = (
+                    _without_own_address(clause, own_field) if own_israeli
+                    else normalize_israeli_location(clause)
+                )
                 if own_city:
                     clause = OFFICE.sub(" ", clause)
             else:
                 clause = _without_policy(clause)
+                if own_israeli:
+                    clause = _without_own_address(clause, own_field)
                 # Inspect intact workplace slots before own-site cleanup can
                 # erase company names, prepositions, or attendance wording.
                 own_workplace_unresolved = _unresolved_workplace_phrase(
