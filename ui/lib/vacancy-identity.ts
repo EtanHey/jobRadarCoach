@@ -8,7 +8,7 @@ type IdentityInput = { url: string; apply_url: string | null; raw_jd?: string | 
 
 function textRequisitions(text: string): string[] {
   const prose = text.replace(/https?:\/\/\S+/giu, " ");
-  return [...prose.matchAll(/\bJR\d{5,}\b|\breq(?:uisition)?\.?(?:\s*(?:id|number|no\.?)\s*[:#-]?|\s*[:#-])\s*(?=[A-Z\d_-]*\d)([A-Z\d]+(?:[-_][A-Z\d]+)*)\b/giu)]
+  return [...prose.matchAll(/\bJR\d{5,}\b|\b(?:job\s+req(?:uisition)?\s+|req(?:uisition)?\.?(?:\s*(?:id|number|no\.?)\s*[:#-]?|\s*[:#-])\s*)(?=[A-Z\d_-]*\d)([A-Z\d]+(?:[-_][A-Z\d]+)*)\b/giu)]
     .map(match => (match[1] ?? match[0]).toUpperCase());
 }
 
@@ -18,21 +18,38 @@ export function postingUrls(job: Pick<IdentityInput, "url" | "apply_url">): URL[
   });
 }
 
+// Only provider-specific posting fields can invalidate an explicit JD requisition.
+function postingId(url: URL): string[] {
+  try {
+    const path = decodeURIComponent(url.pathname), host = url.hostname;
+    const ids: string[] = [];
+    const greenhouse = url.searchParams.get("gh_jid");
+    if (greenhouse && /^\d+$/u.test(greenhouse)) ids.push(greenhouse);
+    let match: RegExpMatchArray | null;
+    if (/^(?:job-)?boards(?:\.eu)?\.greenhouse\.io$/u.test(host)
+      && (match = path.match(/^\/[^/]+\/jobs\/(\d+)\/?$/u))) ids.push(match[1]);
+    if (host === "jobs.lever.co"
+      && (match = path.match(/^\/[^/]+\/([a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12})(?:\/apply)?\/?$/iu))) ids.push(match[1]);
+    if (host === "www.comeet.com"
+      && (match = path.match(/^\/jobs\/[^/]+\/[^/]+\/([^/]+)(?:\/[^/]+)?\/?$/u))) ids.push(match[1]);
+    if (host === "apply.workable.com"
+      && (match = path.match(/^\/[^/]+\/(?:j\/([^/]+)\/?|jobs\/view\/([^/]+)\.md)$/u))) ids.push(match[1] ?? match[2]);
+    if (/^(?:[a-z]{2,3}\.)?linkedin\.com$/u.test(host)) {
+      if ((match = path.match(/^\/jobs\/view\/(?:[^/]*-)?(\d+)\/?$/u))) ids.push(match[1]);
+      const current = url.searchParams.get("currentJobId");
+      if (current && /^\d+$/u.test(current)) ids.push(current);
+    }
+    return ids;
+  } catch { return []; }
+}
+
 export function vacancyIdentity(job: IdentityInput, urls = postingUrls(job)): VacancyIdentity {
-  const postingNumbers = new Set<string>();
-  for (const url of urls) {
-    try {
-      // Workday's terminal requisition segment is headcount evidence, not a posting ID.
-      let path = decodeURIComponent(url.pathname);
-      if (url.hostname.endsWith(".myworkdayjobs.com")) path = path.replace(/_(?:JR\d+|R\d{5,})(?:-\d+)?(?:\/apply)?\/?$/iu, "");
-      for (const part of [path, ...url.searchParams.values()]) {
-        for (const match of part.matchAll(/(?:^|[^a-z\d])(?:JR)?(\d+)(?=$|[^a-z\d])/giu)) postingNumbers.add(match[1]);
-      }
-    } catch { /* Invalid legacy URLs supply no posting identity evidence. */ }
-  }
+  const postingIds = new Set(urls.flatMap(postingId).map(value => value.toUpperCase()));
+  // A JR prefix on a numeric posting ID does not make it headcount evidence.
+  const numericPostingIds = new Set([...postingIds].flatMap(value => value.match(/^(?:JR)?(\d+)$/u)?.[1] ?? []));
   const requisitions = new Set(textRequisitions(job.raw_jd ?? "").filter(value => {
     const number = value.match(/^(?:JR)?(\d+)$/u)?.[1];
-    return !number || !postingNumbers.has(number);
+    return !postingIds.has(value) && (!number || !numericPostingIds.has(number));
   }));
   for (const url of urls) {
     try {

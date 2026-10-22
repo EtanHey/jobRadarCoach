@@ -65,15 +65,14 @@ test("JD requisitions matching a URL posting ID are ignored", () => {
   for (const url of [
     "https://boards.greenhouse.io/employer/jobs/12345",
     "https://example.test/careers?gh_jid=12345",
-    "https://boards.greenhouse.io/embed/job_app?token=12345",
     "https://www.linkedin.com/jobs/view/engineer-12345/",
     "https://apply.workable.com/employer/j/JR12345/",
     "https://www.comeet.com/jobs/employer/12.345/JR12345/engineer",
-    "https://example.test/jobs/%31%32%33%34%35",
+    "https://boards.greenhouse.io/employer/jobs/%31%32%33%34%35",
   ]) {
     assert.deepEqual(identity(url, "Req ID: 12345. JR12345").requisitions, [], url);
   }
-  assert.deepEqual(vacancyIdentity({url:"https://example.test",apply_url:"https://example.test/jobs/12345",raw_jd:"Req: 12345"}).requisitions, []);
+  assert.deepEqual(vacancyIdentity({url:"https://example.test",apply_url:"https://boards.greenhouse.io/employer/jobs/12345",raw_jd:"Req: 12345"}).requisitions, []);
   assert.deepEqual(identity("https://example.test/jobs/12345", "Req: 45678").requisitions, ["45678"]);
   assert.deepEqual(identity("https://example.test", "Apply at https://apply.workable.com/employer/j/JR12345/").requisitions, []);
 });
@@ -82,4 +81,34 @@ test("fingerprints require at least 400 normalized role-body characters", () => 
   assert.equal(jdFingerprint("a".repeat(399)), null);
   assert.ok(jdFingerprint("a".repeat(400)));
   assert.equal(jdFingerprint("<p>" + "a".repeat(399) + "</p>\n\nWe are an equal opportunity employer."), null);
+});
+
+for (const url of [
+  "https://boards.greenhouse.io/employer12345/jobs/90001?utm_campaign=12345",
+  "https://boards.greenhouse.io/embed/job_app?token=12345",
+  "https://example.test/jobs/12345?campaign=12345&currentJobId=12345",
+  "https://www.comeet.com/jobs/employer/12.12345/JR90001/engineer",
+  "https://apply.workable.com/employer12345/j/90001/",
+  "https://jobs.lever.co/employer12345/12345678-1234-1234-1234-123456789abc?utm_source=12345",
+  "https://www.linkedin.com/jobs/view/90001?campaign=12345",
+  "https://employer.wd1.myworkdayjobs.com/12345/job/Title_R90001",
+]) {
+  test(`incidental URL numbers preserve requisitions: ${url}`, () => {
+    assert.ok(identity(url, "Req ID: 12345").requisitions.includes("12345"));
+  });
+}
+test("recognized provider posting fields suppress only their full IDs", () => {
+  for (const url of [
+    "https://www.linkedin.com/jobs/search/?currentJobId=12345",
+    "https://apply.workable.com/employer/jobs/view/JR12345.md",
+    "https://www.comeet.com/jobs/employer/12.345/12345/engineer",
+  ]) assert.deepEqual(identity(url, "Req ID: 12345. JR12345").requisitions, []);
+  const uuid = "12345678-1234-1234-1234-123456789abc";
+  assert.deepEqual(identity(`https://jobs.lever.co/employer/${uuid}`, `Req ID: ${uuid}`).requisitions, []);
+  assert.deepEqual(identity(`https://jobs.lever.co/employer/${uuid}`, "Req ID: 12345678").requisitions, ["12345678"]);
+});
+test("unpunctuated Job Req and Job Requisition retain numeric and employer IDs", () => {
+  for (const label of ["Job Req", "Job Requisition", "job req"]) {
+    for (const id of ["12345", "ENG-456"]) assert.deepEqual(identity("https://example.test", `${label} ${id}`).requisitions, [id]);
+  }
 });
