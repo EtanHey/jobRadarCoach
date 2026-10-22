@@ -350,3 +350,62 @@ def test_first_person_staffing_description_distinguishes_publisher_from_client(e
     result = resolve_employer('HireCo', jd, 'greenhouse')
     assert result['hiring_employer'] == expected
     assert result['agency_evidence'] == 'We are a staffing firm.'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('jd', [
+    'We build payroll software. Our customer is a recruitment agency.',
+    'Our biggest customer is a staffing firm. We build accounting software.',
+    'Our client is a recruitment agency. We build payroll software.',
+    'Our clients include recruitment agencies and staffing firms.',
+    'We help our clients automate payroll. Trusted by clients worldwide.',
+    'Build client-facing tools with our team.',
+    'We build impactful software solutions for our clients worldwide.',
+    'Our client is a leading fintech company using our software.',
+    '**About The Company**\nAcme Labs is a software company. Our customer is a staffing firm.\n'
+    '**About The Role**\nAcme Labs is hiring engineers.',
+])
+def test_review_r4_customer_descriptions_are_not_publisher_agency_evidence(source, jd):
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    if source == 'greenhouse':
+        assert result['hiring_employer'] == 'Acme Labs'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', [
+    'We are a recruiting firm.',
+    'We are the leading recruitment consultancy.',
+    'SoTalent is a recruiting firm.',
+    'We are a talent agency.',
+    'אנחנו חברת השמה.',
+    'SoTalent היא חברת גיוס.',
+])
+def test_precision_self_description_labels_sotalent_without_inventing_client(source, statement):
+    jd = f'**About The Company**\n{statement}\n**About The Role**\nSoTalent is hiring engineers.'
+    result = resolve_employer('SoTalent', jd, source)
+    assert result['agency_evidence'] == statement
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', [
+    'Our client is hiring engineers.',
+    'Our client is seeking an engineer.',
+    'Our client is looking for engineers.',
+    'We are hiring for one of our clients.',
+    'Our recruitment firm represents a client.',
+    'Direct employment with our client.',
+])
+def test_precision_explicit_client_hiring_is_agency_evidence(source, statement):
+    result = resolve_employer('HireCo', statement, source)
+    assert result['agency_evidence'] == statement
+    assert result['hiring_employer'] is None
+
+
+def test_recruitment_word_in_product_company_name_is_not_agency_evidence():
+    jd = ('**About The Company**\nAcme Recruitment Technologies is a software company.\n'
+          '**About The Role**\nAcme Recruitment Technologies is hiring engineers.')
+    result = resolve_employer('Acme Recruitment Technologies', jd, 'greenhouse')
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Acme Recruitment Technologies'

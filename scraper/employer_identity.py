@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '5'
+VERSION = '6'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -24,7 +24,10 @@ GENERIC = {'we', 'our', 'the company', 'this company', 'the client', 'a company'
 
 # A company description alone is not client evidence; partner wording is explicit.
 THIRD_PARTY = (
-    r"\bour client(?=[:,.*]|\s+(?:is|are)\b|\s*$)"
+    r"\bour client\b[^.\n!?]{0,100}\b(?:hiring|seeking|looking for|seeks)\b"
+    r"|\b(?:hiring|recruiting)\b[^.\n!?]{0,80}\bfor our clients?\b"
+    r"|\bfor one of our clients\b"
+    r"|\b(?:direct employment|directly hiring) with our client\b"
     r"|\ba client of ours\b"
     r"|\bon behalf of (?:our|an?) (?:[\w,-]+ ){0,8}clients?\b"
     r"|\bon behalf of an? partner (?:company|organization|firm)\b"
@@ -32,23 +35,36 @@ THIRD_PARTY = (
 INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
 # Keep the service adjacent to the provider verb; product subjects are checked below.
 STAFFING_SERVICES = re.compile(
-    r"\b(?:is|are) an? (?:(?:leading|global|international|specialist|specialized) ){0,3}"
-    r"(?:staffing|recruiting|recruitment|talent acquisition|placement) (?:agency|firm|company)\b"
+    r"\b(?:is|are) (?:an?|the) (?:(?:leading|global|international|specialist|specialized) ){0,3}"
+    r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|placement) (?:agency|firm|company|consultancy)\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) "
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
     r"(?: and (?:staffing|recruiting|recruitment))? services\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) (?:innovative )?staffing solutions\b"
-    r"|\bwe place candidates\b",
+    r"|\bwe place candidates\b"
+    r"|\bour (?:recruitment|recruiting|staffing) firm represents\b"
+    r"|(?:היא |הינה )?חברת (?:השמה|גיוס)\b",
     re.I,
 )
 PRODUCT = re.compile(r"\b(?:software|platform|tool|saas|app|product)s?\b", re.I)
-PLACEMENT_CONTEXT = re.compile(r"\b(?:clients?|candidates?|placement|placing|connecting professionals)\b", re.I)
+PLACEMENT_CONTEXT = re.compile(r"\b(?:clients?|candidates?|placement|placing|connecting (?:talented )?professionals)\b", re.I)
 
 
-def _staffing_statement(text: str) -> bool:
-    """Require staffing itself as the service, rather than a software product."""
-    for clause in re.split(r'[.;!?]\s+', text):
+def _staffing_statement(text: str, company: str | None = None) -> bool:
+    """Require a self or named-company subject, never a customer's business."""
+    for clause in re.split(r'[.;!?]\s+|\n+', text):
         for match in STAFFING_SERVICES.finditer(clause):
+            subject = clause[:match.start()].strip(' *\t')
+            subject = re.sub(r'\s+(?:is|are)\s+(?:(?:an?|the|leading|global|international|specialist|specialized)\s*)*$', '', subject, flags=re.I)
+            self_description = subject.casefold() in {'we', 'אנחנו', 'אנו'} or (
+                not subject and match[0].casefold().startswith(('we ', 'our ')))
+            named_company = bool(re.fullmatch(NAME, subject)) and not (
+                subject.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
+                or any(word[0].islower() and word not in {'of', 'the', 'and'} for word in subject.split()))
+            if not self_description and not named_company:
+                continue
+            if company is not None and not self_description and subject.casefold() != company.casefold():
+                continue
             if PRODUCT.search(clause[:match.start()]) or re.match(r"\s*" + PRODUCT.pattern, clause[match.end():], re.I):
                 continue
             if 'staffing solutions' in match[0].casefold() and not PLACEMENT_CONTEXT.search(clause):
@@ -74,8 +90,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     blurb_names: dict[str, tuple[str, str]] = {}
     agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
                              if INTERMEDIARY.search(line[0]) or _staffing_statement(line[0])), None)
-    if (agency_statement and _staffing_statement(agency_statement[0])
-            and re.match(r"\s*we (?:are|provide|place)\b", agency_statement[0], re.I)):
+    if agency_statement and _staffing_statement(agency_statement[0], publisher):
         staffing_about[publisher.casefold()] = agency_statement[0]
     agency_evidence = agency_statement[0] if agency_statement else None
     intermediary_seen = agency_statement is not None
@@ -93,7 +108,6 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
                                      and match.start() < role_heading.start())
             if (name.casefold() in STAFFING_KEYS
                     or name.casefold() in staffing_about
-                    or re.search(r"\b(?:staffing|recruiting|recruitment)\b", name, re.I)
                     or (index >= 2 and INTERMEDIARY.search(match[0]))):
                 agency_evidence = staffing_about.get(name.casefold(), match[0])
                 intermediary_seen = True
