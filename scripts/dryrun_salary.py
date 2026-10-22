@@ -39,7 +39,7 @@ def report(snapshot: Path) -> str:
         f"Snapshot SHA-256: {hashlib.sha256(snapshot.read_bytes()).hexdigest()}",
         "",
         "Read-only projection of displayed posting salary through has_numeric_salary; no LLM, DB, or service calls.",
-        "Remarks overlap the null category. Existing numeric salaries survive; nonnumeric strings become raw remarks.",
+        "Remarks overlap the null category. Salaries meeting the evidence policy survive; other strings become raw remarks.",
         "This projects the policy over all stored salaries, not a backfill or a claim that every source quote was revalidated.",
         "Runtime persistence clears a preexisting salary only when it matches the rejected extraction value; unrelated harvested amounts remain intact.",
         "The UI still reads nullable postings.salary; raw remarks live additively in posting_extractions.facts.salary_remark.",

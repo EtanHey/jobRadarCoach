@@ -202,29 +202,48 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
         offset = start + len(quote)
 
 
-# Amounts need a money marker, a pay period, a thousands suffix/grouping,
-# or a standalone amount. Unrelated digits (PTO, tenure, years) are insufficient.
+# Currency is evidence by itself. Unmarked amounts need pay context; a K
+# suffix alone is ambiguous (notably retirement plans), as are bare years.
 _AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d+)(?:\.\d+)?"
-_RANGE_AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d{4,})(?:\.\d+)?"
-_CURRENCY = r"(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD)\b)"
-_SALARY_AMOUNT_RE = re.compile(
-    rf"(?<!\w){_RANGE_AMOUNT}\s*(?:[-–—]|to)\s*{_RANGE_AMOUNT}(?!\w)|"
-    rf"{_CURRENCY}\s*{_AMOUNT}(?!\w)|"
-    rf"(?<!\w){_AMOUNT}\s*[kKmM]\b|"
-    rf"(?<!\w){_AMOUNT}\s*{_CURRENCY}|"
-    rf"(?<!\w){_AMOUNT}\s*(?:/|per\s+)(?:hour|month|year|annum)\b|"
-    rf"(?<!\w){_AMOUNT}\s+(?:annually|monthly|yearly|hourly)\b",
+_CURRENCY = r"""(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD|ש[״"']?ח|שקלים)\b)"""
+_MONEY_AMOUNT_RE = re.compile(
+    rf"{_CURRENCY}\s*{_AMOUNT}(?:\s*[kKmM]\b)?|"
+    rf"(?<!\w){_AMOUNT}(?:\s*[kKmM]\b)?\s*{_CURRENCY}",
     re.IGNORECASE,
 )
-_BARE_SALARY_RE = re.compile(
-    rf"\s*{_AMOUNT}(?:\s*[kKmM])?"
-    rf"(?:\s*[-–—]\s*{_AMOUNT}(?:\s*[kKmM])?)?\s*"
+_PAY_CONTEXT_RE = re.compile(
+    r"\b(?:salary|salaries|pay|compensation|שכר|up\s+to|עד)\b|"
+    r"(?:/|\bper\s+)(?:hour|month|year|annum)\b|"
+    r"\b(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b",
+    re.IGNORECASE,
 )
+_CONTEXT_AMOUNT_RE = re.compile(
+    rf"(?<!\w){_AMOUNT}\s*(?:k|thousand|אלף)\b|"
+    r"\b(?:salary|pay|compensation|שכר|up\s+to|עד)\s*:?\s+(?:is\s+)?"
+    r"(?:\d{1,3}(?:[, ]\d{3})+|\d{4,})(?![\w%])|"
+    rf"(?<!\w){_AMOUNT}\s*(?:(?:/|per\s+)(?:hour|month|year|annum)\b|"
+    r"(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b)",
+    re.IGNORECASE,
+)
+_RETIREMENT_RE = re.compile(
+    r"\b401\s*(?:\(k\)|k)(?!\w)|"
+    rf"(?<!\w){_AMOUNT}\s*k\s+(?:retirement|pension)(?:[- ]plan)?\b",
+    re.IGNORECASE,
+)
+_FUNDING_RE = re.compile(r"\b(?:raised|funding|series\s+[a-z])\b", re.IGNORECASE)
 
 
 def has_numeric_salary(value: str) -> bool:
-    """Recognize an amount/range without treating arbitrary digits as pay."""
-    return bool(_SALARY_AMOUNT_RE.search(value) or _BARE_SALARY_RE.fullmatch(value))
+    """Recognize numeric pay while excluding benefit-plan and unrelated digits."""
+    value = _RETIREMENT_RE.sub(" ", value)
+    for clause in re.split(r"[;\n]|(?<=[.!?])\s+", value):
+        if _FUNDING_RE.search(clause):
+            continue
+        if _MONEY_AMOUNT_RE.search(clause) or (
+            _PAY_CONTEXT_RE.search(clause) and _CONTEXT_AMOUNT_RE.search(clause)
+        ):
+            return True
+    return False
 
 
 def normalize_salary(facts: dict[str, object], raw_jd: str) -> None:
