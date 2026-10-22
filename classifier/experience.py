@@ -9,7 +9,7 @@ from collections.abc import Mapping
 _YEARS = re.compile(
     r"(?<![\w.\-–])(?P<years>\d+(?:\.\d+)?)"
     r"(?:\s*[-–]\s*(?P<upper>\d+(?:\.\d+)?))?\s*(?P<plus>\+)?\s*"
-    r"(?:years?|yrs?)\b[’']?\s*(?P<tail>[^\n;–—]*?)(?=\.(?:\s|$)|[\n;–—]|$)",
+    r"(?:years?|yrs?)\b[’']?\s*(?P<tail>[^\n;]*?)(?=\.(?:\s|$)|[\n;]|$)",
     re.I,
 )
 # Closed duration-subject vocabulary for the supported skill frames. A role,
@@ -21,6 +21,23 @@ _REQUIREMENT_PREFIX = re.compile(
     r"(?:(?:you (?:must )?have|must have|requires?|minimum(?: of)?|at least)\s+)?",
     re.I,
 )
+_SECTION_HEADING = re.compile(
+    r"^[ \t]*(?:#{1,6}[ \t]+)?(?:\*\*|__)?([A-Za-z][A-Za-z /-]*?):?"
+    r"(?:\*\*|__)?[ \t]*:?[ \t]*$", re.M,
+)
+_REQUIRED_SECTION = re.compile(
+    r"(?:(?:minimum|required|mandatory) )?(?:requirements?|qualifications?|skills)|required|mandatory",
+    re.I,
+)
+_MANDATORY_SUFFIX = re.compile(r"\s+(?:[-–—]\s*(?:mandatory|required)|\((?:mandatory|required)\))\s*$", re.I)
+
+
+def _required_section(prefix: str) -> bool:
+    # Only complete preceding lines set section scope. Unknown headings default
+    # to non-mandatory; a subsequent requirements heading restores that scope.
+    complete_lines = prefix.rpartition("\n")[0]
+    headings = list(_SECTION_HEADING.finditer(complete_lines))
+    return not headings or _REQUIRED_SECTION.fullmatch(headings[-1][1].strip()) is not None
 
 
 def _subject(tail: str) -> tuple[str, str]:
@@ -60,10 +77,14 @@ def compare_experience(jd: str, profile: Mapping[str, object]) -> list[dict[str,
 
     comparisons = []
     for match in _YEARS.finditer(jd):
+        if not _required_section(jd[:match.start()]):
+            continue
         prefix = re.split(r"\n|;|\.(?:\s|$)", jd[:match.start()])[-1]
         if _REQUIREMENT_PREFIX.fullmatch(prefix) is None:
             continue
-        subject, kind = _subject(match["tail"])
+        # Keep qualifiers in the quote. Only an explicit mandatory suffix may
+        # be removed for subject matching; every other qualifier defaults out.
+        subject, kind = _subject(_MANDATORY_SUFFIX.sub("", match["tail"]))
         required = float(match["years"])
         candidate_years, ids, lower_bound = (
             (profile["candidate"]["tenure_years"], ["profile:tenure"], False)

@@ -23,16 +23,20 @@ def main():
     for row in rows:
         comparisons = compare_experience(row.get("raw_jd") or "", profile)
         counts["with_years"] += bool(comparisons)
-        comparisons = [c for c in comparisons if c["subject_kind"] == "specialist"]
-        counts["with_skill_years"] += bool(comparisons)
+        has_specialist = any(c["subject_kind"] == "specialist" for c in comparisons)
+        comparisons = [c for c in comparisons if c["subject_kind"] in {"overall", "specialist"}] if has_specialist else []
+        counts["with_skill_years"] += has_specialist
         counts["unknown_duration"] += any(c["assessment"] == "unknown" for c in comparisons)
         payload = (row.get("posting_scores") or {}).get("score_payload") or {}
         seniority = next((r for r in payload.get("reasons", [])
                           if r.get("factor") == "seniority_gap"), None)
         before = seniority.get("assessment") if seniority else None
-        after = "unknown" if seniority and any(
+        shortfall = any(c["assessment"] == "below" for c in comparisons)
+        after = "unknown" if seniority and not shortfall and any(
             c["assessment"] == "unknown" for c in comparisons
         ) else before
+        if seniority and shortfall and before not in {"mixed", "negative"}:
+            after = "mixed|negative"  # Allowed schema values, not an invented model verdict.
         if before != after:
             changed.append({"id": row["id"], "company": row["company"], "title": row["title"],
                             "before": before, "after": after, "comparisons": comparisons})

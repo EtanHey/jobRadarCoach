@@ -204,3 +204,65 @@ def test_overall_shortfall_remains_comparable():
     assert result["subject_kind"] == "overall"
     assert result["candidate_years"] == 3.7
     assert result["assessment"] == "below"
+
+
+@pytest.mark.parametrize(("requirement", "claim", "evidence_id"), [
+    ("5+ years software engineering", None, "profile:tenure"),
+    ("3+ years Angular", "1 year Angular", "example-project"),
+])
+@pytest.mark.parametrize("assessment", ["negative", "mixed"])
+def test_known_shortfall_survives_unknown_specialist(requirement, claim, evidence_id, assessment):
+    profile = safe_projection()
+    if claim:
+        profile["fit_signals"][0]["claim"] = claim
+    sent = request.build_request({"id": "test", "jd_text": requirement + "; 2+ years React"}, profile, [])
+    payload = sent.prompt.split("Deterministic experience comparisons:\n")[1].split("\n")[0]
+    assert [row["assessment"] for row in json.loads(payload)] == ["below", "unknown"]
+    response = wire_annotation("test")
+    response["reasons"]["stack_domain_evidence"]["evidence_ids"] = ["example-project"]
+    reason = response["reasons"]["seniority_gap"]
+    reason.update(assessment=assessment, evidence_ids=[evidence_id],
+                  detail="Verified duration is below the stated minimum; React duration is unknown.")
+    BrainResult(response, "ollama", "test", request=sent)
+    reason["assessment"] = "positive"
+    with pytest.raises(BrainValidationError):
+        BrainResult(response, "ollama", "test", request=sent)
+
+
+@pytest.mark.parametrize("jd", [
+    "2+ years React – optional", "2+ years React – not required",
+    "2+ years React (preferred)", "2+ years React – nice to have",
+    "2+ years React – advantage", "2+ years React — optional",
+    "2+ years React - not required",
+    "Optional:\n- 2+ years React", "Preferred qualifications:\n- 2+ years React",
+    "Nice to have\n- 2+ years React", "Advantages:\n- 2+ years React",
+    "**Optional:**\n- 2+ years React", "## Preferred qualifications\n- 2+ years React",
+])
+@pytest.mark.parametrize("claim", [None, "1 year React"])
+def test_optional_duration_never_constrains_positive_assessment(jd, claim):
+    profile = safe_projection()
+    if claim:
+        profile["fit_signals"][0]["claim"] = claim
+    sent = request.build_request({"id": "test", "jd_text": jd}, profile, [])
+    baseline = request.build_request({"id": "test", "jd_text": "Build applications."}, profile, [])
+    assert sent.output_schema == baseline.output_schema
+    response = wire_annotation("test")
+    response["reasons"]["stack_domain_evidence"]["evidence_ids"] = ["example-project"]
+    response["reasons"]["seniority_gap"]["assessment"] = "positive"
+    BrainResult(response, "ollama", "test", request=sent)
+
+
+def test_optional_section_ends_at_next_requirements_heading():
+    rows = comparisons("Optional:\n- 2+ years React\nRequirements:\n- 3+ years Angular")
+    assert [row["subject"] for row in rows if row["subject_kind"] == "specialist"] == ["angular"]
+
+
+@pytest.mark.parametrize("jd", [
+    "3+ years of hands-on Angular development experience – Mandatory",
+    "2+ years of hands-on experience developing LLM-based AI solutions – Mandatory",
+])
+def test_mandatory_suffix_preserves_full_quote_and_request_constraint(jd):
+    assert comparisons(jd)[0]["requirement_quote"] == jd
+    sent = request.build_request({"id": "test", "jd_text": jd}, safe_projection(), [])
+    schema = sent.output_schema["properties"]["reasons"]["properties"]["seniority_gap"]
+    assert schema["properties"]["assessment"]["enum"] == ["unknown"]
