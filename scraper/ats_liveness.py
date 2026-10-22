@@ -483,8 +483,8 @@ def _timestamp(value):
 def project_liveness(evidence, *, now=None):
     """Read-time state; never overwrite historical availability with uncertainty.
 
-    application_deadline is a hook for an explicitly normalized, zoned ISO instant.
-    No current extractor supplies it; do not infer a year/zone from JD prose here.
+    application_deadline is normalized by scraper.deadlines during extraction.
+    Preserve the page observation; a deadline closes application availability.
     Keep in sync with ui/lib/liveness.ts (shared projection fixtures).
     """
     current = now if now is not None else datetime.now(timezone.utc)
@@ -500,7 +500,7 @@ def project_liveness(evidence, *, now=None):
         state = "confirmed"
     else:
         state = "stale"
-    return {"state": state, "alive": True if state == "confirmed" else False if state == "closed" else None,
+    return {"state": state, "alive": True if state == "confirmed" else False if state in ("closed", "deadline_passed") else None,
             "last_confirmed_at": evidence["liveness_checked_at"] if confirmed else None,
             "application_deadline": evidence["application_deadline"] if deadline else None}
 

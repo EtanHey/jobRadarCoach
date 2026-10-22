@@ -16,18 +16,41 @@ timestamps, and older successes are `stale`; they never close a posting.
 
 Explicit historical `alive=false` stays `closed`, even after uncertainty. Otherwise,
 a normalized `liveness.application_deadline` strictly before now takes precedence
-as `deadline_passed`. The hook accepts a zoned ISO timestamp with a full year;
+as `deadline_passed`, with projected `alive=false`. It accepts a zoned ISO timestamp with a full year;
 equality is still within the deadline. An explicit later deadline can supersede it.
-No current extraction schema or source adapter parses an application deadline:
-the cited triage deadline exists only in JD prose. This change adds the projection
-hook and fixture coverage; deadline extraction remains a separate task.
+`scraper.deadlines` now extracts explicit English/Hebrew application frames during
+structured-extraction persistence, independently of the LLM schema. It stores
+`application_deadline`, `application_deadline_evidence_quote`,
+`application_deadline_remark` and parser provenance in liveness JSON. Page/list
+verdicts and confirmation timestamps remain intact. The transaction locks and
+checks the captured JD before writing, including on an unchanged LLM receipt.
+
+Supported dates have a full year: ISO dates/second-precision zoned ISO instants,
+English month names, Hebrew month names, and unambiguous numeric dates (day or month first).
+Whole-line application frames reject negation and conditional tails. Missing years,
+invalid dates, ambiguous numeric order and unsupported time/zone syntax produce no
+deadline, retaining the quote and an unknown remark. No year is borrowed from
+posting metadata or nearby selection dates. Date-only closure waits until noon UTC
+on the following day, when that date has ended in every civil timezone (UTC-12);
+this deliberately delays closure rather than inventing an employer timezone.
+Conflicting dates remain unknown unless an explicit application-deadline extension
+selects one date. Removing a parser-owned deadline clears its normalized value;
+an unowned normalized deadline is preserved when the JD has no application frame.
+
+The triage Palo Alto quote, “Applications close on October 18th.”, has no year and
+therefore remains unknown. Existing extraction receipts are not automatically
+re-extracted; a separate authorized backfill is needed. `python -m
+scripts.deadline_dryrun SNAPSHOT REPORT --now 2026-10-21T23:59:59Z` reports every
+changed frozen-snapshot row without database/network access.
 
 List and detail responses return fresh `alive=true` only for `confirmed`,
-`alive=false` only for `closed`, and `alive=null` for stale/deadline-passed evidence.
+`alive=false` for `closed` or `deadline_passed`, and `alive=null` for stale evidence.
 Cards and the shared drawer show the confirmation age or deadline/closure state.
 Slim globe/new-role RPCs omit confirmation evidence, so historical positives are
 conservatively unknown until card hydration. Existing Active filtering still means
 not conclusively closed; stale rows remain visible with their uncertainty label.
+SQL Active/Inactive filtering still uses stored page/list `alive`; this slice does
+not migrate those predicates to deadline-aware application availability.
 There is no schema migration or production-data rewrite.
 
 ## Reliability checks
