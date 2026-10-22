@@ -59,7 +59,8 @@ def test_real_batches_preserve_scores_and_are_idempotent():
                         "posting_sha256,profile_sha256,history_sha256,score_payload) "
                         "values (%s,%s,%s::jsonb,%s::jsonb,'fixture','fixture','1.1',%s,%s,%s,%s::jsonb)",
                         (posting_id, payload['fit_score'], json.dumps(payload['reasons']),
-                         json.dumps(_labels(payload)), 'a'*64, fingerprint if index != 4 else 'b'*64,
+                         json.dumps(_labels(payload, {'title': 'Engineer'})), 'a'*64,
+                         fingerprint if index != 4 else 'b'*64,
                          'c'*64, json.dumps(payload)))
 
                 def state():
