@@ -105,7 +105,7 @@
     "r4-hebrew-residence",
     "Tel Aviv",
     "מגורים במדינה מאושרת חובה",
-    "unknown"
+    "eligible"
   ],
   [
     "r4-technical-hybrid",
@@ -273,7 +273,7 @@
     "r4-hebrew-feminine",
     "Tel Aviv",
     "נדרשת עבודה באזור זמן מאושר",
-    "unknown"
+    "eligible"
   ],
   [
     "r4-mixed-exclusion",
@@ -285,12 +285,12 @@
     "r4-mixed-hebrew",
     "Tel Aviv",
     "We offer accommodation. חובה לעבוד באזור זמן מאושר",
-    "unknown"
+    "eligible"
   ],
   [
     "r4-mixed-unknown-exception",
     "Tel Aviv",
     "We offer accommodation, remote worldwide except candidates holding a restricted passport",
-    "unknown"
+    "eligible"
   ]
 ]

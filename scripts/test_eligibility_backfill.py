@@ -146,3 +146,68 @@ def test_cli_mode_and_sanitized_errors(monkeypatch, capsys, flags, expected):
     assert backfill.main(flags) == 1
     output = capsys.readouterr()
     assert not output.out and secret not in output.err and 'secret' not in output.err
+
+
+def test_recompute_selects_only_unknown_current_profile_and_preserves_payload():
+    _, profile, fingerprint = profile_inputs()
+    rows = []
+    for value in ['unknown', 'eligible', 'blocked', None, 'unexpected']:
+        row = score_row()
+        row.update(location='Tel Aviv', raw_jd='Israeli work permit required')
+        row['score_payload'].update(eligibility=value, eligibility_reason='old', custom={'keep': True})
+        rows.append(row)
+    missing, stale = score_row(), deepcopy(rows[0])
+    stale['profile_sha256'] = '0' * 64
+    rows += [missing, stale]
+    original = deepcopy(rows)
+    planned = list(backfill.plan_rows(rows, profile, fingerprint, recompute_unknown=True))
+    assert len(planned) == 1 and planned[0][0] is rows[0]
+    assert planned[0][1]['eligibility'] == 'eligible'
+    assert rows == original
+    rows[0]['score_payload'].update(planned[0][1])
+    assert list(backfill.plan_rows(rows, profile, fingerprint, recompute_unknown=True)) == []
+    assert rows[0]['score_payload']['custom'] == {'keep': True}
+    assert rows[1:] == original[1:]
+
+
+def test_recompute_update_guards_current_unknown_and_skips_identical_decisions():
+    _, profile, fingerprint = profile_inputs()
+    row = score_row()
+    row.update(location='Remote', raw_jd='Build products')
+    row['score_payload'].update(eligibility='unknown', eligibility_reason='old')
+    planned = list(backfill.plan_rows([row], profile, fingerprint, recompute_unknown=True))
+
+    class Connection:
+        def execute(self, query, params):
+            assert query == backfill.RECOMPUTE_UPDATE
+            assert "score_payload->>'eligibility' = 'unknown'" in query
+            assert 'profile_sha256 = %s' in query and 'is distinct from' in query
+            patch, posting_id, profile_id, value, reason = params
+            assert profile_id == fingerprint and posting_id == row['id']
+            assert set(patch.obj) == {'eligibility', 'eligibility_reason'}
+            assert (value.obj, reason.obj) == (patch.obj['eligibility'], patch.obj['eligibility_reason'])
+            payload = row['score_payload']
+            self.rowcount = int(payload['eligibility'] == 'unknown' and any(payload[k] != v for k, v in patch.obj.items()))
+            if self.rowcount:
+                payload.update(patch.obj)
+            return self
+
+    connection = Connection()
+    assert backfill.apply_rows(connection, planned, fingerprint, recompute_unknown=True) == 1
+    assert backfill.apply_rows(connection, planned, fingerprint, recompute_unknown=True) == 0
+    assert list(backfill.plan_rows([row], profile, fingerprint, recompute_unknown=True)) == []
+    row['score_payload']['eligibility'] = 'blocked'
+    assert backfill.apply_rows(connection, planned, fingerprint, recompute_unknown=True) == 0
+
+
+def test_recompute_cli_is_dry_run_by_default(monkeypatch, capsys):
+    monkeypatch.setenv('DATABASE_URL', 'postgresql://synthetic.invalid/jobs')
+    monkeypatch.setattr(backfill.psycopg, 'connect', lambda *a, **k: nullcontext(None))
+
+    def run(connection, *, apply, batch_size, recompute_unknown):
+        assert not apply and recompute_unknown and batch_size == 100
+        return {'dry_run': True, 'applied': 0}
+
+    monkeypatch.setattr(backfill, 'backfill_connection', run)
+    assert backfill.main(['--recompute-unknown']) == 0
+    assert '"applied": 0' in capsys.readouterr().out
