@@ -11,6 +11,7 @@ from extractor import core, persistence
 from extractor.test_salary import (
     P9C_SALARY_SPANS,
     P9D_SALARY_SPANS,
+    P9E_SALARY_SPANS,
     PRECISION_PREVIOUS_SALARY_CASES,
     ROUND5_SALARY_CASES,
     ROUND6_SALARY_CASES,
@@ -444,7 +445,7 @@ def test_review_base_counts_do_not_abort_other_fact_persistence(connection, sala
 
 
 @pytest.mark.parametrize("existing", ["matching", "case-variant", None, "$180,000 annually"])
-@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS)
+@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS + P9E_SALARY_SPANS)
 def test_list_governor_salary_persists_other_facts(connection, salary, span, existing):
     from extractor.test_core import runner_for
 
