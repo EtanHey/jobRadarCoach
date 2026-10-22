@@ -63,6 +63,39 @@ def extraction(
     return {**identity, "facts": deepcopy(FACTS if facts is None else facts), "fingerprint": fingerprint}
 
 
+def test_long_employer_identity_is_bounded_before_persistence_without_database():
+    from contextlib import nullcontext
+    line = 'HireCo is a staffing firm. ' + 'x' * (2827 - len('HireCo is a staffing firm. '))
+    raw_jd = line + '\n' + RAW_JD
+
+    class Result:
+        def __init__(self, value):
+            self.value = value
+
+        def fetchone(self):
+            return self.value
+
+    class OfflineConnection:
+        stored_facts = None
+
+        def transaction(self):
+            return nullcontext()
+
+        def execute(self, query, params=()):
+            if query.startswith('select raw_jd'):
+                return Result((raw_jd, 'HireCo', 'linkedin'))
+            if query.startswith('select brain'):
+                return Result(None)
+            if query.startswith('insert into public.posting_extractions'):
+                self.stored_facts = json.loads(params[-1])
+            return Result(('fixture',))
+
+    db = OfflineConnection()
+    assert persistence.persist_extraction(db, 'fixture', raw_jd, extraction(raw_jd)) == 'stored'
+    assert db.stored_facts['employer_identity']['agency_evidence'] == line[:2000]
+    assert db.stored_facts['stack'] == FACTS['stack']
+
+
 def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
     posting_id = str(uuid4())
     connection.execute(
