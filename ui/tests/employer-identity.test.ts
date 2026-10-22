@@ -85,3 +85,21 @@ print(json.dumps([resolve_employer('Acme Labs', row['jd'], source)
     assert.equal(employerLabel({ company: identity.publisher, employer_identity: identity }), "Acme Labs");
   }
 });
+
+test("r11 first-party allowlist keeps both reviewers and new attempts publisher-only", () => {
+  const probe = spawnSync("python3", ["-c", `
+import json
+from pathlib import Path
+from scraper.employer_identity import resolve_employer
+cases = json.loads(Path('test_support/fixtures/employer_identity_r11.json').read_text())
+print(json.dumps([resolve_employer(row['publisher'], row['jd'], source)
+                  for row in cases for source in ['linkedin', 'greenhouse']]))
+`], { cwd: import.meta.dirname + "/../..", encoding: "utf8" });
+  assert.equal(probe.status, 0, probe.stderr);
+  const identities = EmployerIdentitySchema.array().parse(JSON.parse(probe.stdout));
+  assert.equal(identities.length, 60);
+  for (const identity of identities) {
+    assert.equal(identity.agency_evidence, null);
+    assert.equal(employerLabel({ company: identity.publisher, employer_identity: identity }), identity.publisher);
+  }
+});

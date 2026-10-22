@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '11'
+VERSION = '12'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -33,18 +33,22 @@ THIRD_PARTY = (
     r"|\ba client of ours\b"
     r"|\bon behalf of (?:our|an?|one of our) (?:[\w,-]+ ){0,8}clients?\b"
     r"|\bon behalf of an? partner (?:company|organization|firm)\b"
+    r"|(?:הלקוח שלנו|לקוח שלנו)\s+(?:מגייס|מחפש)"
+    r"|(?:עבור|מטעם)\s+(?:הלקוח שלנו|לקוח שלנו|אחד מלקוחותינו)"
 )
 INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
 # Keep the service adjacent to the provider verb; product subjects are checked below.
 STAFFING_SERVICES = re.compile(
     r"\b(?:is|are) (?:an?|the) (?:(?:leading|global|international|specialist|specialized) ){0,3}"
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|placement) (?:agency|firm|company|consultancy)\b"
+    r"(?=\s*(?:[.,;!?]|$)|\s+(?:that|which|specializing|connecting|helping)\b)"
     r"|\b(?:is|are) a recruitment partner of this role\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) "
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
     r"(?: and (?:staffing|recruiting|recruitment))? services\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) (?:innovative )?staffing solutions\b"
-    r"|(?:היא |הינה )?חברת (?:השמה|גיוס)\b",
+    r"|(?:היא |הינה )?חברת (?:השמה|גיוס)\b"
+    r"(?=\s*(?:[.,;!?]|$)|\s+(?:אשר|המתמחה|מתמחה|המחברת|מחברת|המסייעת|מסייעת|שמתמחה|שמחברת|שמסייעת|שעוזרת)\b)",
     re.I,
 )
 PRODUCT = re.compile(r"\b(?:software|platform|tool|saas|app|product)s?\b", re.I)
@@ -116,11 +120,54 @@ def _publisher_staffing_statements(raw_jd: str, publisher: str):
 
 ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
 
+# Eligibility is structural: unfamiliar headings never grant publisher voice.
+JOB_HEADING = re.compile(
+    r'^(?:about (?:the )?role|job description|the position|responsibilities|תיאור המשרה|על התפקיד)\s*:?$', re.I)
+QUOTE_CHARACTERS = re.compile('[\'"‘’“”«»„‟‚‛״׳‹›`❛❜❝❞]')
+SIGNATURE = re.compile(r"\s[—–-]\s+[^\W\d_][\w’'-]*(?:[ \t]+[^\W\d_][\w’'-]*)*(?:,[^\r\n]*)?[.!]?\s*$")
+
+
+def _first_party_text(raw_jd: str, attributable: str) -> str:
+    """Keep only opening/first-job paragraphs, preserving raw evidence offsets."""
+    eligible, paragraph_started = True, False
+    lines = []
+    offset = 0
+    for line in raw_jd.splitlines(keepends=True):
+        text = line.strip()
+        heading = text.strip('#* _').strip()
+        job_heading = JOB_HEADING.fullmatch(heading)
+        # Plain headings have no sentence punctuation or predicate. Markdown
+        # headings are explicit, including unfamiliar headings in other languages.
+        heading_like = (text.startswith('#') or
+                        (re.fullmatch(r'(?:\*\*|__|\*|_)(.+?)(?:\*\*|__|\*|_)', text)
+                         and not INTERMEDIARY.search(heading)) or
+                        (re.fullmatch(r'[\w &:/()–—-]+', heading)
+                         and not re.search(r'\b(?:is|are|we|provides|builds|hiring|seeking)\b', heading, re.I)
+                         and not INTERMEDIARY.search(heading)))
+        if job_heading or heading_like:
+            eligible, paragraph_started = bool(job_heading), False
+            allowed = False
+        elif not text:
+            if paragraph_started:
+                eligible = False
+            allowed = False
+        else:
+            paragraph_started = True
+            allowed = eligible and not QUOTE_CHARACTERS.search(line) and not SIGNATURE.search(line)
+        segment = attributable[offset:offset + len(line)]
+        lines.append(segment if allowed else re.sub(r'[^\r\n]', ' ', segment))
+        offset += len(line)
+    return ''.join(lines)
+
 
 def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, object]:
     """Prefer role-linked names; absence of agency evidence never proves directness."""
     attributable = _attributable_text(raw_jd)
+    first_party = _first_party_text(raw_jd, attributable)
     opening = ''.join(attributable.splitlines(keepends=True)[:32])[:2000]
+
+    def intermediary(match: re.Match) -> bool:
+        return bool(INTERMEDIARY.search(first_party[match.start():match.end()]))
 
     def raw_evidence(match: re.Match) -> str:
         return raw_jd[match.start():match.end()]
@@ -129,7 +176,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     staffing_about = {
         match['name'].strip(' .,').casefold(): raw_evidence(match)
         for match in PATTERNS[3].finditer(opening)
-        if _staffing_statement(match[0], match['name'].strip(' .,')) or INTERMEDIARY.search(match[0])
+        if _staffing_statement(match[0], match['name'].strip(' .,')) or intermediary(match)
     }
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
@@ -138,7 +185,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     publisher_statement = next(iter(publisher_statements), None)
     publisher_offsets = {hit.start() for hit in publisher_statements}
     agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
-                             if INTERMEDIARY.search(line[0])
+                             if intermediary(line)
                              or line.start() in publisher_offsets), publisher_statement)
     if publisher_statement:
         staffing_about[publisher.casefold()] = raw_evidence(publisher_statement)
@@ -148,6 +195,8 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
                                   and agency_statement.start() > role_heading.start())
     for index, pattern in enumerate(PATTERNS):
         for match in pattern.finditer(opening):
+            if index < 2 and not first_party[match.start():match.end()].strip():
+                continue
             name = match['name'].strip(' .,')
             words = name.split()
             if (name.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
@@ -158,7 +207,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
                                      and match.start() < role_heading.start())
             if (name.casefold() in STAFFING_KEYS
                     or name.casefold() in staffing_about
-                    or (index >= 2 and INTERMEDIARY.search(match[0]))):
+                    or (index >= 2 and intermediary(match))):
                 agency_evidence = staffing_about.get(name.casefold(), raw_evidence(match))
                 intermediary_seen = True
                 role_intermediary_seen |= not is_blurb

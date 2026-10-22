@@ -46,7 +46,6 @@ def test_publisher_catalog_matches_browser_catalog():
 @pytest.mark.parametrize('publisher,jd', [
     ('AgileGrid Solutions', '**About The Company**\n\nQuik Hire Staffing is a leading provider of innovative staffing solutions connecting professionals with client organizations.\n\n**About The Role**\n\nWe are seeking a Frontend Developer for a global software company.'),
     ('מרטנס | Mertens – מקבוצת מלם תים', 'Mertens - MalamTeam is hiring a Backend Developer to join a leading organization in the Gush Dan area'),
-    ('New Publisher', '**About The Company**\n\nTalent Bridge is a recruiting firm placing engineers with clients.\n\n**About The Role**\n\nWe seek an engineer for an unnamed client.'),
     ('New Publisher', 'Talent Bridge is hiring a developer for our client.'),
 ])
 def test_intermediary_is_not_hiring_employer(publisher, jd):
@@ -831,3 +830,83 @@ def test_review_r10_masking_preserves_original_crlf_evidence_offsets(source):
 def test_review_r10_pronoun_or_generic_publisher_is_not_a_staffing_subject(publisher):
     result = resolve_employer(publisher, publisher + ' provides staffing services.', 'linkedin')
     assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('row', json.loads((Path(__file__).parents[1] / 'test_support/fixtures/employer_identity_r11.json').read_text()), ids=lambda row: row['case'])
+def test_review_r11_first_party_allowlist_rejects_false_badges(source, row):
+    result = resolve_employer(row['publisher'], row['jd'], source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] in {None, row['publisher']}
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('heading', ['', 'About the role\n', '**Job description**\n\n',
+                                     'The position\n', 'Responsibilities:\n',
+                                     'תיאור המשרה\n', 'על התפקיד\n'])
+@pytest.mark.parametrize('statement', ['Our client is hiring engineers.', 'לקוח שלנו מגייס מהנדסים.',
+                                      '**Our client is hiring engineers.**'])
+def test_review_r11_first_party_positions_retain_real_evidence(source, heading, statement):
+    result = resolve_employer('HireCo', heading + statement, source)
+    assert result['agency_evidence'] == statement
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_review_r11_job_heading_restores_eligibility_after_unknown_sections(source):
+    jd = ('About our clients\nOur client is hiring engineers.\n'
+          'About the role\nOur client, Beta Corp, is hiring engineers.')
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] == 'Our client, Beta Corp, is hiring engineers.'
+    assert result['hiring_employer'] == 'Beta Corp'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('heading', ["**Employees' experiences**", '**What do people think?**',
+                                     '__Working here__', '# About our clients', 'Customer experiences ' * 5])
+def test_review_r11_unfamiliar_headings_close_first_party_eligibility(source, heading):
+    result = resolve_employer('Acme Labs', 'About the role\n' + heading + '\nOur client is hiring engineers.', source)
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('suffix', ['.', ', connecting engineers.', '; connecting engineers.',
+                                    ' that connects engineers.', ' which connects engineers.',
+                                    ' specializing in technology.', ' connecting engineers.',
+                                    ' helping engineers.', ''])
+def test_review_r11_complete_staffing_predicates(source, suffix):
+    jd = 'Talent is a staffing firm' + suffix
+    result = resolve_employer('Talent', jd, source)
+    assert result['agency_evidence'] == jd
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('suffix', ["'s largest expense.", '’s most valuable resource.',
+                                    ' resource.', ' software.', ' placing engineers with clients.'])
+def test_review_r11_incomplete_staffing_predicates_are_conservative_misses(source, suffix):
+    result = resolve_employer('Talent', 'Talent is a staffing firm' + suffix, source)
+    assert result['agency_evidence'] is None
+
+
+def test_review_r11_legacy_placing_complement_is_a_documented_conservative_miss():
+    jd = ('**About The Company**\n\nTalent Bridge is a recruiting firm placing engineers with clients.'
+          '\n\n**About The Role**\n\nWe seek an engineer for an unnamed client.')
+    result = resolve_employer('New Publisher', jd, 'linkedin')
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Talent Bridge'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('signature', [' - Jane Mary Ann Elizabeth Smith', ' - יעל כהן, מנהלת גיוס'])
+def test_review_r11_signatures_do_not_depend_on_name_length_or_title(source, signature):
+    result = resolve_employer('Acme Labs', 'Our client is hiring engineers.' + signature, source)
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('suffix,agency', [('.', True), (' שמתמחה בטכנולוגיה.', True),
+                                        (' של הלקוחות שלנו.', False), (' משאבים.', False)])
+def test_review_r11_hebrew_staffing_predicate_boundary(suffix, agency):
+    jd = 'Talent היא חברת השמה' + suffix
+    result = resolve_employer('Talent', jd, 'linkedin')
+    assert bool(result['agency_evidence']) == agency
