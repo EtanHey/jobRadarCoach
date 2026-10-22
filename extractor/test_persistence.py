@@ -11,6 +11,7 @@ from extractor import core, persistence
 from extractor.test_salary import (
     P9C_SALARY_SPANS,
     P9D_SALARY_SPANS,
+    P9E_SALARY_SPANS,
     PRECISION_PREVIOUS_SALARY_CASES,
     ROUND5_SALARY_CASES,
     ROUND6_SALARY_CASES,
@@ -61,6 +62,39 @@ def extraction(
         json.dumps(identity, separators=(",", ":"), sort_keys=True).encode()
     ).hexdigest()
     return {**identity, "facts": deepcopy(FACTS if facts is None else facts), "fingerprint": fingerprint}
+
+
+def test_long_employer_identity_is_bounded_before_persistence_without_database():
+    from contextlib import nullcontext
+    line = 'HireCo is a staffing firm. ' + 'x' * (2827 - len('HireCo is a staffing firm. '))
+    raw_jd = line + '\n' + RAW_JD
+
+    class Result:
+        def __init__(self, value):
+            self.value = value
+
+        def fetchone(self):
+            return self.value
+
+    class OfflineConnection:
+        stored_facts = None
+
+        def transaction(self):
+            return nullcontext()
+
+        def execute(self, query, params=()):
+            if query.startswith('select raw_jd'):
+                return Result((raw_jd, 'HireCo', 'linkedin', 'Original title'))
+            if query.startswith('select brain'):
+                return Result(None)
+            if query.startswith('insert into public.posting_extractions'):
+                self.stored_facts = json.loads(params[-1])
+            return Result(('fixture',))
+
+    db = OfflineConnection()
+    assert persistence.persist_extraction(db, 'fixture', raw_jd, extraction(raw_jd)) == 'stored'
+    assert db.stored_facts['employer_identity']['agency_evidence'] == line[:2000]
+    assert db.stored_facts['stack'] == FACTS['stack']
 
 
 def insert_posting(connection, raw_jd: str = RAW_JD) -> str:
@@ -151,6 +185,116 @@ def test_success_updates_fields_and_preserves_identity_history_and_status(connec
         "brain", "model", "extractor_version", "schema_sha256", "jd_sha256", "fingerprint", "facts"
     ))
     assert state[12] is not None
+
+
+def test_title_seniority_is_quoted_from_locked_posting_and_tracks_title_edits(connection) -> None:
+    posting_id = insert_posting(connection)
+    inferred = deepcopy(FACTS)
+    inferred["seniority"] = {"value": "Backend Engineer", "evidence_quote": "Senior Backend Engineer"}
+    result = extraction(facts=inferred)
+    identity = {key: result[key] for key in ("brain", "model", "extractor_version", "schema_sha256")}
+    for title, value in (("Senior Software Engineer", "Senior"), ("Junior Software Engineer", "Junior"),
+                         ("Junior / Senior Software Engineer", None)):
+        connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
+        assert not persistence.has_current_extraction(connection, posting_id, RAW_JD, **identity)
+        assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "stored"
+        state = durable_state(connection, posting_id)
+        assert state[2] == value
+        assert state[11]["seniority"] == {"value": value, "evidence_quote": title if value else None}
+        if value is None:
+            assert state[11]["seniority_remark"] == title
+        assert persistence.has_current_extraction(connection, posting_id, RAW_JD, **identity)
+        assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "unchanged"
+
+
+@pytest.mark.parametrize("title", [
+    "Senior Engineering Manager", "Senior Manager, Platform Engineering",
+    "Senior Manager of Software Engineering", "Manager for Software Engineering",
+    "Manager in Software Engineering", "Senior Manager – R&D", "Manager - Development",
+])
+def test_management_title_persists_management_scalar(connection, title) -> None:
+    posting_id = insert_posting(connection)
+    connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
+    assert persistence.persist_extraction(connection, posting_id, RAW_JD, extraction()) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[2] == "Manager"
+    assert state[11]["seniority"] == {"value": "Manager", "evidence_quote": title}
+
+
+@pytest.mark.parametrize(("title", "value"), [
+    ("Senior Hardware Engineering Program Manager", "Senior"),
+    ("Hardware Engineering Program Manager", None),
+    ("Senior Manager of Product Marketing", "Senior"),
+    ("Manager of Product Marketing", None),
+    ("Senior Manager of Programs", "Senior"),
+])
+def test_function_manager_persists_grade_or_unknown(connection, title, value) -> None:
+    posting_id = insert_posting(connection)
+    connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
+    assert persistence.persist_extraction(connection, posting_id, RAW_JD, extraction()) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[2] == value
+    assert state[11]["seniority"] == {"value": value, "evidence_quote": title if value else None}
+
+
+@pytest.mark.parametrize("old_title", ["Senior Platform Engineer", "Junior / Senior Platform Engineer"])
+@pytest.mark.parametrize("replacement", [None, "Junior"])
+def test_removed_title_level_invalidates_receipt_and_rederives_owned_scalar(
+    connection, old_title, replacement,
+) -> None:
+    raw_jd = "Build platform services. Junior applicants are welcome."
+    unknown = {key: {"value": None, "evidence_quote": None}
+               for key in ("location", "remote", "seniority", "salary")}
+    unknown["stack"] = []
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update public.postings set title = %s where id = %s", (old_title, posting_id))
+    result = extraction(raw_jd, unknown)
+    identity = {key: result[key] for key in ("brain", "model", "extractor_version", "schema_sha256")}
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    assert persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+    connection.execute("update public.postings set title = 'Platform Engineer' where id = %s", (posting_id,))
+    protected = protected_state(connection, posting_id)
+    before = durable_state(connection, posting_id)
+    assert not persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+
+    if replacement is not None:
+        unknown["seniority"] = {"value": replacement, "evidence_quote": "Junior applicants are welcome"}
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd, unknown)) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[2] == replacement
+    assert state[11]["seniority"] == unknown["seniority"]
+    assert "seniority_remark" not in state[11]
+    assert state[:2] == before[:2] and state[3:5] == before[3:5]
+    assert protected_state(connection, posting_id) == protected
+    assert persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd, unknown)) == "unchanged"
+
+
+def test_removed_title_level_preserves_independently_updated_scalar(connection) -> None:
+    raw_jd = "Build platform services."
+    unknown = {key: {"value": None, "evidence_quote": None}
+               for key in ("location", "remote", "seniority", "salary")}
+    unknown["stack"] = []
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update public.postings set title = 'Senior Platform Engineer' where id = %s", (posting_id,))
+    result = extraction(raw_jd, unknown)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    connection.execute(
+        "update public.postings set title = 'Platform Engineer', seniority = 'Staff' where id = %s",
+        (posting_id,),
+    )
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    assert durable_state(connection, posting_id)[2] == "Staff"
+
+
+def test_generic_title_keeps_jd_supported_seniority_current(connection) -> None:
+    posting_id = insert_posting(connection)
+    result = extraction()
+    assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "stored"
+    connection.execute("update public.postings set title = 'Platform Engineer' where id = %s", (posting_id,))
+    identity = {key: result[key] for key in ("brain", "model", "extractor_version", "schema_sha256")}
+    assert persistence.has_current_extraction(connection, posting_id, RAW_JD, **identity)
+    assert durable_state(connection, posting_id)[2] == "Senior"
 
 
 def test_unknown_facts_preserve_known_columns_but_remain_truthful_in_metadata(connection) -> None:
@@ -250,6 +394,42 @@ def test_fresh_extraction_updates_extracted_mode(connection):
     connection.execute("update postings set work_mode='on-site',work_mode_source='extracted' where id=%s", (posting_id,))
     persistence.persist_extraction(connection, posting_id, RAW_JD, extraction())
     assert connection.execute('select work_mode,work_mode_source,remote from postings where id=%s',(posting_id,)).fetchone() == ('remote','extracted',True)
+
+
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+def test_office_schedule_overrides_remote_mode_even_when_quote_omits_it(connection, mode_source):
+    raw_jd = RAW_JD + "\nWe require three days a week in the office and two days at home."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ("hybrid", "extracted", None)
+
+
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+@pytest.mark.parametrize("condition", [
+    "This role requires five days a week in the office.",
+    "This role is full-time in office.",
+])
+def test_full_time_office_schedule_persists_on_site(connection, mode_source, condition):
+    raw_jd = RAW_JD + "\n" + condition
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ("on-site", "extracted", False)
 
 
 @pytest.mark.parametrize('remote', [True, False])
@@ -411,7 +591,7 @@ def test_review_base_counts_do_not_abort_other_fact_persistence(connection, sala
 
 
 @pytest.mark.parametrize("existing", ["matching", "case-variant", None, "$180,000 annually"])
-@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS)
+@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS + P9E_SALARY_SPANS)
 def test_list_governor_salary_persists_other_facts(connection, salary, span, existing):
     from extractor.test_core import runner_for
 
@@ -433,3 +613,38 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
         expected["salary_remark"] = salary
     assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
+
+
+@pytest.mark.parametrize("mode_source", ["extracted", "structured", "location"])
+@pytest.mark.parametrize(("condition", "expected"), [
+    ("Interviews are fully in-person.", "remote"),
+    ("Onboarding requires three days a week in the office.", "remote"),
+    ("Training is full-time in office.", "remote"),
+    ("Onboarding is hybrid work.", "remote"),
+    ("Training requires five days a week in the office.", "remote"),
+    ("The first two weeks are on-site for onboarding.", "remote"),
+    ("Training is in-office.", "remote"),
+    ("Work model: hybrid or fully remote.", None),
+    ("This role offers hybrid work or remote work.", None),
+    ("Hybrid or fully remote.", None),
+    ("Remote or hybrid.", None),
+    ("Flexible: on-site, hybrid or remote.", None),
+    ("We require three days in the office for onboarding.", "remote"),
+    ("We require five office days per quarter.", "remote"),
+    ("This role offers remote or hybrid work arrangements.", None),
+    ("Location: Anywhere (Onsite / Hybrid / Remote - Based on Client Requirement).", None),
+])
+def test_non_permanent_arrangements_do_not_persist_attendance(connection, mode_source, condition, expected):
+    raw_jd = RAW_JD + " " + condition
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute(
+        "update postings set work_mode='remote',work_mode_source=%s,remote=true where id=%s",
+        (mode_source, posting_id),
+    )
+    facts = deepcopy(FACTS)
+    if expected is None:
+        facts["remote"] = {"value": None, "evidence_quote": None}
+    persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd=raw_jd, facts=facts))
+    assert connection.execute(
+        "select work_mode,work_mode_source,remote from postings where id=%s", (posting_id,),
+    ).fetchone() == ((None, None, None) if expected is None else ("remote", mode_source, True))

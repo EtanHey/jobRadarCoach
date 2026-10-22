@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import json
 from classifier.calibration import facts_schema, validate_policy
+from classifier.experience import compare_experience
 
 from scraper.annotate import (
     FACTOR_BASES,
@@ -146,6 +147,29 @@ def build_request(
         history_ids
     )
     schema = output_schema(posting_evidence_id, professional_ids)
+    experience = [
+        row for row in compare_experience(posting.get("jd_text", ""), profile)
+        if row["subject_kind"] in {"overall", "specialist"}
+    ]
+    if not any(row["subject_kind"] == "specialist" for row in experience):
+        experience = []  # Preserve the legacy contract for overall-only postings.
+    shortfalls = [row for row in experience if row["assessment"] == "below"]
+    seniority_schema = schema["properties"]["reasons"]["properties"]["seniority_gap"]["properties"]
+    if shortfalls:
+        seniority_schema["assessment"]["enum"] = ["mixed", "negative"]
+        seniority_schema["evidence_ids"]["items"]["enum"] = sorted({
+            evidence_id for row in shortfalls for evidence_id in row["candidate_evidence_ids"]
+        })
+    elif any(row["assessment"] == "unknown" for row in experience):
+        seniority_schema["assessment"]["enum"] = ["unknown"]
+        seniority_schema["detail"]["enum"] = [
+            "Duration for at least one stated experience requirement is unknown from verified candidate evidence; total career tenure does not establish specialist duration."
+        ]
+        seniority_schema["evidence_ids"]["items"]["enum"] = ["profile:tenure"]
+    elif experience:
+        seniority_schema["evidence_ids"]["items"]["enum"] = sorted({
+            evidence_id for row in experience for evidence_id in row["candidate_evidence_ids"]
+        })
     policy = profile.get("candidate", {}).get("scorer_calibration")
     if policy is not None:
         policy = validate_policy(policy)
@@ -166,10 +190,19 @@ def build_request(
         for factor in REASON_FACTORS
     }
     slot_ids["fit_line"] = sorted(professional_ids)
+    slot_ids["seniority_gap"] = seniority_schema["evidence_ids"]["items"]["enum"]
     mcp_ids = sorted(professional_ids & MCP_EVIDENCE_IDS)
     prompt = "\n".join(
         [
             base_prompt,
+            *([
+                "Candidate tenure_years and profile:tenure describe overall career duration only; they never establish specialist duration.",
+                "Compare explicit skill-specific years only with candidate evidence for the same skill. Fit terms, depth modes and undated project work establish no duration. Never sum overlapping projects.",
+                "Unknown skill duration is not zero or a proven shortfall: state it as unknown, never as a positive tenure match or a hard rejection. Role-level years still compare against overall career tenure. Keep score and explanations consistent with these limits.",
+                "A verified overall or specialist shortfall remains valid even when another specialist duration is unknown; ground the gap in the known shortfall and keep the other duration unknown.",
+                "Deterministic experience comparisons:",
+                json.dumps(experience, ensure_ascii=False, sort_keys=True),
+            ] if experience else []),
             "Wire format: reasons is a closed object keyed by the five exact factor names, not an array.",
             "Each keyed reason must repeat its schema-constrained factor and basis. All five keys are required exactly once.",
             "Copy every evidence ID byte-for-byte from its slot-specific schema enum. Never invent, alias, normalize, or add or remove an evidence-ID prefix.",

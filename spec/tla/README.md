@@ -13,9 +13,14 @@ TLC_LOG_DIR=/tmp/jrc-tlc-evidence ./spec/tla/check.sh
 
 Requires Java, `rg`, and `tlc` on PATH, or `TLC=/path/to/tlc`.
 The runner copies the model to a temporary directory and removes only that directory.
-It runs the target, four independent current-code invariant checks, and six focused
+It runs the target, five independent current-code invariant checks, and six focused
 checks. Expected violations require exit 12 and the exact requested invariant error.
 Passing controls require exit 0 and TLC's completion message. Any mismatch fails.
+`JrcPipeline_deadline.cfg` isolates the freshness and deadline-closure invariants.
+`DeadlinePassedImpliesClosed` requires positive displayed closure after the
+inclusive deadline, independently of page success or uncertainty. `DisplayedClosed`
+is a read-time projection; it does not erase historical page/list evidence. This
+extends the target design; TLC results below predate the deadline-closure invariant.
 `JrcPipeline_current.cfg` is a base; append `INVARIANT <name>` for a manual run.
 
 ## Scope and interpretation

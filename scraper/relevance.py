@@ -3,10 +3,12 @@ import json
 import re
 try:
     from scraper.years import blocking_hebrew_years, normalize_english_years
+    from scraper.jd_quality import jd_quality_rule
 except ModuleNotFoundError:
     from years import blocking_hebrew_years, normalize_english_years
+    from jd_quality import jd_quality_rule
 
-VERSION = '2026-10-22-v8'
+VERSION = '2026-10-22-v9-years-jdq'
 PURSUIT_STATUSES = frozenset({
     'worth_checking', 'applied', 'screen', 'interview_technical',
     'interview_final', 'offer', 'contract', 'rejected',
@@ -90,7 +92,8 @@ def _classified_gate(row):
     _, title, jd, has_score, gate = row
     # Explicit residency wins over a score proxy, never a pipeline decision.
     rule = ('already-us-resident' if already_us_resident(jd) else None) if has_score else gate_rule(title, jd)
-    return {**gate, 'version': VERSION, 'rule': rule}
+    # A prior score cannot establish that its source was a usable single-role JD.
+    return {**gate, 'version': VERSION, 'rule': jd_quality_rule(jd) or rule}
 
 
 _GATE_ROW = (
@@ -108,11 +111,9 @@ def _refresh_gate_locked(connection, *, posting_ids, limit, at_write):
     rows = connection.execute(
         _GATE_ROW + "where (%s::boolean or p.relevance_gate->>'version' is distinct from %s) "
         "and not coalesce((p.relevance_gate->>'override')::boolean,false) "
-        "and (%s::boolean or (p.raw_jd is not null and length(trim(p.raw_jd))>=80)) "
-        "and (not exists(select 1 from public.posting_scores s where s.posting_id=p.id) or p.raw_jd ilike '%%already%%') "
         + _NOT_PURSUED +
         "and (%s::uuid[] is null or p.id=any(%s::uuid[])) order by p.first_seen_at,p.id limit %s",
-        (at_write, VERSION, at_write, list(posting_ids) or None, list(posting_ids) or None, limit),
+        (at_write, VERSION, list(posting_ids) or None, list(posting_ids) or None, limit),
     ).fetchall()
     for row in rows:
         if _classified_gate(row) == row[4]:

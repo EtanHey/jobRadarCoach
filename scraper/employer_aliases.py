@@ -1,4 +1,18 @@
-"""Same-company spellings/divisions reviewed in the frozen 58-row audit."""
+"""Structural same-company names plus reviewed spellings/divisions."""
+import re
+
+
+SUFFIX = re.compile(r'(?:^| )(?:private limited|pvt ltd|inc|ltd|llc|corp|corporation|company|co|group|holdings|lab|labs|gmbh|ag|sa|bv|ai|technologies|systems)$')
+
+
+def _core(name: str) -> str:
+    name = re.sub(r'\([A-Z][A-Z0-9&.]{1,}\)', ' ', name)
+    core = ' '.join(re.findall(r'[^\W_]+', name.casefold()))
+    while (shorter := SUFFIX.sub('', core)) != core:
+        core = shorter
+    return core
+
+
 ALIASES = {
     'Alice (Formerly ActiveFence)': ['Alice'],
     'BMC Software': ['BMC'],
@@ -13,6 +27,10 @@ ALIASES = {
 
 
 def is_alias(publisher: str, employer: str) -> bool:
+    left, right = _core(publisher), _core(employer)
+    # Suffix stripping only establishes an alias when nonempty cores agree.
+    if left and right and (left == right or left.startswith(right + ' ') or right.startswith(left + ' ')):
+        return True
     return any(publisher.casefold() == name.casefold()
                and employer.casefold() in {alias.casefold() for alias in aliases}
                for name, aliases in ALIASES.items())
