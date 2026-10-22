@@ -42,11 +42,16 @@ class UnsupportedBrainError(BrainConfigurationError): ...
 
 
 class BrainTransportError(BrainError):
-    def __init__(self, message, *, category="transport_error", exit_code=None, stderr_truncated=False):
+    def __init__(self, message, *, category="transport_error", exit_code=None, stderr_truncated=False,
+                 phase=None, phase_timeout_seconds=None, phase_elapsed_ms=None, cached=False):
         super().__init__(message)
         self.category = category
         self.exit_code = exit_code
         self.stderr_truncated = stderr_truncated
+        self.phase = phase
+        self.phase_timeout_seconds = phase_timeout_seconds
+        self.phase_elapsed_ms = phase_elapsed_ms
+        self.cached = cached
 
 
 class BrainResponseError(BrainError): ...
