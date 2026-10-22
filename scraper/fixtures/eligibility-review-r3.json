@@ -1,0 +1,374 @@
+[
+  [
+    "r3-sol-01",
+    "Remote - US",
+    "",
+    "blocked"
+  ],
+  [
+    "r3-sol-02",
+    "US Remote",
+    "",
+    "blocked"
+  ],
+  [
+    "r3-sol-03",
+    "Remote (United States)",
+    "",
+    "blocked"
+  ],
+  [
+    "r3-sol-04",
+    "Remote, EMEA",
+    "",
+    "unknown"
+  ],
+  [
+    "r3-sol-05",
+    "Tel Aviv",
+    "Only residents of France are eligible.",
+    "unknown"
+  ],
+  [
+    "r3-sol-06",
+    "Israel",
+    "3 days/week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-sol-07",
+    "Tel Aviv",
+    "This position requires 2 days/week in our Toronto office.",
+    "unknown"
+  ],
+  [
+    "r3-sol-08",
+    "Remote",
+    "Remote worldwide; US work authorization required.",
+    "unknown"
+  ],
+  [
+    "r3-sol-09",
+    "Remote (Israel or United States)",
+    "",
+    "eligible"
+  ],
+  [
+    "r3-sol-10",
+    "Tel Aviv",
+    "No need to relocate to Toronto.",
+    "eligible"
+  ],
+  [
+    "r3-cursor-01",
+    "Remote",
+    "Remote (United States)",
+    "blocked"
+  ],
+  [
+    "r3-cursor-02",
+    "Remote",
+    "Only residents of Canada may apply",
+    "blocked"
+  ],
+  [
+    "r3-cursor-03",
+    "Remote",
+    "3 days/week in our London office",
+    "blocked"
+  ],
+  [
+    "r3-cursor-04",
+    "Remote",
+    "US work authorization required",
+    "unknown"
+  ],
+  [
+    "r3-cursor-05",
+    "Remote (Israel or Europe)",
+    "",
+    "eligible"
+  ],
+  [
+    "r3-cursor-06",
+    "Tel Aviv",
+    "Remote worldwide",
+    "eligible"
+  ],
+  [
+    "r3-other-roles",
+    "Tel Aviv",
+    "This engineering role is hybrid in Tel Aviv. Some roles in our GTM team are currently being hired for in-person hybrid work in Toronto and Austin.",
+    "unknown"
+  ],
+  [
+    "r3-doit",
+    "United States",
+    "This role is remote, but candidates must be based in **United States**. We are hiring for this market specifically, so applicants should already be based in **United States**.",
+    "blocked"
+  ],
+  [
+    "r3-onepassword",
+    "Canada and the US",
+    "This is a remote opportunity within Canada and the US. Some roles in our GTM team are currently being hired for in-person hybrid work in Toronto and Austin.",
+    "blocked"
+  ],
+  [
+    "r3-auth-only",
+    "Tel Aviv",
+    "US work authorization required.",
+    "unknown"
+  ],
+  [
+    "r3-attend-negated",
+    "Israel",
+    "No need to attend our London office.",
+    "unknown"
+  ],
+  [
+    "r3-control-01-weekly-words",
+    "Tel Aviv",
+    "This role requires three days each week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-control-02-weekly-central",
+    "Israel",
+    "3 days/week in our Tel Aviv office.",
+    "eligible"
+  ],
+  [
+    "r3-control-03-weekly-noncentral",
+    "Israel",
+    "3 days/week in our Haifa office.",
+    "blocked"
+  ],
+  [
+    "r3-control-04-weekly-unknown",
+    "Israel",
+    "3 days/week in our approved office.",
+    "unknown"
+  ],
+  [
+    "r3-control-05-weekly-at",
+    "Israel",
+    "3 days per week at our approved office.",
+    "unknown"
+  ],
+  [
+    "r3-control-06-weekly-nounless",
+    "Israel",
+    "3 days/week in London.",
+    "unknown"
+  ],
+  [
+    "r3-control-07-weekly-optional",
+    "Israel",
+    "Optional 3 days/week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-control-08-weekly-negated",
+    "Israel",
+    "Not required: 3 days/week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-control-09-weekly-alternative",
+    "Israel",
+    "3 days/week in our London office or work remotely from Israel.",
+    "unknown"
+  ],
+  [
+    "r3-control-10-weekly-other",
+    "Israel",
+    "Other roles require 3 days/week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-control-11-required-office",
+    "Israel",
+    "This role requires working in our Toronto office.",
+    "unknown"
+  ],
+  [
+    "r3-control-12-required-office-unknown",
+    "Israel",
+    "This role requires working in our approved office.",
+    "unknown"
+  ],
+  [
+    "r3-control-13-residence-alternative",
+    "Israel",
+    "Only residents of France or Israel are eligible.",
+    "eligible"
+  ],
+  [
+    "r3-control-14-residence-conditional",
+    "Israel",
+    "Only residents of France are eligible unless Israel is approved.",
+    "unknown"
+  ],
+  [
+    "r3-control-15-but-alternative",
+    "Israel",
+    "Candidates must be based in US but applicants in Israel can work remotely.",
+    "unknown"
+  ],
+  [
+    "r3-control-16-bounded-alternative",
+    "Remote",
+    "This is a remote opportunity within Canada and the US or Israel.",
+    "eligible"
+  ],
+  [
+    "r3-control-17-bounded-unparsed",
+    "Israel",
+    "This is a remote opportunity within Canada or an approved country.",
+    "unknown"
+  ],
+  [
+    "r3-control-18-bounded-conditional",
+    "Israel",
+    "This is a remote opportunity within Canada if approved.",
+    "unknown"
+  ],
+  [
+    "r3-control-19-remote-auth",
+    "Remote",
+    "Remote US work authorization required.",
+    "unknown"
+  ],
+  [
+    "r3-control-20-remote-client",
+    "Israel",
+    "Our clients offer remote opportunities within Canada and the US.",
+    "eligible"
+  ],
+  [
+    "r3-control-21-remote-client-annotation",
+    "Remote",
+    "Customers use Remote (United States) products.",
+    "unknown"
+  ],
+  [
+    "r3-control-22-hubs-israel",
+    "Remote",
+    "This role can be held from one of our US hubs or remotely in Israel.",
+    "eligible"
+  ],
+  [
+    "r3-control-23-hubs-unknown",
+    "Israel",
+    "This role can be held from one of our US hubs or remotely in an approved country.",
+    "unknown"
+  ],
+  [
+    "r3-control-24-modes-israel",
+    "Remote",
+    "Location: Israel (Onsite / Hybrid / Remote – Based on Client Requirement)",
+    "eligible"
+  ],
+  [
+    "r3-control-25-modes-alternative",
+    "Remote",
+    "Location: United States or Israel (Onsite / Hybrid / Remote – Based on Client Requirement)",
+    "eligible"
+  ],
+  [
+    "r3-control-26-modes-conditional",
+    "Israel",
+    "Location: United States (Onsite / Hybrid / Remote – Based on Client Requirement) if approved",
+    "unknown"
+  ],
+  [
+    "r3-control-27-field-conditional",
+    "US Remote, Israel considered",
+    "",
+    "unknown"
+  ],
+  [
+    "r3-control-28-field-worldwide",
+    "Remote (US or worldwide)",
+    "",
+    "eligible"
+  ],
+  [
+    "r3-control-29-field-unparsed",
+    "Remote (US or approved countries)",
+    "",
+    "unknown"
+  ],
+  [
+    "r3-control-30-client-office",
+    "Israel",
+    "Our customers require 3 days/week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-multifield",
+    "Israel; Netherlands; Remote - Europe; United Kingdom",
+    "",
+    "unknown"
+  ],
+  [
+    "r3-mixed-modes",
+    "Hybrid – Tel Aviv / Remote (EU)",
+    "",
+    "unknown"
+  ],
+  [
+    "r3-nongeographic-requires",
+    "Tel Aviv",
+    "Success requires combining strong reasoning capabilities with robust execution, reliability, and clear auditability in production settings.",
+    "eligible"
+  ],
+  [
+    "r3-attendance-not-required",
+    "Israel",
+    "This role does not require 3 days/week in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-office-not-required",
+    "Israel",
+    "Not required to work in our London office.",
+    "unknown"
+  ],
+  [
+    "r3-residents-unparsed-list",
+    "Tel Aviv",
+    "Only residents of France, Atlantis are eligible.",
+    "unknown"
+  ],
+  [
+    "r3-bounded-unparsed-list",
+    "Israel",
+    "This is a remote opportunity within Canada, Atlantis.",
+    "unknown"
+  ],
+  [
+    "r3-organization-base",
+    "Caesarea, Haifa District, Israel",
+    "This position is part of Cisco’s Silicon One organization, based in Israel.",
+    "unknown"
+  ],
+  [
+    "r3-residents-and-unparsed",
+    "Tel Aviv",
+    "Only residents of France and Atlantis are eligible.",
+    "unknown"
+  ],
+  [
+    "r3-field-unparsed-alternative",
+    "Remote - US; Remote - Atlantis",
+    "",
+    "unknown"
+  ],
+  [
+    "r3-field-prefix-unparsed",
+    "Approved office or Remote within US",
+    "",
+    "unknown"
+  ]
+]

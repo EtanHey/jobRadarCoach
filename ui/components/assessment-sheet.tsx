@@ -10,11 +10,21 @@ export function AssessmentSheet({job}: {job: JobDetail}) {
   const score = previous ? job.score_payload?.fit_score ?? null : job.score;
   const fitLine = previous ? job.score_payload?.fit_line : job.fit_line;
   const recommendation = previous ? job.score_payload?.recommendation : job.recommendation;
+  const eligibility = job.eligibility ?? job.score_payload?.eligibility;
+  const eligibilityReason = job.eligibility_reason ?? job.score_payload?.eligibility_reason ?? "location eligibility has not been assessed";
+  const noLocationEvidence = eligibility === "unknown" && eligibilityReason.startsWith("Israel/remote-from-Israel scope is unconfirmed:");
+  const advice = recommendation === "apply" && eligibility !== "eligible" && !noLocationEvidence
+    ? eligibility === "blocked"
+      ? `Apply — location blocked: ${eligibilityReason}`
+      : eligibilityReason.startsWith("unresolved location restriction:")
+        ? `Apply — location unclear: ${eligibilityReason.slice("unresolved location restriction:".length).trim()}`
+        : `Apply — location unknown: check ${eligibilityReason}`
+    : `Recommendation: ${recommendation}`;
   return <Sheet><SheetTrigger render={<Button size="sm" variant="secondary" />} aria-label={score === null ? "Open AI assessment: not scored" : `Open ${previous ? "previous " : ""}AI assessment: fit score ${score} out of 100`}>
     {score === null ? "Not scored" : `${previous ? "Previous: " : ""}${score}/100`}
   </SheetTrigger><SheetContent forceOverlay className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
     <SheetHeader><SheetTitle>{previous ? "Previous AI assessment" : "AI assessment"}</SheetTitle><SheetDescription>{job.title} at {employerLabel(job)}</SheetDescription></SheetHeader>
-    <div className="space-y-5 px-4 pb-6"><section className="rounded-xl border bg-muted/60 p-4"><h2 className="text-sm font-semibold">Fit assessment</h2><p className="mt-2 text-3xl font-semibold">{score === null ? "Not scored" : `${score} / 100`}</p>{fitLine && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{fitLine}</p>}{recommendation && <p className="mt-2 text-sm capitalize">Recommendation: {recommendation}</p>}</section>
+    <div className="space-y-5 px-4 pb-6"><section className="rounded-xl border bg-muted/60 p-4"><h2 className="text-sm font-semibold">Fit assessment</h2><p className="mt-2 text-3xl font-semibold">{score === null ? "Not scored" : `${score} / 100`}</p>{fitLine && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{fitLine}</p>}{recommendation && <p className="mt-2 text-sm">{advice}</p>}</section>
       {!!job.reasons.length && <section><h2 className="font-semibold">Why this score</h2><ul className="mt-3 space-y-3">{job.reasons.map((item) => <li key={item.factor} className="rounded-xl border bg-card p-4 text-sm"><span className="mb-1 block text-xs capitalize text-muted-foreground">{item.factor.replaceAll("_", " ")} · {item.assessment}</span><span className="whitespace-pre-wrap break-words">{item.detail}</span></li>)}</ul></section>}
     </div>
   </SheetContent></Sheet>;

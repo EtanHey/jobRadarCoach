@@ -927,6 +927,9 @@ def annotate(
                 expected_recommendation=expected_recommendation,
             )
             if annotation is not None:
+                from scraper.eligibility import decide_location_eligibility
+
+                annotation.update(decide_location_eligibility(posting, posting.get("posting_extractions"), profile_contract))
                 return annotation
         return _invalid_annotation()
     except Exception as error:

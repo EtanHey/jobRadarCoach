@@ -29,8 +29,8 @@ try:
     from scraper.geography import (  # noqa: E402
         _city_matches_country, _contains_normalized_phrase, _normalized_location,
     )
-except ImportError:
-    from geography import (
+except ModuleNotFoundError:
+    from geography import (  # noqa: E402
         _city_matches_country, _contains_normalized_phrase, _normalized_location,
     )
 
@@ -236,6 +236,7 @@ LUNA_FIELDS = (
     "recommendation", "reasons", "fit_line", "fit_line_evidence_ids",
     "luna_status",
 )
+ELIGIBILITY_FIELDS = ("eligibility", "eligibility_reason")
 LEGACY_LUNA_FIELDS = ("employer_type", "seniority_real", "fit_line", "luna_status")
 LUNA_UNAVAILABLE: dict[str, object] = {
     "employer_type": "unknown",
@@ -1489,6 +1490,7 @@ def _title_matches_model_scope(
     return included and HARD_TITLE_EXCLUSION_PATTERN.search(title) is None
 
 
+
 def _location_matches(
     posting: dict[str, object],
     geography: str,
@@ -1977,6 +1979,14 @@ def write_summary(  # skipcq: PY-R1000
 def _validated_pipeline_annotation(value: object) -> dict[str, object]:  # skipcq: PY-R1000
     if not isinstance(value, dict):
         return dict(LUNA_INVALID)
+    eligibility = {field: value[field] for field in ELIGIBILITY_FIELDS if field in value}
+    if eligibility and (
+        eligibility.get("eligibility") not in {"eligible", "blocked", "unknown"}
+        or not isinstance(eligibility.get("eligibility_reason"), str)
+        or not eligibility["eligibility_reason"].strip()
+    ):
+        return dict(LUNA_INVALID)
+    value = {field: item for field, item in value.items() if field not in ELIGIBILITY_FIELDS}
     if set(value) == set(LEGACY_LUNA_FIELDS):
         fields = LEGACY_LUNA_FIELDS
     elif set(value) == set(LUNA_FIELDS):
@@ -2015,7 +2025,7 @@ def _validated_pipeline_annotation(value: object) -> dict[str, object]:  # skipc
         return dict(LUNA_INVALID)
     if status == "ok" and not fit_line.strip():
         return dict(LUNA_INVALID)
-    return {field: value[field] for field in fields}
+    return {**{field: value[field] for field in fields}, **eligibility}
 
 
 def _ranking_value(posting: dict[str, object]) -> int:
@@ -2080,7 +2090,7 @@ def persist_annotations(path: Path, postings: list[dict[str, object]]) -> None:
 
     annotations = {
         str(posting.get("id", "")): {
-            field: posting[field] for field in LUNA_FIELDS if field in posting
+            field: posting[field] for field in LUNA_FIELDS + ELIGIBILITY_FIELDS if field in posting
         }
         for posting in postings
         if any(field in posting for field in LUNA_FIELDS)

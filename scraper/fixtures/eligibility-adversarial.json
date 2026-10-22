@@ -1,0 +1,296 @@
+[
+  [
+    "sol-01",
+    "Remote — EMEA",
+    "",
+    "unknown"
+  ],
+  [
+    "sol-02",
+    "Remote (Israel or Europe)",
+    "",
+    "eligible"
+  ],
+  [
+    "sol-03",
+    "US remote, Israel considered",
+    "",
+    "unknown"
+  ],
+  [
+    "sol-04",
+    "Remote",
+    "עבודה מרחוק מישראל בלבד",
+    "eligible"
+  ],
+  [
+    "sol-05",
+    "Israel",
+    "המשרה מיועדת לתושבי ארצות הברית בלבד",
+    "unknown"
+  ],
+  [
+    "sol-06",
+    "Berlin, Germany",
+    "relocation to Berlin provided",
+    "unknown"
+  ],
+  [
+    "sol-07",
+    "Remote",
+    "Remote in the US only; US citizenship required",
+    "blocked"
+  ],
+  [
+    "sol-08",
+    "Remote",
+    "Remote in Israel or Europe",
+    "eligible"
+  ],
+  [
+    "sol-09",
+    "Remote",
+    "Candidates must reside in Israel or the US",
+    "eligible"
+  ],
+  [
+    "sol-10",
+    "Remote",
+    "We are not remote in the US",
+    "unknown"
+  ],
+  [
+    "sol-11",
+    "Remote",
+    "Remote worldwide except Israel",
+    "blocked"
+  ],
+  [
+    "sol-12",
+    "Remote",
+    "Remote worldwide, excluding Israel",
+    "blocked"
+  ],
+  [
+    "sol-13",
+    "Remote",
+    "Remote worldwide except the US",
+    "eligible"
+  ],
+  [
+    "sol-14",
+    "Remote",
+    "Remote in Europe only; we serve clients worldwide",
+    "blocked"
+  ],
+  [
+    "sol-15",
+    "Remote",
+    "Remote within the EMEA region",
+    "unknown"
+  ],
+  [
+    "sol-16",
+    "Remote",
+    "Remote worldwide",
+    "eligible"
+  ],
+  [
+    "sol-17",
+    "Tel Aviv",
+    "Applicants must be based in the US",
+    "unknown"
+  ],
+  [
+    "sol-18",
+    "Remote",
+    "On-site in Berlin",
+    "blocked"
+  ],
+  [
+    "sol-19",
+    "Remote",
+    "Remote within Canada, the US and Israel",
+    "eligible"
+  ],
+  [
+    "sol-20",
+    "Israel",
+    "Remote worldwide except Israel",
+    "blocked"
+  ],
+  [
+    "sol-21",
+    "Remote",
+    "Remote in the US, excluding Israel",
+    "blocked"
+  ],
+  [
+    "cursor-01",
+    "Tel Aviv, Israel",
+    "Must reside in New York",
+    "unknown"
+  ],
+  [
+    "cursor-02",
+    "Tel Aviv, Israel",
+    "Must relocate to New York",
+    "unknown"
+  ],
+  [
+    "cursor-03",
+    "Israel",
+    "On-site in Haifa",
+    "blocked"
+  ],
+  [
+    "cursor-04",
+    "Israel",
+    "Full-time, On-site in Yokneam",
+    "blocked"
+  ],
+  [
+    "cursor-05",
+    "Remote",
+    "u.s. only",
+    "blocked"
+  ],
+  [
+    "cursor-06",
+    "Remote",
+    "Remote (Israel or Europe)",
+    "eligible"
+  ],
+  [
+    "cursor-07",
+    "Remote",
+    "Remote in Israel or Europe",
+    "eligible"
+  ],
+  [
+    "cursor-08",
+    "Raanana",
+    "Office based",
+    "eligible"
+  ],
+  [
+    "cursor-09",
+    "Ra'anana, Israel",
+    "Office based",
+    "eligible"
+  ],
+  [
+    "cursor-10",
+    "Modiin",
+    "Office based",
+    "eligible"
+  ],
+  [
+    "cursor-11",
+    "Remote",
+    "100% remote worldwide except Israel",
+    "blocked"
+  ],
+  [
+    "cursor-12",
+    "Remote",
+    "Remote worldwide (Israel excluded)",
+    "blocked"
+  ],
+  [
+    "cursor-13",
+    "Remote",
+    "עבודה מרחוק מישראל",
+    "eligible"
+  ],
+  [
+    "cursor-14",
+    "Remote — EMEA",
+    "",
+    "unknown"
+  ],
+  [
+    "cursor-15",
+    "Remote",
+    "Remote in EMEA",
+    "unknown"
+  ],
+  [
+    "cursor-16",
+    "US remote, Israel considered",
+    "",
+    "unknown"
+  ],
+  [
+    "cursor-17",
+    "Remote",
+    "Work remotely from anywhere",
+    "unknown"
+  ],
+  [
+    "cursor-18",
+    "Remote",
+    "Remote US/Canada/UK",
+    "blocked"
+  ],
+  [
+    "supplemental-01",
+    null,
+    "On-site in Berlin",
+    "unknown"
+  ],
+  [
+    "supplemental-02",
+    "Remote (Israel or Europe)",
+    "Remote worldwide",
+    "eligible"
+  ],
+  [
+    "supplemental-03",
+    "Remote",
+    "המשרה מיועדת לתושבי ארצות הברית בלבד",
+    "blocked"
+  ],
+  [
+    "supplemental-04",
+    "Remote",
+    "Remote worldwide excluding Canada",
+    "eligible"
+  ],
+  [
+    "supplemental-05",
+    "Israel",
+    "On-site in Berlin",
+    "unknown"
+  ],
+  [
+    "supplemental-06",
+    "Israel",
+    "Remote worldwide except Israel",
+    "blocked"
+  ],
+  [
+    "supplemental-07",
+    "Israel",
+    "On-site in Jerusalem",
+    "blocked"
+  ],
+  [
+    "supplemental-08",
+    "Israel",
+    "On-site in Tel Aviv",
+    "eligible"
+  ],
+  [
+    "supplemental-09",
+    "Remote",
+    "US citizenship required",
+    "unknown"
+  ],
+  [
+    "supplemental-10",
+    "Remote",
+    "We are not on-site in Berlin",
+    "unknown"
+  ]
+]
