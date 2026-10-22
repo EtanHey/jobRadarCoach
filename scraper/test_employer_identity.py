@@ -163,7 +163,7 @@ def test_reviewed_alldus_repost_keeps_client_unknown():
 ])
 def test_candidate_own_about_services_override_role_claim(services):
     jd = (f'**About The Company**\n\nBridge Partners is a global provider of {services} '
-          'for technology businesses.\n\n**About The Role**\n\n'
+          'for client technology businesses.\n\n**About The Role**\n\n'
           'Bridge Partners is seeking a frontend engineer to join its team.')
     result = resolve_employer('New Publisher', jd, 'linkedin')
     assert result['hiring_employer'] is None
@@ -219,8 +219,8 @@ def test_generic_company_hiring_prose_is_direct(publisher, jd):
 
 
 @pytest.mark.parametrize('wording', [
-    'our client', 'a client of ours', 'on behalf of a company',
-    'on behalf of a prominent, employee owned defense and security firm',
+    'our client', 'a client of ours', 'on behalf of a client',
+    'on behalf of a prominent defense and security client',
 ])
 def test_explicit_third_party_role_blocks_ats_fallback(wording):
     jd = f'Talent Bridge is hiring an engineer for {wording}.'
@@ -267,3 +267,86 @@ def test_talent_acquisition_firm_is_a_staffing_business():
     assert result['hiring_employer'] is None
     assert result['agency_evidence'] in jd
     assert 'talent acquisition firm' in result['agency_evidence']
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('description', [
+    'provides software for staffing services',
+    'is a software vendor providing software for recruitment services',
+    'provides staffing solutions software to HR teams',
+])
+def test_review_r3_software_vendor_keeps_own_employer(source, description):
+    jd = (f'**About The Company**\nAcme Labs {description}.\n\n'
+          '**About The Role**\nAcme Labs is hiring an engineer.')
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('organization', ['company', 'organization', 'firm', 'team'])
+def test_review_r3_internal_recruitment_keeps_ats_fallback(organization):
+    jd = f'Our internal recruitment team is hiring engineers on behalf of our {organization}.'
+    result = resolve_employer('Acme Labs', jd, 'greenhouse')
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('statement', [
+    'We are a staffing firm.', 'We are a leading staffing firm.',
+    'HireCo are a staffing agency.',
+])
+def test_review_r3_staffing_firm_self_description_is_agency(statement):
+    result = resolve_employer('HireCo', statement, 'greenhouse')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] == statement
+
+
+@pytest.mark.parametrize('product', ['software', 'a platform', 'a tool', 'a SaaS', 'an app', 'a product'])
+def test_service_provider_with_product_subject_is_not_agency(product):
+    jd = (f'**About The Company**\nAcme Labs is {product} providing recruitment services.\n'
+          '**About The Role**\nAcme Labs is hiring an engineer.')
+    result = resolve_employer('Acme Labs', jd, 'greenhouse')
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('description', [
+    'a recruitment platform', 'staffing solutions software',
+    'a provider of staffing solutions for HR teams',
+])
+def test_staffing_product_or_solutions_without_client_context_is_not_agency(description):
+    jd = f'**About The Company**\nAcme Labs is {description}.'
+    result = resolve_employer('Acme Labs', jd, 'greenhouse')
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('client', [
+    'our clients', 'a client', 'an unnamed client',
+    'a leading technology company, our client', 'a partner company',
+])
+def test_client_wording_blocks_ats_fallback(client):
+    jd = f'We are hiring engineers on behalf of {client}.'
+    result = resolve_employer('HireCo', jd, 'greenhouse')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] == jd
+
+
+@pytest.mark.parametrize('company', [
+    'a company', 'a leading technology company',
+    'a prominent, employee owned defense and security firm',
+])
+def test_on_behalf_of_company_requires_client_wording(company):
+    jd = f'We are hiring engineers on behalf of {company}.'
+    result = resolve_employer('Acme Labs', jd, 'greenhouse')
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('employer,expected', [('HireCo', None), ('Acme Labs', 'Acme Labs')])
+def test_first_person_staffing_description_distinguishes_publisher_from_client(employer, expected):
+    jd = ('**About The Company**\nWe are a staffing firm.\n'
+          f'**About The Role**\n{employer} is hiring an engineer.')
+    result = resolve_employer('HireCo', jd, 'greenhouse')
+    assert result['hiring_employer'] == expected
+    assert result['agency_evidence'] == 'We are a staffing firm.'

@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '4'
+VERSION = '5'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -22,25 +22,41 @@ PATTERNS = [
 GENERIC = {'we', 'our', 'the company', 'this company', 'the client', 'a company', 'you'}
 
 
-# Third-party wording excludes ordinary "join a company" and client SDK/team copy.
+# A company description alone is not client evidence; partner wording is explicit.
 THIRD_PARTY = (
     r"\bour client(?=[:,.*]|\s+(?:is|are)\b|\s*$)"
     r"|\ba client of ours\b"
-    r"|\bon behalf of (?:our|an?) (?:[\w,-]+ ){0,8}(?:client|company|organization|firm)\b"
+    r"|\bon behalf of (?:our|an?) (?:[\w,-]+ ){0,8}clients?\b"
+    r"|\bon behalf of an? partner (?:company|organization|firm)\b"
 )
 INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
-# Service-provider framing, rather than product mentions of talent solutions.
+# Keep the service adjacent to the provider verb; product subjects are checked below.
 STAFFING_SERVICES = re.compile(
-    r"\bis an? (?:(?:leading|global|international|specialist|specialized) ){0,3}"
+    r"\b(?:is|are) an? (?:(?:leading|global|international|specialist|specialized) ){0,3}"
     r"(?:staffing|recruiting|recruitment|talent acquisition|placement) (?:agency|firm|company)\b"
-    r"|\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}"
+    r"|\b(?:provider of|provid(?:e|es|ing)) "
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
     r"(?: and (?:staffing|recruiting|recruitment))? services\b"
-    r"|\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}staffing solutions\b"
+    r"|\b(?:provider of|provid(?:e|es|ing)) (?:innovative )?staffing solutions\b"
     r"|\bwe place candidates\b",
     re.I,
 )
-AGENCY_STATEMENT = re.compile(r'^.*(?:' + THIRD_PARTY + r')[^\n]*', re.I | re.M)
+PRODUCT = re.compile(r"\b(?:software|platform|tool|saas|app|product)s?\b", re.I)
+PLACEMENT_CONTEXT = re.compile(r"\b(?:clients?|candidates?|placement|placing|connecting professionals)\b", re.I)
+
+
+def _staffing_statement(text: str) -> bool:
+    """Require staffing itself as the service, rather than a software product."""
+    for clause in re.split(r'[.;!?]\s+', text):
+        for match in STAFFING_SERVICES.finditer(clause):
+            if PRODUCT.search(clause[:match.start()]) or re.match(r"\s*" + PRODUCT.pattern, clause[match.end():], re.I):
+                continue
+            if 'staffing solutions' in match[0].casefold() and not PLACEMENT_CONTEXT.search(clause):
+                continue
+            return True
+    return False
+
+
 ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
 
 
@@ -51,12 +67,16 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     staffing_about = {
         match['name'].strip(' .,').casefold(): match[0]
         for match in PATTERNS[3].finditer(opening)
-        if STAFFING_SERVICES.search(match[0]) or INTERMEDIARY.search(match[0])
+        if _staffing_statement(match[0]) or INTERMEDIARY.search(match[0])
     }
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
-    agency_statement = AGENCY_STATEMENT.search(opening)
+    agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
+                             if INTERMEDIARY.search(line[0]) or _staffing_statement(line[0])), None)
+    if (agency_statement and _staffing_statement(agency_statement[0])
+            and re.match(r"\s*we (?:are|provide|place)\b", agency_statement[0], re.I)):
+        staffing_about[publisher.casefold()] = agency_statement[0]
     agency_evidence = agency_statement[0] if agency_statement else None
     intermediary_seen = agency_statement is not None
     role_intermediary_seen = bool(agency_statement and role_heading
