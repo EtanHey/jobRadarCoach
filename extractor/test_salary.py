@@ -44,7 +44,24 @@ ROUND2_SALARY_CASES = [
 ]
 
 
-@pytest.mark.parametrize("salary, numeric", ROUND2_SALARY_CASES)
+# Round-3 funding regressions; reused by the real PostgreSQL persistence test.
+ROUND3_SALARY_CASES = [
+    ("raised €10M", False), ("raised £5 million", False),
+    ('גייסנו 20 מיליון ש"ח', False), ("raised $500k", False),
+    ("salary raised to $150k", True), ("base pay raised to €90k", True),
+    ("pay raised to ₪40,000", True), ("base raised to £90k", True),
+    ("שכר הועלה ל-₪40,000", True),
+] + [
+    (f"raised {currency}10{unit}", False)
+    for currency in ("$", "€", "£", "₪", "USD ", "EUR ", "GBP ", "ILS ", 'ש"ח ')
+    for unit in ("M", "B", " million", " billion", " מיליון")
+] + [
+    (f"גייסנו 20 מיליון {currency}", False)
+    for currency in ("$", "€", "£", "₪", "USD", "EUR", "GBP", "ILS", 'ש"ח')
+]
+
+
+@pytest.mark.parametrize("salary, numeric", ROUND2_SALARY_CASES + ROUND3_SALARY_CASES)
 def test_round2_salary_extraction_and_payload(salary, numeric):
     candidate = facts()
     candidate["salary"] = {"value": salary, "evidence_quote": salary}

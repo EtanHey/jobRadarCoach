@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 
 from extractor import core, persistence
-from extractor.test_salary import ROUND2_SALARY_CASES
+from extractor.test_salary import ROUND2_SALARY_CASES, ROUND3_SALARY_CASES
 from scraper.brain_contract import BrainTransportError
 from scraper.database import persist_postings
 
@@ -288,7 +288,7 @@ def test_nonnumeric_salary_persists_remark_and_clears_only_matching_boilerplate(
     ("35,000 שקלים בחודש", True), ("up to 180000", True),
     ("שכר 25,000-30,000 ₪", True), ("עד 35 אלף", True),
     ("₪30K", True), ("up to $200k", True), ("up to 150,000 EUR", True),
-] + ROUND2_SALARY_CASES)
+] + ROUND2_SALARY_CASES + ROUND3_SALARY_CASES)
 def test_salary_evidence_survives_extraction_and_database_readback(connection, salary, numeric):
     from extractor.test_core import runner_for
 

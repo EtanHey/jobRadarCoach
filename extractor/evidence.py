@@ -240,9 +240,18 @@ _RETIREMENT_RE = re.compile(
 )
 _FUNDING_RE = re.compile(
     r"\bfunding\s+of\b|"
-    r"(?=.*\b(?:raised|funding)\b)"
-    rf"(?=.*(?:\b(?:series\s+[a-z]|seed|round|investors?|valuation)\b|"
-    rf"\$\s*{_AMOUNT}\s*[mb]\b))",
+    r"(?=.*\b(?:raised|funding|גייסנו)\b)"
+    r"(?=.*\b(?:series\s+[a-z]|seed|round|investors?|valuation)\b)",
+    re.IGNORECASE,
+)
+_FUNDING_VERB_RE = re.compile(r"\b(?:raised|funding|גייסנו)\b", re.IGNORECASE)
+_PAY_WORD_RE = re.compile(
+    r"\b(?:salary|salaries|pay|compensation|base|שכר)\b", re.IGNORECASE,
+)
+_FUNDING_UNIT = r"(?:k|m|b|thousand|million|billion|אלף|מיליון)\b"
+_FUNDING_AMOUNT_RE = re.compile(
+    rf"{_CURRENCY}\s*{_AMOUNT}(?:\s*{_FUNDING_UNIT})?|"
+    rf"(?<!\w){_AMOUNT}(?:\s*{_FUNDING_UNIT})?\s*{_CURRENCY}",
     re.IGNORECASE,
 )
 
@@ -251,7 +260,11 @@ def has_numeric_salary(value: str) -> bool:
     """Recognize numeric pay while excluding benefit-plan and unrelated digits."""
     value = _RETIREMENT_RE.sub(" ", value)
     for clause in re.split(r"[;\n]|(?<=[.!?])\s+", value):
-        if _FUNDING_RE.search(clause):
+        if _FUNDING_RE.search(clause) or (
+            _FUNDING_VERB_RE.search(clause)
+            and _FUNDING_AMOUNT_RE.search(clause)
+            and not _PAY_WORD_RE.search(clause)
+        ):
             continue
         if _MONEY_AMOUNT_RE.search(clause) or _QUALIFIED_AMOUNT_RE.search(clause) or (
             _PAY_CONTEXT_RE.search(clause) and _CONTEXT_AMOUNT_RE.search(clause)
