@@ -570,3 +570,77 @@ def test_resolved_foreign_or_neutral_remote_field_retains_description_block(loca
         PROFILE,
     )
     assert result["eligibility"] == "blocked"
+
+
+@pytest.mark.parametrize("location", ["Tel Aviv, Israel", "Center District, Israel", "חולון"])
+@pytest.mark.parametrize("jd", [
+    "Hybrid Work & Office Environment 🏠",
+    "Flexible hybrid work model",
+    "Hybrid work schedule with 3 days in-office",
+    "We work 3 days a week in the office",
+    "Our work model is fully in person, with 5 days a week from our office",
+    "On-site role based in Tel Aviv",
+    "Our company is based in Tel Aviv",
+    "#LI-Hybrid Joining our company is the smart move",
+    "This is a full-time, on-site role working closely with founders",
+    "The office is located in Central Israel adjacent to the train station, operating on a hybrid model",
+    "This position is based in our Ramat-Gan, Israel office and requires strong leadership presence",
+    "Applicants must have the legal right to work in the country where the position is based, without the need for visa sponsorship",
+    "Applicants must be authorized to work in the country in which they apply and will be required to provide proof of employment eligibility as a condition of hire",
+    "על המועמדים להיות בעלי זכות חוקית לעבוד במדינה שבה המשרה ממוקמת, ללא צורך בחסות לוויזה",
+    "המועמדים חייבים להיות בעלי אישור עבודה במדינה בה ממוקמת המשרה",
+    "המועמדים נדרשים להיות רשאים לעבוד כחוק במדינה שבה המשרה ממוקמת",
+])
+def test_own_israeli_workplace_terms_are_satisfied(location, jd):
+    result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("location", ["Tel Aviv", "Israel; United States", "Atlantis", ""])
+@pytest.mark.parametrize("jd", [
+    "Hybrid in Atlantis",
+    "Hybrid Atlantis",
+    "Requires 3 days a week in the office in Atlantis",
+    "Hybrid model - Atlantis",
+    "Hybrid work & office environment in Atlantis",
+    "Hybrid 3 days per week in Atlantis",
+    "Hybrid model with required attendance at Atlantis",
+    "Hybrid work model at our Atlantis office",
+    "Hybrid work model, must be in Atlantis",
+    "Hybrid role, 3 days a week in our London office",
+    "Hybrid work model, US citizenship required",
+    "Hybrid role, security clearance required",
+    "Hybrid work model, must work in an approved jurisdiction",
+    "Hybrid work model, not open to candidates from Israel",
+    "Our company is based in Tel Aviv; candidates must reside in London",
+    "Applicants must have the legal right to work in the country where the position is based and hold German citizenship",
+    "Applicants must have the legal right to work in the country where the position is based and live in Atlantis",
+])
+def test_local_office_terms_cannot_erase_separate_restrictions(location, jd):
+    result = decide_location_eligibility({"location": location, "raw_jd": jd}, None, PROFILE)
+    assert result["eligibility"] != "eligible"
+
+
+@pytest.mark.parametrize("location", ["Haifa", "Ashdod, South District, Israel"])
+def test_own_company_description_keeps_noncentral_scope_unconfirmed(location):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": "Our company is based in " + location}, None, PROFILE
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("Israel/remote-from-Israel scope is unconfirmed:")
+
+
+@pytest.mark.parametrize("location", ["London", "Israel; United States", "Atlantis", ""])
+def test_own_country_authorization_requires_a_resolved_israeli_field(location):
+    result = decide_location_eligibility({
+        "location": location,
+        "raw_jd": "Applicants must have the legal right to work in the country where the position is based, without the need for visa sponsorship",
+    }, None, PROFILE)
+    assert result["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("location", ["Sarid, Israel (Hybrid)", "Ashdod, South District, Israel"])
+def test_unfamiliar_own_israeli_city_retains_unconfirmed_scope(location):
+    result = decide_location_eligibility({"location": location, "raw_jd": "Hybrid work model"}, None, PROFILE)
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("Israel/remote-from-Israel scope is unconfirmed:")

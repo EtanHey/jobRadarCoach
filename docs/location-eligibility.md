@@ -165,3 +165,20 @@ and EEO-list/team-description controls followed by real restrictions. The round-
 rows with unresolved composite location fields move from blocked to unknown.
 Expim Haifa and Plasan Sasa retain their commute blocks. The Benin/building and Peru/Pro homographs remain
 conservative unknowns, as does the unsupported London-office attendance probe.
+
+When a posting's location resolves to Israel, its own work-model terms (hybrid,
+onsite, and unnamed weekly office attendance) can be satisfied locally. Known
+foreign places and unresolved named offices still go through the restriction
+parser. A company/site description naming its own Israeli city is place evidence;
+an unfamiliar city with an explicit Israeli country suffix retains unconfirmed
+commute scope. Existing noncentral commute blocks remain in force.
+
+The bounded requirement to have legal authorization in the country where the
+position is based is satisfied when that country resolves to Israel, including
+the supported Hebrew equivalent. Separate citizenship and clearance requirements
+remain unresolved. Composite Israeli/foreign fields cannot supply this assumption.
+
+`python -m scripts.replay_own_office --plan PATH --snapshot PATH --out PATH`
+replays the local P8E decision dump, frozen 658-row snapshot and retained probes
+offline against a chosen baseline. The dump contains saved reason excerpts, so
+its replay does not substitute for a full-JD production dry run.
