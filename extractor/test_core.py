@@ -64,6 +64,28 @@ def runner_for(data: dict[str, object], captured: dict[str, object] | None = Non
     return run
 
 
+@pytest.mark.parametrize("field", ["seniority", "stack"])
+def test_candidate_voice_evidence_cannot_be_extracted_as_a_role_fact(field) -> None:
+    from extractor.evidence import ExtractionValidationError
+
+    profile = {
+        "runtime.brain": "ollama",
+        "candidate.positioning": "Voice Engineer",
+        "fit_signals": [{"claim": "Shipped production voice-agent tool calling."}],
+    }
+    candidate = facts()
+    voice = {"value": "Voice Engineer", "evidence_quote": "Voice Engineer"}
+    candidate[field] = [voice] if field == "stack" else voice
+    captured = {}
+
+    with pytest.raises(ExtractionValidationError):
+        core.extract_posting(posting(), profile, runner=runner_for(candidate, captured))
+
+    assert captured["profile_snapshot"] == {"runtime.brain": "ollama"}
+    assert "Voice Engineer" not in captured["prompt"]
+    assert "voice-agent tool calling" not in captured["prompt"]
+
+
 def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     original = posting()
     unchanged = deepcopy(original)
@@ -101,7 +123,7 @@ def test_extracts_only_evidence_bound_facts_with_stable_fingerprints() -> None:
     assert json.dumps(RAW_JD, ensure_ascii=True) in captured["prompt"]
     assert first == second
     assert first["facts"] == facts()
-    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.7"
+    assert first["extractor_version"] == core.EXTRACTOR_VERSION == "1.8"
     assert first["schema_sha256"] == core.EXTRACTION_SCHEMA_SHA256
     assert first["brain"] == "ollama"
     assert first["model"] == "qwen2.5:7b-instruct"
@@ -184,6 +206,12 @@ def test_non_source_remote_quote_still_fails_closed() -> None:
 
     with pytest.raises(BrainValidationError, match="unknown remote cannot cite evidence"):
         core.extract_posting(posting(), {}, runner=runner_for(candidate))
+
+
+def test_hybrid_policy_in_another_paragraph_overrides_remote_quote():
+    raw_jd = RAW_JD + "\nWe require three days a week in the office and two days at home."
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(facts()))
+    assert result["facts"]["remote"] == {"value": None, "evidence_quote": None}
 
 
 def test_prompt_injection_cannot_expand_the_output_contract() -> None:

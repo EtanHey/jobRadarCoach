@@ -24,6 +24,8 @@ from scraper.annotate import (
     _expected_human_recommendation,
     _validated_annotation,
 )
+from scraper.eligibility import decide_location_eligibility
+from scraper.stack_requirements import apply_stack_gap_guard
 from scraper.brain import BrainRequest, BrainResponseError, BrainResult, run_brain
 
 
@@ -87,6 +89,7 @@ def score_posting(
         luna_posting,
         history,
         profile_snapshot=profile_snapshot,
+        local_posting=posting,
         brain_runner=brain_runner,
         diagnostic=diagnostic,
     )
@@ -99,6 +102,7 @@ def score_projected(
     *,
     profile_snapshot: Mapping[str, object] | None = None,
     validation_profile: Mapping[str, object] | None = None,
+    local_posting: Mapping[str, object] | None = None,
     brain_runner: BrainRunner = run_brain,
     diagnostic: DiagnosticCallback | None = None,
 ) -> ScoringResult | None:
@@ -172,6 +176,9 @@ def score_projected(
             _diagnose(diagnostic, "semantic")
             return None
         if annotation is not None:
+            annotation = apply_stack_gap_guard(annotation, luna_posting, profile)
+            local = posting if local_posting is None else local_posting
+            annotation.update(decide_location_eligibility(local, local.get("posting_extractions"), profile))
             return ScoringResult(annotation, result.brain, result.model, rules)
     _diagnose(diagnostic, "semantic")
     return None

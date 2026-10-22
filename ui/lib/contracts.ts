@@ -12,6 +12,7 @@ const publicUrl = z.url().refine((value) => ["http:", "https:"].includes(new URL
 
 export const JobStatusSchema = z.enum(["new", "seen", "worth_checking", "skipped", "applied", "screen", "interview_technical", "interview_final", "offer", "contract", "rejected", "archived", "not_relevant"]);
 export const RecommendationSchema = z.enum(["apply", "referral", "review", "skip"]);
+export const EligibilitySchema = z.enum(["eligible", "blocked", "unknown"]);
 export const WorkModeSchema = z.enum(["hybrid", "remote", "on-site"]);
 export const AvailabilitySchema = z.enum(["active", "inactive", "all"]);
 // PostgreSQL's uuid type accepts the canonical 8-4-4-4-12 hexadecimal form
@@ -34,6 +35,8 @@ export const ScorePayloadSchema = z.object({
   fit_score: z.number().int().min(0).max(100),
   fit_tier: z.enum(["strong", "good", "stretch", "weak"]),
   recommendation: RecommendationSchema,
+  eligibility: EligibilitySchema.optional(),
+  eligibility_reason: text.trim().min(1).optional(),
   reasons: z.array(ScoreReasonSchema),
   fit_line: text,
   fit_line_evidence_ids: z.array(text),
@@ -54,11 +57,19 @@ export const LinkedInRepostedSignalSchema = LinkedInClosedSignalSchema.omit({ ph
   label: z.string().regex(/^Reposted [1-9][0-9]* (?:minute|hour|day|week|month|year)s? ago$/i),
 }).strict();
 
+export const EmployerIdentitySchema = z.object({
+  publisher: text, hiring_employer: nullableText, employer_evidence: text.max(2_000).nullable(),
+  resolver_version: text,
+  relationship: z.enum(["resolved-different", "alias", "unknown", "unchanged"]).optional(),
+  agency_evidence: nonblank.nullable().optional(),
+}).refine(value => value.hiring_employer === null || value.employer_evidence !== null);
+
 export const JobSummarySchema = z.object({
   vacancy_identity: VacancyIdentitySchema.optional(),
   id: JobIdSchema,
   title: text,
   company: text,
+  employer_identity: EmployerIdentitySchema.optional(),
   source: text,
   last_seen_at: text,
   experience: nullableText,
@@ -84,6 +95,8 @@ export const JobSummarySchema = z.object({
   score: z.number().int().min(0).max(100).nullable(),
   fit_line: nullableText,
   recommendation: RecommendationSchema.nullable(),
+  eligibility: EligibilitySchema.nullable().optional(),
+  eligibility_reason: nullableText.optional(),
   alive: z.boolean().nullable().default(null),
   liveness: LivenessSchema.optional(),
   linkedin_reposted_signal: LinkedInRepostedSignalSchema.nullable().optional(),

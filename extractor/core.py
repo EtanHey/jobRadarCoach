@@ -23,7 +23,7 @@ from scraper.brain import (
 
 LOGGER = logging.getLogger("coach.jobfeed.extractor")
 
-EXTRACTOR_VERSION = "1.7"
+EXTRACTOR_VERSION = "1.8"
 _PROMPT_VERSION = "1.5"  # Salary policy is deterministic; preserve provider input.
 MIN_RAW_JD_CHARS = 80
 MAX_RAW_JD_BYTES = 24_000
@@ -157,13 +157,13 @@ def extract_posting(
     if isinstance(remote, dict):
         facts["remote"] = derive_remote_fact(remote.get("evidence_quote"), raw_jd)
     try:
-        validate_facts(facts, raw_jd)
+        validate_facts(facts, raw_jd, posting.get("title"))
     except ExtractionValidationError as error:
         if (error.category, error.field) != ("location_context", "location"):
             raise
         facts["location"] = {"value": None, "evidence_quote": None}
         # A later field may also fail; only accept after all remaining facts validate.
-        validate_facts(facts, raw_jd)
+        validate_facts(facts, raw_jd, posting.get("title"))
         LOGGER.warning(
             "extraction_fact_dropped field=location category=location_context"
         )

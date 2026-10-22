@@ -26,7 +26,7 @@ export function projectLiveness(evidence: {
   else if (confirmed && now - Date.parse(confirmed) <= LIVENESS_FRESH_MS
     && (evidence.last_attempt_verdict == null || evidence.last_attempt_verdict === "alive")) state = "confirmed";
   return {
-    alive: state === "confirmed" ? true : state === "closed" ? false : null,
+    alive: state === "confirmed" ? true : state === "closed" || state === "deadline_passed" ? false : null,
     liveness: { state, last_confirmed_at: confirmed, application_deadline: deadline },
   };
 }

@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { JobListItemSchema, JobListResponseSchema, type JobListQuery } from "../lib/contracts";
 import { BOARD_FIELD_ALIASES, getApiStore, parseSummaryRows, selectSummaries } from "../lib/server";
 import { filterJobGroups, type ViewOptions } from "../lib/job-filters";
+import { employerLabel } from "../lib/employer-identity";
 
 const id = "00000000-0000-4000-8000-000000000001";
 const signal = { phrase: "no longer accepting applications", checked_at: "2026-10-07T10:00:00Z", url: "https://www.linkedin.com/jobs/view/123" };
@@ -16,7 +17,7 @@ const raw = {
   url: signal.url, apply_url: "https://example.test/job", relevance_filtered: false,
   relevance_gate: { rule: "synthetic", evidence: "unused".repeat(100) },
   list_metadata: { stack: ["React"], experience: "3 years", description_available: true },
-  posting_extractions: { posting_id: id }, posting_status: { status: "applied", reason: "Owner wording" },
+  posting_extractions: { posting_id: id, employer_identity: { publisher: "Synthetic Example", hiring_employer: "Acme Labs", employer_evidence: "Our client Acme Labs is hiring", resolver_version: "1" } }, posting_status: { status: "applied", reason: "Owner wording" },
   posting_scores: { score: 82, score_payload: { recommendation: "apply", fit_line: "Synthetic fit", reasons: ["unused".repeat(100)] } },
   liveness: { alive: false, linkedin_closed_signal: signal, history: "unused".repeat(100) },
 };
@@ -26,9 +27,38 @@ const slim = () => {
     experience: list_metadata.experience, alive: liveness.alive, linkedin_reposted_signal: null, linkedin_closed_signal: signal,
     posting_scores: { score: posting_scores.score, recommendation: "apply", fit_line: "Synthetic fit" } };
   delete projected.salary;
-  delete projected.posting_extractions;
+
   return projected;
 };
+
+test("invalid identity is dropped per row on every board path, without hiding other invalid fields", async t => {
+  const errors = t.mock.method(console, "error", () => {});
+  const identity = { publisher: raw.company, hiring_employer: "Acme Labs", employer_evidence: "Acme Labs is hiring.",
+    relationship: "resolved-different", resolver_version: "14", agency_evidence: null };
+  for (const field of ["agency_evidence", "employer_evidence"] as const) {
+    const invalid = { ...identity, [field]: "x".repeat(2827) };
+    const validRow = { ...slim(), id: "00000000-0000-4000-8000-000000000002", posting_extractions: { employer_identity: identity } };
+    const db = createClient("https://database.example.test", "synthetic", { global: { fetch: async input => {
+      if (new URL(String(input)).searchParams.get("select") === "id,identity_evidence:raw_jd") {
+        return Response.json([{ id, identity_evidence: null }, { id: validRow.id, identity_evidence: null }]);
+      }
+      return Response.json([{ ...slim(), posting_extractions: { employer_identity: invalid } }, validRow]);
+    } } });
+    const base = { filter: "all", availability: "all", limit: 100 } as const;
+    for (const query of [base, { ...base, sort: "fit" as const }, { ...base, ids: [id] }]) {
+      const jobs = await selectSummaries(db, query);
+      assert.equal(jobs.length, 2);
+      assert.equal(jobs[0].employer_identity, undefined);
+      assert.equal(employerLabel(jobs[0]), raw.company);
+      assert.equal(employerLabel(jobs[1]), `Acme Labs via ${raw.company}`);
+    }
+    const legacy = parseSummaryRows([{ ...raw, posting_extractions: { employer_identity: invalid } }]).jobs[0];
+    assert.equal(legacy.employer_identity, undefined);
+  }
+  assert.equal(errors.mock.callCount(), 8);
+  assert.ok(!JSON.stringify(errors.mock.calls).includes("x".repeat(100)), "diagnostics must not expose JD evidence");
+  assert.throws(() => parseSummaryRows([{ ...raw, id: "invalid" }]), /invalid response/);
+});
 
 test("all list paths select only JSON keys used by the board", async () => {
   const selections: string[] = [];
@@ -42,12 +72,13 @@ test("all list paths select only JSON keys used by the board", async () => {
   const queries: JobListQuery[] = [base, { ...base, sort: "fit" }, { ...base, ids: [id] }, { ...base, filter: "applied", since: "2026-10-01T00:00:00Z" }];
   for (const query of queries) await selectSummaries(db, query);
   for (const selected of selections) {
+    assert.ok(selected.includes("posting_extractions(employer_identity:facts->employer_identity)"));
     assert.ok(selected.includes("recommendation:score_payload->recommendation"), selected);
     assert.ok(selected.includes("fit_line:score_payload->fit_line"), selected);
     assert.ok(selected.includes("alive:liveness->alive"), selected);
     assert.ok(selected.includes("linkedin_closed_signal:liveness->linkedin_closed_signal"), selected);
     assert.ok(selected.includes("relevance_rule:relevance_gate->rule"), selected);
-    assert.doesNotMatch(selected, /(?:^|[,()])(?:raw_jd|score_payload|liveness|relevance_gate|salary|posting_extractions)(?:[,()]|$)/);
+    assert.doesNotMatch(selected, /(?:^|[,()])(?:raw_jd|score_payload|liveness|relevance_gate|salary|facts)(?:[,()]|$)/);
   }
 });
 
@@ -133,6 +164,21 @@ test("every optional and required list field has an explicit database alias", ()
   assert.deepEqual(Object.keys(BOARD_FIELD_ALIASES).sort(), Object.keys(JobListItemSchema.shape).sort());
 });
 
+test("eligibility survives both projected lists and legacy summary parsing", async () => {
+  const eligibility = "blocked", eligibility_reason = '"Remote U.S. only"';
+  const old = { ...raw, posting_scores: { ...raw.posting_scores,
+    score_payload: { ...raw.posting_scores.score_payload, eligibility, eligibility_reason } } };
+  const projected = slim();
+  projected.posting_scores = { score: 82, recommendation: "apply", fit_line: "Synthetic fit", eligibility, eligibility_reason };
+  const db = createClient("https://database.example.test", "synthetic", { global: { fetch: async () => Response.json([projected]) } });
+  const [job] = await selectSummaries(db, { filter: "all", availability: "all", sort: "fit", limit: 100 });
+  const [legacy] = parseSummaryRows([old]).jobs;
+  assert.equal(job.eligibility, "blocked");
+  assert.equal(job.eligibility_reason, eligibility_reason);
+  assert.equal(legacy.eligibility, job.eligibility);
+  assert.equal(legacy.eligibility_reason, eligibility_reason);
+});
+
 test("JD identity reaches all board list paths and globe schema without sending the body", async () => {
   const { GlobeJobSchema } = await import("../lib/globe-contract");
   const { groupDuplicateJobs } = await import("../lib/job-dedup");
@@ -150,6 +196,7 @@ test("JD identity reaches all board list paths and globe schema without sending 
     const wire = JobListResponseSchema.parse({jobs: await selectSummaries(db,input)}).jobs;
     assert.equal("raw_jd" in wire[0], false);
     assert.ok(wire[0].vacancy_identity?.jd_fingerprint);
+    assert.deepEqual(wire[0].employer_identity, raw.posting_extractions.employer_identity);
     assert.equal(groupDuplicateJobs(wire.map(row => GlobeJobSchema.parse(row))).length, 1);
   }
 });

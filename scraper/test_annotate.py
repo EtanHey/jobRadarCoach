@@ -415,6 +415,8 @@ def test_annotate_validates_fixture_cases(
         "fit_line",
         "fit_line_evidence_ids",
         "luna_status",
+        "eligibility",
+        "eligibility_reason",
     }
     assert (result["employer_type"], result["seniority_real"]) == expected
     assert result["luna_status"] == "ok"

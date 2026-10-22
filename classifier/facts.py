@@ -9,10 +9,11 @@ import json
 import re
 
 from scraper.annotate import canonical_mode
+from scraper.seniority import title_seniority
 from urllib.parse import urlsplit
 
 
-NORMALIZER_VERSION = "5"
+NORMALIZER_VERSION = "6"
 LINK_STATUSES = frozenset({"no_link", "available", "invalid_url"})
 
 _ISRAEL = {
@@ -229,14 +230,17 @@ def normalize(posting_row: Mapping[str, object]) -> Facts:
     else:
         work_mode = "onsite"
 
-    seniority_level = None
-    seniority_source = None
+    explicit_title = title_seniority(posting_row.get("title"))
+    seniority_level = explicit_title.level if explicit_title is not None else None
+    seniority_source = "title" if explicit_title is not None else None
     for candidate, source in (
         (posting_row.get("seniority"), "extracted"),
         (posting_row.get("ats_seniority"), "ats"),
         (posting_row.get("ats_level"), "ats"),
         (posting_row.get("title"), "title"),
     ):
+        if explicit_title is not None:
+            break
         level = _seniority(candidate)
         if level is not None:
             seniority_level, seniority_source = level, source

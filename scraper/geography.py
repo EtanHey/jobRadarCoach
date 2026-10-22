@@ -17,16 +17,36 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
     "israel": (
         "Tel Aviv",
         "Tel Aviv-Yafo",
+        "TLV",
+        "Tel-Aviv-Yafo",
         "Herzliya",
+        "Herzeliya",
         "Ramat Gan",
+        "Ramat-Gan",
         "Petah Tikva",
+        "Petach Tikva",
         "Haifa",
         "Jerusalem",
         "Ra'anana",
+        "Raanana",
+        "Modiin",
+        "Modi'in",
         "Hod Hasharon",
         "Netanya",
         "Rehovot",
         "Kfar Saba",
+        "Kefar Sava",
+        "Holon",
+        "Rishon",
+        "Rishon LeZion",
+        "Rishon Le Zion",
+        "Ramat HaSharon",
+        "Lod",
+        "Rosh HaAyin",
+        "Nes Ziona",
+        "Bnei Brak",
+        "Yehud Monosson",
+        "Beer Yaakov",
         "Be'er Sheva",
         "Yokneam",
         "תל אביב",
@@ -37,14 +57,27 @@ COUNTRY_CITY_ALIASES: dict[str, tuple[str, ...]] = {
         "חיפה",
         "ירושלים",
         "רעננה",
+        "מודיעין",
         "הוד השרון",
         "נתניה",
         "רחובות",
         "כפר סבא",
+        "חולון",
+        "ראשון לציון",
         "באר שבע",
         "יקנעם",
     ),
-    "united states": ("San Francisco",),
+    "united states": (
+        "San Francisco",
+        "New York",
+        "New York City",
+        "Austin",
+        "NYC",
+        "SF",
+    ),
+    "germany": ("Berlin",),
+    "united kingdom": ("London", "לונדון"),
+    "canada": ("Toronto",),
 }
 
 
@@ -311,6 +344,268 @@ COUNTRY_IDENTIFIERS = frozenset(
     ).split("|")
     if identifier
 )
+# Hebrew ISO 3166-1 names from Unicode CLDR 48.0.0; data only.
+# https://raw.githubusercontent.com/unicode-org/cldr-json/48.0.0/cldr-json/cldr-localenames-full/main/he/territories.json
+HEBREW_COUNTRY_NAMES = {
+    "AD": "אנדורה",
+    "AE": "איחוד האמירויות הערביות",
+    "AF": "אפגניסטן",
+    "AG": "אנטיגואה וברבודה",
+    "AI": "אנגווילה",
+    "AL": "אלבניה",
+    "AM": "ארמניה",
+    "AO": "אנגולה",
+    "AQ": "אנטארקטיקה",
+    "AR": "ארגנטינה",
+    "AS": "סמואה האמריקנית",
+    "AT": "אוסטריה",
+    "AU": "אוסטרליה",
+    "AW": "ארובה",
+    "AX": "איי אולנד",
+    "AZ": "אזרבייג׳ן",
+    "BA": "בוסניה והרצגובינה",
+    "BB": "ברבדוס",
+    "BD": "בנגלדש",
+    "BE": "בלגיה",
+    "BF": "בורקינה פאסו",
+    "BG": "בולגריה",
+    "BH": "בחריין",
+    "BI": "בורונדי",
+    "BJ": "בנין",
+    "BL": "סנט ברתולומיאו",
+    "BM": "ברמודה",
+    "BN": "ברוניי",
+    "BO": "בוליביה",
+    "BQ": "האיים הקריביים ההולנדיים",
+    "BR": "ברזיל",
+    "BS": "איי בהאמה",
+    "BT": "בהוטן",
+    "BV": "האי בובה",
+    "BW": "בוטסואנה",
+    "BY": "בלארוס",
+    "BZ": "בליז",
+    "CA": "קנדה",
+    "CC": "איי קוקוס (קילינג)",
+    "CD": "קונגו - קינשאסה",
+    "CF": "הרפובליקה המרכז-אפריקאית",
+    "CG": "קונגו - ברזאויל",
+    "CH": "שווייץ",
+    "CI": "חוף השנהב",
+    "CK": "איי קוק",
+    "CL": "צ׳ילה",
+    "CM": "קמרון",
+    "CN": "סין",
+    "CO": "קולומביה",
+    "CR": "קוסטה ריקה",
+    "CU": "קובה",
+    "CV": "כף ורדה",
+    "CW": "קוראסאו",
+    "CX": "אי חג המולד",
+    "CY": "קפריסין",
+    "CZ": "צ׳כיה",
+    "DE": "גרמניה",
+    "DJ": "ג׳יבוטי",
+    "DK": "דנמרק",
+    "DM": "דומיניקה",
+    "DO": "הרפובליקה הדומיניקנית",
+    "DZ": "אלג׳יריה",
+    "EC": "אקוודור",
+    "EE": "אסטוניה",
+    "EG": "מצרים",
+    "EH": "סהרה המערבית",
+    "ER": "אריתריאה",
+    "ES": "ספרד",
+    "ET": "אתיופיה",
+    "FI": "פינלנד",
+    "FJ": "פיג׳י",
+    "FK": "איי פוקלנד",
+    "FM": "מיקרונזיה",
+    "FO": "איי פארו",
+    "FR": "צרפת",
+    "GA": "גבון",
+    "GB": "בריטניה",
+    "GD": "גרנדה",
+    "GE": "גאורגיה",
+    "GF": "גיאנה הצרפתית",
+    "GG": "גרנזי",
+    "GH": "גאנה",
+    "GI": "גיברלטר",
+    "GL": "גרינלנד",
+    "GM": "גמביה",
+    "GN": "גינאה",
+    "GP": "גוואדלופ",
+    "GQ": "גינאה המשוונית",
+    "GR": "יוון",
+    "GS": "ג׳ורג׳יה הדרומית ואיי סנדוויץ׳ הדרומיים",
+    "GT": "גואטמלה",
+    "GU": "גואם",
+    "GW": "גינאה-ביסאו",
+    "GY": "גיאנה",
+    "HK": "הונג קונג (אזור מנהלי מיוחד של סין)",
+    "HM": "איי הרד ומקדונלד",
+    "HN": "הונדורס",
+    "HR": "קרואטיה",
+    "HT": "האיטי",
+    "HU": "הונגריה",
+    "ID": "אינדונזיה",
+    "IE": "אירלנד",
+    "IL": "ישראל",
+    "IM": "האי מאן",
+    "IN": "הודו",
+    "IO": "הטריטוריה הבריטית באוקיינוס ההודי",
+    "IQ": "עיראק",
+    "IR": "איראן",
+    "IS": "איסלנד",
+    "IT": "איטליה",
+    "JE": "ג׳רזי",
+    "JM": "ג׳מייקה",
+    "JO": "ירדן",
+    "JP": "יפן",
+    "KE": "קניה",
+    "KG": "קירגיזסטן",
+    "KH": "קמבודיה",
+    "KI": "קיריבאטי",
+    "KM": "קומורו",
+    "KN": "סנט קיטס ונוויס",
+    "KP": "קוריאה הצפונית",
+    "KR": "קוריאה הדרומית",
+    "KW": "כווית",
+    "KY": "איי קיימן",
+    "KZ": "קזחסטן",
+    "LA": "לאוס",
+    "LB": "לבנון",
+    "LC": "סנט לוסיה",
+    "LI": "ליכטנשטיין",
+    "LK": "סרי לנקה",
+    "LR": "ליבריה",
+    "LS": "לסוטו",
+    "LT": "ליטא",
+    "LU": "לוקסמבורג",
+    "LV": "לטביה",
+    "LY": "לוב",
+    "MA": "מרוקו",
+    "MC": "מונקו",
+    "MD": "מולדובה",
+    "ME": "מונטנגרו",
+    "MF": "סן מרטן",
+    "MG": "מדגסקר",
+    "MH": "איי מרשל",
+    "MK": "מקדוניה הצפונית",
+    "ML": "מאלי",
+    "MM": "מיאנמר (בורמה)",
+    "MN": "מונגוליה",
+    "MO": "מקאו (אזור מנהלי מיוחד של סין)",
+    "MP": "איי מריאנה הצפוניים",
+    "MQ": "מרטיניק",
+    "MR": "מאוריטניה",
+    "MS": "מונסראט",
+    "MT": "מלטה",
+    "MU": "מאוריציוס",
+    "MV": "האיים המלדיביים",
+    "MW": "מלאווי",
+    "MX": "מקסיקו",
+    "MY": "מלזיה",
+    "MZ": "מוזמביק",
+    "NA": "נמיביה",
+    "NC": "קלדוניה החדשה",
+    "NE": "ניז׳ר",
+    "NF": "האי נורפוק",
+    "NG": "ניגריה",
+    "NI": "ניקרגואה",
+    "NL": "הולנד",
+    "NO": "נורווגיה",
+    "NP": "נפאל",
+    "NR": "נאורו",
+    "NU": "ניווה",
+    "NZ": "ניו זילנד",
+    "OM": "עומאן",
+    "PA": "פנמה",
+    "PE": "פרו",
+    "PF": "פולינזיה הצרפתית",
+    "PG": "פפואה גינאה החדשה",
+    "PH": "הפיליפינים",
+    "PK": "פקיסטן",
+    "PL": "פולין",
+    "PM": "סנט פייר ומיקלון",
+    "PN": "איי פיטקרן",
+    "PR": "פוארטו ריקו",
+    "PS": "השטחים הפלסטיניים",
+    "PT": "פורטוגל",
+    "PW": "פלאו",
+    "PY": "פרגוואי",
+    "QA": "קטאר",
+    "RE": "ראוניון",
+    "RO": "רומניה",
+    "RS": "סרביה",
+    "RU": "רוסיה",
+    "RW": "רואנדה",
+    "SA": "ערב הסעודית",
+    "SB": "איי שלמה",
+    "SC": "איי סיישל",
+    "SD": "סודן",
+    "SE": "שוודיה",
+    "SG": "סינגפור",
+    "SH": "סנט הלנה",
+    "SI": "סלובניה",
+    "SJ": "סבאלברד ויאן מאיין",
+    "SK": "סלובקיה",
+    "SL": "סיירה לאון",
+    "SM": "סן מרינו",
+    "SN": "סנגל",
+    "SO": "סומליה",
+    "SR": "סורינאם",
+    "SS": "דרום סודן",
+    "ST": "סאו טומה ופרינסיפה",
+    "SV": "אל סלבדור",
+    "SX": "סנט מארטן",
+    "SY": "סוריה",
+    "SZ": "אסוואטיני",
+    "TC": "איי טרקס וקייקוס",
+    "TD": "צ׳אד",
+    "TF": "הטריטוריות הדרומיות של צרפת",
+    "TG": "טוגו",
+    "TH": "תאילנד",
+    "TJ": "טג׳יקיסטן",
+    "TK": "טוקלאו",
+    "TL": "טימור-לסטה",
+    "TM": "טורקמניסטן",
+    "TN": "תוניסיה",
+    "TO": "טונגה",
+    "TR": "טורקיה",
+    "TT": "טרינידד וטובגו",
+    "TV": "טובאלו",
+    "TW": "טייוואן",
+    "TZ": "טנזניה",
+    "UA": "אוקראינה",
+    "UG": "אוגנדה",
+    "UM": "האיים המרוחקים הקטנים של ארה״ב",
+    "US": "ארצות הברית",
+    "UY": "אורוגוואי",
+    "UZ": "אוזבקיסטן",
+    "VA": "הוותיקן",
+    "VC": "סנט וינסנט והגרנדינים",
+    "VE": "ונצואלה",
+    "VG": "איי הבתולה הבריטיים",
+    "VI": "איי הבתולה של ארצות הברית",
+    "VN": "וייטנאם",
+    "VU": "ונואטו",
+    "WF": "איי ווליס ופוטונה",
+    "WS": "סמואה",
+    "YE": "תימן",
+    "YT": "מאיוט",
+    "ZA": "דרום אפריקה",
+    "ZM": "זמביה",
+    "ZW": "זימבבואה",
+}
+HEBREW_REGION_NAMES = (
+    "אירופה",
+    "האיחוד האירופי",
+    "איחוד האירופי",
+    "אמריקה הלטינית",
+    "אסיה",
+)
+
+
 US_STATE_IDENTIFIERS = frozenset(
     _normalized_location(identifier)
     for identifier in (
@@ -328,6 +623,9 @@ US_STATE_IDENTIFIERS = frozenset(
 )
 COUNTRY_OWN_IDENTIFIERS = {
     "israel": frozenset(("israel", "il", "isr")),
+    "germany": frozenset(("germany", "de", "deu")),
+    "united kingdom": frozenset(("united kingdom", "uk", "gb", "gbr")),
+    "canada": frozenset(("canada", "ca", "can")),
     "united states": frozenset(
         (
             "united states",
@@ -339,6 +637,202 @@ COUNTRY_OWN_IDENTIFIERS = {
         )
     ),
 }
+
+# Eligibility uses this same vocabulary as ingestion, with explicit region policy.
+# Unknown places are deliberately unresolved, never presumed foreign or Israeli.
+NONCENTRAL_ISRAEL_PLACES = (
+    "Sasa",
+    "Kibbutz Sasa",
+    "Galilee",
+    "Upper Galilee",
+    "Haifa",
+    "Jerusalem",
+    "Be'er Sheva",
+    "Yokneam",
+    "northern Israel",
+    "southern Israel",
+    "סאסא",
+    "גליל",
+    "חיפה",
+    "ירושלים",
+    "באר שבע",
+    "יקנעם",
+    "צפון",
+    "דרום",
+)
+GEOGRAPHIC_ALIASES = {
+    **{name: "foreign" for name in COUNTRY_IDENTIFIERS},
+    **dict.fromkeys(HEBREW_COUNTRY_NAMES.values(), "foreign"),
+    **dict.fromkeys(HEBREW_REGION_NAMES, "foreign"),
+    **{city: "foreign" for cities in COUNTRY_CITY_ALIASES.values() for city in cities},
+    **{city: "israel" for city in COUNTRY_CITY_ALIASES["israel"]},
+    **{name: "noncentral" for name in NONCENTRAL_ISRAEL_PLACES},
+    **dict.fromkeys(
+        (
+            "Israel",
+            "State of Israel",
+            "IL",
+            "ISR",
+            "ישראל",
+            "Central Israel",
+            "Gush Dan",
+            "מרכז ישראל",
+            "גוש דן",
+        ),
+        "israel",
+    ),
+    **dict.fromkeys(
+        (
+            "United States",
+            "U.S.",
+            "U.S.A.",
+            "US",
+            "USA",
+            "Continental United States",
+            "ארצות הברית",
+            "ארה״ב",
+            'ארה"ב',
+            "ארהב",
+            "קנדה",
+            "בריטניה",
+            "אירופה",
+            "Europe",
+            "European Union",
+            "EU",
+            "UK",
+            "New Jersey",
+        ),
+        "foreign",
+    ),
+    **dict.fromkeys(("EMEA", "APAC", "EST", "PST"), "uncertain"),
+    **dict.fromkeys(
+        ("worldwide", "globally", "global", "anywhere in the world", "all countries"),
+        "worldwide",
+    ),
+}
+_PLACE_KINDS = {
+    _normalized_location(name): kind for name, kind in GEOGRAPHIC_ALIASES.items()
+}
+_PLACE_PATTERN = re.compile(
+    r"(?:"
+    + "|".join(
+        r"[\W_]+".join(map(re.escape, name.split()))
+        for name in sorted(_PLACE_KINDS, key=len, reverse=True)
+    )
+    + r")(?!\w)",
+    re.I,
+)
+
+
+def match_geographic_place(text: str, start: int = 0) -> tuple[str, int] | None:
+    """Resolve one place at a geographic scope boundary, preserving unknowns.
+
+    ISO codes need uppercase input (except conventional US/UK/EU); ordinary
+    words such as 'in', 'it', 'be' must not become countries in prose.
+    """
+    match = _PLACE_PATTERN.match(text, start)
+    if not match:
+        return None
+    name = _normalized_location(match.group())
+    if (
+        len(name) <= 3
+        and name in COUNTRY_IDENTIFIERS
+        and name not in {"us", "u s", "uk", "eu"}
+    ):
+        if not match.group().isupper():
+            return None
+    end = match.end()
+    if name in {"u s", "u s a"} and text[end : end + 1] == ".":
+        end += 1
+    return _PLACE_KINDS[name], end
+
+
+def has_geographic_context(text: str) -> bool:
+    """Prose needs geographic meaning; ISO codes alone can be technical acronyms."""
+    if re.search(
+        r"\b(?:remote|reside|residents?|residence|residency|relocat\w*|"
+        r"located (?:in|within)|based (?:in|worldwide)|office|on[ -]?site|citizens?(?:hip)?|passport|"
+        r"work authorization|eligible to work|time[ -]?zone|country|countries|"
+        r"jurisdiction|location|(?:candidates?|applicants?) (?:in|from))\b|"
+        r"(?<!\w)(?:מגורים|תושבי\w*|להתגורר|לגור|מרחוק|בישראל|אזרחות|"
+        r"[במ]?מדינ\w*|[במ]?אזור זמן)(?!\w)",
+        text,
+        re.I,
+    ):
+        return True
+    for word in re.finditer(r"\b\w", text):
+        place = match_geographic_place(text, word.start())
+        if not place:
+            # Hebrew prepositions/articles attach to country names. Only strip
+            # a bounded Hebrew prefix, never letters inside an arbitrary word.
+            for length in range(1, 4):
+                prefix = text[word.start() : word.start() + length]
+                start = word.start() + length
+                if re.fullmatch(r"[בלמוהש]+", prefix) and match_geographic_place(
+                    text, start
+                ):
+                    return True
+            continue
+        if place[0] == "worldwide":
+            continue
+        name = _normalized_location(text[word.start() : place[1]])
+        if text[word.start() : place[1]].isupper() and re.match(
+            r"(?:\s+|[ -]based\s+)(?:candidates?|applicants?|residents?|citizens?|"
+            r"work\s+(?:permits?|authorization))\b",
+            text[place[1] :],
+            re.I,
+        ):
+            return True
+        if name in {"ai", "ml", "sc", "it", "ci", "cd"}:
+            continue
+        if len(name) > 3 or re.search(r"[א-ת]", name) or place[0] == "uncertain":
+            return True
+        # 'AI', 'SC', 'IT', and pronoun 'us' are not place evidence in prose.
+        if re.search(
+            r"\b(?:in|from|within|across|to)\s+(?:the\s+)?$", text[: word.start()], re.I
+        ):
+            if name != "us" or text[word.start() : place[1]].isupper():
+                return True
+    return False
+
+
+# Exact place identities, separate from the broader central/noncentral policy.
+ISRAELI_PLACE_EQUIVALENTS = {
+    "Tel Aviv": ("tel aviv yafo", "תל אביב יפו", "tel aviv", "תל אביב", "tlv"),
+    "Ramat Gan": ("ramat gan", "רמת גן"),
+    "Raanana": ("ra anana", "raanana", "רעננה"),
+    "Herzliya": ("herzeliya", "herzliya", "הרצליה"),
+    "Petah Tikva": ("petach tikva", "petah tikva", "פתח תקווה"),
+    "Kfar Saba": ("kefar sava", "kfar saba", "כפר סבא"),
+}
+
+
+def normalize_israeli_location(text: str) -> str:
+    """Consume known ATS district qualifiers without discarding other places."""
+    for canonical, aliases in ISRAELI_PLACE_EQUIVALENTS.items():
+        for alias in aliases:
+            pattern = r"(?<!\w)" + r"[\W_]+".join(map(re.escape, alias.split())) + r"(?!\w)"
+            text = re.sub(pattern, canonical, text, flags=re.I)
+    text = re.sub(r"^\d+\s+Locations?,\s*(Israel)\s*$", r"\1", text, flags=re.I)
+    text = re.sub(r"\band across Israel\b", "and Israel", text, flags=re.I)
+    text = re.sub(r"\b(Gush Dan|Tel Aviv)\s+Area\b", r"\1", text, flags=re.I)
+    return re.sub(
+        r"\b(Tel Aviv|Center|Central|Haifa|Jerusalem|North|South)\s+District\b",
+        lambda m: {
+            "center": "Central Israel",
+            "central": "Central Israel",
+            "north": "northern Israel",
+            "south": "southern Israel",
+        }.get(m[1].casefold(), m[1]),
+        text,
+        flags=re.I,
+    )
+
+
+ISRAELI_CITY_NAMES = frozenset(
+    _normalized_location(normalize_israeli_location(name))
+    for name in COUNTRY_CITY_ALIASES["israel"]
+)
 
 
 def _city_matches_country(raw_location: object, country: str) -> bool:

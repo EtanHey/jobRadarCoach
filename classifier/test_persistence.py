@@ -26,6 +26,7 @@ def migrated_database_url():
         with migrated_database(MIGRATIONS, through=6) as url:
             with psycopg.connect(url, autocommit=True) as db:
                 db.execute((MIGRATIONS / "0028_relevance_gate.sql").read_text())
+                db.execute((MIGRATIONS / "0037_location_eligibility_payload.sql").read_text())
             yield url
     except DatabaseUnavailable as error:
         pytest.skip(str(error))
@@ -459,3 +460,88 @@ def test_explicit_score_request_runs_once_even_with_current_profile(connection):
     assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == [posting_id]
     assert persistence.score_and_persist(connection, posting_id, brain_runner=runner) == 'unchanged'
     assert persistence.list_scoring_candidates(connection, limit=1, posting_ids=[posting_id]) == []
+
+
+@pytest.fixture(scope="module")
+def eligibility_database_url():
+    with migrated_database(MIGRATIONS, through=20) as url:
+        with psycopg.connect(url, autocommit=True) as db:
+            for name in ("0028_relevance_gate.sql", "0037_location_eligibility_payload.sql"):
+                db.execute((MIGRATIONS / name).read_text())
+        yield url
+
+
+@pytest.fixture
+def eligibility_connection(eligibility_database_url):
+    with psycopg.connect(eligibility_database_url) as db:
+        yield db
+        db.rollback()
+
+
+def central_posting(connection):
+    posting_id = seed(connection, status="new")
+    connection.execute(
+        "update public.profile set value='[\"Central Israel\",\"Remote\"]'::jsonb "
+        "where field='candidate.open_to.geographies'"
+    )
+    connection.execute(
+        "update public.postings set location='Kibbutz Sasa, Israel' where id=%s",
+        (posting_id,),
+    )
+    return posting_id
+
+
+@pytest.mark.parametrize("field,value", [("work_mode", "on-site"), ("remote", False)])
+def test_laptop_writer_uses_structured_office_inputs(eligibility_connection, field, value):
+    db = eligibility_connection
+    posting_id = central_posting(db)
+    if field == "work_mode":
+        db.execute(
+            "update public.postings set work_mode=%s,work_mode_source='structured' where id=%s",
+            (value, posting_id),
+        )
+    else:
+        db.execute("update public.postings set remote=%s where id=%s", (value, posting_id))
+
+    def privacy_checked_runner(request, profile):
+        assert "Central Israel" not in request.prompt
+        assert "work_mode" not in request.prompt
+        return runner(request, profile)
+
+    assert persistence.score_and_persist(db, posting_id, brain_runner=privacy_checked_runner) == "stored"
+    payload = score_state(db, posting_id)[9]
+    assert payload["eligibility"] == "blocked"
+    assert payload["recommendation"] == "apply"
+
+
+def test_laptop_writer_uses_verified_extraction(eligibility_connection):
+    db = eligibility_connection
+    posting_id = seed(db, status="new")
+    jd = "Office: Herzliya. " + RAW_JD
+    db.execute("update public.postings set location=null,raw_jd=%s where id=%s", (jd, posting_id))
+    db.execute(
+        "update public.posting_extractions set facts=jsonb_set(facts,'{location}',%s::jsonb) where posting_id=%s",
+        (json.dumps({"value": "Herzliya", "evidence_quote": "Office: Herzliya"}), posting_id),
+    )
+    assert persistence.score_and_persist(db, posting_id, brain_runner=runner) == "stored"
+    assert score_state(db, posting_id)[9]["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("race", ["work_mode", "remote", "extraction", "geography"])
+def test_eligibility_input_change_during_scoring_prevents_stale_write(eligibility_connection, race):
+    db = eligibility_connection
+    posting_id = central_posting(db)
+
+    def racing_runner(request, profile):
+        if race == "work_mode":
+            db.execute("update public.postings set work_mode='on-site',work_mode_source='structured' where id=%s", (posting_id,))
+        elif race == "remote":
+            db.execute("update public.postings set remote=false where id=%s", (posting_id,))
+        elif race == "extraction":
+            db.execute("update public.posting_extractions set facts=jsonb_set(facts,'{location,value}','\"Israel\"') where posting_id=%s", (posting_id,))
+        else:
+            db.execute("update public.profile set value='[\"Israel\"]'::jsonb where field='candidate.open_to.geographies'")
+        return runner(request, profile)
+
+    assert persistence.score_and_persist(db, posting_id, brain_runner=racing_runner) == "stale"
+    assert score_state(db, posting_id) is None

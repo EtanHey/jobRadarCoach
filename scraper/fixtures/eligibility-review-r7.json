@@ -1,0 +1,1238 @@
+[
+  [
+    "r7-01",
+    "Tel Aviv",
+    "נדרש לעבוד ביפן",
+    "unknown"
+  ],
+  [
+    "r7-02",
+    "Tel Aviv",
+    "חובה להשלים מעבר לבולגריה",
+    "unknown"
+  ],
+  [
+    "r7-03",
+    "Tel Aviv",
+    "רק מועמדים ממקסיקו רשאים להגיש מועמדות",
+    "unknown"
+  ],
+  [
+    "r7-04",
+    "Tel Aviv",
+    "מועמדים תושבי צרפת ובלגיה בלבד",
+    "unknown"
+  ],
+  [
+    "r7-05",
+    "Tel Aviv",
+    "חובה להחזיק בדרכון גרמני",
+    "unknown"
+  ],
+  [
+    "r7-06",
+    "Tel Aviv",
+    "מועמד אמריקאי בלבד",
+    "unknown"
+  ],
+  [
+    "r7-07",
+    "Tel Aviv",
+    "אזרחות גרמנית חובה",
+    "unknown"
+  ],
+  [
+    "r7-08",
+    "Tel Aviv",
+    "נדרש לעבוד במזרח הרחוק",
+    "unknown"
+  ],
+  [
+    "r7-09",
+    "Tel Aviv",
+    "חובה להתגורר בדרום אמריקה",
+    "unknown"
+  ],
+  [
+    "r7-10",
+    "Tel Aviv",
+    "We are an equal opportunity employer and candidates should work in France.",
+    "unknown"
+  ],
+  [
+    "r7-11",
+    "Tel Aviv",
+    "We are an equal opportunity employer, US residents only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-12",
+    "Tel Aviv",
+    "We are an equal opportunity employer as well as German applicants only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-13",
+    "Tel Aviv",
+    "Benefits program available as well as candidates must reside in Canada.",
+    "unknown"
+  ],
+  [
+    "r7-14",
+    "Tel Aviv",
+    "We are an equal opportunity employer.\n- חובה להחזיק בדרכון גרמני\n- React experience required",
+    "unknown"
+  ],
+  [
+    "r7-15",
+    "Tel Aviv",
+    "We are an equal opportunity employer.\n* Applicants must attend our London office three days per week.",
+    "blocked"
+  ],
+  [
+    "r7-noise-1",
+    "Tel Aviv",
+    "חובה לפתח אלגוריתמים לסינון נתונים",
+    "eligible"
+  ],
+  [
+    "r7-noise-2",
+    "Tel Aviv",
+    "נדרש ניסיון באחסון מידע ובסינכרון מערכות",
+    "eligible"
+  ],
+  [
+    "r7-noise-3",
+    "Tel Aviv",
+    "חובה להכיר פריימוורקים לפיתוח אתרים",
+    "eligible"
+  ],
+  [
+    "r7-noise-4",
+    "Tel Aviv",
+    "נדרשת הובלה של הצוות הטכנולוגי",
+    "eligible"
+  ],
+  [
+    "r7-noise-5",
+    "Tel Aviv",
+    "חובה לכתוב בדיקות ולתעד תהליכים",
+    "eligible"
+  ],
+  [
+    "r7-noise-6",
+    "Tel Aviv",
+    "נדרש ניסיון במלטשות ובמלט לקירות",
+    "eligible"
+  ],
+  [
+    "r7-noise-7",
+    "Tel Aviv",
+    "חובה לשפר את זמני התגובה של הממשק",
+    "eligible"
+  ],
+  [
+    "r7-noise-8",
+    "Tel Aviv",
+    "נדרש לעבוד בבנין החדש של החברה",
+    "eligible"
+  ],
+  [
+    "r7-noise-9",
+    "Tel Aviv",
+    "נדרש רישיון פרו לתוכנת העריכה",
+    "eligible"
+  ],
+  [
+    "r7-noise-10",
+    "Tel Aviv",
+    "חובה לפתח מערכות למיון ולניהול קבצים",
+    "eligible"
+  ],
+  [
+    "he-or-israel-de",
+    "Tel Aviv",
+    "חובה לגור בגרמניה או בישראל",
+    "eligible"
+  ],
+  [
+    "he-or-israel-fr",
+    "Tel Aviv",
+    "חובה להתגורר בצרפת או בישראל",
+    "eligible"
+  ],
+  [
+    "he-or-israel-za",
+    "Tel Aviv",
+    "חובה להתגורר בדרום אפריקה או בישראל",
+    "eligible"
+  ],
+  [
+    "he-and-israel",
+    "Tel Aviv",
+    "תושבי צרפת וישראל בלבד",
+    "unknown"
+  ],
+  [
+    "he-or-israel-reverse",
+    "Tel Aviv",
+    "חובה לגור בישראל או בגרמניה",
+    "eligible"
+  ],
+  [
+    "he-or-israel-comma",
+    "Tel Aviv",
+    "חובה לגור בגרמניה, או בישראל",
+    "eligible"
+  ],
+  [
+    "en-or-israel",
+    "Tel Aviv",
+    "Must reside in Germany or Israel",
+    "eligible"
+  ],
+  [
+    "he-german-permit",
+    "Tel Aviv",
+    "נדרש אישור עבודה גרמני",
+    "unknown"
+  ],
+  [
+    "he-german-language",
+    "Tel Aviv",
+    "חובה לדבר גרמנית",
+    "eligible"
+  ],
+  [
+    "he-region-east",
+    "Tel Aviv",
+    "חובה לעבור למזרח הרחוק",
+    "unknown"
+  ],
+  [
+    "he-region-latin",
+    "Tel Aviv",
+    "נדרש לעבוד רק באמריקה הלטינית",
+    "unknown"
+  ],
+  [
+    "he-region-south-america",
+    "Tel Aviv",
+    "חובה להתגורר בדרום אמריקה",
+    "unknown"
+  ],
+  [
+    "r7-cursor-1",
+    "Tel Aviv",
+    "מועמדים אמריקאים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-cursor-2",
+    "Tel Aviv",
+    "מועמדים גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-cursor-3",
+    "Tel Aviv",
+    "רק מועמדים בריטים",
+    "unknown"
+  ],
+  [
+    "r7-cursor-4",
+    "Tel Aviv",
+    "American applicants only",
+    "unknown"
+  ],
+  [
+    "r7-cursor-5",
+    "Tel Aviv",
+    "German candidates only",
+    "unknown"
+  ],
+  [
+    "r7-cursor-6",
+    "Tel Aviv",
+    "מועמדים צרפתים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-language-1",
+    "Tel Aviv",
+    "חובה לדבר גרמנית",
+    "eligible"
+  ],
+  [
+    "r7-language-2",
+    "Tel Aviv",
+    "דוברי גרמנית בלבד",
+    "eligible"
+  ],
+  [
+    "r7-language-3",
+    "Tel Aviv",
+    "German language proficiency required",
+    "eligible"
+  ],
+  [
+    "r7-language-4",
+    "Tel Aviv",
+    "Candidates must speak German",
+    "eligible"
+  ],
+  [
+    "r7-language-5",
+    "Tel Aviv",
+    "Native German speakers only",
+    "eligible"
+  ],
+  [
+    "r7-language-6",
+    "Tel Aviv",
+    "רק מועמדים דוברי גרמנית",
+    "eligible"
+  ],
+  [
+    "r7-language-7",
+    "Tel Aviv",
+    "מועמדים ברמת שפת אם בגרמנית בלבד",
+    "eligible"
+  ],
+  [
+    "r7-frame-1",
+    "Tel Aviv",
+    "חובה לגור בגרמניה",
+    "unknown"
+  ],
+  [
+    "r7-frame-2",
+    "Tel Aviv",
+    "חובה לגור בגרמניה וישראל",
+    "unknown"
+  ],
+  [
+    "r7-frame-3",
+    "Tel Aviv",
+    "חובה לגור בגרמניה ודרום אמריקה",
+    "unknown"
+  ],
+  [
+    "r7-frame-4",
+    "Tel Aviv",
+    "חובה לגור בדרום מדומיין",
+    "unknown"
+  ],
+  [
+    "r7-frame-5",
+    "Tel Aviv",
+    "Must reside in Israel Foobar",
+    "unknown"
+  ],
+  [
+    "r7-frame-6",
+    "Tel Aviv",
+    "Must work in Foobar",
+    "unknown"
+  ],
+  [
+    "r7-frame-7",
+    "Tel Aviv",
+    "חובה לעבוד בבלבלה",
+    "unknown"
+  ],
+  [
+    "r7-frame-8",
+    "Tel Aviv",
+    "חובה לעבור לפלנטת זיגזג",
+    "unknown"
+  ],
+  [
+    "r7-frame-9",
+    "Tel Aviv",
+    "Quuxian applicants only",
+    "unknown"
+  ],
+  [
+    "r7-frame-10",
+    "Tel Aviv",
+    "מועמדים זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-frame-11",
+    "Tel Aviv",
+    "נדרש דרכון זיגזגי",
+    "unknown"
+  ],
+  [
+    "r7-eeo-1",
+    "Tel Aviv",
+    "Qualified applicants will receive consideration for employment without regard to race, color, national origin, citizenship, ancestry, religion, creed, sex, sexual orientation, gender identity, age, disability, veteran or military status, or any other basis prohibited by law.",
+    "eligible"
+  ],
+  [
+    "r7-eeo-restriction-1",
+    "Tel Aviv",
+    "Qualified applicants will receive consideration for employment without regard to race, color, national origin, citizenship, ancestry, religion, creed, sex, sexual orientation, gender identity, age, disability, veteran or military status, or any other basis prohibited by law., and German candidates only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-2",
+    "Tel Aviv",
+    "Qualified applicants will receive consideration for employment without regard to race, color, national origin, citizenship, ancestry, religion, creed, sex, sexual orientation, gender identity, age, disability, veteran or military status, or any other basis prohibited by law. as well as candidates must work in Foobar.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-3",
+    "Tel Aviv",
+    "Qualified applicants will receive consideration for employment without regard to race, color, national origin, citizenship, ancestry, religion, creed, sex, sexual orientation, gender identity, age, disability, veteran or military status, or any other basis prohibited by law., חובה להחזיק בדרכון גרמני",
+    "unknown"
+  ],
+  [
+    "r7-eeo-2",
+    "Tel Aviv",
+    "BMC is committed to equal opportunity employment regardless of race, age, sex, creed, color, religion, citizenship status, sexual orientation, gender, gender expression, gender identity, national origin, disability, marital status, pregnancy, disabled veteran or status as a protected veteran",
+    "eligible"
+  ],
+  [
+    "r7-eeo-restriction-5",
+    "Tel Aviv",
+    "BMC is committed to equal opportunity employment regardless of race, age, sex, creed, color, religion, citizenship status, sexual orientation, gender, gender expression, gender identity, national origin, disability, marital status, pregnancy, disabled veteran or status as a protected veteran, and German candidates only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-6",
+    "Tel Aviv",
+    "BMC is committed to equal opportunity employment regardless of race, age, sex, creed, color, religion, citizenship status, sexual orientation, gender, gender expression, gender identity, national origin, disability, marital status, pregnancy, disabled veteran or status as a protected veteran as well as candidates must work in Foobar.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-7",
+    "Tel Aviv",
+    "BMC is committed to equal opportunity employment regardless of race, age, sex, creed, color, religion, citizenship status, sexual orientation, gender, gender expression, gender identity, national origin, disability, marital status, pregnancy, disabled veteran or status as a protected veteran, חובה להחזיק בדרכון גרמני",
+    "unknown"
+  ],
+  [
+    "r7-eeo-3",
+    "Tel Aviv",
+    "Our team is made up of educators, data scientists, published authors, engineers, artists, bakers, film buffs, cyclists, dual citizens, and so much more",
+    "eligible"
+  ],
+  [
+    "r7-eeo-restriction-9",
+    "Tel Aviv",
+    "Our team is made up of educators, data scientists, published authors, engineers, artists, bakers, film buffs, cyclists, dual citizens, and so much more, and German candidates only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-10",
+    "Tel Aviv",
+    "Our team is made up of educators, data scientists, published authors, engineers, artists, bakers, film buffs, cyclists, dual citizens, and so much more as well as candidates must work in Foobar.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-11",
+    "Tel Aviv",
+    "Our team is made up of educators, data scientists, published authors, engineers, artists, bakers, film buffs, cyclists, dual citizens, and so much more, חובה להחזיק בדרכון גרמני",
+    "unknown"
+  ],
+  [
+    "r7-eeo-4",
+    "Tel Aviv",
+    "We are committed to equal employment opportunity regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity or Veteran status",
+    "eligible"
+  ],
+  [
+    "r7-eeo-restriction-13",
+    "Tel Aviv",
+    "We are committed to equal employment opportunity regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity or Veteran status, and German candidates only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-14",
+    "Tel Aviv",
+    "We are committed to equal employment opportunity regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity or Veteran status as well as candidates must work in Foobar.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-15",
+    "Tel Aviv",
+    "We are committed to equal employment opportunity regardless of race, color, ancestry, religion, sex, national origin, sexual orientation, age, citizenship, marital status, disability, gender identity or Veteran status, חובה להחזיק בדרכון גרמני",
+    "unknown"
+  ],
+  [
+    "r7-eeo-5",
+    "Tel Aviv",
+    "All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances",
+    "eligible"
+  ],
+  [
+    "r7-eeo-restriction-17",
+    "Tel Aviv",
+    "All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances, and German candidates only may apply.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-18",
+    "Tel Aviv",
+    "All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances as well as candidates must work in Foobar.",
+    "unknown"
+  ],
+  [
+    "r7-eeo-restriction-19",
+    "Tel Aviv",
+    "All qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances, חובה להחזיק בדרכון גרמני",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-20",
+    "Tel Aviv",
+    "מועמד אמריקאים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-21",
+    "Tel Aviv",
+    "רק מועמד אמריקאים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-22",
+    "Tel Aviv",
+    "רק אמריקאים מועמד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-23",
+    "Tel Aviv",
+    "מועמד גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-24",
+    "Tel Aviv",
+    "רק מועמד גרמנים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-25",
+    "Tel Aviv",
+    "רק גרמנים מועמד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-26",
+    "Tel Aviv",
+    "מועמד בריטים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-27",
+    "Tel Aviv",
+    "רק מועמד בריטים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-28",
+    "Tel Aviv",
+    "רק בריטים מועמד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-29",
+    "Tel Aviv",
+    "מועמד זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-30",
+    "Tel Aviv",
+    "רק מועמד זיגזגים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-31",
+    "Tel Aviv",
+    "רק זיגזגים מועמד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-32",
+    "Tel Aviv",
+    "מועמדים אמריקאים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-33",
+    "Tel Aviv",
+    "רק מועמדים אמריקאים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-34",
+    "Tel Aviv",
+    "רק אמריקאים מועמדים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-35",
+    "Tel Aviv",
+    "מועמדים גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-36",
+    "Tel Aviv",
+    "רק מועמדים גרמנים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-37",
+    "Tel Aviv",
+    "רק גרמנים מועמדים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-38",
+    "Tel Aviv",
+    "מועמדים בריטים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-39",
+    "Tel Aviv",
+    "רק מועמדים בריטים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-40",
+    "Tel Aviv",
+    "רק בריטים מועמדים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-41",
+    "Tel Aviv",
+    "מועמדים זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-42",
+    "Tel Aviv",
+    "רק מועמדים זיגזגים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-43",
+    "Tel Aviv",
+    "רק זיגזגים מועמדים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-44",
+    "Tel Aviv",
+    "מועמדות אמריקאים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-45",
+    "Tel Aviv",
+    "רק מועמדות אמריקאים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-46",
+    "Tel Aviv",
+    "רק אמריקאים מועמדות",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-47",
+    "Tel Aviv",
+    "מועמדות גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-48",
+    "Tel Aviv",
+    "רק מועמדות גרמנים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-49",
+    "Tel Aviv",
+    "רק גרמנים מועמדות",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-50",
+    "Tel Aviv",
+    "מועמדות בריטים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-51",
+    "Tel Aviv",
+    "רק מועמדות בריטים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-52",
+    "Tel Aviv",
+    "רק בריטים מועמדות",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-53",
+    "Tel Aviv",
+    "מועמדות זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-54",
+    "Tel Aviv",
+    "רק מועמדות זיגזגים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-55",
+    "Tel Aviv",
+    "רק זיגזגים מועמדות",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-56",
+    "Tel Aviv",
+    "תושבי אמריקאים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-57",
+    "Tel Aviv",
+    "רק תושבי אמריקאים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-58",
+    "Tel Aviv",
+    "רק אמריקאים תושבי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-59",
+    "Tel Aviv",
+    "תושבי גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-60",
+    "Tel Aviv",
+    "רק תושבי גרמנים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-61",
+    "Tel Aviv",
+    "רק גרמנים תושבי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-62",
+    "Tel Aviv",
+    "תושבי בריטים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-63",
+    "Tel Aviv",
+    "רק תושבי בריטים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-64",
+    "Tel Aviv",
+    "רק בריטים תושבי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-65",
+    "Tel Aviv",
+    "תושבי זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-66",
+    "Tel Aviv",
+    "רק תושבי זיגזגים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-67",
+    "Tel Aviv",
+    "רק זיגזגים תושבי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-68",
+    "Tel Aviv",
+    "אזרחי אמריקאים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-69",
+    "Tel Aviv",
+    "רק אזרחי אמריקאים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-70",
+    "Tel Aviv",
+    "רק אמריקאים אזרחי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-71",
+    "Tel Aviv",
+    "אזרחי גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-72",
+    "Tel Aviv",
+    "רק אזרחי גרמנים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-73",
+    "Tel Aviv",
+    "רק גרמנים אזרחי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-74",
+    "Tel Aviv",
+    "אזרחי בריטים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-75",
+    "Tel Aviv",
+    "רק אזרחי בריטים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-76",
+    "Tel Aviv",
+    "רק בריטים אזרחי",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-77",
+    "Tel Aviv",
+    "אזרחי זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-78",
+    "Tel Aviv",
+    "רק אזרחי זיגזגים",
+    "unknown"
+  ],
+  [
+    "r7-he-demonym-79",
+    "Tel Aviv",
+    "רק זיגזגים אזרחי",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-80",
+    "Tel Aviv",
+    "German applicants only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-81",
+    "Tel Aviv",
+    "applicants German only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-82",
+    "Tel Aviv",
+    "only German applicants",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-83",
+    "Tel Aviv",
+    "American applicants only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-84",
+    "Tel Aviv",
+    "applicants American only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-85",
+    "Tel Aviv",
+    "only American applicants",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-86",
+    "Tel Aviv",
+    "Quuxian applicants only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-87",
+    "Tel Aviv",
+    "applicants Quuxian only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-88",
+    "Tel Aviv",
+    "only Quuxian applicants",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-89",
+    "Tel Aviv",
+    "German candidates only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-90",
+    "Tel Aviv",
+    "candidates German only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-91",
+    "Tel Aviv",
+    "only German candidates",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-92",
+    "Tel Aviv",
+    "American candidates only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-93",
+    "Tel Aviv",
+    "candidates American only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-94",
+    "Tel Aviv",
+    "only American candidates",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-95",
+    "Tel Aviv",
+    "Quuxian candidates only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-96",
+    "Tel Aviv",
+    "candidates Quuxian only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-97",
+    "Tel Aviv",
+    "only Quuxian candidates",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-98",
+    "Tel Aviv",
+    "German residents only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-99",
+    "Tel Aviv",
+    "residents German only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-100",
+    "Tel Aviv",
+    "only German residents",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-101",
+    "Tel Aviv",
+    "American residents only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-102",
+    "Tel Aviv",
+    "residents American only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-103",
+    "Tel Aviv",
+    "only American residents",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-104",
+    "Tel Aviv",
+    "Quuxian residents only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-105",
+    "Tel Aviv",
+    "residents Quuxian only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-106",
+    "Tel Aviv",
+    "only Quuxian residents",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-107",
+    "Tel Aviv",
+    "German citizens only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-108",
+    "Tel Aviv",
+    "citizens German only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-109",
+    "Tel Aviv",
+    "only German citizens",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-110",
+    "Tel Aviv",
+    "American citizens only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-111",
+    "Tel Aviv",
+    "citizens American only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-112",
+    "Tel Aviv",
+    "only American citizens",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-113",
+    "Tel Aviv",
+    "Quuxian citizens only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-114",
+    "Tel Aviv",
+    "citizens Quuxian only",
+    "unknown"
+  ],
+  [
+    "r7-en-demonym-115",
+    "Tel Aviv",
+    "only Quuxian citizens",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-116",
+    "Tel Aviv",
+    "חובה לעבוד במרכז אמריקה",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-117",
+    "Tel Aviv",
+    "חובה לגור בדרום זיגזג",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-118",
+    "Tel Aviv",
+    "Must work in Israel, Foobar",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-119",
+    "Tel Aviv",
+    "only candidates from Israel or Foobar",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-120",
+    "Tel Aviv",
+    "ונדרש לעבוד בזיגזג",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-121",
+    "Tel Aviv",
+    "ורק מועמדים זיגזגים",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-122",
+    "Tel Aviv",
+    "German passports required",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-123",
+    "Tel Aviv",
+    "נדרשת ויזה זיגזגית",
+    "unknown"
+  ],
+  [
+    "r7-whole-slot-124",
+    "Tel Aviv",
+    "נדרש אישור עבודה זיגזגי",
+    "unknown"
+  ],
+  [
+    "r7-positive-125",
+    "Tel Aviv",
+    "Must work in Israel",
+    "eligible"
+  ],
+  [
+    "r7-positive-126",
+    "Tel Aviv",
+    "חובה לעבוד בישראל",
+    "eligible"
+  ],
+  [
+    "r7-positive-127",
+    "Tel Aviv",
+    "מועמדים ישראלים בלבד",
+    "eligible"
+  ],
+  [
+    "r7-positive-128",
+    "Tel Aviv",
+    "Israeli candidates only",
+    "eligible"
+  ],
+  [
+    "r7-positive-129",
+    "Tel Aviv",
+    "רק מועמדים ישראלים",
+    "eligible"
+  ],
+  [
+    "r7-positive-130",
+    "Tel Aviv",
+    "Only Israeli applicants",
+    "eligible"
+  ],
+  [
+    "r7-positive-131",
+    "Tel Aviv",
+    "חובה לדבר זיגזגית",
+    "eligible"
+  ],
+  [
+    "r7-positive-132",
+    "Tel Aviv",
+    "דוברי זיגזגית בלבד",
+    "eligible"
+  ],
+  [
+    "r7-positive-133",
+    "Tel Aviv",
+    "Fluent Quuxian language required",
+    "eligible"
+  ],
+  [
+    "r7-positive-134",
+    "Tel Aviv",
+    "מועמדים דוברי שפה זיגזגית בלבד",
+    "eligible"
+  ],
+  [
+    "r7-positive-135",
+    "Tel Aviv",
+    "בלי קשר ללאום או אזרחות",
+    "eligible"
+  ],
+  [
+    "r7-positive-136",
+    "Tel Aviv",
+    "ללא הבדל דת, גזע, אזרחות",
+    "eligible"
+  ],
+  [
+    "r7-credential-grammar-1",
+    "Tel Aviv",
+    "אזרחים גרמנים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-2",
+    "Tel Aviv",
+    "אזרחיות זיגזגיות בלבד",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-3",
+    "Tel Aviv",
+    "מועמדת גרמניה בלבד",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-4",
+    "Tel Aviv",
+    "תושבים זיגזגים בלבד",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-5",
+    "Tel Aviv",
+    "A passport of the Quuxland republic is required",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-6",
+    "Tel Aviv",
+    "visa for the Quuxland republic",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-7",
+    "Tel Aviv",
+    "visa for Atlantis",
+    "unknown"
+  ],
+  [
+    "r7-credential-grammar-8",
+    "Tel Aviv",
+    "Local work permits required",
+    "unknown"
+  ]
+]

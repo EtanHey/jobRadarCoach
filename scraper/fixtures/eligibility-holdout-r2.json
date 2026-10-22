@@ -1,0 +1,122 @@
+[
+  [
+    "holdout-01",
+    "Israel",
+    "Applicants are required to be legally resident in Portugal.",
+    "unknown"
+  ],
+  [
+    "holdout-02",
+    "Tel Aviv",
+    "Only residents of Ireland are eligible.",
+    "unknown"
+  ],
+  [
+    "holdout-03",
+    "Remote",
+    "Worldwide remote; candidates must be based in Israel or Malta.",
+    "eligible"
+  ],
+  [
+    "holdout-04",
+    "Israel",
+    "Must be based in Lisbon or another approved country.",
+    "unknown"
+  ],
+  [
+    "holdout-05",
+    "Israel",
+    "This role is hybrid in London or another approved office.",
+    "unknown"
+  ],
+  [
+    "holdout-06",
+    "Remote",
+    "Remote from Israel. Applicants must work in UTC+1 time zone.",
+    "unknown"
+  ],
+  [
+    "holdout-07",
+    "Holon",
+    "No need to reside in the United States.",
+    "eligible"
+  ],
+  [
+    "holdout-08",
+    "Remote",
+    "Remote worldwide except candidates from Israel.",
+    "blocked"
+  ],
+  [
+    "holdout-09",
+    "Israel",
+    "On-site role in Toronto, Canada.",
+    "unknown"
+  ],
+  [
+    "holdout-10",
+    "Israel",
+    "Hybrid role in Haifa or Tel Aviv.",
+    "eligible"
+  ],
+  [
+    "holdout-11",
+    "Remote",
+    "עבודה מרחוק מישראל; תושבי קנדה בלבד.",
+    "blocked"
+  ],
+  [
+    "holdout-12",
+    "Israel",
+    "חובה להתגורר במדינה עם אישור העסקה.",
+    "unknown"
+  ],
+  [
+    "holdout-13",
+    "Remote",
+    "עבודה מרחוק מכל העולם; המועמדים נדרשים לגור בישראל.",
+    "unknown"
+  ],
+  [
+    "holdout-14",
+    "Tel Aviv",
+    "Only candidates eligible to work in the United States.",
+    "unknown"
+  ],
+  [
+    "holdout-15",
+    "Tel Aviv",
+    "Hybrid in Tel Aviv, supporting clients based in London.",
+    "eligible"
+  ],
+  [
+    "holdout-16",
+    "Remote",
+    "Remote worldwide excluding the United Kingdom and Canada.",
+    "eligible"
+  ],
+  [
+    "holdout-17",
+    "Rishon",
+    "Role is hybrid, three days each week in our London office.",
+    "unknown"
+  ],
+  [
+    "holdout-18",
+    "Israel",
+    "Candidates must reside in India or Israel, and must be citizens of India.",
+    "unknown"
+  ],
+  [
+    "holdout-19",
+    "Remote",
+    "Israel-based remote position.",
+    "eligible"
+  ],
+  [
+    "holdout-20",
+    "Tel Aviv",
+    "Remote within Australia only; Israel is not an available work location.",
+    "blocked"
+  ]
+]

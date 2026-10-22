@@ -613,3 +613,181 @@ def test_salary_validation_failure_keeps_source_remark_and_other_facts(invalid):
     expected["salary"] = {"value": None, "evidence_quote": None}
     expected["salary_remark"] = "x" * 257 if invalid["value"] == "x" * 257 else "$120k"
     assert result.facts == expected
+
+
+# P9d: novel owners must survive punctuation before their first amount.
+P9D_REJECTED = [
+    "Competitive salary; liquidity, $4M",
+    "Competitive salary; order book, £6M",
+    "Competitive salary; cloud spend, $70k annually",
+    "Competitive salary; transaction volume, $8M annually",
+    "Competitive salary; escrow balance; $9M",
+    "Competitive salary; cash runway / €3M",
+    "Competitive salary; procurement envelope - $80k annually",
+    "Competitive salary; claims reserve: £7M",
+    "Competitive salary; receivables pool, $11M",
+    "Competitive salary; settlement float / ₪12 מיליון",
+    "Competitive salary; liquidity / reserves, $4M",
+    "Competitive salary; liquidity (current assets), $4M",
+    "Competitive salary; order book – £6M",
+    "Competitive salary; cloud spend: forecast; $70k annually",
+    "Competitive salary; transaction volume / domestic, $8M annually",
+    "Competitive salary; total company spend on compensation / $4M",
+    "Competitive salary; payroll outlay for all staff salaries - £6M",
+    "Competitive salary; יתרת מזומנים, ₪12 מיליון",
+    "Competitive salary; הוצאה ארגונית על שכר / ₪12 מיליון",
+    "Competitive salary; liquidity; salary benchmark, $4M",
+]
+P9D_POSITIVE_SPANS = [
+    ("$150k–$180k", "$150k–$180k"),
+    ("salary: ₪30,000", "salary: ₪30,000"),
+    ("OTE $220k", "OTE $220k"),
+    ("$60/hour", "$60/hour"),
+    ("day rate £600", "day rate £600"),
+    ('שכר 25,000 ש"ח', 'שכר 25,000 ש"ח'),
+    ("Competitive salary, $150k–$180k", "$150k–$180k"),
+] + [
+    (f"Competitive salary; escrow balance{separator}{pay}", pay)
+    for separator in (", ", "; ", " / ", " - ", ": ")
+    for pay in ("salary $150k", "OTE $220k", "day rate £600")
+]
+P9D_SALARY_SPANS = [(value, None) for value in P9D_REJECTED] + P9D_POSITIVE_SPANS
+
+
+# P9e: Sol's seven labels, Claude's eight, and separator parity for pay-only heads.
+P9E_SALARY_SPANS = list(dict.fromkeys([
+    ("salary - $150k", "$150k"),
+    ("salary / $150k", "$150k"),
+    ("Competitive salary - $150k–$180k", "$150k–$180k"),
+    ("Salary — $150k", "$150k"),
+    ("שכר - ₪30,000", "₪30,000"),
+    ("day rate - £600", "£600"),
+    ("OTE / $220k", "$220k"),
+    ("Annual salary, $150k–$180k", "$150k–$180k"),
+    ("Gross salary, ₪30,000", "₪30,000"),
+    ("Monthly salary; ₪30,000", "₪30,000"),
+    ("Salary (gross), ₪30,000", "₪30,000"),
+    ("Salary range, $150k", "$150k"),
+    ("Base salary range for this role, $150k–$180k", "$150k–$180k"),
+    ("Annual base pay range; $150k-$180k", "$150k-$180k"),
+    ("Competitive salary and equity, $150k", "$150k"),
+    ("revenue $8M; Annual salary, $150k", "$150k"),
+    ("revenue, salary $150k", "salary $150k"),
+    ("revenue salary $150k", None),
+    ("ARR $10M, up to $200k base salary", "up to $200k base salary"),
+] + [
+    (f"{label}{separator}{amount}", amount)
+    for label, amount in (
+        ("salary", "$150k"), ("OTE", "$220k"), ("שכר", "₪30,000"),
+        ("Annual salary", "$150k–$180k"), ("Gross salary", "₪30,000"),
+        ("Net monthly salary", "₪30,000"), ("Salary (gross)", "₪30,000"),
+        ("Base salary range for this role", "$150k–$180k"),
+        ("Annual base pay range", "$150k-$180k"),
+        ("Competitive salary and equity", "$150k"),
+    )
+    for separator in (", ", "; ", " / ", " - ", " — ")
+] + [
+    (f"{prefix}{label}{separator}{amount}", None)
+    for prefix in ("", "Competitive salary; ")
+    for label, amount in (
+        ("total company spend on compensation", "$4M"),
+        ("spend on salaries", "$4M"), ("compensation budget", "$4M"),
+        ("total wages", "£6M"), ("תקציב שכר", "₪5 מיליון"),
+        ("payroll costs", "$9M"), ("salary benchmark", "$4M"),
+    )
+    for separator in (", ", "; ", " / ", " - ", " — ")
+]))
+
+
+@pytest.mark.parametrize("salary, span", P9D_SALARY_SPANS + [
+    pytest.param(salary, span, id=f"p9e-{index}")
+    for index, (salary, span) in enumerate(P9E_SALARY_SPANS)
+])
+def test_list_governor_extraction_and_payload(salary, span):
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": span, "evidence_quote": salary if span else None}
+    if span != salary:
+        expected["salary_remark"] = salary
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
+    assert candidate["salary"]["value"] == salary
+
+
+def test_complete_pay_label_is_checked_before_stripping_separator():
+    from extractor.salary import salary_span
+
+    assert salary_span("compensation / $4M") == "$4M"
+    assert salary_span("total company spend on compensation / $4M") is None
+
+
+@pytest.mark.parametrize("amount", ["$4M", "$4M–$5M"])
+def test_current_amount_has_one_governor_window(monkeypatch, amount):
+    from extractor import salary as policy
+
+    original = policy._has_unknown_governor
+    windows = []
+
+    def record(before, after):
+        windows.append((before, after))
+        return original(before, after)
+
+    monkeypatch.setattr(policy, "_has_unknown_governor", record)
+    assert policy.salary_span(f"Competitive salary; escrow balance, {amount}") is None
+    assert windows == [("Competitive salary; escrow balance, ", "")]
+
+
+@pytest.mark.parametrize("candidate, raw_jd, warning", [
+    ({}, "", False),
+    ({"salary": {"value": None, "evidence_quote": None}}, "", False),
+    ({"salary": {"value": "Competitive salary", "evidence_quote": "Competitive salary"}},
+     "Competitive salary", False),
+    ({"salary": {"value": "$150k", "evidence_quote": "$150k"}}, "$150k", False),
+    ({"salary": {"value": "funding $4M", "evidence_quote": "funding $4M"}},
+     "funding $4M", True),
+    ({"salary": {"value": "Competitive salary", "evidence_quote": "absent"}},
+     "Competitive salary", True),
+    ({"salary": None}, "", True),
+])
+def test_salary_drop_log_requires_numeric_value_or_validation_failure(
+    caplog, candidate, raw_jd, warning,
+):
+    from extractor.salary import normalize_salary
+
+    normalize_salary(deepcopy(candidate), raw_jd)
+    messages = [r.message for r in caplog.records if "extraction_fact_dropped" in r.message]
+    assert messages == (["extraction_fact_dropped field=salary category=evidence_quote"]
+                        if warning else [])
+
+
+@pytest.mark.parametrize("salary", P9D_REJECTED + ["salary 120k"])
+def test_dropped_salary_emits_bounded_diagnostic(caplog, monkeypatch, salary):
+    from extractor import salary as policy
+
+    if salary == "salary 120k":
+        monkeypatch.setattr(policy, "salary_span", lambda text: "120k" if text == salary else None)
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    assert result["facts"]["salary"]["value"] is None
+    messages = [record.message for record in caplog.records if "extraction_fact_dropped" in record.message]
+    assert messages == ["extraction_fact_dropped field=salary category=evidence_quote"]
+    assert salary not in messages[0]
+
+
+def test_failed_salary_quote_remark_is_bounded_and_stable():
+    from extractor.salary import normalize_salary
+
+    quote = "private business quantity " * 60
+    candidate = facts()
+    candidate["salary"] = {"value": "absent", "evidence_quote": quote}
+    normalize_salary(candidate, quote)
+    assert candidate["salary"] == {"value": None, "evidence_quote": None}
+    assert candidate["salary_remark"] == quote[:1000]
+    normalized = deepcopy(candidate)
+    normalize_salary(candidate, quote)
+    assert candidate == normalized
