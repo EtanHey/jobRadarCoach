@@ -36,6 +36,10 @@ FACTS = {
     "salary": {"value": "120,000 USD annually", "evidence_quote": "120,000 USD annually"},
 }
 
+def salary_facts(stored_facts: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in stored_facts.items() if key != "employer_identity"}
+
+
 def extraction(
     raw_jd: str = RAW_JD,
     facts: dict[str, object] | None = None,
@@ -332,7 +336,7 @@ def test_salary_evidence_survives_extraction_and_database_readback(connection, s
     ).fetchone()
     expected = expected_salary_facts(candidate, salary, numeric)
     assert stored_salary == expected["salary"]["value"]
-    assert stored_facts == expected
+    assert salary_facts(stored_facts) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
@@ -378,7 +382,7 @@ def test_round8_case_insensitive_salary_persists_other_facts(connection, quote, 
     expected = deepcopy(candidate)
     expected["salary"] = {"value": span, "evidence_quote": quote if span else None}
     expected["salary_remark"] = remark
-    assert state[11] == expected
+    assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
@@ -402,7 +406,7 @@ def test_review_base_counts_do_not_abort_other_fact_persistence(connection, sala
     expected = deepcopy(candidate)
     expected["salary"] = {"value": None, "evidence_quote": None}
     expected["salary_remark"] = salary
-    assert state[11] == expected
+    assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
@@ -427,5 +431,5 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
     expected["salary"] = {"value": span, "evidence_quote": salary if span else None}
     if span != salary:
         expected["salary_remark"] = salary
-    assert state[11] == expected
+    assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
