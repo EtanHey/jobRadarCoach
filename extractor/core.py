@@ -8,7 +8,12 @@ import logging
 from collections.abc import Callable, Mapping
 from copy import deepcopy
 
-from extractor.evidence import ExtractionValidationError, derive_remote_fact, normalize_salary, validate_facts
+from extractor.evidence import (
+    ExtractionValidationError,
+    derive_remote_fact,
+    validate_facts,
+)
+from extractor.salary import normalize_salary
 from scraper.brain import (
     BrainConfigurationError,
     BrainRequest,

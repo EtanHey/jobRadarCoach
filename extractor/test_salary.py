@@ -470,3 +470,26 @@ def test_round8_case_insensitive_salary_keeps_source_remark(quote, value, remark
     assert result["facts"] == expected
     assert build_payload(result, raw_jd).facts == expected
     assert candidate["salary"]["value"] == value
+
+
+@pytest.mark.parametrize("value", [None] + list(dict.fromkeys(
+    value for value, _ in (
+        PRECISION_PREVIOUS_SALARY_CASES + ROUND5_SALARY_CASES + ROUND6_SALARY_CASES
+        + ROUND7_SALARY_SPANS + P9C_SALARY_SPANS
+    )
+)))
+def test_salary_span_is_idempotent(value):
+    from extractor.salary import salary_span
+
+    span = salary_span(value)
+    assert salary_span(span) == span
+
+
+@pytest.mark.parametrize("invalid", [None, "competitive salary", []])
+def test_salary_normalization_rejects_malformed_fact(invalid):
+    from extractor.salary import normalize_salary
+
+    candidate = facts()
+    candidate["salary"] = invalid
+    with pytest.raises(BrainValidationError, match="salary fact must be an object"):
+        normalize_salary(candidate, RAW_JD)

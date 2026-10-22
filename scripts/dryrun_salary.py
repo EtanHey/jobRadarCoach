@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from extractor.evidence import salary_span
+from extractor.salary import salary_span
 
 
 def report(snapshot: Path) -> str:

@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
 import hashlib
 import json
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from extractor.core import EXTRACTION_SCHEMA_SHA256, _schema
-from extractor.evidence import normalize_salary, validate_facts
-
+from extractor.evidence import validate_facts
+from extractor.salary import normalize_salary
 
 _FACT_FIELDS = {"location", "remote", "seniority", "stack", "salary"}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
