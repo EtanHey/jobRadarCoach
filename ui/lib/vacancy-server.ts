@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GlobeJob } from "./globe-contract";
 import { JobIdSchema } from "./contracts";
-import { HttpError } from "./http";
 import { uniqueJobsById } from "./job-board-state";
 import { normalizedIdentity } from "./job-dedup";
 import { vacancyIdentity } from "./vacancy-identity";
@@ -32,10 +31,15 @@ export async function withVacancyIdentity<T extends GlobeJob>(db: SupabaseClient
   const schema = z.array(z.object({ id: JobIdSchema, identity_evidence: z.string().nullable() }));
   for (let offset = 0; offset < selected.length; offset += 100) {
     const batch = selected.slice(offset, offset + 100);
-    const response = await db.from("postings").select("id,identity_evidence:raw_jd").in("id", batch.map(job => job.id));
-    if (response.error) throw new HttpError(503, "Database request failed.", "database");
-    const bodies = new Map(schema.parse(response.data).map(row => [row.id, row.identity_evidence]));
-    for (const job of batch) identities.set(job.id, vacancyIdentity({ ...job, raw_jd: bodies.get(job.id) }));
+    try {
+      const response = await db.from("postings").select("id,identity_evidence:raw_jd").in("id", batch.map(job => job.id));
+      if (response.error) throw response.error;
+      const bodies = new Map(schema.parse(response.data).map(row => [row.id, row.identity_evidence]));
+      for (const job of batch) identities.set(job.id, vacancyIdentity({ ...job, raw_jd: bodies.get(job.id) }));
+    } catch {
+      // Error payloads can contain JD content or credentials; log bounded context only.
+      console.error("Vacancy identity body fetch failed; using URL-only identity", { offset, count: batch.length });
+    }
   }
   return jobs.map(job => ({ ...job, vacancy_identity: identities.get(job.id) ?? vacancyIdentity(job) }));
 }
