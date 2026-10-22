@@ -7,10 +7,10 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '3'
+VERSION = '4'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
-STAFFING_KEYS = PUBLISHER_KEYS | {'alldus'}
+STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
 # Reviewed against all 57 family-2 evidence IDs; these are publishers, not clients.
 NAME = r'(?P<name>[A-Z][\w·&.,’\'() \t-]{0,78}?)'
 PATTERNS = [
@@ -22,19 +22,27 @@ PATTERNS = [
 GENERIC = {'we', 'our', 'the company', 'this company', 'the client', 'a company', 'you'}
 
 
-# Explicit intermediary descriptions, not mere mentions of recruitment tools.
+# Third-party wording excludes ordinary "join a company" and client SDK/team copy.
+THIRD_PARTY = (
+    r"\bour client(?=[:,.*]|\s+(?:is|are)\b|\s*$)"
+    r"|\ba client of ours\b"
+    r"|\bon behalf of (?:our|an?) (?:[\w,-]+ ){0,8}(?:client|company|organization|firm)\b"
+)
 INTERMEDIARY = re.compile(
     r"\b(?:staffing|recruiting|recruitment) (?:firm|agency|company)\b"
-    r"|\bprovider of (?:[\w-]+ ){0,3}staffing solutions\b|\bstaffing industry\b"
-    r"|\b(?:join|for|on behalf of) (?:a|an) (?:[\w-]+ ){0,3}(?:organization|client|company)\b",
+    r"|" + THIRD_PARTY,
     re.I,
 )
+# Service-provider framing, rather than product mentions of talent solutions.
 STAFFING_SERVICES = re.compile(
-    r"\b(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
-    r"(?: and (?:staffing|recruiting|recruitment))? (?:services|solutions|agency|firm)\b",
+    r"\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}"
+    r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
+    r"(?: and (?:staffing|recruiting|recruitment))? services\b"
+    r"|\b(?:provider of|provid(?:e|es|ing)) (?:[\w-]+ ){0,3}staffing solutions\b"
+    r"|\bwe place candidates\b",
     re.I,
 )
-AGENCY_STATEMENT = re.compile(r'^.*\b(?:our client(?=[:,*]|\s+is\b|\s*$)|on behalf of (?:our|an? unnamed) client)\b[^\n]*', re.I | re.M)
+AGENCY_STATEMENT = re.compile(r'^.*(?:' + THIRD_PARTY + r')[^\n]*', re.I | re.M)
 ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
 
 
@@ -52,8 +60,9 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     blurb_names: dict[str, tuple[str, str]] = {}
     agency_statement = AGENCY_STATEMENT.search(opening)
     agency_evidence = agency_statement[0] if agency_statement else None
-    intermediary_seen = False
-    role_intermediary_seen = False
+    intermediary_seen = agency_statement is not None
+    role_intermediary_seen = bool(agency_statement and role_heading
+                                  and agency_statement.start() > role_heading.start())
     for index, pattern in enumerate(PATTERNS):
         for match in pattern.finditer(opening):
             name = match['name'].strip(' .,')
@@ -67,7 +76,7 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
             if (name.casefold() in STAFFING_KEYS
                     or name.casefold() in staffing_about
                     or re.search(r"\b(?:staffing|recruiting|recruitment)\b", name, re.I)
-                    or INTERMEDIARY.search(match[0])):
+                    or (index >= 2 and INTERMEDIARY.search(match[0]))):
                 agency_evidence = staffing_about.get(name.casefold(), match[0])
                 intermediary_seen = True
                 role_intermediary_seen |= not is_blurb

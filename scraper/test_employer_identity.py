@@ -47,7 +47,7 @@ def test_publisher_catalog_matches_browser_catalog():
     ('AgileGrid Solutions', '**About The Company**\n\nQuik Hire Staffing is a leading provider of innovative staffing solutions connecting professionals with client organizations.\n\n**About The Role**\n\nWe are seeking a Frontend Developer for a global software company.'),
     ('מרטנס | Mertens – מקבוצת מלם תים', 'Mertens - MalamTeam is hiring a Backend Developer to join a leading organization in the Gush Dan area'),
     ('New Publisher', '**About The Company**\n\nTalent Bridge is a recruiting firm placing engineers with clients.\n\n**About The Role**\n\nWe seek an engineer for an unnamed client.'),
-    ('New Publisher', 'Talent Bridge is hiring a developer to join a leading organization.'),
+    ('New Publisher', 'Talent Bridge is hiring a developer for our client.'),
 ])
 def test_intermediary_is_not_hiring_employer(publisher, jd):
     result = resolve_employer(publisher, jd, 'linkedin')
@@ -114,7 +114,7 @@ def test_internal_organization_is_not_agency_evidence(jd):
 
 
 def test_unnamed_role_client_does_not_fall_back_to_company_blurb():
-    jd = '**About The Company**\n\nAcme Labs is a software company.\n\n**About The Role**\n\nTalent Bridge is hiring a developer to join a leading organization.'
+    jd = '**About The Company**\n\nAcme Labs is a software company.\n\n**About The Role**\n\nTalent Bridge is hiring a developer for a client of ours.'
     assert resolve_employer('New Publisher', jd, 'linkedin')['hiring_employer'] is None
 
 
@@ -187,3 +187,73 @@ def test_product_company_about_is_not_recruiter(description):
     result = resolve_employer('New Publisher', jd, 'linkedin')
     assert result['hiring_employer'] == 'Acme Labs'
     assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('publisher,description', [
+    ('Greenhouse', 'building talent acquisition solutions for modern HR teams'),
+    ('Workday', 'a software company selling talent acquisition solutions'),
+    ('Acme Labs', 'building recruitment solutions for HR teams'),
+])
+def test_talent_product_copy_is_not_staffing_evidence(publisher, description):
+    jd = (f'**About The Company**\n\n{publisher} is {description}.\n\n'
+          f'**About The Role**\n\n{publisher} is hiring an engineer.')
+    result = resolve_employer(publisher, jd, 'greenhouse')
+    assert result['hiring_employer'] == publisher
+    assert result['relationship'] == 'unchanged'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('publisher,jd', [
+    ('Stripe', 'Stripe is hiring engineers to join a global company.'),
+    ('Notion', 'Notion is looking for a designer to join a fast-growing company.'),
+    ('Stripe', 'Stripe is hiring engineers for a global organization.'),
+    ('Notion', 'We are hiring a designer to join a fast-growing company.'),
+])
+def test_generic_company_hiring_prose_is_direct(publisher, jd):
+    result = resolve_employer(publisher, jd, 'greenhouse')
+    assert result['hiring_employer'] == publisher
+    assert result['relationship'] == 'unchanged'
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('wording', [
+    'our client', 'a client of ours', 'on behalf of a company',
+    'on behalf of a prominent, employee owned defense and security firm',
+])
+def test_explicit_third_party_role_blocks_ats_fallback(wording):
+    jd = f'Talent Bridge is hiring an engineer for {wording}.'
+    result = resolve_employer('Talent Bridge', jd, 'greenhouse')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] == jd
+
+
+def test_candidate_placement_is_staffing_evidence():
+    jd = ('**About The Company**\n\nBridge Partners is a talent business. '
+          'We place candidates with our clients.\n\n**About The Role**\n\n'
+          'Bridge Partners is hiring an engineer.')
+    result = resolve_employer('Bridge Partners', jd, 'greenhouse')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] in jd
+
+
+@pytest.mark.parametrize('jd', [
+    'We innovate on behalf of our customers.',
+    'Our tools take automated actions on behalf of users.',
+    'We deliver innovative digital platforms to our clients.',
+])
+def test_customer_service_copy_is_not_placement_evidence(jd):
+    result = resolve_employer('New Publisher', jd, 'linkedin')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('jd', [
+    'Our client is seeking an engineer.',
+    'We are hiring engineers on behalf of our client.',
+    '**About The Company**\nAcme Labs is a software company.\n'
+    '**About The Role**\nOur client is seeking an engineer.',
+])
+def test_unnamed_third_party_statement_cannot_use_ats_or_blurb(jd):
+    result = resolve_employer('New Publisher', jd, 'greenhouse')
+    assert result['hiring_employer'] is None
+    assert result['agency_evidence'] in jd
