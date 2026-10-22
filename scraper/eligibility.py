@@ -179,9 +179,72 @@ OWN_COUNTRY_AUTHORIZATION = re.compile(
 OWN_ATTENDANCE = re.compile(
     r"\b(?:\d+|one|two|three|four|five)\s+days?\s*"
     r"(?:(?:/\s*week|(?:each|per|a)\s+week)\s+)?"
-    r"(?:working\s+)?(?:in[ -]|from\s+|at\s+)(?:(?:our|the)\s+)?office\b",
+    r"(?:working\s+)?(?:in[ -]|from\s+|at\s+)(?:(?:our|the)\s+)?office\b|"
+    r"\b(?:work|working|come|attend|visit)\s+(?:(?:in|at|from|to)\s+)?(?:our|the)\s+office\b",
     re.I,
 )
+
+WORKPLACE_NOUN = r"(?:offices?|workspace|hub|site|campus|HQ|headquarters|branch|location|studio|lab)"
+# A slot is bounded by phrase grammar, not a gazetteer or capitalization.
+WORKPLACE_WORD = (
+    rf"(?!(?:{WORKPLACE_NOUN}|our|the|an?|and|or|with|from|in|at|near|to|of|"
+    r"is|are|will|work|working|come|twice|once|days?|per|week|between|for)\b)[\w'-]+"
+)
+WORKPLACE_FRAMES = tuple(re.compile(pattern, re.I) for pattern in (
+    rf"\b(?:our|the|an?)\s+(?P<slot>(?:{WORKPLACE_WORD}\s+)*){WORKPLACE_NOUN}\b",
+    rf"\b{WORKPLACE_NOUN}\s+"
+    r"(?:(?:(?:\d+|one|two|three|four|five)\s+)?days?\s+(?:per|a|each)\s+week\s+)?"
+    rf"(?:in|at|near)\s+(?P<slot>{WORKPLACE_WORD}(?:\s+{WORKPLACE_WORD})*)",
+    r"(?<!\w)[בהלמ]*משרד(?:י|ים)?\s+(?:(?:שלנו|החברה)\s+)?"
+    r"ב(?P<slot>[א-ת'-]+(?:\s+(?!(?:עם|שלנו|של|שלושה|ימים|בשבוע)(?!\w))[א-ת'-]+)*)",
+))
+
+
+def _own_location_names(own_location: str) -> set[str]:
+    places = {_normalized_location(own_location)}
+    places.update(_normalized_location(part) for part in re.split(
+        r"[,;()]|\s+and\s+", own_location, flags=re.I,
+    ) if part.strip())
+    if any("tel aviv" in place for place in places):
+        places.update({"tel aviv", "tel aviv yafo", "tlv"})
+    if any(place in {"ra anana", "raanana"} for place in places):
+        places.update({"ra anana", "raanana"})
+    places.update({"israel", "ישראל", "il"})
+    return places
+
+
+def _unresolved_workplace_phrase(clause: str, own_location: str, company: str) -> bool:
+    places = _own_location_names(own_location) if own_location else set()
+    company_name = _normalized_location(normalize_israeli_location(company)) if company else ""
+    for frame in WORKPLACE_FRAMES:
+        for phrase in frame.finditer(clause):
+            slot = _normalized_location(normalize_israeli_location(phrase["slot"]))
+            if slot and slot == company_name:
+                return True
+            before = clause[:phrase.start()].strip(" -*•:")
+            # Exclude organizational footprints and technical noun compounds;
+            # these describe the company/product rather than a workplace.
+            if (re.fullmatch(rf"(?:we|our company|the company|{re.escape(company)})\s+(?:has|have)", before, re.I)
+                    and re.match(r"offices\s+(?:in|at|near)\b", phrase.group(), re.I)):
+                continue
+            if (re.search(r"\b(?:is|are)\s*$", before, re.I)
+                    and re.search(r"\blab$", phrase.group(), re.I)):
+                continue
+            if any(
+                re.search(rf"\b{noun}$", phrase.group(), re.I)
+                and re.match(rf"\s+{suffix}\b", clause[phrase.end():], re.I)
+                for noun, suffix in (("site", "reliability"), ("workspace", "security"), ("office", "pets"))
+            ):
+                continue
+            if (re.fullmatch(r"our\s+(?:careers|company)\s+site", phrase.group(), re.I)
+                    and re.search(r"\b(?:web|frontend|seeking a job)\b", clause, re.I)):
+                continue
+            if (re.match(r"(?:which|where)\b", phrase["slot"], re.I)
+                    or re.fullmatch(r"(?:other|all|some)\s+times?", phrase["slot"], re.I)):
+                continue
+            if slot and slot not in places:
+                return True
+    return False
 
 
 # Work-model words may be title-cased without naming a different workplace.
@@ -253,16 +316,7 @@ def _own_workplace_terms(
                        r"(?:work\s+)?(?=\d+|one|two|three|four|five)", " ", remainder, flags=re.I)
     remainder = re.sub(r"נדרש לעבוד בבני?ין (?:החדש|הישן) של החברה", " ", remainder)
     remainder = normalize_israeli_location(remainder)
-    places = {_normalized_location(own_location)}
-    places.update(_normalized_location(part) for part in re.split(
-        r"[,;()]|\s+and\s+", own_location, flags=re.I,
-    ) if part.strip())
-    # Equivalent spellings of the same city and its country are own-location evidence.
-    if any("tel aviv" in place for place in places):
-        places.update({"tel aviv", "tel aviv yafo", "tlv"})
-    if any(place in {"ra anana", "raanana"} for place in places):
-        places.update({"ra anana", "raanana"})
-    places.update({"israel", "ישראל", "il"})
+    places = _own_location_names(own_location)
     own_place_consumed = False
     for place in sorted(places, key=len, reverse=True):
         pattern = r"(?<!\w)(?:[במל])?" + r"[\W_]+".join(map(re.escape, place.split())) + r"(?!\w)"
@@ -666,6 +720,12 @@ def decide_location_eligibility(
                     clause = OFFICE.sub(" ", clause)
             else:
                 clause = _without_policy(clause)
+                # Inspect intact workplace slots before own-site cleanup can
+                # erase company names, prepositions, or attendance wording.
+                own_workplace_unresolved = _unresolved_workplace_phrase(
+                    clause, own_field if own_israeli else "",
+                    str(posting.get("company") or ""),
+                )
                 if own_israeli:
                     before_own_terms = clause
                     clause = _own_workplace_terms(

@@ -744,3 +744,77 @@ def test_customer_context_cannot_discard_credentials(restriction):
         {"location": "Tel Aviv", "raw_jd": "Hybrid in Tel Aviv, serving customers in Haifa with " + restriction},
         None, PROFILE,
     )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("jd", [
+    "work from our Lisbon office twice a week",
+    "Hybrid with two days per week from our dublin workspace",
+    "Hybrid with two office days per week in warsaw",
+    "work from our lisbon office twice a week",
+    "במשרד שלנו בלונדון",
+    "come to the Munich hub 3 days",
+    "work at our dublin HQ twice a week",
+    "work from our tlv-2 site",
+    "work from the office near lower east quarter",
+])
+def test_workplace_frame_rejects_unresolved_destination(jd):
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("noun", [
+    "office", "offices", "workspace", "hub", "site", "campus", "HQ",
+    "headquarters", "branch", "location", "studio", "lab",
+])
+@pytest.mark.parametrize("template", [
+    "our lower east quarter {noun}",
+    "Please visit our lower east quarter {noun}",
+    "come to the {noun} in lower east quarter twice a week",
+])
+def test_workplace_frames_cover_all_nouns_without_work_model(noun, template):
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": template.format(noun=noun)}, None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("location,jd", [
+    ("Tel Aviv", "in our office"), ("Tel Aviv", "at the office"),
+    ("Tel Aviv", "come to our office 3 days"),
+    ("Tel Aviv", "work from our Tel Aviv office twice a week"),
+    ("Tel Aviv", "work from the office in Tel Aviv"),
+    ("תל אביב", "במשרד שלנו בתל אביב"),
+])
+def test_workplace_frame_satisfies_empty_or_own_location_slots(location, jd):
+    assert decide_location_eligibility(
+        {"location": location, "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "our ExampleCorp office", "Hybrid with two days from our ExampleCorp workspace",
+    "work from our office near ExampleCorp",
+])
+def test_workplace_slot_cannot_be_satisfied_by_company_name(jd):
+    assert decide_location_eligibility(
+        {"company": "ExampleCorp", "location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("jd", [
+    "We are an AI research lab",
+    "ExampleCorp has offices in New York and Tel Aviv",
+    "Build our company site with the frontend team",
+    "Our careers site is only for individuals seeking a job",
+    "We are hiring a Senior Site Reliability Engineer",
+    "Build the AI Workspace Security Platform",
+    "We have a few office pets",
+    "Work at home and the office at other times",
+    "A flexible balance between office and home-based work",
+])
+def test_workplace_frames_distinguish_non_workplace_noun_uses(jd):
+    assert decide_location_eligibility(
+        {"company": "ExampleCorp", "location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
