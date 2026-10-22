@@ -18,7 +18,9 @@ class Eligibility(TypedDict):
     eligibility_reason: str
 
 
-CLAUSES = re.compile(r"[;\n]|(?<!\bu\.s)(?<!\bu\.s\.a)(?<!\be\.g)(?<=[a-z])\.\s+", re.I)
+CLAUSES = re.compile(
+    r"[;\n]|(?<!\bu\.s)(?<!\bu\.s\.a)(?<!\be\.g)(?<!\bincl)(?<=[a-z])\.\s+", re.I
+)
 CENTRAL = re.compile(
     r"\b(?:central|cent(?:er|re)(?: of (?:the country|israel))?|gush dan)\b|מרכז", re.I
 )
@@ -37,12 +39,15 @@ RESIDENCE = re.compile(
     re.I,
 )
 EXCLUSION = re.compile(
-    r"\b(?:except|excluding|not open to|not available (?:in|from))\s+"
-    r"(?:(?:applicants|candidates)\s+(?:from|in)\s+)?",
+    r"\b(?:(?:except|excluding|not open to|not available (?:in|from))\s+"
+    r"(?:(?:applicants|candidates)\s+(?:from|in)\s+)?|excluded countries\s*:\s*)",
     re.I,
 )
 ISRAEL_EXCLUDED = re.compile(
-    r"\bisrael\s+(?:is\s+)?(?:excluded|not (?:allowed|eligible))\b",
+    r"\b(?:israel|israelis)\s+(?:(?:is|are)\s+)?"
+    r"(?:excluded|not (?:allowed|eligible|an available work location))\b|"
+    r"\bnot open to\s+(?:israelis|israeli (?:applicants|candidates))\b|"
+    r"(?<!\w)לא כולל ישראל(?!\w)",
     re.I,
 )
 REMOTE = re.compile(r"\bremot(?:e|ely)\b|(?:עבודה\s+)?מרחוק", re.I)
@@ -305,7 +310,8 @@ def _scope(text: str, start: int) -> Scope:
         if not (comma_qualifier and kinds[-1:] == ["noncentral"] and kind == "israel"):
             kinds.append(kind)
         separator = re.match(
-            r"\s*(?:,\s*(?:(?:and|or|או)\s+)?|/\s*|\b(?:and|or|including|או)\s+|ו(?=[א-ת]))(?:the\s+)?",
+            r"\s*(?:\(\s*(?:including|incl\.?|such as|e\.g\.)\s+|"
+            r",\s*(?:(?:and|or|או)\s+)?|/\s*|\b(?:and|or|including|או)\s+|ו(?=[א-ת]))(?:the\s+)?",
             text[end:],
             re.I,
         )
@@ -368,8 +374,7 @@ def _closed_foreign_location(location: str) -> bool:
         if not scope.complete or not scope.kinds or tail.strip(" .)-–—"):
             return False
         if any(kind != "foreign" for kind in scope.kinds):
-            if not (scope.kinds == ("uncertain",) and re.search(r"\bEMEA\b", field)):
-                return False
+            return False
     return True
 
 
@@ -427,6 +432,26 @@ def decide_location_eligibility(
     positive: list[str] = []
     unknown: list[str] = []
     blocked: list[str] = []
+    israel_excluded: list[str] = []
+    normalized_field = normalize_israeli_location(location)
+    field_scope = _scope(normalized_field, 0)
+    field_israeli = field_scope.complete and any(
+        kind in {"israel", "noncentral"} for kind in field_scope.kinds
+    )
+    # Bare Remote supplies no conflicting country; explicit JD scopes still
+    # resolve it. Missing, unparsed and contradictory fields stay unresolved.
+    description_blocks_uncertain = field_israeli or not (
+        (
+            field_scope.complete
+            and field_scope.kinds
+            and "uncertain" not in field_scope.kinds
+            and re.fullmatch(
+                r"\s*(?:[- ]based)?[\s.)]*", normalized_field[field_scope.end :]
+            )
+        )
+        or _closed_foreign_location(location)
+        or re.fullmatch(r"\s*remote\s*", location, re.I)
+    )
     office_required = (
         posting.get("work_mode") in {"on-site", "hybrid"}
         or posting.get("remote") is False
@@ -503,7 +528,17 @@ def decide_location_eligibility(
                 ):
                     positive.append(excerpt)
                 elif (mandatory or suffix) and scope.excludes_israel(office, central):
-                    blocked.append(excerpt)
+                    commute_block = (
+                        office and central and set(scope.kinds) == {"noncentral"}
+                    )
+                    if (
+                        not is_location
+                        and description_blocks_uncertain
+                        and not commute_block
+                    ):
+                        unknown.append(excerpt)
+                    else:
+                        blocked.append(excerpt)
                 else:
                     unknown.append(excerpt)
 
@@ -545,6 +580,7 @@ def decide_location_eligibility(
                         clause,
                         re.I,
                     )
+                    or exclusion.group().lower().startswith("excluded countries")
                 )
                 if (
                     scope.complete
@@ -554,7 +590,7 @@ def decide_location_eligibility(
                     and any(kind in {"israel", "noncentral"} for kind in scope.kinds)
                     and role_exclusion
                 ):
-                    blocked.append(excerpt)
+                    israel_excluded.append(excerpt)
                 elif any(kind in {"israel", "noncentral"} for kind in scope.kinds):
                     unknown.append(excerpt)
                 elif (
@@ -562,7 +598,7 @@ def decide_location_eligibility(
                 ):
                     unknown.append(excerpt)
             if ISRAEL_EXCLUDED.search(clause):
-                blocked.append(excerpt)
+                israel_excluded.append(excerpt)
 
             for requirement in RESIDENCE.finditer(clause):
                 if is_covered(requirement.start()):
@@ -771,13 +807,6 @@ def decide_location_eligibility(
                 if closed and re.search(r"\bor\b|/", tail, re.I):
                     scope = Scope(scope.kinds, scope.end, False)
                 if (
-                    annotation
-                    and is_location
-                    and re.search(r"\bEMEA\b", clause)
-                    and scope.kinds == ("uncertain",)
-                ):
-                    scope = Scope(("foreign",), scope.end, scope.complete)
-                if (
                     is_location
                     and closed
                     and not _closed_foreign_location(source)
@@ -861,6 +890,10 @@ def decide_location_eligibility(
                 if not is_covered(restriction.start()):
                     if has_geographic_context(clause):
                         unknown.append(excerpt)
+        if is_location and unknown:
+            description_blocks_uncertain = True
+    if israel_excluded:
+        blocked = israel_excluded
     if blocked:
         return {
             "eligibility": "blocked",

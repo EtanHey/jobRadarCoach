@@ -148,7 +148,7 @@ def test_evidence_totals():
         ("Remote", "Remote from Israel", "eligible"),
         ("Remote", "Remote within Europe only", "blocked"),
         ("Berlin, Germany", "On-site Berlin", "blocked"),
-        ("Tel Aviv", "Must reside in the US", "blocked"),
+        ("Tel Aviv", "Must reside in the US", "unknown"),
         ("Remote", "Remote worldwide. Must reside in the US", "blocked"),
         ("Remote", "Flexible hours", "unknown"),
         (None, "Engineering role", "unknown"),
@@ -212,7 +212,7 @@ def test_israel_wide_profile_accepts_noncentral_israeli_office():
         ("Remote", "Remote in Germany only", "blocked"),
         ("Remote", "Remote within Canada, the US and Israel", "eligible"),
         ("Remote", "Not required to reside in the US", "unknown"),
-        (None, "On-site Berlin, Germany", "blocked"),
+        (None, "On-site Berlin, Germany", "unknown"),
         ("Remote", "Not remote worldwide", "unknown"),
     ],
 )
@@ -483,3 +483,90 @@ def test_exclusion_requires_a_consumed_place_slot(suffix, expected):
         PROFILE,
     )
     assert result["eligibility"] == expected
+
+
+@pytest.mark.parametrize(
+    "location",
+    ["Tel Aviv, Israel", "Tel Aviv-Yafo, Tel Aviv District, Israel", "Israel; United States", "Atlantis", None],
+)
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "For the London position, candidates must reside in the UK.",
+        "New York hires must be based in the United States.",
+        "Our London-based engineers must live in the UK.",
+        "3 days a week in our New York office for US hires.",
+        "We are hiring in Tel Aviv and New York. New York hires must be based in the United States.",
+        "Our New York team members must reside in New York.",
+        "US-based roles: candidates must reside in the United States.",
+        "Remote. US applicants must reside in the United States.",
+        "Hybrid - 3 days a week in our New York office for US hires; Israel hires work from Tel Aviv office.",
+        "Only residents of France are eligible.",
+    ],
+)
+def test_israeli_or_unresolved_field_keeps_description_blocks_reviewable(
+    location, sentence
+):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": sentence}, None, PROFILE
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+    assert any(
+        quote in sentence
+        for quote in re.findall(r'"([^"]+)"', result["eligibility_reason"])
+    )
+
+
+@pytest.mark.parametrize("location", ["Tel Aviv", "Atlantis", None, "Remote"])
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "Not open to candidates from Israel.",
+        "Not open to Israelis.",
+        "Not open to Israeli applicants.",
+        "Israel is excluded.",
+        "Israelis are excluded.",
+        "Israel is not an available work location.",
+        "לא כולל ישראל",
+        "Excluded countries: France, Israel, Canada.",
+        "Remote worldwide except Canada, Israel and France.",
+    ],
+)
+def test_explicit_israel_exclusions_stay_blocked_despite_field(location, sentence):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": "Must reside in the UK. " + sentence},
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == "blocked"
+    assert sentence in result["eligibility_reason"]
+
+
+@pytest.mark.parametrize("inclusion", ["including", "incl.", "such as", "e.g."])
+@pytest.mark.parametrize("region", ["Europe", "EMEA"])
+@pytest.mark.parametrize(
+    "template", ["Must be based in {scope}.", "Remote within {scope}."]
+)
+def test_parenthetical_inclusion_continues_region_scope(inclusion, region, template):
+    sentence = template.format(scope=f"{region} ({inclusion} Israel)")
+    result = decide_location_eligibility(
+        {"location": "Remote", "raw_jd": sentence}, None, PROFILE
+    )
+    assert result["eligibility"] in {"eligible", "unknown"}
+
+
+@pytest.mark.parametrize("location", ["Remote - EMEA", "Remote, EMEA", "EMEA Remote"])
+def test_emea_location_does_not_exclude_israel(location):
+    result = decide_location_eligibility({"location": location}, None, PROFILE)
+    assert result["eligibility"] == "unknown"
+
+
+@pytest.mark.parametrize("location", ["United States", "Remote"])
+def test_resolved_foreign_or_neutral_remote_field_retains_description_block(location):
+    result = decide_location_eligibility(
+        {"location": location, "raw_jd": "Only residents of France are eligible."},
+        None,
+        PROFILE,
+    )
+    assert result["eligibility"] == "blocked"

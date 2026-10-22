@@ -57,7 +57,7 @@
     "r4-but-mandatory",
     "Tel Aviv",
     "Remote, but candidates must be based in United States.",
-    "blocked"
+    "unknown"
   ],
   [
     "r4-but-israel-alternative",
@@ -183,7 +183,7 @@
     "r4-mixed-policy",
     "Tel Aviv",
     "We offer accommodation but candidates must reside in Canada",
-    "blocked"
+    "unknown"
   ],
   [
     "r4-mixed-timezone",

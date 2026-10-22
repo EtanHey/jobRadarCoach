@@ -9,7 +9,7 @@
     "holdout-02",
     "Tel Aviv",
     "Only residents of Ireland are eligible.",
-    "blocked"
+    "unknown"
   ],
   [
     "holdout-03",
@@ -51,7 +51,7 @@
     "holdout-09",
     "Israel",
     "On-site role in Toronto, Canada.",
-    "blocked"
+    "unknown"
   ],
   [
     "holdout-10",
@@ -99,7 +99,7 @@
     "holdout-17",
     "Rishon",
     "Role is hybrid, three days each week in our London office.",
-    "blocked"
+    "unknown"
   ],
   [
     "holdout-18",

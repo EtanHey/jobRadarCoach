@@ -3,7 +3,7 @@
     "sol-01",
     "Remote — EMEA",
     "",
-    "blocked"
+    "unknown"
   ],
   [
     "sol-02",
@@ -27,7 +27,7 @@
     "sol-05",
     "Israel",
     "המשרה מיועדת לתושבי ארצות הברית בלבד",
-    "blocked"
+    "unknown"
   ],
   [
     "sol-06",
@@ -99,7 +99,7 @@
     "sol-17",
     "Tel Aviv",
     "Applicants must be based in the US",
-    "blocked"
+    "unknown"
   ],
   [
     "sol-18",
@@ -129,13 +129,13 @@
     "cursor-01",
     "Tel Aviv, Israel",
     "Must reside in New York",
-    "blocked"
+    "unknown"
   ],
   [
     "cursor-02",
     "Tel Aviv, Israel",
     "Must relocate to New York",
-    "blocked"
+    "unknown"
   ],
   [
     "cursor-03",
@@ -207,7 +207,7 @@
     "cursor-14",
     "Remote — EMEA",
     "",
-    "blocked"
+    "unknown"
   ],
   [
     "cursor-15",
@@ -237,7 +237,7 @@
     "supplemental-01",
     null,
     "On-site in Berlin",
-    "blocked"
+    "unknown"
   ],
   [
     "supplemental-02",
@@ -261,7 +261,7 @@
     "supplemental-05",
     "Israel",
     "On-site in Berlin",
-    "blocked"
+    "unknown"
   ],
   [
     "supplemental-06",

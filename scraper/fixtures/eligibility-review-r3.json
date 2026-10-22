@@ -21,25 +21,25 @@
     "r3-sol-04",
     "Remote, EMEA",
     "",
-    "blocked"
+    "unknown"
   ],
   [
     "r3-sol-05",
     "Tel Aviv",
     "Only residents of France are eligible.",
-    "blocked"
+    "unknown"
   ],
   [
     "r3-sol-06",
     "Israel",
     "3 days/week in our London office.",
-    "blocked"
+    "unknown"
   ],
   [
     "r3-sol-07",
     "Tel Aviv",
     "This position requires 2 days/week in our Toronto office.",
-    "blocked"
+    "unknown"
   ],
   [
     "r3-sol-08",
@@ -129,7 +129,7 @@
     "r3-control-01-weekly-words",
     "Tel Aviv",
     "This role requires three days each week in our London office.",
-    "blocked"
+    "unknown"
   ],
   [
     "r3-control-02-weekly-central",
@@ -189,7 +189,7 @@
     "r3-control-11-required-office",
     "Israel",
     "This role requires working in our Toronto office.",
-    "blocked"
+    "unknown"
   ],
   [
     "r3-control-12-required-office-unknown",

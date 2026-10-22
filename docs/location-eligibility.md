@@ -38,8 +38,8 @@ not accidentally become residence or exclusivity requirements.
 A block needs explicit evidence: a closed foreign-only applicant or role work
 scope, mandatory foreign residence/relocation, an explicit Israel exclusion, or a
 required incompatible office. Complete remote location annotations (`Remote - US`,
-`US Remote`, `Remote (United States)`, `Remote, EMEA`) block without “only”. EMEA
-has that policy only in complete location-field annotations, not arbitrary prose.
+`US Remote`, `Remote (United States)`) block without “only”. EMEA includes the
+Middle East, so `Remote - EMEA` and `Remote, EMEA` remain unknown.
 Role-specific bounded remote work, corroborated role base, fully enumerated US
 hub-or-US-remote alternatives, and a labeled country-qualified mode list also
 close the scope. Choosing onsite/hybrid/remote based on client requirements does
@@ -47,6 +47,16 @@ not change an explicitly stated country. Israel/worldwide alternatives, unknown
 places and conditional country approval prevent these closed-scope blocks.
 Bare foreign countries, client locations, optional relocation and authorization
 alone remain unknown.
+
+An Israeli location field takes precedence over a description's foreign-only
+restriction: the result is unknown, quoting the restriction, so another office's
+requirements cannot hide an Israeli posting. Missing, unparsed and conflicting
+location fields use the same rule. Bare `Remote` is neutral and can still be
+resolved by an explicit description restriction. Explicit exclusions of Israel
+or Israelis, including excluded-country lists, remain blocked. The central-Israel
+commute rule below also remains blocked. Parenthetical inclusions (`including`,
+`incl.`, `such as`, `e.g.`) continue the region scope; Europe including Israel
+cannot establish a foreign-only scope.
 
 Prefix “only residents of” is mandatory residency. Concrete weekly attendance
 (`3 days/week` or `three days each week in our London office`) and explicit
@@ -124,7 +134,8 @@ remain ambiguous: Affirm's unnamed country of employment, a bare New York city
 label, and agency/client geography. No triage case becomes eligible.
 `eligibility-adversarial.json` retains all previous 49 inputs; the foreign remote
 field expectations and `Remote US/Canada/UK` now follow the closed-scope policy.
-The round-2 review and fresh fixtures retain their precision-first expectations.
+The round-10 precedence ruling updates the older Israeli-location conflicts and
+missing-location blocks to unknown; the receipt lists each changed expectation.
 `eligibility-review-r3.json` adds both reviewers' probes and controls for optional
 and negated attendance, other roles, unresolved places, Israel alternatives,
 conditional country approval, authorization-only wording and nongeographic
@@ -141,15 +152,16 @@ attendance and citizenship probes plus policy-free and technical controls.
 The country/region matrix checks every Hebrew entry with all six attached
 prefixes and common prefix combinations, including short names such as סין.
 
-The 20 independent holdout intentions stay unchanged. Prefix-only Ireland
-residency and weekly London attendance now block. Two intended readings remain
+The holdout's Israeli-location conflicts now remain unknown under the same
+precedence rule. Two intended readings remain
 conservative unknowns: client residency in London and an Israel-based remote
 phrase. Tests allow the intended result or unknown only for those two; replay
 receipts count them as exact mismatches, not passes.
 
 `eligibility-review-r7.json` retains both R7 reviewers' reported probes, Hebrew
 alternatives, credentials, unseen demonyms and noun phrases, language controls,
-and EEO-list/team-description controls followed by real restrictions. The 658-row
-frozen snapshot restores exactly the 17 EEO/team rows to eligible: 52 blocked,
-271 eligible, 335 unknown. The Benin/building and Peru/Pro homographs remain
+and EEO-list/team-description controls followed by real restrictions. The round-10
+658-row frozen snapshot has 49 blocked, 271 eligible and 338 unknown: three Figma
+rows with unresolved composite location fields move from blocked to unknown.
+Expim Haifa and Plasan Sasa retain their commute blocks. The Benin/building and Peru/Pro homographs remain
 conservative unknowns, as does the unsupported London-office attendance probe.
