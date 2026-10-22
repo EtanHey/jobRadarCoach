@@ -7,6 +7,113 @@ import re
 from extractor.quotes import ExtractionValidationError, validate_quote
 from extractor.salary import normalize_salary
 
+_DAYS = r"(?:[1-4]|one|two|three|four)\s+days?"
+_WEEK = r"(?:(?:a|per|each)\s+week|weekly)"
+_OFFICE = r"(?:in|at|from)\s+(?:(?:the|our)\s+)?office"
+_HYBRID_POLICY_RE = re.compile(
+    rf"\b(?:{_DAYS}\s+{_WEEK}\s+{_OFFICE}|"
+    rf"{_DAYS}\s+{_OFFICE}\s+{_WEEK}|"
+    rf"{_OFFICE}\s+(?:for\s+)?{_DAYS}\s+{_WEEK})\b|"
+    r"\b(?:[1-4]\s+ימים|יומיים)\s+בשבוע\s+במשרד\b|"
+    r"\bhybrid[ -](?:work(?:ing)?|schedule|arrangement|policy)\b|"
+    r"\b(?:work(?:ing)?\s+(?:in|on)|work[ -]model\s*:)\s+(?:a\s+)?hybrid\b|"
+    r"\b(?:this|the)\s+(?:is\s+an?\s+)?hybrid\s+(?:role|position)\b|"
+    r"\b(?:role|position|work(?:place)?|work[ -]model)\s*(?::|is|will\s+be)\s*hybrid\b|"
+    r"\b(?:location|מיקום)\s*:[^.!?;\n]*\b(?:hybrid|היברידי(?:ת)?)\b|"
+    r"\b(?:עבודה|משרה|מודל)\s+היברידי(?:ת)?\b|"
+    r"^[ \t*#-]*(?:hybrid(?:\s+model)?|היברידי(?:ת)?)[ \t*.:]*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_OPTIONAL_ATTENDANCE_RE = re.compile(
+    r"\b(?:not(?!\s+only\b)|no|without)\s+(?:\w+[ -]){0,3}$|"
+    r"\b(?:optional(?:ly)?|not\s+required|do\s+not\s+require)\b|"
+    r"\b(?:may|can)\s+(?:choose\s+to\s+)?(?:work|visit|come|attend)\b|"
+    r"(?:לא\s+נדרש|ללא\s+חובת)", re.IGNORECASE,
+)
+
+
+_FULL_OFFICE_RE = re.compile(
+    rf"\b(?:(?:5|five)\s+days\s+{_WEEK}\s+{_OFFICE}|"
+    rf"{_OFFICE}\s+(?:for\s+)?(?:5|five)\s+days\s+{_WEEK}|"
+    rf"5/5\s+days\s+{_OFFICE}|(?:5|five)\s+office\s+days\s+{_WEEK}|"
+    rf"full[ -]time\s+{_OFFICE})\b|"
+    r"(?:^|(?<=[.!?;\n]))[ \t*#-]*(?:(?:this|the|our)\s+)?"
+    r"(?:role|position|work[ -](?:model|arrangement))\s*(?::|is)\s+fully\s+in[ -]person\b|"
+    r"\bfully\s+in[ -]person\s+(?:role|position)\b|"
+    r"\b5\s+ימים\s+בשבוע\s+במשרד\b", re.IGNORECASE,
+)
+_OTHER_ROLE_SCOPE_RE = re.compile(
+    r"\b(?:some|other|certain)\s+(?:\w+[ -]){0,4}(?:roles?|positions?|teams?)\b",
+    re.IGNORECASE,
+)
+# A bounded phase/purpose is not the role's permanent weekly schedule.
+_LIMITED_SCHEDULE_RE = re.compile(
+    r"\b(?:during|initially)\b|\bfor\s+(?:the\s+)?(?:first|initial)\b|"
+    r"\bfor\s+(?:the\s+)?\w+ing\b",
+    re.IGNORECASE,
+)
+_ACTIVITY_SCHEDULE_RE = re.compile(
+    r"\b(?:onboarding|training|interviews?|events?)"
+    r"(?:\s+(?:week|period|schedule))?\s*(?::|"
+    r"\b(?:is|are|requires?|involves?|takes?|will\s+(?:be|require))\b)",
+    re.IGNORECASE,
+)
+_MODE = r"(?:remote|hybrid|on[ -]?site)"
+# Keep the gap to arrangement vocabulary so technical uses of "hybrid" do not
+# create alternatives. Lists also need detection without a work-policy heading.
+_MODE_PHRASE = rf"{_MODE}(?:\s+(?:work(?:ing)?|arrangements?|options?|roles?|positions?))*"
+_MODE_CHOICES = rf"\b{_MODE_PHRASE}\s*(?:/|,\s*(?:or\s+)?|or\s+)\s*(?:fully\s+)?{_MODE}\b"
+_MODE_CHOICES_RE = re.compile(_MODE_CHOICES, re.IGNORECASE)
+_UNRESOLVED_MODE_RE = re.compile(
+    rf"{_MODE_CHOICES}|"
+    r"\b(?:depending\s+on|based\s+on)\b|\bprefer(?:red|ence)\b",
+    re.IGNORECASE,
+)
+_CONTRAST_RE = re.compile(r"\b(?:but|however|whereas)\b", re.IGNORECASE)
+
+
+def attendance_evidence(raw_jd: str) -> tuple[str, str] | None:
+    """Resolve ongoing attendance; unknown explicitly clears an unresolved mode."""
+    unresolved = None
+    for mode, pattern in (
+        ("on-site", _FULL_OFFICE_RE), ("hybrid", _HYBRID_POLICY_RE),
+        ("unknown", _MODE_CHOICES_RE),
+    ):
+        for match in pattern.finditer(raw_jd):
+            start = max(raw_jd.rfind(boundary, 0, match.start()) for boundary in ".!?;\n") + 1
+            ends = [position for boundary in ".!?;\n"
+                    if (position := raw_jd.find(boundary, match.end())) >= 0]
+            end = min(ends, default=len(raw_jd))
+            before = _CONTRAST_RE.split(raw_jd[start:match.start()])[-1]
+            after = _CONTRAST_RE.split(raw_jd[match.end():end])[0]
+            clause = before + match.group() + after
+            if (_OTHER_ROLE_SCOPE_RE.search(clause) or _LIMITED_SCHEDULE_RE.search(clause)
+                    or _ACTIVITY_SCHEDULE_RE.search(before.rsplit(",", 1)[-1])
+                    or re.match(r"\s+(?:for|during)\b", after, re.I)):
+                continue
+            if mode != "unknown" and (_OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
+                r"\s+(?:(?:is|are)\s+)?(?:optional|not\s+required)\b", after, re.I,
+            )):
+                continue
+            # Office locations for a work preference are an amenity, not a
+            # choice of arrangements for the role.
+            if mode == "unknown" and re.search(
+                r"\boffice(?:s|\s+locations)\s+for\s*$", before, re.I,
+            ) and re.match(r"\s+work\s+preferences?\b", after, re.I):
+                continue
+            if _UNRESOLVED_MODE_RE.search(clause):
+                unresolved = ("unknown", clause.strip())
+                continue
+            return mode, clause.strip()
+    return unresolved
+
+
+def hybrid_evidence(raw_jd: str) -> str | None:
+    """Compatibility projection for callers interested only in hybrid evidence."""
+    evidence = attendance_evidence(raw_jd)
+    return evidence[1] if evidence and evidence[0] == "hybrid" else None
+
+
 _REMOTE_WORD = r"\bremote(?:ly)?\b"
 _REMOTE_AVAILABILITY = (
     r"(?:available|allowed|offered|permitted|possible|supported|an\s+option)"
@@ -71,6 +178,9 @@ def _remote_quote_value(quote: str) -> bool | None:
 
 
 def _remote_source_values(quote: str, raw_jd: str) -> set[bool | None]:
+    attendance = attendance_evidence(raw_jd)
+    if attendance is not None:
+        return {False if attendance[0] == "on-site" else None}
     values: set[bool | None] = set()
     offset = 0
     while (quote_start := raw_jd.find(quote, offset)) >= 0:
