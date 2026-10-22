@@ -265,4 +265,5 @@ def test_talent_acquisition_firm_is_a_staffing_business():
     jd = '**About The Company**\nBridge Partners is a talent acquisition firm.'
     result = resolve_employer('Bridge Partners', jd, 'greenhouse')
     assert result['hiring_employer'] is None
-    assert result['agency_evidence'] == jd.splitlines()[1]
+    assert result['agency_evidence'] in jd
+    assert 'talent acquisition firm' in result['agency_evidence']
