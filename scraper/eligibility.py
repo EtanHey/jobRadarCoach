@@ -19,7 +19,7 @@ class Eligibility(TypedDict):
 
 
 CLAUSES = re.compile(
-    r"[;\n]|(?<!\bu\.s)(?<!\bu\.s\.a)(?<!\be\.g)(?<!\bincl)(?<=[a-z])\.\s+", re.I
+    r"[;\n]|(?<!\bu\.s)(?<!\bu\.s\.a)(?<!\be\.g)(?<!\bincl)(?<=[a-z)א-ת])\.\s+", re.I
 )
 CENTRAL = re.compile(
     r"\b(?:central|cent(?:er|re)(?: of (?:the country|israel))?|gush dan)\b|מרכז", re.I
@@ -150,7 +150,7 @@ LOCATION_FRAME = re.compile(
     re.I,
 )
 CREDENTIAL = re.compile(
-    r"\b(?:passports?|work permits?|work authori[sz]ation|visas?|citizenship)\b|"
+    r"\b(?:passports?|work permits?|work authori[sz]ation|legal right to work|visas?|citizenship)\b|"
     r"(?<!\w)[בלמהוש]*(?:דרכון|אישור עבודה|ויזה|אזרחות)(?!\w)",
     re.I,
 )
@@ -164,11 +164,225 @@ LANGUAGE_SKILL = re.compile(
     r"(?<!\w)(?:לדבר|דובר(?:/ת|י|ת|ים|ות)?|שפה|ברמת שפת אם)\s+(?:שפה\s+)?[\w׳״']+",
     re.I,
 )
+OWN_COUNTRY_AUTHORIZATION = re.compile(
+    r"\b(?:applicants?|candidates?)\s+must\s+(?:"
+    r"have the legal right to work in the country where the (?:position|role|job) is based"
+    r"(?:,?\s+without the need for visa sponsorship)?|"
+    r"be authorized to work in the country in which they apply"
+    r"(?: and will be required to provide proof of employment eligibility as a condition of hire)?)\b|"
+    r"(?<!\w)(?:על המועמדים להיות|המועמדים (?:נדרשים|חייבים) להיות)\s+"
+    r"(?:בעלי זכות חוקית לעבוד|רשאים לעבוד כחוק|בעלי אישור עבודה)\s+"
+    r"במדינה (?:שבה|בה) (?:המשרה (?:ממוקמת|מבוססת)|ממוקמת המשרה)"
+    r"(?:,? ללא צורך בחסות ל(?:וויזה|ויזה))?(?!\w)",
+    re.I,
+)
+OWN_ATTENDANCE = re.compile(
+    r"\b(?:\d+|one|two|three|four|five)\s+days?\s*"
+    r"(?:(?:/\s*week|(?:each|per|a)\s+week)\s+)?"
+    r"(?:working\s+)?(?:in[ -]|from\s+|at\s+)(?:(?:our|the)\s+)?office\b|"
+    r"\b(?:work|working|come|attend|visit)\s+(?:(?:in|at|from|to)\s+)?(?:our|the)\s+office\b",
+    re.I,
+)
+
+WORKPLACE_NOUN = r"(?:offices?|workspace|hub|site|campus|HQ|headquarters|branch|location|studio|lab)"
+# A slot is bounded by phrase grammar, not a gazetteer or capitalization.
+WORKPLACE_WORD = (
+    rf"(?!(?:{WORKPLACE_NOUN}|our|the|an?|and|or|with|from|in|at|near|to|of|"
+    r"is|are|will|work|working|come|twice|once|days?|per|week|between|for)\b)[\w'-]+"
+)
+WORKPLACE_FRAMES = tuple(re.compile(pattern, re.I) for pattern in (
+    rf"\b(?:our|the|an?)\s+(?P<slot>(?:{WORKPLACE_WORD}\s+)*){WORKPLACE_NOUN}\b",
+    rf"\b{WORKPLACE_NOUN}\s+"
+    r"(?:(?:(?:\d+|one|two|three|four|five)\s+)?days?\s+(?:per|a|each)\s+week\s+)?"
+    rf"(?:in|at|near)\s+(?P<slot>{WORKPLACE_WORD}(?:\s+{WORKPLACE_WORD})*)",
+    r"(?<!\w)[בהלמ]*משרד(?:י|ים)?\s+(?:(?:שלנו|החברה)\s+)?"
+    r"ב(?P<slot>[א-ת'-]+(?:\s+(?!(?:עם|שלנו|של|שלושה|ימים|בשבוע)(?!\w))[א-ת'-]+)*)",
+))
+
+
+def _own_location_names(own_location: str) -> set[str]:
+    places = {_normalized_location(own_location)}
+    places.update(_normalized_location(part) for part in re.split(
+        r"[,;()]|\s+and\s+", own_location, flags=re.I,
+    ) if part.strip())
+    if any("tel aviv" in place for place in places):
+        places.update({"tel aviv", "tel aviv yafo", "tlv"})
+    if any(place in {"ra anana", "raanana"} for place in places):
+        places.update({"ra anana", "raanana"})
+    places.update({"israel", "ישראל", "il"})
+    return places
+
+
+def _unresolved_workplace_phrase(clause: str, own_location: str, company: str) -> bool:
+    places = _own_location_names(own_location) if own_location else set()
+    company_name = _normalized_location(normalize_israeli_location(company)) if company else ""
+    for frame in WORKPLACE_FRAMES:
+        for phrase in frame.finditer(clause):
+            slot = _normalized_location(normalize_israeli_location(phrase["slot"]))
+            if slot and slot == company_name:
+                return True
+            before = clause[:phrase.start()].strip(" -*•:")
+            # Exclude organizational footprints and technical noun compounds;
+            # these describe the company/product rather than a workplace.
+            if (re.fullmatch(rf"(?:we|our company|the company|{re.escape(company)})\s+(?:has|have)", before, re.I)
+                    and re.match(r"offices\s+(?:in|at|near)\b", phrase.group(), re.I)):
+                continue
+            if (re.search(r"\b(?:is|are)\s*$", before, re.I)
+                    and re.search(r"\blab$", phrase.group(), re.I)):
+                continue
+            if any(
+                re.search(rf"\b{noun}$", phrase.group(), re.I)
+                and re.match(rf"\s+{suffix}\b", clause[phrase.end():], re.I)
+                for noun, suffix in (("site", "reliability"), ("workspace", "security"), ("office", "pets"))
+            ):
+                continue
+            if (re.fullmatch(r"our\s+(?:careers|company)\s+site", phrase.group(), re.I)
+                    and re.search(r"\b(?:web|frontend|seeking a job)\b", clause, re.I)):
+                continue
+            if (re.match(r"(?:which|where)\b", phrase["slot"], re.I)
+                    or re.fullmatch(r"(?:other|all|some)\s+times?", phrase["slot"], re.I)):
+                continue
+            if slot and slot not in places:
+                return True
+    return False
+
+
+# Work-model words may be title-cased without naming a different workplace.
+OWN_WORK_MODEL = re.compile(
+    r"(?<!\w)(?:hybrid|remote|on[ -]?site|in[ -]office|office[ -]based|office|"
+    r"flexible|model|schedule|environment|policy|work|working|"
+    r"(?:\d+|one|two|three|four|five)\s+days?|per\s+week|a\s+week|each\s+week|weekly|"
+    r"from\s+home|WFH|option|role|position|job|location|full[ -]time|"
+    r"joining|smart|move|choose|"
+    r"a|an|the|and|or|with|in|at|from|our|we|is|"
+    r"[והב]*(?:היברידי(?:ת)?|מרחוק|משרד|גמיש(?:ה)?|מודל|מתכונת|סביבת|סביבה|"
+    r"מדיניות|עבודה|עובדים|שבועי(?:ת)?|אפשרות)|"
+    r"(?:\d+|יום אחד|יומיים|שני|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש)\s*(?:ימים)?|"
+    r"בשבוע|מהבית|שלנו|אנחנו|עם|או|ו)(?!\w)",
+    re.I,
+)
+OWN_SITE = re.compile(
+    r"\b(?:(?:(?:our|the|this)\s+)?(?:company|office|site|role|position|job)\s+(?:is\s+)?)?"
+    r"(?:based|located)\s+in\s+|"
+    r"(?<!\w)(?:החברה|המשרד|המשרה)\s+(?:ממוקמת|ממוקם|מבוססת)\s+ב",
+    re.I,
+)
+
+
+def _own_workplace_terms(
+    clause: str, *, attendance: bool, own_location: str, company: str = ""
+) -> str | None:
+    """Satisfy own-site prose unless it contains a residual place/restriction."""
+    # ATS tracking tags are not workplace sentences or geographic codes.
+    clause = re.sub(r"#(?:LI|IL)-[\w-]+", " ", clause, flags=re.I)
+    authorization = OWN_COUNTRY_AUTHORIZATION.search(clause)
+    site = OWN_SITE.search(clause)
+    workplace = (
+        OFFICE.search(clause) or OWN_ATTENDANCE.search(clause)
+        or re.search(r"\bin[ -]office\b|נדרש לעבוד בבני?ין (?:החדש|הישן) של החברה", clause, re.I)
+    )
+    if not (workplace or authorization or site):
+        return clause
+    if workplace and not attendance:
+        return clause
+
+    # Customer/team geography describes others, not the applicant's workplace.
+    # Do not discard a continuation that introduces another obligation.
+    context = re.search(
+        r"[, ]+(?:(?:supporting|serving) (?:clients?|customers?)|"
+        r"and work daily with teammates)\b", clause, re.I,
+    )
+    if context and not (
+        CREDENTIAL.search(clause[context.start():])
+        or NATIONALITY_CREDENTIAL.search(clause[context.start():])
+        or re.search(
+            r"\b(?:must|required|requires?|only|attendance|attend|visits?|"
+            r"reside|live|relocate|except|excluding|not open|security clearance)\b|חובה|נדרש",
+            clause[context.start():], re.I,
+        )
+    ):
+        clause = clause[:context.start()]
+
+    # Role titles and company introductions before the site verb are not places.
+    # Their geography still gets checked below; only capitalization is exempt.
+    prefix = clause[:site.start()] if site and not workplace else ""
+    if not re.search(r"\b(?:looking for|recruiting|hiring)\b", prefix, re.I):
+        prefix = ""
+    # Recognize pronouns before removing names: 'with Tel Aviv us' is not 'with us'.
+    remainder = re.sub(r"\b(?:join|with|contact)\s+us\b", " ", clause, flags=re.I)
+    remainder = OWN_COUNTRY_AUTHORIZATION.sub(" ", remainder)
+    remainder = OWN_SITE.sub(" ", remainder)
+    remainder = re.sub(r"\b(?:must|required to|requires?|need to)\s+(?:employees to )?"
+                       r"(?:work\s+)?(?=\d+|one|two|three|four|five)", " ", remainder, flags=re.I)
+    remainder = re.sub(r"נדרש לעבוד בבני?ין (?:החדש|הישן) של החברה", " ", remainder)
+    remainder = normalize_israeli_location(remainder)
+    places = _own_location_names(own_location)
+    own_place_consumed = False
+    for place in sorted(places, key=len, reverse=True):
+        pattern = r"(?<!\w)(?:[במל])?" + r"[\W_]+".join(map(re.escape, place.split())) + r"(?!\w)"
+        remainder, count = re.subn(pattern, " ", remainder, flags=re.I)
+        own_place_consumed |= bool(count)
+    if site and not own_place_consumed:
+        return None
+    if company:
+        remainder = re.sub(r"(?<!\w)" + re.escape(company) + r"(?!\w)", " ", remainder, flags=re.I)
+
+    # Inspect place positions before deleting prepositions/work-model words.
+    # Unknown lowercase cities are still places in 'our warsaw office'.
+    for phrase in re.finditer(
+        r"\b(?:in|at|to|near|from)\s+(?:(?:our|the|an?|approved)\s+)*"
+        r"(?P<noun>[\w'-]+)(?:\s+(?P<next>[\w'-]+))?", remainder, re.I,
+    ):
+        noun = phrase['noun'].casefold()
+        following = (phrase['next'] or '').casefold()
+        if (following in {"office", "offices", "site", "hub", "headquarters"}
+                and noun not in {"office", "local", "own", "new"}):
+            return None
+        before = remainder[:phrase.start()]
+        if re.search(r"\b(?:presence|visits?|attendance|office|site|work|working|hybrid)\s*$", before, re.I):
+            if noun not in {"office", "offices", "home", "person", "more", "work", "working", "hybrid", "anywhere"}:
+                return None
+    if re.search(r"(?:משרד|נוכחות)\s+(?:שלנו\s+)?ב[א-ת]+|(?<!\w)וב[א-ת]+", remainder):
+        return None
+    remainder = OWN_WORK_MODEL.sub(" ", remainder)
+    # A lone residual code in a work-model annotation is a place in any casing.
+    bare = remainder.strip(" .,:;()-–—")
+    code = match_geographic_place(bare.upper())
+    if code and code[1] == len(bare):
+        return None
+    for word in re.finditer(r"\b\w", remainder):
+        start = word.start()
+        if match_geographic_place(remainder, start):
+            return None
+        for length in range(1, 4):
+            if (re.fullmatch(r"[בלמוהש]+", remainder[start:start + length])
+                    and match_geographic_place(remainder, start + length)):
+                return None
+    # Sentence-initial capitalization is grammatical, not a place signal.
+    first = re.search(r"[A-Za-z]+", clause)
+    for word in re.finditer(r"\b[A-Z][A-Za-z'-]*\b", remainder):
+        if not ((first and word.group() == first.group()) or re.search(
+            r"\b" + re.escape(word.group()) + r"\b", prefix,
+        )):
+            return None
+    # Independent requirements must still reach the general restriction parser.
+    if (CREDENTIAL.search(remainder) or NATIONALITY_CREDENTIAL.search(remainder)
+            or re.search(r"security clearance|סיווג ביטחוני", remainder, re.I)
+            or (RESTRICTION.search(remainder) and (
+                has_geographic_context(remainder) or RESIDENCE.search(remainder)
+                or LOCATION_FRAME.search(remainder) or EXCLUSION.search(clause)
+                or ISRAEL_EXCLUDED.search(clause)
+            ))):
+        return None
+    return " "
 
 
 def _without_policy(text: str) -> str:
     text = EEO_LIST.sub(" ", text)
     text = TEAM_CITIZENS.sub(r"\1 ", text)
+    text = re.sub(r"\b(?:this (?:role|position) )?does not offer visa sponsorship\b", " ", text, flags=re.I)
+    text = re.sub(r"רישיון\s+\S+\s+לתוכנת\s+\S+", " ", text)
+    text = re.sub(r"\bsparse hybrid models\b", " ", text, flags=re.I)
     return NON_LOCATION_POLICY.sub(" ", text)
 
 
@@ -435,6 +649,31 @@ def decide_location_eligibility(
     israel_excluded: list[str] = []
     normalized_field = normalize_israeli_location(location)
     field_scope = _scope(normalized_field, 0)
+    own_field = re.sub(r"\s+[-–—]\s+", ", ", OFFICE.sub(" ", normalized_field))
+    own_field = re.sub(r"\boffice\b", " ", own_field, flags=re.I)
+    own_field = re.sub(r"^(?:central|Midtown)\s+(Tel[ -]Aviv)\b", r"\1", own_field, flags=re.I)
+    own_field = re.sub(r"\s+R&D\s+(?:center|location)\s*$", "", own_field, flags=re.I)
+    own_scope = _scope(own_field, 0)
+    own_israeli = bool(
+        own_scope.complete
+        and own_scope.kinds
+        and set(own_scope.kinds) <= {"israel", "noncentral"}
+        and not own_field[own_scope.end :].strip(" .()")
+    )
+    # An unfamiliar city with a closed Israeli country/district suffix can
+    # resolve its own site description, while its commute scope stays unknown.
+    own_city = ""
+    if not own_israeli and "," in own_field:
+        city, suffix = own_field.split(",", 1)
+        country = _scope(suffix, 0)
+        if (
+            not _scope(city, 0).kinds
+            and country.complete and country.kinds
+            and set(country.kinds) <= {"israel", "noncentral"}
+            and not suffix[country.end :].strip(" .()")
+        ):
+            own_israeli, own_city = True, city.strip()
+            own_scope = country
     field_israeli = field_scope.complete and any(
         kind in {"israel", "noncentral"} for kind in field_scope.kinds
     )
@@ -474,10 +713,35 @@ def decide_location_eligibility(
             if not clause:
                 continue
             excerpt = original.strip()[:1000]
+            own_workplace_unresolved = False
             if is_location:
                 clause = normalize_israeli_location(clause)
+                if own_city:
+                    clause = OFFICE.sub(" ", clause)
             else:
                 clause = _without_policy(clause)
+                # Inspect intact workplace slots before own-site cleanup can
+                # erase company names, prepositions, or attendance wording.
+                own_workplace_unresolved = _unresolved_workplace_phrase(
+                    clause, own_field if own_israeli else "",
+                    str(posting.get("company") or ""),
+                )
+                if own_israeli:
+                    before_own_terms = clause
+                    clause = _own_workplace_terms(
+                        clause,
+                        attendance=bool(own_city) or not (central and "noncentral" in own_scope.kinds),
+                        own_location=own_field,
+                        company=str(posting.get("company") or ""),
+                    )
+                    if clause is None:
+                        own_workplace_unresolved = True
+                        clause = before_own_terms
+                    if (
+                        clause != before_own_terms and not own_city
+                        and not (central and "noncentral" in own_scope.kinds)
+                    ):
+                        positive.append(location)
             covered: list[tuple[int, int]] = []
             unrelated = bool(OTHER_ROLES.search(clause))
 
@@ -648,6 +912,20 @@ def decide_location_eligibility(
                     scope_rule(attendance.start(), scope, office=True, mandatory=True)
                     cover(attendance.start(), scope.end + office_end.end())
 
+            for attend in re.finditer(
+                r"^\s*(?:[-*•]\s*)?(?:applicants?|candidates?) must attend (?:our|the)\s+", clause, re.I,
+            ):
+                scope = _scope(clause, attend.end())
+                if scope.complete and re.fullmatch(
+                    r"\s+office (?:\d+|one|two|three|four|five) days? per week[. ]*",
+                    clause[scope.end:], re.I,
+                ):
+                    cover(attend.start(), len(clause))
+                    if scope.excludes_israel(True, central):
+                        blocked.append(excerpt)
+                    elif scope.allows_israel(True, central):
+                        positive.append(excerpt)
+
             # Unsupported attendance grammar must never let an Israel positive
             # bypass an office requirement (including an unknown office city).
             if (
@@ -724,6 +1002,15 @@ def decide_location_eligibility(
                 )
                 scope = _scope(clause, remote.end() + lead.end())
                 prefix_scope = _scope(clause, 0)
+                based_remote = bool(
+                    not is_location and prefix_scope.kinds
+                    and re.fullmatch(r"-based\s+", clause[prefix_scope.end:remote.start()], re.I)
+                    and re.fullmatch(r"\s+(?:role|position|job)[. ]*", clause[remote.end():], re.I)
+                )
+                if based_remote:
+                    scope_rule(0, Scope(prefix_scope.kinds, len(clause), True),
+                               mandatory=True, remote_permission=True)
+                    continue
                 if (
                     not scope.kinds
                     and prefix_scope.end <= remote.start()
@@ -884,6 +1171,12 @@ def decide_location_eligibility(
                         ):
                             unknown.append(excerpt)
             if _qualified_credential(clause):
+                unknown.append(excerpt)
+
+            # An independently parsed, complete explicit geographic rule can
+            # resolve itself. Otherwise a residual workplace place/restriction vetoes
+            # eligibility even if its leftover words have no restriction keyword.
+            if own_workplace_unresolved and not is_covered(0, len(clause.rstrip(" ."))):
                 unknown.append(excerpt)
 
             for restriction in RESTRICTION.finditer(clause):
