@@ -255,3 +255,31 @@ def test_bounded_recruiting_heads_keep_own_applicant_bases(jd):
     assert decide_location_eligibility(
         {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
     )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "We are seeking experienced Tel Aviv-based applicants",
+    "We welcome applications from Israel-based candidates",
+])
+def test_recruiting_qualification_prefix_keeps_own_applicant_base(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "We are seeking experienced Atlantis and Tel Aviv-based applicants",
+    "We welcome applications from New Atlantis-based candidates",
+])
+def test_recruiting_qualification_prefix_preserves_unknown_destination(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert _positive_nonown_signal(jd, "Tel Aviv", "")
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
