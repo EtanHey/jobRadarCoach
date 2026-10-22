@@ -42,10 +42,11 @@ def title_seniority(title: object) -> TitleSeniority | None:
     if len(levels) != 1:
         return TitleSeniority(None, None, None, title[:1000])
     level = levels.pop()
-    if level == "senior" and _MANAGEMENT_HEAD.search(title):
-        # Senior modifies the management role; retain the existing management bucket.
-        level = "lead_manager"
     value = matches[0][0]
+    if level == "senior" and (head := _MANAGEMENT_HEAD.search(title)):
+        # Senior modifies the management role in both the scalar and the bucket.
+        level = "lead_manager"
+        value = head[0]
     return TitleSeniority(level, value, title if len(title) <= 1000 else value)
 
 

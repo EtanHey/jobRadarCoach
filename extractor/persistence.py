@@ -27,6 +27,15 @@ class Connection(Protocol):
 PersistOutcome = Literal["stored", "unchanged", "stale"]
 
 
+def _stale_title_seniority(facts: Mapping[str, object], title: object, raw_jd: str) -> bool:
+    """A title-only receipt must still have evidence in the current title."""
+    if "seniority_remark" in facts:
+        explicit = title_seniority(title)
+        return explicit is None or explicit.remark != facts["seniority_remark"]
+    quote = facts.get("seniority", {}).get("evidence_quote")
+    return bool(quote and quote not in raw_jd and (not isinstance(title, str) or quote not in title))
+
+
 def has_current_extraction(
     connection: Connection,
     posting_id: str,
@@ -64,7 +73,7 @@ def has_current_extraction(
         return False
     explicit = title_seniority(row[0])
     if explicit is None:
-        return True
+        return not _stale_title_seniority(row[1], row[0], raw_jd)
     return (
         row[1].get("seniority") == explicit.fact()
         and row[1].get("seniority_remark") == explicit.remark
@@ -102,6 +111,11 @@ def persist_extraction(
         ).fetchone()
         if current == payload.metadata():
             return "unchanged"
+        previous_seniority = current[6].get("seniority", {}) if current else {}
+        clear_title_seniority = bool(
+            current and current[4] == payload.jd_sha256
+            and _stale_title_seniority(current[6], posting[3], captured_raw_jd)
+        )
         mode, mode_source = posting_mode({
             "work_mode": location_mode(payload.facts["location"]["value"]),
             "location": payload.facts["location"]["value"],
@@ -116,7 +130,8 @@ def persist_extraction(
             "else coalesce(%s, work_mode) end, "
             "work_mode_source = case when work_mode_source in ('structured', 'location') then work_mode_source "
             "else coalesce(%s, work_mode_source) end, "
-            "seniority = case when %s then null else coalesce(%s, seniority) end, "
+            "seniority = case when %s then null else coalesce(%s, "
+            "case when %s and seniority is not distinct from %s then null else seniority end) end, "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
             "salary = coalesce(%s, case when lower(salary) = lower(%s) then null else salary end) "
             "where id = %s and raw_jd = %s returning id",
@@ -125,6 +140,7 @@ def persist_extraction(
                 mode, "extracted" if mode_source else None,
                 "seniority_remark" in payload.facts,
                 payload.facts["seniority"]["value"],
+                clear_title_seniority, previous_seniority.get("value"),
                 [fact["value"] for fact in payload.facts["stack"]],
                 [fact["value"] for fact in payload.facts["stack"]],
                 payload.facts["salary"]["value"], payload.facts.get("salary_remark"),

@@ -82,8 +82,19 @@ def test_conflicting_title_levels_are_unknown_with_exact_remark():
     assert (normalized.seniority_level, normalized.seniority_source) == (None, "title")
 
 
-def test_senior_modifier_keeps_explicit_management_head_noun():
-    result = normalize({"title": "Senior Engineering Manager", "seniority": "Junior"})
+@pytest.mark.parametrize(("title", "head"), [
+    ("Senior Platform Manager", "Manager"),
+    ("Senior Manager, Platform Engineering", "Manager"),
+    ("Sr. Platform Manager", "Manager"),
+    ("Senior Director of Platform Engineering", "Director"),
+    ("Senior Head of Platform Engineering", "Head"),
+])
+def test_senior_modifier_keeps_explicit_management_head_noun(title, head):
+    extracted = extract_posting({**posting(), "title": title}, {}, runner=runner_for(facts()))
+    expected = {"value": head, "evidence_quote": title}
+    assert extracted["facts"]["seniority"] == expected
+    assert build_payload(extracted, RAW_JD, posting_title=title).facts["seniority"] == expected
+    result = normalize({"title": title, "seniority": head})
     assert (result.seniority_level, result.seniority_source) == ("lead_manager", "title")
 
 

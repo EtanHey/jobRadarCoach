@@ -173,6 +173,76 @@ def test_title_seniority_is_quoted_from_locked_posting_and_tracks_title_edits(co
         assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "unchanged"
 
 
+@pytest.mark.parametrize("title", ["Senior Platform Manager", "Senior Manager, Platform Engineering"])
+def test_management_title_persists_management_scalar(connection, title) -> None:
+    posting_id = insert_posting(connection)
+    connection.execute("update public.postings set title = %s where id = %s", (title, posting_id))
+    assert persistence.persist_extraction(connection, posting_id, RAW_JD, extraction()) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[2] == "Manager"
+    assert state[11]["seniority"] == {"value": "Manager", "evidence_quote": title}
+
+
+@pytest.mark.parametrize("old_title", ["Senior Platform Engineer", "Junior / Senior Platform Engineer"])
+@pytest.mark.parametrize("replacement", [None, "Junior"])
+def test_removed_title_level_invalidates_receipt_and_rederives_owned_scalar(
+    connection, old_title, replacement,
+) -> None:
+    raw_jd = "Build platform services. Junior applicants are welcome."
+    unknown = {key: {"value": None, "evidence_quote": None}
+               for key in ("location", "remote", "seniority", "salary")}
+    unknown["stack"] = []
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update public.postings set title = %s where id = %s", (old_title, posting_id))
+    result = extraction(raw_jd, unknown)
+    identity = {key: result[key] for key in ("brain", "model", "extractor_version", "schema_sha256")}
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    assert persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+    connection.execute("update public.postings set title = 'Platform Engineer' where id = %s", (posting_id,))
+    protected = protected_state(connection, posting_id)
+    before = durable_state(connection, posting_id)
+    assert not persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+
+    if replacement is not None:
+        unknown["seniority"] = {"value": replacement, "evidence_quote": "Junior applicants are welcome"}
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd, unknown)) == "stored"
+    state = durable_state(connection, posting_id)
+    assert state[2] == replacement
+    assert state[11]["seniority"] == unknown["seniority"]
+    assert "seniority_remark" not in state[11]
+    assert state[:2] == before[:2] and state[3:5] == before[3:5]
+    assert protected_state(connection, posting_id) == protected
+    assert persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, extraction(raw_jd, unknown)) == "unchanged"
+
+
+def test_removed_title_level_preserves_independently_updated_scalar(connection) -> None:
+    raw_jd = "Build platform services."
+    unknown = {key: {"value": None, "evidence_quote": None}
+               for key in ("location", "remote", "seniority", "salary")}
+    unknown["stack"] = []
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update public.postings set title = 'Senior Platform Engineer' where id = %s", (posting_id,))
+    result = extraction(raw_jd, unknown)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    connection.execute(
+        "update public.postings set title = 'Platform Engineer', seniority = 'Staff' where id = %s",
+        (posting_id,),
+    )
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "stored"
+    assert durable_state(connection, posting_id)[2] == "Staff"
+
+
+def test_generic_title_keeps_jd_supported_seniority_current(connection) -> None:
+    posting_id = insert_posting(connection)
+    result = extraction()
+    assert persistence.persist_extraction(connection, posting_id, RAW_JD, result) == "stored"
+    connection.execute("update public.postings set title = 'Platform Engineer' where id = %s", (posting_id,))
+    identity = {key: result[key] for key in ("brain", "model", "extractor_version", "schema_sha256")}
+    assert persistence.has_current_extraction(connection, posting_id, RAW_JD, **identity)
+    assert durable_state(connection, posting_id)[2] == "Senior"
+
+
 def test_unknown_facts_preserve_known_columns_but_remain_truthful_in_metadata(connection) -> None:
     posting_id = insert_posting(connection)
     unknown = {
