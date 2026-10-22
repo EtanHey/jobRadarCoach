@@ -14,3 +14,11 @@ def test_report_projects_clean_salary_with_original_remark(tmp_path):
     assert '"salary": "$150k–$180k base"' in after
     assert f'"salary_remark": "{raw}"' in after
     assert "| after | 1 | 0 | 1 |" in output
+
+
+def test_report_preserves_unicode_line_separators_inside_jsonl_records(tmp_path):
+    snapshot = tmp_path / "snapshot.jsonl"
+    snapshot.write_text(json.dumps({
+        "id": "synthetic", "salary": "$150k", "raw_jd": "first\u2028second\u0085third",
+    }, ensure_ascii=False) + "\n")
+    assert "| after | 1 | 0 | 0 |" in report(snapshot)

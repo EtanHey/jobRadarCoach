@@ -7,7 +7,6 @@ import pytest
 from extractor import core
 from extractor.payload import build_payload
 from extractor.test_core import RAW_JD, facts, posting, runner_for
-from scraper.brain_contract import BrainValidationError
 
 # Shared extraction/SQL regression corpus from both round-2 reviews and the fix brief.
 ROUND2_SALARY_CASES = [
@@ -89,6 +88,9 @@ ROUND4_SALARY_CASES = [
 
 # Preserve the historical corpora; only genuine competing governors demote pay.
 CONSERVATIVE_SALARY_REMARKS = {
+    "$5k signing bonus": "Bonus alone is outside the closed pay-governor vocabulary.",
+    "bonus of $5k": "Bonus alone is outside the closed pay-governor vocabulary.",
+    "funding $40M and up to 180000": "A qualifier cannot override inherited funding ownership.",
     "base raised to £90k": "Bare base before the amount does not establish pay ownership.",
     "salary raised to $150k in funding announcement":
         "Funding competes with the raised-pay construction in the same window.",
@@ -124,7 +126,7 @@ ROUND5_SALARY_CASES = [
     ("up to $200k base, raised $40M", True),
     ("(raised $40M) salary $150k", True),
     ("pay $90k–$110k despite Series B of $40M", False),
-    ("funding $40M and up to 180000", True),
+    ("funding $40M and up to 180000", False),
     ("OTE $200k–$250k; investors raised $40M", True),
     ("competitive salary up to $180k after we raised $50M", False),
     ("base $150k (raised $40M last year)", False),
@@ -312,36 +314,40 @@ def test_numeric_compensation_preserves_salary_contract(salary):
     assert build_payload(result, raw_jd).facts == expected
 
 
-def test_boilerplate_still_requires_exact_source_support():
+def test_unsupported_salary_drops_only_salary():
     candidate = facts()
     candidate["salary"] = {
-        "value": "competitive salary",
-        "evidence_quote": "competitive salary",
+        "value": "competitive salary", "evidence_quote": "competitive salary",
     }
-    with pytest.raises(BrainValidationError):
-        core.extract_posting(posting(), {}, runner=runner_for(candidate))
+    result = core.extract_posting(posting(), {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    assert result["facts"] == expected
+    assert build_payload(result, RAW_JD).facts == expected
 
 
-def test_remark_cannot_bypass_evidence_validation():
+def test_unsupported_remark_cannot_bypass_evidence_validation():
     from extractor.test_payload import extraction
 
-    candidate = deepcopy(facts())
+    candidate = facts()
     candidate["salary"] = {"value": None, "evidence_quote": None}
     candidate["salary_remark"] = "invented boilerplate"
-    with pytest.raises(BrainValidationError):
-        build_payload(extraction(RAW_JD, candidate), RAW_JD)
+    payload = build_payload(extraction(RAW_JD, candidate), RAW_JD)
+    expected = deepcopy(candidate)
+    del expected["salary_remark"]
+    assert payload.facts == expected
 
 
-def test_validator_rejects_nonnumeric_salary_without_postprocessing():
+def test_validator_degrades_nonnumeric_salary_without_postprocessing():
     from extractor.evidence import validate_facts
 
     candidate = facts()
     candidate["salary"] = {
-        "value": "competitive salary",
-        "evidence_quote": "competitive salary",
+        "value": "competitive salary", "evidence_quote": "competitive salary",
     }
-    with pytest.raises(BrainValidationError, match="numeric compensation"):
-        validate_facts(candidate, RAW_JD + " competitive salary")
+    validate_facts(candidate, RAW_JD + " competitive salary")
+    assert candidate["salary"] == {"value": None, "evidence_quote": None}
+    assert candidate["salary_remark"] == "competitive salary"
 
 
 def test_payload_normalizes_legacy_salary_without_mutating_input():
@@ -395,7 +401,49 @@ ROUND7_SALARY_SPANS = [
 ]
 
 
-@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS)
+P9C_SALARY_SPANS = [
+    ("Competitive salary; $5M base (capital investment)", None),
+    ("Competitive salary; $5M base (annual recurring revenue)", None),
+    ("Competitive salary; $5M base (ARR)", None),
+    ("Competitive salary; ARR $10M, up to $20M annually", None),
+    ("Competitive salary; revenue $8M, up to $10M annually", None),
+    ("Competitive salary; revenue $8M, $10M annually, up to $12M yearly", None),
+    ("Competitive salary; ARR $10M, $20M base", None),
+    ("שכר תחרותי; הכנסות שנתיות של ₪20 מיליון", None),
+    ("שכר תחרותי; מחזור שנתי של ₪20 מיליון", None),
+    ("שכר תחרותי; הכנסות ₪10 מיליון, עד ₪20 מיליון בשנה", None),
+    ("שכר תחרותי; ARR של ₪20 מיליון", None),
+    ("שכר תחרותי; ARR של ₪10 מיליון, עד ₪20 מיליון בשנה", None),
+    ("Competitive salary; installed base of 120k", None),
+    ("Competitive salary; subscriber base of 250k", None),
+    ("Competitive salary; client base of 40k", None),
+    ("Competitive salary; knowledge base of 10k articles", None),
+    ("Competitive salary; our base is $5M", None),
+    ("base of $120k", None),
+    ("base is $120k", None),
+    ("Competitive salary; $5M base subscribers", None),
+    ("Competitive salary; $5M base (subscribers)", None),
+    ("ARR $10M, salary $150k", "salary $150k"),
+    ("ARR $10M, up to $200k base salary", "up to $200k base salary"),
+    ("revenue $8M, base pay is $150k", "base pay is $150k"),
+    ("הכנסות ₪20 מיליון, שכר ₪32,000 בחודש", "שכר ₪32,000 בחודש"),
+    ("מחזור ₪20 מיליון; שכר ₪32,000 בחודש", "שכר ₪32,000 בחודש"),
+    ("שכר בסיס של ₪32,000 בחודש", "שכר בסיס של ₪32,000 בחודש"),
+    ("base salary of $120k", "base salary of $120k"),
+    ("base pay is $120k", "base pay is $120k"),
+    ("base comp $120k", "base comp $120k"),
+    ("$120k base", "$120k base"),
+    ("$120k base salary", "$120k base salary"),
+    ("$150k–$180k base + equity (we raised $40M)", "$150k–$180k base"),
+    ("Salary €90k–£110k base; funding $8M", "Salary €90k–£110k base"),
+    ("Salary USD 120,000–CAD 160,000 per year", "Salary USD 120,000–CAD 160,000 per year"),
+]
+
+
+@pytest.mark.parametrize("salary, span", ROUND7_SALARY_SPANS + [
+    pytest.param(salary, span, id=f"p9c-{index}")
+    for index, (salary, span) in enumerate(P9C_SALARY_SPANS)
+])
 def test_round7_clean_salary_span(salary, span):
     candidate = facts()
     candidate["salary"] = {"value": salary, "evidence_quote": salary}
@@ -428,3 +476,140 @@ def test_round8_case_insensitive_salary_keeps_source_remark(quote, value, remark
     assert result["facts"] == expected
     assert build_payload(result, raw_jd).facts == expected
     assert candidate["salary"]["value"] == value
+
+
+@pytest.mark.parametrize("value", [None] + list(dict.fromkeys(
+    value for value, _ in (
+        PRECISION_PREVIOUS_SALARY_CASES + ROUND5_SALARY_CASES + ROUND6_SALARY_CASES
+        + ROUND7_SALARY_SPANS + P9C_SALARY_SPANS
+    )
+)))
+def test_salary_span_is_idempotent(value):
+    from extractor.salary import salary_span
+
+    span = salary_span(value)
+    assert salary_span(span) == span
+
+
+@pytest.mark.parametrize("invalid", [None, "competitive salary", []])
+def test_salary_normalization_degrades_malformed_fact(invalid):
+    from extractor.salary import normalize_salary
+
+    candidate = facts()
+    candidate["salary"] = invalid
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    normalize_salary(candidate, RAW_JD)
+    assert candidate == expected
+
+
+# Both P9c round-1 reviews: unknown metrics and non-idempotent base counts.
+P9CF1_REJECTED = [
+    "Competitive salary; ARR $10M and up to $20M annually",
+    "Competitive salary; revenue $8M and up to $10M annually",
+    "Competitive salary; ARR $10M & up to $20M annually",
+    "Competitive salary; ARR $10M, or up to $20M annually",
+    "שכר תחרותי; ההכנסות השנתיות הן ₪20 מיליון",
+    "שכר תחרותי; הכנסותינו ₪20 מיליון בשנה",
+    "שכר תחרותי; מחזורנו השנתי ₪20 מיליון",
+    "Competitive salary; installed base: 120k",
+    "Competitive salary; subscriber base = 250k",
+    "Competitive salary; knowledge base contains 10k articles",
+    "Competitive salary; TAM of $50M",
+    "Competitive salary; GMV $12M annually",
+    "Competitive salary; MRR $2M, up to $3M annually",
+    "Competitive salary; bookings of $15M",
+    "Competitive salary; pipeline of $40M",
+    "Competitive salary; EBITDA $5M annually",
+    "Competitive salary; AUM of $100M",
+    "Competitive salary; billings $8M",
+    "Competitive salary; net revenue retention of 120%",
+    "Competitive salary; burn rate of $2M",
+    "Competitive salary; newmetric of $5B",
+    "Competitive salary; newmetric $5M, up to $6M annually",
+    "Competitive salary; newmetric $5M & up to $6M annually",
+]
+
+
+@pytest.mark.parametrize("salary", P9CF1_REJECTED)
+def test_round1_review_metrics_keep_other_extracted_facts(salary):
+    from extractor.salary import salary_span
+
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    assert salary_span(salary) is None
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    expected["salary_remark"] = salary
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
+
+
+def test_salary_idempotence_failure_degrades_without_losing_other_facts(monkeypatch):
+    from extractor import salary as policy
+
+    value = "salary 120k"
+    raw_jd = RAW_JD + "\n" + value
+    candidate = facts()
+    candidate["salary"] = {"value": value, "evidence_quote": value}
+    monkeypatch.setattr(policy, "salary_span", lambda text: "120k" if text == value else None)
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    expected["salary_remark"] = value
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
+
+
+@pytest.mark.parametrize("value", [
+    "salary 15000", "base salary $130k", "base pay $130k", "base comp $130k",
+    "pay $130k", "compensation $130k", "wage $50", "OTE $200k",
+    "hourly rate $50", "daily rate 500", "day rate $500", "50 per hour",
+    "500 per day", "30k per month", "130k per year", "130k per annum",
+    "$50/hr", "$130k/yr", "$30k/mo", "gross 15000", "net $130k",
+    "שכר ₪30000", "ברוטו ₪30000", "נטו ₪30000", "50 לשעה", "30k לחודש", "130k בשנה",
+    "$200,000 — $235,000 USD", "MA: $120k-$160k base salary",
+    "$120k/year in our lowest geographic market up to $180k/year in our highest geographic market",
+    "US employees (any location): Senior I: $120k-$160k USD Senior II: $170k-$200k USD",
+])
+def test_closed_pay_vocabulary_and_unowned_currency_bands(value):
+    from extractor.salary import salary_span
+
+    span = salary_span(value)
+    assert span is not None
+    assert salary_span(span) == span
+
+
+@pytest.mark.parametrize("value", [
+    "rate $120k", "base 120k", "base $120k", "$5M TAM", "$5M (TAM)",
+    "$5M annually TAM", "Competitive salary; newmetric: $5M",
+])
+def test_unknown_governors_cannot_borrow_currency_or_cadence(value):
+    from extractor.salary import salary_span
+
+    assert salary_span(value) is None
+
+
+@pytest.mark.parametrize("invalid", [
+    {"value": "$120k", "evidence_quote": "ABSENT"},
+    {"value": 120000, "evidence_quote": "$120k"},
+    {"value": None, "evidence_quote": "$120k"},
+    {"value": "$120k", "evidence_quote": "$120k", "extra": True},
+    {"value": "x" * 257, "evidence_quote": "x" * 257},
+])
+def test_salary_validation_failure_keeps_source_remark_and_other_facts(invalid):
+    candidate = facts()
+    candidate["salary"] = invalid
+    raw_jd = RAW_JD + "\n$120k\n" + "x" * 257
+    # The synthetic runner enforces the provider schema. Exercise the same
+    # normalization boundary directly for deliberately malformed provider facts.
+    from extractor.payload import build_payload
+    from extractor.test_payload import extraction
+
+    result = build_payload(extraction(raw_jd, candidate), raw_jd)
+    expected = deepcopy(candidate)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    expected["salary_remark"] = "x" * 257 if invalid["value"] == "x" * 257 else "$120k"
+    assert result.facts == expected

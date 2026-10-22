@@ -32,6 +32,8 @@ py-modules = [
   "classifier.request",
   "extractor.core",
   "extractor.evidence",
+  "extractor.quotes",
+  "extractor.salary",
   "extractor.job",
   "extractor.payload",
   "extractor.persistence",

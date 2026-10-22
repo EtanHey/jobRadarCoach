@@ -102,7 +102,7 @@ def persist_extraction(
             "work_mode_source = case when work_mode_source in ('structured', 'location') then work_mode_source "
             "else coalesce(%s, work_mode_source) end, seniority = coalesce(%s, seniority), "
             "stack = case when cardinality(%s::text[]) > 0 then %s::text[] else stack end, "
-            "salary = coalesce(%s, case when salary = %s then null else salary end) "
+            "salary = coalesce(%s, case when lower(salary) = lower(%s) then null else salary end) "
             "where id = %s and raw_jd = %s returning id",
             (
                 payload.facts["location"]["value"], mode, payload.facts["remote"]["value"],

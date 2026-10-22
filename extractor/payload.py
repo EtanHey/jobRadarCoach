@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
 import hashlib
 import json
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-from extractor.core import EXTRACTION_SCHEMA_SHA256, _schema
-from extractor.evidence import normalize_salary, validate_facts
-
+from extractor.core import EXTRACTION_SCHEMA_SHA256, MAX_RAW_JD_BYTES, _schema
+from extractor.evidence import validate_facts
+from extractor.salary import normalize_salary
 
 _FACT_FIELDS = {"location", "remote", "seniority", "stack", "salary"}
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -77,10 +77,10 @@ def _owned_facts(facts: object, captured_raw_jd: str) -> dict[str, object]:
     try:
         schema = _schema()
         schema["properties"]["salary_remark"] = {
-            "type": "string", "minLength": 1, "maxLength": 256,
+            "type": "string", "minLength": 1, "maxLength": MAX_RAW_JD_BYTES,
         }
-        Draft202012Validator(schema).validate(owned)
         normalize_salary(owned, captured_raw_jd)
+        Draft202012Validator(schema).validate(owned)
         validate_facts(owned, captured_raw_jd)
     except (AssertionError, KeyError, TypeError, ValidationError) as error:
         raise ValueError("extraction facts have an invalid shape") from error

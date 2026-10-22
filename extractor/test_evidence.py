@@ -89,7 +89,6 @@ def test_non_role_remote_wording_does_not_establish_role_availability(
     lambda value: value["location"].update(
         value="Jerusalem", evidence_quote="Tel Aviv, Israel"
     ),
-    lambda value: value["salary"].update(evidence_quote="$120,000 to $150,000"),
     lambda value: value["seniority"].update(value=None),
     lambda value: value["remote"].update(value=False),
     lambda value: value["stack"][0].update(value="Script"),
@@ -206,3 +205,13 @@ def test_role_prefix_cannot_bypass_company_geography_check() -> None:
     with pytest.raises(ExtractionValidationError) as rejected:
         validate_facts(candidate, quote)
     assert rejected.value.category == "location_context"
+
+
+def test_salary_quote_failure_preserves_other_evidence():
+    candidate = facts()
+    expected = facts()
+    candidate["salary"]["evidence_quote"] = "$120,000 to $150,000"
+    validate_facts(candidate, RAW_JD)
+    expected["salary"] = {"value": None, "evidence_quote": None}
+    expected["salary_remark"] = "$120,000-$150,000 annually"
+    assert candidate == expected
