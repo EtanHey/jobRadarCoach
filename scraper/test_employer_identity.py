@@ -409,3 +409,73 @@ def test_recruitment_word_in_product_company_name_is_not_agency_evidence():
     result = resolve_employer('Acme Recruitment Technologies', jd, 'greenhouse')
     assert result['agency_evidence'] is None
     assert result['hiring_employer'] == 'Acme Recruitment Technologies'
+
+
+R5_REMOVED = json.loads((Path(__file__).parents[1] /
+                        'test_support/fixtures/employer_identity_r5_removed.json').read_text())
+
+
+@pytest.mark.parametrize('row', R5_REMOVED, ids=lambda row: row['id'])
+def test_review_r5_removed_publisher_badges(row):
+    assert f"{row['company']} is a recruitment partner of this role." in row['raw_jd']
+    result = resolve_employer(row['company'], row['raw_jd'], row['source'])
+    assert result['agency_evidence'] is not None
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('jd', [
+    'We build payroll software for one of our clients.',
+    'We build payroll software.\nHireCo is a staffing firm and our customer.',
+])
+def test_review_r5_customer_business_is_not_publisher_evidence(source, jd):
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == ('Acme Labs' if source == 'greenhouse' else None)
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', [
+    'HireCo is a recruitment partner of this role.',
+    'We are a recruitment partner of this role.',
+    'We are a recruiting firm.',
+])
+@pytest.mark.parametrize('padding', ['', 'Role responsibilities.\n' * 40, 'Role details. ' * 200 + '\n'])
+def test_review_r6_publisher_self_description_anywhere(source, statement, padding):
+    result = resolve_employer('HireCo', padding + statement, source)
+    assert result['agency_evidence'] == statement
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('statement', [
+    'HireCo is a staffing firm and our customer.',
+    'Our client is hiring an engineer.',
+    'We are recruiting for one of our clients.',
+])
+def test_review_r6_late_customer_text_does_not_label_publisher(statement):
+    jd = 'Role responsibilities.\n' * 40 + statement
+    result = resolve_employer('Acme Labs', jd, 'greenhouse')
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Acme Labs'
+
+
+@pytest.mark.parametrize('predicate', ['hiring', 'seeking', 'looking for', 'recruiting'])
+def test_review_r6_recruitment_for_one_client_needs_predicate(predicate):
+    jd = f'We are {predicate} an engineer for one of our clients.'
+    result = resolve_employer('HireCo', jd, 'greenhouse')
+    assert result['agency_evidence'] == jd
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('publisher', ['RemoteHunter', 'TalentHop'])
+def test_review_r6_known_reposter_is_reviewed(publisher):
+    from scraper.employer_identity import PUBLISHER_KEYS
+    assert publisher.casefold() in PUBLISHER_KEYS
+    assert resolve_employer(publisher, 'Build software.', 'greenhouse')['hiring_employer'] is None
+
+
+def test_review_r6_on_behalf_of_one_client_is_representation():
+    jd = 'We are acting on behalf of one of our clients.'
+    result = resolve_employer('HireCo', jd, 'greenhouse')
+    assert result['agency_evidence'] == jd
+    assert result['hiring_employer'] is None

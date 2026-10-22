@@ -1,4 +1,4 @@
-"""Conservative attribution from source fields or quoted opening JD spans."""
+"""Conservative role attribution, with publisher self-description across the JD."""
 from __future__ import annotations
 
 import re
@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '6'
+VERSION = '7'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -26,10 +26,10 @@ GENERIC = {'we', 'our', 'the company', 'this company', 'the client', 'a company'
 THIRD_PARTY = (
     r"\bour client\b[^.\n!?]{0,100}\b(?:hiring|seeking|looking for|seeks)\b"
     r"|\b(?:hiring|recruiting)\b[^.\n!?]{0,80}\bfor our clients?\b"
-    r"|\bfor one of our clients\b"
+    r"|\b(?:hiring|seeking|looking for|recruiting)\b[^.\n!?]{0,80}\bfor one of our clients\b"
     r"|\b(?:direct employment|directly hiring) with our client\b"
     r"|\ba client of ours\b"
-    r"|\bon behalf of (?:our|an?) (?:[\w,-]+ ){0,8}clients?\b"
+    r"|\bon behalf of (?:our|an?|one of our) (?:[\w,-]+ ){0,8}clients?\b"
     r"|\bon behalf of an? partner (?:company|organization|firm)\b"
 )
 INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
@@ -37,6 +37,7 @@ INTERMEDIARY = re.compile(THIRD_PARTY, re.I)
 STAFFING_SERVICES = re.compile(
     r"\b(?:is|are) (?:an?|the) (?:(?:leading|global|international|specialist|specialized) ){0,3}"
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|placement) (?:agency|firm|company|consultancy)\b"
+    r"|\b(?:is|are) a recruitment partner of this role\b"
     r"|\b(?:provider of|provid(?:e|es|ing)) "
     r"(?:staffing|recruiting|recruitment|talent(?: acquisition)?|(?:permanent )?placement)"
     r"(?: and (?:staffing|recruiting|recruitment))? services\b"
@@ -88,10 +89,13 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
+    publisher_statement = next((line for line in re.finditer(r'[^\n]+', raw_jd)
+                                if _staffing_statement(line[0], publisher)), None)
     agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
-                             if INTERMEDIARY.search(line[0]) or _staffing_statement(line[0])), None)
-    if agency_statement and _staffing_statement(agency_statement[0], publisher):
-        staffing_about[publisher.casefold()] = agency_statement[0]
+                             if INTERMEDIARY.search(line[0])
+                             or _staffing_statement(line[0], publisher)), publisher_statement)
+    if publisher_statement:
+        staffing_about[publisher.casefold()] = publisher_statement[0]
     agency_evidence = agency_statement[0] if agency_statement else None
     intermediary_seen = agency_statement is not None
     role_intermediary_seen = bool(agency_statement and role_heading
