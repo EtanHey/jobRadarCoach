@@ -66,3 +66,22 @@ test("the API identity schema preserves explicit agency evidence", () => {
   assert.equal(employerLabel({ company: identity.publisher, employer_identity: identity }),
     "Talent Bridge (agency — client undisclosed)");
 });
+
+
+test("r10 resolver output keeps reviewer quote and first-person reproducers publisher-only", () => {
+  const probe = spawnSync("python3", ["-c", `
+import json
+from pathlib import Path
+from scraper.employer_identity import resolve_employer
+cases = json.loads(Path('test_support/fixtures/employer_identity_r10.json').read_text())
+print(json.dumps([resolve_employer('Acme Labs', row['jd'], source)
+                  for row in cases for source in ['linkedin', 'greenhouse']]))
+`], { cwd: import.meta.dirname + "/../..", encoding: "utf8" });
+  assert.equal(probe.status, 0, probe.stderr);
+  const identities = EmployerIdentitySchema.array().parse(JSON.parse(probe.stdout));
+  assert.equal(identities.length, 20);
+  for (const identity of identities) {
+    assert.equal(identity.agency_evidence, null);
+    assert.equal(employerLabel({ company: identity.publisher, employer_identity: identity }), "Acme Labs");
+  }
+});

@@ -7,7 +7,7 @@ from scraper.ats_sources import ATS_SOURCES
 from scraper.employer_publishers import PUBLISHERS
 from scraper.employer_aliases import is_alias
 
-VERSION = '10'
+VERSION = '11'
 PUBLISHER_KEYS = frozenset(p.casefold() for p in PUBLISHERS)
 # Reviewed staffing intermediaries whose names do not identify their business.
 STAFFING_KEYS = PUBLISHER_KEYS | {'alldus', 'mertens - malamteam'}
@@ -19,7 +19,9 @@ PATTERNS = [
     re.compile(r'^\*{0,2}' + NAME + r'\*{0,2}(?: in [A-Z][\w ,.-]{0,60}?)?\s+(?:is (?:the employer|hiring|looking for|seeking)|are hiring)\b[^\n]*', re.M),
     re.compile(r'^\*{0,2}About (?:[Tt]he )?[Cc]ompany\*{0,2}\s*\n+\*{0,2}' + NAME + r'\*{0,2}\s+(?:is|provides|develops|builds)\b[^\n]*', re.M),
 ]
-GENERIC = {'we', 'our', 'the company', 'this company', 'the client', 'a company', 'you'}
+GENERIC = {'i', 'we', 'our', 'you', 'they', 'he', 'she', 'it', 'company', 'agency',
+           'firm', 'recruiter', 'business', 'organization', 'team', 'client', 'publisher', 'employer',
+           'the company', 'this company', 'the client', 'a company', 'אני', 'אנחנו', 'אנו'}
 
 
 # A company description alone is not client evidence; partner wording is explicit.
@@ -49,19 +51,15 @@ PRODUCT = re.compile(r"\b(?:software|platform|tool|saas|app|product)s?\b", re.I)
 PLACEMENT_CONTEXT = re.compile(r"\b(?:clients?|candidates?|placement|placing|connecting (?:talented )?professionals)\b", re.I)
 
 
-def _staffing_statement(text: str, company: str | None = None) -> bool:
+def _staffing_statement(text: str, company: str) -> bool:
     """Require a named-company subject; first-person ownership is never inferred."""
     for clause in re.split(r'[.;!?]\s+|\n+', text):
         for match in STAFFING_SERVICES.finditer(clause):
             subject = clause[:match.start()].strip(' *\t')
             subject = re.sub(r'\s+(?:is|are)\s+(?:(?:an?|the|leading|global|international|specialist|specialized)\s*)*$', '', subject, flags=re.I)
-            named_company = bool(re.fullmatch(NAME, subject)) and not (
-                subject.casefold() in GENERIC
-                or subject.casefold().startswith(('our ', 'we ', 'the ', 'this ', 'an ', 'a '))
-                or any(word[0].islower() and word not in {'of', 'the', 'and'} for word in subject.split()))
-            if not named_company:
+            if subject.casefold() in GENERIC:
                 continue
-            if company is not None and subject.casefold() != company.casefold():
+            if subject.casefold() != company.casefold() and not is_alias(company, subject):
                 continue
             if PRODUCT.search(clause[:match.start()]) or re.match(r"\s*" + PRODUCT.pattern, clause[match.end():], re.I):
                 continue
@@ -69,6 +67,44 @@ def _staffing_statement(text: str, company: str | None = None) -> bool:
                 continue
             return True
     return False
+
+
+# Preserve offsets so persisted evidence remains a verbatim slice of the raw JD.
+QUOTED = re.compile(r'"[^"]*"|“[^”]*”|«[^»]*»|(?<!\w)\'[^\']*\'(?!\w)')
+ATTRIBUTED = re.compile(
+    r"(?i:\b(?:says|said|testimonials?)\b|\breviews?(?:\s*:|\s+(?:by|from)\b)"
+    r"|\b(?:a|this|the) review\b|\b\w+[’']s review\b)"
+    r"|[—–][ \t]+[^\W\d_][\w’'-]*(?:[ \t]+[^\W\d_][\w’'-]*){0,3},[ \t]+"
+    r"(?i:head|director|ceo|cto|vp|manager|recruiter|founder|engineer|talent|מנהלת?|מגייסת?)\b[^.\n]{0,80}\s*$"
+    r"|[—–][ \t]+(?!(?i:remote|hybrid|on[- ]?site|full[- ]?time|part[- ]?time)\b)"
+    r"[A-Z][\w’'-]*(?:[ \t]+[A-Z][\w’'-]*){0,3}[.!]?\s*$")
+TESTIMONIAL_HEADING = re.compile(
+    r'^(?:(?:customer )?testimonials?|(?:customer )?reviews?|what our customers say|ממליצים|המלצות)(?:\s*:\s*.*|\s*)$', re.I)
+SECTION_HEADING = re.compile(
+    r'^(?:about|responsibilities|requirements|qualifications|benefits|job (?:description|details|requirements|responsibilities)|אודות)\b', re.I)
+CUSTOMER_HEADING = re.compile(r'\b(?:testimonials?|reviews?|customers?|stories)\b|ממליצים|המלצות', re.I)
+
+
+def _attributable_text(raw_jd: str) -> str:
+    """Exclude other speakers before any agency or employer-name extraction."""
+    def blank(text: str) -> str:
+        return re.sub(r'[^\r\n]', ' ', text)
+
+    # Mask quotes before attribution lines, including quotes spanning those lines.
+    unquoted = QUOTED.sub(lambda match: blank(match[0]), raw_jd)
+    lines = []
+    testimonial = False
+    offset = 0
+    for line in raw_jd.splitlines(keepends=True):
+        heading = line.strip().strip('#* ').strip()
+        if TESTIMONIAL_HEADING.fullmatch(heading):
+            testimonial = True
+        elif SECTION_HEADING.match(heading) and not CUSTOMER_HEADING.search(heading):
+            testimonial = False
+        excluded = testimonial or line.lstrip().startswith('>') or ATTRIBUTED.search(line)
+        lines.append(blank(line) if excluded else unquoted[offset:offset + len(line)])
+        offset += len(line)
+    return ''.join(lines)
 
 
 def _publisher_staffing_statements(raw_jd: str, publisher: str):
@@ -83,25 +119,30 @@ ROLE_HEADING = re.compile(r'^\*{0,2}About (?:[Tt]he )?[Rr]ole\*{0,2}', re.M)
 
 def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, object]:
     """Prefer role-linked names; absence of agency evidence never proves directness."""
-    opening = '\n'.join(raw_jd.splitlines()[:32])[:2000]
+    attributable = _attributable_text(raw_jd)
+    opening = ''.join(attributable.splitlines(keepends=True)[:32])[:2000]
+
+    def raw_evidence(match: re.Match) -> str:
+        return raw_jd[match.start():match.end()]
+
     # Associate service descriptions with their own named company, not every role.
     staffing_about = {
-        match['name'].strip(' .,').casefold(): match[0]
+        match['name'].strip(' .,').casefold(): raw_evidence(match)
         for match in PATTERNS[3].finditer(opening)
-        if _staffing_statement(match[0]) or INTERMEDIARY.search(match[0])
+        if _staffing_statement(match[0], match['name'].strip(' .,')) or INTERMEDIARY.search(match[0])
     }
     role_heading = ROLE_HEADING.search(opening)
     role_names: dict[str, tuple[str, str]] = {}
     blurb_names: dict[str, tuple[str, str]] = {}
-    publisher_statements = list(_publisher_staffing_statements(raw_jd, publisher))
+    publisher_statements = list(_publisher_staffing_statements(attributable, publisher))
     publisher_statement = next(iter(publisher_statements), None)
     publisher_offsets = {hit.start() for hit in publisher_statements}
     agency_statement = next((line for line in re.finditer(r'[^\n]+', opening)
                              if INTERMEDIARY.search(line[0])
                              or line.start() in publisher_offsets), publisher_statement)
     if publisher_statement:
-        staffing_about[publisher.casefold()] = publisher_statement[0]
-    agency_evidence = agency_statement[0] if agency_statement else None
+        staffing_about[publisher.casefold()] = raw_evidence(publisher_statement)
+    agency_evidence = raw_evidence(agency_statement) if agency_statement else None
     intermediary_seen = agency_statement is not None
     role_intermediary_seen = bool(agency_statement and role_heading
                                   and agency_statement.start() > role_heading.start())
@@ -118,14 +159,14 @@ def resolve_employer(publisher: str, raw_jd: str, source: str) -> dict[str, obje
             if (name.casefold() in STAFFING_KEYS
                     or name.casefold() in staffing_about
                     or (index >= 2 and INTERMEDIARY.search(match[0]))):
-                agency_evidence = staffing_about.get(name.casefold(), match[0])
+                agency_evidence = staffing_about.get(name.casefold(), raw_evidence(match))
                 intermediary_seen = True
                 role_intermediary_seen |= not is_blurb
                 continue
             if re.match(re.escape(publisher) + r"(?:\b|[’'])", name, re.I):
                 name = publisher
             candidates = blurb_names if is_blurb else role_names
-            candidates[name.casefold()] = (name, match[0])
+            candidates[name.casefold()] = (name, raw_evidence(match))
     employer, evidence = None, None
     candidates = role_names if role_names or role_intermediary_seen else blurb_names
     if len(candidates) == 1:

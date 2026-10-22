@@ -696,3 +696,138 @@ def test_review_r9_candidate_blurb_cannot_restore_first_person(source, statement
     result = resolve_employer('Acme Labs', jd, source)
     assert result['agency_evidence'] is None
     assert result['hiring_employer'] == 'Acme Labs'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', [
+    'I provide recruitment services.', 'I provide staffing services.',
+    'I provide staffing solutions to our clients.',
+    'You provide staffing services.', 'They provide recruitment services.',
+    'He is a staffing firm.', 'She is a staffing firm.', 'It is a staffing firm.',
+    'Company provides staffing services.', 'Agency provides recruitment services.',
+    'HireCo provides recruitment services.',
+])
+def test_review_r10_blurb_staffing_subject_must_match_company(source, statement):
+    jd = ('**About The Company**\nAcme Labs is a technology business. ' + statement
+          + '\n**About The Role**\nAcme Labs is hiring engineers.')
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == 'Acme Labs'
+
+
+R10_QUOTED_CLIENT_TEXT = [
+    '\"Our client is hiring engineers.\"',
+    '“Our client is hiring engineers.”',
+    '«Our client is hiring engineers.»',
+    "'Our client is hiring engineers.'",
+    '\"Our client is\nhiring engineers.\"',
+    '> Our client is seeking a senior engineer.',
+    '  > Our client, Orbit Inc, is hiring backend engineers.',
+    'A candidate wrote: \"Our client, Beta Corp, is hiring.\"',
+    '\"They are hiring on behalf of our client Nova.\"',
+    'Customer testimonial:\n\"Our client is hiring engineers.\" — HireCo',
+    'HireCo customer testimonial:\n\"We recruit on behalf of our clients using Acme Labs.\"',
+    'A staffing customer says:\n\"We are hiring engineers for our clients using this software.\"',
+    'Our client is hiring engineers. — Jane, Head of Talent',
+    'Our client is hiring engineers. — jane smith, head of talent',
+    'Our client is hiring engineers. — יעל כהן, מנהלת גיוס',
+    'Review by Jane: Our client is hiring engineers.',
+    "Jane’s review of Acme Labs: Our client is hiring engineers.",
+    'In a review, Jane wrote: Our client is hiring engineers.',
+    'Jane says our client is hiring engineers.',
+    'Our client is hiring engineers, said Jane.',
+    'Testimonial: Our client is hiring engineers.',
+    'Customer review: Our client is hiring engineers.',
+    'Testimonials\nOur client is hiring engineers.',
+    '## Reviews\nOur client is hiring engineers.',
+    '**What our customers say**\nOur client is hiring engineers.',
+    'ממליצים\nOur client is hiring engineers.',
+    'המלצות\nOur client is hiring engineers.',
+    'Reviews:\nOur client, Orbit Inc, is hiring backend engineers.',
+    'Testimonials\nAcme Labs is a staffing firm.',
+    'Testimonials\n**Our client** is hiring engineers.',
+    'Testimonials\n**Acme Labs** is a staffing firm.',
+    'Testimonials\n**Our client is hiring engineers.**',
+    'Testimonials\n## Customer stories\nOur client is hiring engineers.',
+    'Testimonials\n## About our customers\nOur client is hiring engineers.',
+    'Jane said: \"Customer story:\nOur client is hiring engineers.\"',
+    '\"Acme Labs is a staffing firm.\"',
+]
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('quoted', R10_QUOTED_CLIENT_TEXT)
+@pytest.mark.parametrize('hiring', ['', 'Acme Labs is hiring engineers.\n'])
+def test_review_r10_quotes_and_testimonials_do_not_attribute_publisher(source, quoted, hiring):
+    jd = hiring + 'About Acme Labs\nAcme Labs builds observability software.\n' + quoted
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] == ('Acme Labs' if hiring or source == 'greenhouse' else None)
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('statement', [
+    'Acme Labs provides staffing services.', 'acme labs provides staffing services.',
+    'ACME LABS is a staffing firm.',
+])
+def test_review_r10_exact_publisher_name_is_case_insensitive(source, statement):
+    result = resolve_employer('Acme Labs', statement, source)
+    assert result['agency_evidence'] == statement
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_review_r10_reviewed_alias_can_describe_publisher(source):
+    result = resolve_employer('BMC Software', 'BMC provides staffing services.', source)
+    assert result['agency_evidence'] == 'BMC provides staffing services.'
+    assert result['hiring_employer'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('heading', ['## About the role', '**About The Role**', 'Responsibilities:', 'Job Description', '**Job Description**'])
+def test_review_r10_real_role_after_testimonials_is_still_attributed(source, heading):
+    jd = ('Testimonials\nOur client is hiring engineers.\n' + heading
+          + '\nOur client, Beta Corp, is hiring engineers.')
+    result = resolve_employer('HireCo', jd, source)
+    assert result['agency_evidence'] == 'Our client, Beta Corp, is hiring engineers.'
+    assert result['hiring_employer'] == 'Beta Corp'
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('row', json.loads((Path(__file__).parents[1] / 'test_support/fixtures/employer_identity_r10.json').read_text()), ids=lambda row: row['case'])
+def test_review_r10_both_reviewers_reproducers(source, row):
+    result = resolve_employer('Acme Labs', row['jd'], source)
+    assert result['agency_evidence'] is None
+    assert result['hiring_employer'] in {None, 'Acme Labs'}
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+@pytest.mark.parametrize('tail', [
+    'You will participate in code reviews.',
+    'Improve our customer reviews.', '— Remote', 'Review and debug timing paths.',
+    'Guide design reviews and architecture discussions.',
+    'Our values—Trust, Customer Obsession, Craftsmanship—guide the team.',
+    'This is the employer — EngRadar is a job radar, not a recruiter.',
+])
+def test_review_r10_technical_reviews_and_prose_dashes_are_not_signatures(source, tail):
+    jd = 'Acme Labs is hiring engineers. ' + tail
+    result = resolve_employer('Acme Labs', jd, source)
+    assert result['hiring_employer'] == 'Acme Labs'
+    assert result['employer_evidence'] == jd
+    assert result['agency_evidence'] is None
+
+
+@pytest.mark.parametrize('source', ['linkedin', 'greenhouse'])
+def test_review_r10_masking_preserves_original_crlf_evidence_offsets(source):
+    jd = ('Customer testimonial:\r\n"Our client is hiring engineers."\r\n'
+          '**About The Role**\r\nOur client, Beta Corp, is hiring engineers.')
+    result = resolve_employer('HireCo', jd, source)
+    assert result['hiring_employer'] == 'Beta Corp'
+    assert result['employer_evidence'] in jd
+    assert result['agency_evidence'] == 'Our client, Beta Corp, is hiring engineers.'
+
+
+@pytest.mark.parametrize('publisher', ['I', 'We', 'You', 'They', 'He', 'She', 'It', 'Company', 'Agency', 'Firm', 'Recruiter', 'Team'])
+def test_review_r10_pronoun_or_generic_publisher_is_not_a_staffing_subject(publisher):
+    result = resolve_employer(publisher, publisher + ' provides staffing services.', 'linkedin')
+    assert result['agency_evidence'] is None
