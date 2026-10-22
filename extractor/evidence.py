@@ -205,19 +205,21 @@ def _validate_location_context(fact: dict[str, object], raw_jd: str) -> None:
 # Currency is evidence by itself. Unmarked amounts need pay context; a K
 # suffix alone is ambiguous (notably retirement plans), as are bare years.
 _AMOUNT = r"(?:\d{1,3}(?:[, ]\d{3})+|\d+)(?:\.\d+)?"
-_CURRENCY = r"""(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD|ש[״"']?ח|שקלים)\b)"""
+_CURRENCY = r"""(?:[$€£₪]|\b(?:USD|EUR|GBP|ILS|NIS|CAD|AUD|ש[״"']?ח|שקל(?:ים)?)\b)"""
+_AMOUNT_UNIT = r"(?:k|m|thousand|אלף)\b"
 _MONEY_AMOUNT_RE = re.compile(
-    rf"{_CURRENCY}\s*{_AMOUNT}(?:\s*[kKmM]\b)?|"
-    rf"(?<!\w){_AMOUNT}(?:\s*[kKmM]\b)?\s*{_CURRENCY}",
+    rf"{_CURRENCY}\s*{_AMOUNT}(?:\s*{_AMOUNT_UNIT})?|"
+    rf"(?<!\w){_AMOUNT}(?:\s*{_AMOUNT_UNIT})?\s*{_CURRENCY}",
     re.IGNORECASE,
 )
 _PAY_CONTEXT_RE = re.compile(
-    r"\b(?:salary|salaries|pay|compensation|שכר|up\s+to|עד)\b|"
+    r"\b(?:salary|salaries|pay|compensation|שכר)\b|"
     r"(?:/|\bper\s+)(?:hour|month|year|annum)\b|"
     r"\b(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b",
     re.IGNORECASE,
 )
 _CONTEXT_AMOUNT_RE = re.compile(
+    rf"\b(?:up\s+to|עד)\s+{_AMOUNT}(?![\w%])|"
     rf"(?<!\w){_AMOUNT}\s*(?:k|thousand|אלף)\b|"
     r"\b(?:salary|pay|compensation|שכר|up\s+to|עד)\s*:?\s+(?:is\s+)?"
     r"(?:\d{1,3}(?:[, ]\d{3})+|\d{4,})(?![\w%])|"
@@ -225,12 +227,24 @@ _CONTEXT_AMOUNT_RE = re.compile(
     r"(?:annually|monthly|yearly|hourly|בחודש|לחודש|לשנה|בשנה|לשעה)\b)",
     re.IGNORECASE,
 )
+# Qualifiers do not establish pay on their own for small counts or calendar years.
+_QUALIFIED_AMOUNT_RE = re.compile(
+    rf"\b(?:up\s+to|עד)\s+(?:{_AMOUNT}\s*(?:k|thousand|אלף)\b|"
+    r"(?:\d{2,3}(?:[, ]\d{3})+|\d{5,})(?![\w%]))",
+    re.IGNORECASE,
+)
 _RETIREMENT_RE = re.compile(
     r"\b401\s*(?:\(k\)|k)(?!\w)|"
     rf"(?<!\w){_AMOUNT}\s*k\s+(?:retirement|pension)(?:[- ]plan)?\b",
     re.IGNORECASE,
 )
-_FUNDING_RE = re.compile(r"\b(?:raised|funding|series\s+[a-z])\b", re.IGNORECASE)
+_FUNDING_RE = re.compile(
+    r"\bfunding\s+of\b|"
+    r"(?=.*\b(?:raised|funding)\b)"
+    rf"(?=.*(?:\b(?:series\s+[a-z]|seed|round|investors?|valuation)\b|"
+    rf"\$\s*{_AMOUNT}\s*[mb]\b))",
+    re.IGNORECASE,
+)
 
 
 def has_numeric_salary(value: str) -> bool:
@@ -239,7 +253,7 @@ def has_numeric_salary(value: str) -> bool:
     for clause in re.split(r"[;\n]|(?<=[.!?])\s+", value):
         if _FUNDING_RE.search(clause):
             continue
-        if _MONEY_AMOUNT_RE.search(clause) or (
+        if _MONEY_AMOUNT_RE.search(clause) or _QUALIFIED_AMOUNT_RE.search(clause) or (
             _PAY_CONTEXT_RE.search(clause) and _CONTEXT_AMOUNT_RE.search(clause)
         ):
             return True

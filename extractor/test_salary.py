@@ -9,6 +9,56 @@ from extractor.payload import build_payload
 from extractor.test_core import facts, posting, runner_for, RAW_JD
 from scraper.brain_contract import BrainValidationError
 
+# Shared extraction/SQL regression corpus from both round-2 reviews and the fix brief.
+ROUND2_SALARY_CASES = [
+    ("30 אלף שקל", True), ("30 אלף שקלים", True), ("30 אלף ₪", True),
+    ("₪30 אלף", True), ("30 שקל", True), ("30 שקלים", True),
+    ('30 ש"ח', True), ("30 ₪", True), ("30 K שקל", True),
+    ("30 thousand שקל", True), ("₪30 thousand", True),
+    ("salary raised to $150k", True), ("pay raised to $150k", True),
+    ("compensation raised to $150k", True),
+    ("up to 2026 graduates", False), ("up to 500 employees", False),
+    ("up to 180000", True), ("up to $200k", True), ("up to 150,000 EUR", True),
+    ("up to 2026", False), ("up to 500", False), ("up to 5000", False),
+    ("up to 5000 salary", True), ("up to 500 K", True),
+    ("up to 500 salary", True), ("pay up to 500", True),
+    ("raised $10M", False), ("Series B funding of $50M", False),
+    ("raised a seed round of $500k", False), ("funding from investors: $500k", False),
+    ("funding of $500k", False), ("raised $2B", False),
+    ("401(k) match up to 6%", False), ("$5k signing bonus", True),
+    ("bonus of $5k", True), ("competitive, DOE", False), ("₪", False),
+    ("25-30", False), ("€70.000", True), ("USD 120K-150K", True),
+    ("$40/hr", True), ("2026 graduates", False), ("24/7 on-call", False),
+    ("שכר 30 אלף שקל", True), ("עד 30 אלף שקל", True),
+    ("salary 120k + 401(k) match up to 6%", True),
+    ("401k", False), ("competitive salary + 401k", False), ("2026", False),
+    ("שכר 35000 בחודש", True), ('35,000 ש״ח לחודש', True),
+    ("35,000 שקלים בחודש", True), ("שכר 25,000-30,000 ₪", True),
+    ("עד 35 אלף", True), ("₪30K", True),
+    ("401(k)", False), ("401k matching", False),
+    ("raised at a valuation of $500k", False), ("funding $10M", False),
+    ("78,100 to 88,950", False),
+    ("Engineer Level One 90000 to 120000 requires a Bachelor of Science degree\n\n"
+     "Engineer Level Two 110000 to 140000 requires BS plus 2 years or MS plus 0 years\n\n"
+     "Staff Engineer 130000 to 160000 requires BS plus 5 years MS plus 3 years or PhD", False),
+]
+
+
+@pytest.mark.parametrize("salary, numeric", ROUND2_SALARY_CASES)
+def test_round2_salary_extraction_and_payload(salary, numeric):
+    candidate = facts()
+    candidate["salary"] = {"value": salary, "evidence_quote": salary}
+    raw_jd = RAW_JD + "\n" + salary
+    result = core.extract_posting(posting(raw_jd), {}, runner=runner_for(candidate))
+    expected = deepcopy(candidate)
+    if not numeric:
+        expected["salary"] = {"value": None, "evidence_quote": None}
+        expected["salary_remark"] = salary
+    assert result["facts"] == expected
+    assert build_payload(result, raw_jd).facts == expected
+    assert candidate["salary"]["value"] == salary
+
+
 TRIAGE_SALARIES = [
     "highly competitive salaries",
     "highly competitive salaries",
