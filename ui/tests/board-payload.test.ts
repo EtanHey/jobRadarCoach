@@ -47,7 +47,7 @@ test("all list paths select only JSON keys used by the board", async () => {
     assert.ok(selected.includes("alive:liveness->alive"), selected);
     assert.ok(selected.includes("linkedin_closed_signal:liveness->linkedin_closed_signal"), selected);
     assert.ok(selected.includes("relevance_rule:relevance_gate->rule"), selected);
-    assert.doesNotMatch(selected, /(?:^|[,()])(?:score_payload|liveness|relevance_gate|salary|posting_extractions)(?:[,()]|$)/);
+    assert.doesNotMatch(selected, /(?:^|[,()])(?:raw_jd|score_payload|liveness|relevance_gate|salary|posting_extractions)(?:[,()]|$)/);
   }
 });
 
@@ -56,7 +56,9 @@ test("projected rows preserve card, filter, dedup and archive data", async () =>
     const row = { ...slim(), ...overrides };
     const alternate = { id: "00000000-0000-4000-8000-000000000002", source: "greenhouse", posted_at: "2026-10-01T00:00:00Z" };
     const db = createClient("https://database.example.test", "synthetic", { auth: { persistSession: false }, global: {
-      fetch: async () => new Response(JSON.stringify([row, { ...row, ...alternate }]), { headers: { "content-type": "application/json" } }),
+      fetch: async input => Response.json(new URL(String(input)).searchParams.get("select") === "id,identity_evidence:raw_jd"
+        ? [{id,identity_evidence:null},{id:alternate.id,identity_evidence:null}]
+        : [row, { ...row, ...alternate }]),
     } });
     const jobs = await selectSummaries(db, { filter: "all", availability: "all", sort: "fit", limit: 100 });
     const old = { ...raw, ...overrides, ...(overrides.posting_scores === null ? { liveness: null } : {}) };
@@ -129,4 +131,42 @@ test("detail by ID retains full score and drawer metadata", async () => {
 
 test("every optional and required list field has an explicit database alias", () => {
   assert.deepEqual(Object.keys(BOARD_FIELD_ALIASES).sort(), Object.keys(JobListItemSchema.shape).sort());
+});
+
+test("JD identity reaches all board list paths and globe schema without sending the body", async () => {
+  const { GlobeJobSchema } = await import("../lib/globe-contract");
+  const { groupDuplicateJobs } = await import("../lib/job-dedup");
+  const rows = [slim(),{...slim(),id:"00000000-0000-4000-8000-000000000002",title:"Changed title"}];
+  const db = createClient("https://database.example.test", "synthetic", {global: {fetch: async input => {
+    const selected = new URL(String(input)).searchParams.get("select") ?? "";
+    if (selected === "id,identity_evidence:raw_jd") {
+      return Response.json(rows.map(row=>({id:row.id,identity_evidence:"Build reliable services. ".repeat(20)})));
+    }
+    assert.doesNotMatch(selected,/raw_jd/u);
+    return Response.json(rows);
+  }}});
+  const base = {filter: "all", availability: "all", limit: 100} as const;
+  for (const input of [base, {...base, sort: "fit" as const}, {...base, ids: [id]}]) {
+    const wire = JobListResponseSchema.parse({jobs: await selectSummaries(db,input)}).jobs;
+    assert.equal("raw_jd" in wire[0], false);
+    assert.ok(wire[0].vacancy_identity?.jd_fingerprint);
+    assert.equal(groupDuplicateJobs(wire.map(row => GlobeJobSchema.parse(row))).length, 1);
+  }
+});
+
+test("all board list paths survive a JD evidence read failure", async (t) => {
+  const errors = t.mock.method(console,"error",()=>{});
+  const rows = [slim(), {...slim(),id:"00000000-0000-4000-8000-000000000002"}];
+  const db = createClient("https://database.example.test", "synthetic", {global:{fetch:async input => {
+    const selected = new URL(String(input)).searchParams.get("select");
+    if (selected === "id,identity_evidence:raw_jd") return Response.json({message:"unavailable"},{status:400});
+    return Response.json(rows);
+  }}});
+  const base = {filter:"all",availability:"all",limit:100} as const;
+  for (const input of [base,{...base,sort:"fit" as const},{...base,ids:[id]}]) {
+    const wire = JobListResponseSchema.parse({jobs:await selectSummaries(db,input)}).jobs;
+    assert.equal(wire.length,2);
+    assert.ok(wire.every(row=>row.vacancy_identity?.jd_fingerprint === null));
+  }
+  assert.equal(errors.mock.callCount(),3);
 });

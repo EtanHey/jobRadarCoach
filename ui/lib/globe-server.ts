@@ -1,4 +1,5 @@
 import "server-only";
+import { withVacancyIdentity } from "./vacancy-server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { GlobeJobSchema, type GlobeJob, GlobePointSchema, type GlobePoint, type GlobeQuery, type GlobeResponse } from "./globe-contract";
 import { client, data } from "./server";
@@ -14,7 +15,7 @@ export function getGlobeStore(db: SupabaseClient = client()): GlobeStore {
     if (!raw || typeof raw !== "object" || !("jobs" in raw) || !("geo" in raw) || !Array.isArray(raw.geo)) {
       throw new HttpError(503, "Geographic data unavailable.");
     }
-    return { jobs: GlobeJobSchema.array().parse(raw.jobs), geo: raw.geo };
+    return { jobs: await withVacancyIdentity(db, GlobeJobSchema.array().parse(raw.jobs)), geo: raw.geo };
   } };
 }
 export async function globeResponse(store: GlobeStore, input: GlobeQuery): Promise<GlobeResponse> {
