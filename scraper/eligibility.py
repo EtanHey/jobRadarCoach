@@ -507,16 +507,25 @@ def _positive_nonown_signal(clause: str, own_location: str, company: str) -> boo
                 for place in [match_description_place(slot, word.start(), strip_hebrew_prefix=True)]
             ):
                 return True
-            # Lists explicitly label geography. A bare destination in a role
-            # restriction or applicant-base relation also remains unresolved.
-            # Residual qualification phrases cannot acquire that context.
-            if not languages and (
+            # Base/from relations label a destination even when every operand
+            # is unfamiliar or multiword. 'Candidates with ...' does not.
+            relation = re.match(r"^(?:from|in|of|based in|located in)\s+(.+)", slot, re.I)
+            destination = (
+                re.split(r"\s+with\s+", relation[1], maxsplit=1, flags=re.I)[0]
+                if relation else slot
+            )
+            explicit_destination = (
+                pattern is APPLICANT_SCOPE_FRAMES[0]
+                or (pattern in ROLE_SCOPE_FRAMES and relation is not None)
+            )
+            bare_destination = not languages and (
                 pattern is ROLE_SCOPE_FRAMES[-1]
                 or (re.fullmatch(r"[^\W\d_]+", slot)
-                    and (pattern in ROLE_SCOPE_FRAMES
-                         or pattern is APPLICANT_SCOPE_FRAMES[0]
-                         or re.match(r"מ[א-ת]+$", slot)))
-            ) and _nonown_work_destination(slot, own_location):
+                    and (pattern in ROLE_SCOPE_FRAMES or re.match(r"מ[א-ת]+$", slot)))
+            )
+            if ((explicit_destination or bare_destination)
+                    and not _is_israeli_slot(destination)
+                    and _nonown_work_destination(destination, own_location)):
                 return True
     for residence in COUNTRY_FIRST_RESIDENCE.finditer(clause):
         if "foreign" in _scope(residence["slot"], 0).kinds:
@@ -799,18 +808,20 @@ def _applicant_scope_slot(frame: re.Match) -> str:
     slot = frame["slot"]
     if not re.match(r"[- ]based\b", frame.string[frame.end("slot"):], re.I):
         return slot
-    # Greedy X-based captures may begin with recruiting prose. Resolve a place
-    # suffix, preserving every subsequent operand rather than its last place.
-    for word in re.finditer(r"\b\w", slot):
-        tail = slot[word.start():]
-        place = match_description_place(tail, strip_hebrew_prefix=True)
-        if place:
-            return tail
-        if FOREIGN_NATIONALITY.match(tail) or COUNTRY_NATIONALITY.match(tail):
-            return tail
-        if _is_israeli_slot(tail):
-            return tail
-    return slot
+    # Remove only a bounded recruiting head, never words preceding a recognized
+    # place: an unfamiliar first operand still belongs to the destination list.
+    slot = re.sub(
+        r"^(?:we\s+(?:only\s+)?(?:welcome|seek|accept|(?:are\s+)?"
+        r"(?:seeking|hiring|recruiting|looking\s+for))\s+|"
+        r"(?:(?:this|the)\s+)?(?:role|position|job|hiring)\s+(?:is\s+)?"
+        r"(?:limited|restricted)\s+to\s+|open\s+to\s+)",
+        "", slot, count=1, flags=re.I,
+    )
+    slot = re.sub(
+        rf"^{APPLICANT}\s+(?:must|should|need\s+to|are\s+required\s+to)\s+be\s+",
+        "", slot, count=1, flags=re.I,
+    )
+    return re.sub(r"^only\s+", "", slot, count=1, flags=re.I)
 
 
 def _is_israeli_slot(slot: str) -> bool:

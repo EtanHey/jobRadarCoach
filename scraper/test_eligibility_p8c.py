@@ -240,3 +240,18 @@ def test_unknown_scope_repair_preserves_own_qualification_and_p8g_controls(jd):
     assert decide_location_eligibility(
         {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
     )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "Only Tel Aviv-based applicants may apply",
+    "This role is limited to Israel-based candidates",
+    "We are looking for Israel-based candidates",
+    "We only welcome Israel-based candidates",
+])
+def test_bounded_recruiting_heads_keep_own_applicant_bases(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
