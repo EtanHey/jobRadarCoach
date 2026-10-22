@@ -88,6 +88,21 @@ def test_unresolved_address_destination(detail):
     assert decide_location_eligibility({'location': 'Tel Aviv', 'raw_jd': jd}, None, PROFILE)['eligibility'] == 'unknown'
 
 
+@pytest.mark.parametrize('jd', [
+    'Hybrid in our Tel Aviv office, in the heathrow tower',
+    'Hybrid in our Tel Aviv office, in the Heathrow Tower',
+    'Hybrid in our Tel Aviv office, in the HeAtHrOw ToWeR',
+    'Hybrid in our Tel Aviv office, at the heathrow building',
+    'Hybrid in our Tel Aviv office, at the Heathrow Building',
+    'Hybrid in the heathrow tower, in our Tel Aviv office',
+    'In the heathrow tower, hybrid in our Tel Aviv office',
+])
+def test_unresolved_building_destination_survives_own_city_cleanup(jd):
+    result = decide_location_eligibility({'location': 'Tel Aviv', 'raw_jd': jd}, None, PROFILE)
+    assert result['eligibility'] == 'unknown'
+    assert result['eligibility_reason'].startswith('unresolved location restriction:')
+
+
 @pytest.mark.parametrize('detail', [
     'close to the light rail',
     'next to the train station',
