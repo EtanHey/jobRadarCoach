@@ -8,7 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from extractor.evidence import hybrid_evidence
+from extractor.evidence import attendance_evidence
 
 
 def report(snapshot: Path) -> str:
@@ -19,15 +19,17 @@ def report(snapshot: Path) -> str:
     for row in rows:
         old = {key: row.get(key) for key in ("work_mode", "remote", "work_mode_source")}
         new = dict(old)
-        evidence = hybrid_evidence(row.get("raw_jd") or "")
+        evidence = attendance_evidence(row.get("raw_jd") or "")
         if evidence is not None:
-            new.update(work_mode="hybrid", remote=None, work_mode_source="extracted")
+            mode, quote = evidence
+            new.update(work_mode=mode, remote=False if mode == "on-site" else None,
+                       work_mode_source="extracted")
         before[old["work_mode"] or "unknown"] += 1
         after[new["work_mode"] or "unknown"] += 1
         if old != new:
             changed.append({
                 "id": row["id"], "company": row.get("company"), "title": row.get("title"),
-                "before": old, "after": new, "evidence": evidence,
+                "before": old, "after": new, "evidence": quote,
             })
     lines = [
         "# WORKMODE offline snapshot projection", "",

@@ -7,13 +7,13 @@ import re
 from extractor.quotes import ExtractionValidationError, validate_quote
 from extractor.salary import normalize_salary
 
-_DAYS = r"(?:[1-9]\d?|one|two|three|four|five)\s+days?"
+_DAYS = r"(?:[1-4]|one|two|three|four)\s+days?"
 _WEEK = r"(?:(?:a|per|each)\s+week|weekly)"
 _OFFICE = r"(?:in|at|from)\s+(?:(?:the|our)\s+)?office"
 _HYBRID_POLICY_RE = re.compile(
     rf"\b(?:{_DAYS}\s+(?:{_WEEK}\s+)?{_OFFICE}|"
     rf"{_OFFICE}\s+(?:for\s+)?{_DAYS}\s+{_WEEK})\b|"
-    r"\b(?:[1-9]\d?\s+ימים|יומיים)\s+(?:בשבוע\s+)?במשרד\b|"
+    r"\b(?:[1-4]\s+ימים|יומיים)\s+(?:בשבוע\s+)?במשרד\b|"
     r"\bhybrid[ -](?:work(?:ing)?|schedule|arrangement|policy)\b|"
     r"\b(?:work(?:ing)?\s+(?:in|on)|work[ -]model\s*:)\s+(?:a\s+)?hybrid\b|"
     r"\b(?:this|the)\s+(?:is\s+an?\s+)?hybrid\s+(?:role|position)\b|"
@@ -31,21 +31,45 @@ _OPTIONAL_ATTENDANCE_RE = re.compile(
 )
 
 
-def hybrid_evidence(raw_jd: str) -> str | None:
-    """Match hybrid employment frames and counted office schedules in the full JD."""
-    for match in _HYBRID_POLICY_RE.finditer(raw_jd):
-        start = max(raw_jd.rfind(boundary, 0, match.start()) for boundary in ".!?;\n") + 1
-        ends = [position for boundary in ".!?;\n"
-                if (position := raw_jd.find(boundary, match.end())) >= 0]
-        end = min(ends, default=len(raw_jd))
-        before, after = raw_jd[start:match.start()], raw_jd[match.end():end]
-        before = re.split(r"\b(?:but|however)\b", before, flags=re.I)[-1]
-        if _OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
-            r"\s+(?:(?:is|are)\s+)?(?:optional|not\s+required)\b", after, re.I,
-        ):
-            continue
-        return raw_jd[start:end].strip()
+_FULL_OFFICE_RE = re.compile(
+    rf"\b(?:(?:5|five)\s+days\s+{_WEEK}\s+{_OFFICE}|"
+    rf"{_OFFICE}\s+(?:for\s+)?(?:5|five)\s+days\s+{_WEEK}|"
+    rf"5/5\s+days\s+{_OFFICE}|(?:5|five)\s+office\s+days|"
+    rf"full[ -]time\s+{_OFFICE}|fully\s+in[ -]person)\b|"
+    r"\b5\s+ימים\s+בשבוע\s+במשרד\b", re.IGNORECASE,
+)
+_OTHER_ROLE_SCOPE_RE = re.compile(
+    r"\b(?:some|other|certain)\s+(?:\w+[ -]){0,4}(?:roles?|positions?|teams?)\b",
+    re.IGNORECASE,
+)
+_CONTRAST_RE = re.compile(r"\b(?:but|however|whereas)\b", re.IGNORECASE)
+
+
+def attendance_evidence(raw_jd: str) -> tuple[str, str] | None:
+    """Resolve role-scoped attendance; a full office week is not hybrid."""
+    for mode, pattern in (("on-site", _FULL_OFFICE_RE), ("hybrid", _HYBRID_POLICY_RE)):
+        for match in pattern.finditer(raw_jd):
+            start = max(raw_jd.rfind(boundary, 0, match.start()) for boundary in ".!?;\n") + 1
+            ends = [position for boundary in ".!?;\n"
+                    if (position := raw_jd.find(boundary, match.end())) >= 0]
+            end = min(ends, default=len(raw_jd))
+            before = _CONTRAST_RE.split(raw_jd[start:match.start()])[-1]
+            after = _CONTRAST_RE.split(raw_jd[match.end():end])[0]
+            clause = before + match.group() + after
+            if _OTHER_ROLE_SCOPE_RE.search(clause):
+                continue
+            if _OPTIONAL_ATTENDANCE_RE.search(before) or re.match(
+                r"\s+(?:(?:is|are)\s+)?(?:optional|not\s+required)\b", after, re.I,
+            ):
+                continue
+            return mode, clause.strip()
     return None
+
+
+def hybrid_evidence(raw_jd: str) -> str | None:
+    """Compatibility projection for callers interested only in hybrid evidence."""
+    evidence = attendance_evidence(raw_jd)
+    return evidence[1] if evidence and evidence[0] == "hybrid" else None
 
 
 _REMOTE_WORD = r"\bremote(?:ly)?\b"
@@ -112,8 +136,9 @@ def _remote_quote_value(quote: str) -> bool | None:
 
 
 def _remote_source_values(quote: str, raw_jd: str) -> set[bool | None]:
-    if hybrid_evidence(raw_jd) is not None:
-        return {None}
+    attendance = attendance_evidence(raw_jd)
+    if attendance is not None:
+        return {False if attendance[0] == "on-site" else None}
     values: set[bool | None] = set()
     offset = 0
     while (quote_start := raw_jd.find(quote, offset)) >= 0:

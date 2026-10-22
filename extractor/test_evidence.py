@@ -114,6 +114,53 @@ def test_non_attendance_mentions_preserve_explicit_remote(condition):
     }
 
 
+@pytest.mark.parametrize("condition", [
+    "Some roles in our sales team are being hired for in-person hybrid work.",
+    "Other platform roles require 3 days a week in the office.",
+    "Hybrid work is required for other engineering teams.",
+    "Certain teams work in the office 5 days per week.",
+])
+def test_other_role_attendance_preserves_this_roles_remote_evidence(condition):
+    raw_jd = f"Remote work is available. {condition}"
+    assert derive_remote_fact("Remote work is available", raw_jd) == {
+        "value": True, "evidence_quote": "Remote work is available",
+    }
+
+
+@pytest.mark.parametrize(("condition", "mode"), [
+    ("This role requires 5 days a week from our office.", "on-site"),
+    ("This role requires five office days per week.", "on-site"),
+    ("You must be in the office five days per week.", "on-site"),
+    ("This role is full-time in office.", "on-site"),
+    ("Our work model is fully in person.", "on-site"),
+    ("This role requires 5/5 days in the office.", "on-site"),
+    ("נדרשים 5 ימים בשבוע במשרד.", "on-site"),
+    ("This role requires four days a week in the office.", "hybrid"),
+    ("All staff work in the office 3 days per week.", "hybrid"),
+    ("Other roles work remotely; this role requires five office days.", "on-site"),
+    ("Other teams work remotely, but this role requires 3 days a week in office.", "hybrid"),
+    ("You may work in office five days per week.", None),
+    ("No full-time in office attendance is required.", None),
+    ("10 days in the office for onboarding.", None),
+    ("5 days in the office for onboarding.", None),
+    ("25 days in office annually.", None),
+])
+def test_attendance_classifies_full_and_partial_office_schedules(condition, mode):
+    from extractor.evidence import attendance_evidence
+
+    evidence = attendance_evidence(condition)
+    assert (evidence[0] if evidence else None) == mode
+    if evidence:
+        assert evidence[1] in condition
+
+
+def test_full_time_office_condition_blocks_remote_quote():
+    raw_jd = "Remote work is available. This role requires five office days per week."
+    assert derive_remote_fact("Remote work is available", raw_jd) == {
+        "value": None, "evidence_quote": None,
+    }
+
+
 @pytest.mark.parametrize("quote", [
     "We are a remote-first company.",
     "Our engineering team works remotely.",
