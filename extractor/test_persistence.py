@@ -20,6 +20,7 @@ from extractor.test_salary import (
 )
 from scraper.brain_contract import BrainTransportError
 from scraper.database import persist_postings
+from scraper.employer_identity import resolve_employer
 
 psycopg = pytest.importorskip("psycopg")
 
@@ -34,6 +35,10 @@ FACTS = {
     "stack": [{"value": "TypeScript", "evidence_quote": "TypeScript"}],
     "salary": {"value": "120,000 USD annually", "evidence_quote": "120,000 USD annually"},
 }
+
+def salary_facts(stored_facts: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in stored_facts.items() if key != "employer_identity"}
+
 
 def extraction(
     raw_jd: str = RAW_JD,
@@ -141,6 +146,7 @@ def test_success_updates_fields_and_preserves_identity_history_and_status(connec
     state = durable_state(connection, posting_id)
     assert state[:5] == ("Tel Aviv", True, "Senior", ["TypeScript"], "120,000 USD annually")
     expected = extraction()
+    expected["facts"]["employer_identity"] = resolve_employer("Original company", RAW_JD, "lane3d")
     assert state[5:12] == tuple(expected[key] for key in (
         "brain", "model", "extractor_version", "schema_sha256", "jd_sha256", "fingerprint", "facts"
     ))
@@ -163,7 +169,9 @@ def test_unknown_facts_preserve_known_columns_but_remain_truthful_in_metadata(co
     assert durable_state(connection, posting_id)[:5] == (
         "Original place", False, "Original seniority", ["Original stack"], "Original salary"
     )
-    assert durable_state(connection, posting_id)[11] == unknown
+    assert durable_state(connection, posting_id)[11] == {
+        **unknown, "employer_identity": resolve_employer("Original company", RAW_JD, "lane3d"),
+    }
 
 
 def test_exact_repeat_has_no_churn_and_currentness_requires_exact_observed_identity(connection) -> None:
@@ -263,6 +271,21 @@ def test_location_hybrid_survives_extraction_and_rescrape(connection, remote):
     assert connection.execute(query, (posting_id,)).fetchone() == expected
 
 
+def test_employer_identity_is_additive_and_refreshes_legacy_extractions(connection):
+    raw_jd = "**Monday.com** is the employer — EngRadar is a job radar, not a recruiter."
+    posting_id = insert_posting(connection, raw_jd)
+    connection.execute("update public.postings set company='EngRadar' where id=%s", (posting_id,))
+    facts = {key: [] if key == 'stack' else {'value': None, 'evidence_quote': None} for key in FACTS}
+    result = extraction(raw_jd=raw_jd, facts=facts)
+    persistence.persist_extraction(connection, posting_id, raw_jd, result)
+    stored = durable_state(connection, posting_id)[11]
+    assert stored['employer_identity']['hiring_employer'] == 'Monday.com'
+    assert {key: value for key, value in stored.items() if key != 'employer_identity'} == facts
+    identity = {key: result[key] for key in ('brain', 'model', 'extractor_version', 'schema_sha256')}
+    connection.execute("update public.posting_extractions set facts=facts-'employer_identity' where posting_id=%s", (posting_id,))
+    assert not persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
+    assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == 'stored'
+    assert persistence.has_current_extraction(connection, posting_id, raw_jd, **identity)
 @pytest.mark.parametrize("existing", ["competitive salary", "Competitive Salary", None, "$180,000 annually"])
 def test_nonnumeric_salary_persists_remark_and_clears_only_matching_boilerplate(
     connection, existing,
@@ -313,7 +336,7 @@ def test_salary_evidence_survives_extraction_and_database_readback(connection, s
     ).fetchone()
     expected = expected_salary_facts(candidate, salary, numeric)
     assert stored_salary == expected["salary"]["value"]
-    assert stored_facts == expected
+    assert salary_facts(stored_facts) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
@@ -359,7 +382,7 @@ def test_round8_case_insensitive_salary_persists_other_facts(connection, quote, 
     expected = deepcopy(candidate)
     expected["salary"] = {"value": span, "evidence_quote": quote if span else None}
     expected["salary_remark"] = remark
-    assert state[11] == expected
+    assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
@@ -383,7 +406,7 @@ def test_review_base_counts_do_not_abort_other_fact_persistence(connection, sala
     expected = deepcopy(candidate)
     expected["salary"] = {"value": None, "evidence_quote": None}
     expected["salary_remark"] = salary
-    assert state[11] == expected
+    assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"
 
 
@@ -408,5 +431,5 @@ def test_list_governor_salary_persists_other_facts(connection, salary, span, exi
     expected["salary"] = {"value": span, "evidence_quote": salary if span else None}
     if span != salary:
         expected["salary_remark"] = salary
-    assert state[11] == expected
+    assert salary_facts(state[11]) == expected
     assert persistence.persist_extraction(connection, posting_id, raw_jd, result) == "unchanged"

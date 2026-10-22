@@ -16,7 +16,7 @@ const raw = {
   url: signal.url, apply_url: "https://example.test/job", relevance_filtered: false,
   relevance_gate: { rule: "synthetic", evidence: "unused".repeat(100) },
   list_metadata: { stack: ["React"], experience: "3 years", description_available: true },
-  posting_extractions: { posting_id: id }, posting_status: { status: "applied", reason: "Owner wording" },
+  posting_extractions: { posting_id: id, employer_identity: { publisher: "Synthetic Example", hiring_employer: "Acme Labs", employer_evidence: "Our client Acme Labs is hiring", resolver_version: "1" } }, posting_status: { status: "applied", reason: "Owner wording" },
   posting_scores: { score: 82, score_payload: { recommendation: "apply", fit_line: "Synthetic fit", reasons: ["unused".repeat(100)] } },
   liveness: { alive: false, linkedin_closed_signal: signal, history: "unused".repeat(100) },
 };
@@ -26,7 +26,7 @@ const slim = () => {
     experience: list_metadata.experience, alive: liveness.alive, linkedin_reposted_signal: null, linkedin_closed_signal: signal,
     posting_scores: { score: posting_scores.score, recommendation: "apply", fit_line: "Synthetic fit" } };
   delete projected.salary;
-  delete projected.posting_extractions;
+
   return projected;
 };
 
@@ -42,12 +42,13 @@ test("all list paths select only JSON keys used by the board", async () => {
   const queries: JobListQuery[] = [base, { ...base, sort: "fit" }, { ...base, ids: [id] }, { ...base, filter: "applied", since: "2026-10-01T00:00:00Z" }];
   for (const query of queries) await selectSummaries(db, query);
   for (const selected of selections) {
+    assert.ok(selected.includes("posting_extractions(employer_identity:facts->employer_identity)"));
     assert.ok(selected.includes("recommendation:score_payload->recommendation"), selected);
     assert.ok(selected.includes("fit_line:score_payload->fit_line"), selected);
     assert.ok(selected.includes("alive:liveness->alive"), selected);
     assert.ok(selected.includes("linkedin_closed_signal:liveness->linkedin_closed_signal"), selected);
     assert.ok(selected.includes("relevance_rule:relevance_gate->rule"), selected);
-    assert.doesNotMatch(selected, /(?:^|[,()])(?:raw_jd|score_payload|liveness|relevance_gate|salary|posting_extractions)(?:[,()]|$)/);
+    assert.doesNotMatch(selected, /(?:^|[,()])(?:raw_jd|score_payload|liveness|relevance_gate|salary|facts)(?:[,()]|$)/);
   }
 });
 
@@ -150,6 +151,7 @@ test("JD identity reaches all board list paths and globe schema without sending 
     const wire = JobListResponseSchema.parse({jobs: await selectSummaries(db,input)}).jobs;
     assert.equal("raw_jd" in wire[0], false);
     assert.ok(wire[0].vacancy_identity?.jd_fingerprint);
+    assert.deepEqual(wire[0].employer_identity, raw.posting_extractions.employer_identity);
     assert.equal(groupDuplicateJobs(wire.map(row => GlobeJobSchema.parse(row))).length, 1);
   }
 });
