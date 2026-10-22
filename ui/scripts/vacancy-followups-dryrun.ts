@@ -7,7 +7,7 @@ import { z } from "zod";
 import { GlobeJobSchema } from "../lib/globe-contract";
 import { groupDuplicateJobs } from "../lib/job-dedup";
 import { vacancyIdentity } from "../lib/vacancy-identity";
-import { withVacancyIdentity } from "../lib/vacancy-server";
+import { vacancyBodyCandidates, withVacancyIdentity } from "../lib/vacancy-server";
 
 async function main() {
   const [snapshotPath, reportPath, baselineRef = "17977d668149f437b31b866975688cdd56e719bd"] = process.argv.slice(2);
@@ -48,7 +48,9 @@ async function main() {
     const beforeRows = await oldServer.withVacancyIdentity(db, jobs);
     const beforeBatches = batches.splice(0);
     const afterRows = await withVacancyIdentity(db, jobs);
-    assert.ok(batches.reduce((sum,size) => sum+size,0) <= 300);
+    const candidateCount = vacancyBodyCandidates(jobs).length;
+    assert.equal(batches.reduce((sum,size) => sum+size,0),candidateCount);
+    assert.ok(batches.every(size => size <= 100));
     assert.ok(afterRows.every(row => !("raw_jd" in row) && !("identity_evidence" in row)));
     const before = baseline.groupDuplicateJobs(beforeRows), after = groupDuplicateJobs(afterRows);
     const members = (group: typeof after[number]) => [group.job, ...group.alternates];
@@ -73,12 +75,12 @@ async function main() {
       `Snapshot SHA-256: ${createHash("sha256").update(snapshot).digest("hex")}.`,
       `Rows retained: ${covered.length}/${jobs.length}. Groups: ${before.length} → ${after.length}; delta ${after.length-before.length} versus 574.`,
       `Different known-requisition set merges: ${conflicts.length}. Changed group memberships: ${changed.length} rows.`,
-      `Body batches before: ${beforeBatches.join(", ")}; after: ${batches.join(", ")}.`, "",
+      `Body candidates: ${candidateCount}; batches before (capped baseline): ${beforeBatches.join(", ")}; after (all candidates, 100-ID maximum): ${batches.join(", ")}.`, "",
       `Normalized body distribution over all ${lengths.length} rows (using baseline normalization): empty ${lengths.filter(n=>n===0).length}; 1–399 ${lengths.filter(n=>n>0&&n<400).length}; 400–999 ${lengths.filter(n=>n>=400&&n<1000).length}; >=1000 ${lengths.filter(n=>n>=1000).length}.`,
       `Minimum nonempty length: ${lengths.find(n=>n>0)}. 400 characters rejects the two snippet bodies while retaining all ${lengths.filter(n=>n>=400).length} longer bodies.`, "",
       `Changed hydrated identities: ${changedIdentities.length}.`, ...changedIdentities.map(id => `- ${id}: ${JSON.stringify(beforeRows.find(row=>row.id===id)?.vacancy_identity)} → ${JSON.stringify(afterRows.find(row=>row.id===id)?.vacancy_identity)}`), "",
       "## Group changes", "", ...changed.map(row => `- ${row.id}: ${oldMembership.get(row.id)} → ${newMembership.get(row.id)}`),
-      ...(changed.length ? [] : ["No membership changes: items 1/3/4 change no visible grouping in the capped snapshot. The shorter bodies and removed Job-number label do not supply a decisive cross-title match; no identical multi-requisition set changes a group."]), "",
+      ...(changed.length ? [] : ["No membership changes: items 1/3/4 change no visible grouping against the capped baseline snapshot. The shorter bodies and removed Job-number label do not supply a decisive cross-title match; no identical multi-requisition set changes a group."]), "",
       "Offline snapshot-backed Supabase enrichment only; no production writes, browser verification or hosted CI claim.", ""];
     writeFileSync(reportPath, lines.join("\n"));
     process.stdout.write(lines.slice(0,8).join("\n") + "\n");
