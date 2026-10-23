@@ -187,3 +187,182 @@ def test_scope_slot_keeps_geography_separate_from_qualifications(jd, expected):
     assert decide_location_eligibility(
         {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
     )["eligibility"] == expected
+
+
+@pytest.mark.parametrize("jd", [
+    # R1: recruiting prose must not consume an unresolved list operand.
+    "We welcome Atlantis and Israel-based candidates",
+    "We welcome Atlantis or Israel-based candidates",
+    "We are seeking New Atlantis and Tel Aviv-based applicants",
+    "Applicants must be New Atlantis and Israel-based candidates",
+    # R2: the base/from relation supplies context independently of word count.
+    "We welcome Atlantis-based candidates",
+    "This role is limited to candidates from Atlantis",
+    "Israel and Atlantis-based applicants may apply",
+    "We welcome New Atlantis-based candidates",
+    "We are seeking New Atlantis-based applicants",
+    "Applicants must be New Atlantis-based candidates",
+    "This role is limited to candidates from New Atlantis",
+    "The position is restricted to applicants located in New Atlantis",
+    "This role is limited to candidates from Israel and Atlantis",
+    "This role is limited to candidates from New Atlantis with Python experience",
+    "We welcome Israel and New Atlantis-based candidates with German-speaking skills",
+])
+@pytest.mark.parametrize("lowercase", [False, True])
+def test_explicit_unknown_applicant_destinations_preserve_complete_scope(jd, lowercase):
+    from scraper.eligibility import _positive_nonown_signal
+
+    jd = jd.lower() if lowercase else jd
+    assert _positive_nonown_signal(jd, "Tel Aviv", "")
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("jd", [
+    "We are seeking Tel Aviv and Israel-based applicants",
+    "Applicants must be Tel Aviv-based candidates",
+    "This role is limited to candidates from Tel Aviv with Python experience",
+    "The position is restricted to applicants located in Israel",
+    "This role is limited to candidates with New Atlantis-based experience",
+    "This role is limited to candidates with German native level",
+    # P8G: generic fictional residency/credential labels have no positive signal.
+    "Candidates must reside in Atlantis",
+    "Quuxian applicants only",
+    "Valid Atlantis work permit mandatory",
+])
+def test_unknown_scope_repair_preserves_own_qualification_and_p8g_controls(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "Only Tel Aviv-based applicants may apply",
+    "This role is limited to Israel-based candidates",
+    "We are looking for Israel-based candidates",
+    "We only welcome Israel-based candidates",
+])
+def test_bounded_recruiting_heads_keep_own_applicant_bases(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "We are seeking experienced Tel Aviv-based applicants",
+    "We welcome applications from Israel-based candidates",
+])
+def test_recruiting_qualification_prefix_keeps_own_applicant_base(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )["eligibility"] == "eligible"
+
+
+@pytest.mark.parametrize("jd", [
+    "We are seeking experienced Atlantis and Tel Aviv-based applicants",
+    "We welcome applications from New Atlantis-based candidates",
+])
+def test_recruiting_qualification_prefix_preserves_unknown_destination(jd):
+    from scraper.eligibility import _positive_nonown_signal
+
+    assert _positive_nonown_signal(jd, "Tel Aviv", "")
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("template", [
+    "Only experienced {destination}-based applicants may apply",
+    "Applicants must be experienced {destination}-based candidates",
+    "We are seeking only experienced {destination}-based applicants",
+])
+def test_composed_applicant_heads_keep_own_destination(template):
+    from scraper.eligibility import _positive_nonown_signal
+
+    jd = template.format(destination="Tel Aviv")
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "eligible"
+    assert not _positive_nonown_signal(jd, "Tel Aviv", "")
+
+
+@pytest.mark.parametrize("template", [
+    "Only experienced {destination}-based applicants may apply",
+    "Applicants must be experienced {destination}-based candidates",
+    "We are seeking only experienced {destination}-based applicants",
+])
+@pytest.mark.parametrize("destination", ["New Atlantis", "Atlantis and Tel Aviv"])
+def test_composed_applicant_heads_preserve_unknown_destination(template, destination):
+    from scraper.eligibility import _positive_nonown_signal
+
+    jd = template.format(destination=destination)
+    assert _positive_nonown_signal(jd, "Tel Aviv", "")
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert result["eligibility_reason"].startswith("unresolved location restriction:")
+
+
+@pytest.mark.parametrize("template", [
+    "Only experienced {destination}-based applicants may apply",
+    "Applicants must be experienced {destination}-based candidates",
+    "We are seeking only experienced {destination}-based applicants",
+    "We welcome applications from only {destination}-based candidates",
+    "We welcome only applications from {destination}-based candidates",
+    "We welcome applications from only experienced {destination}-based candidates",
+    "Only applications from experienced {destination}-based candidates are accepted",
+    "We accept applications from qualified senior {destination}-based candidates",
+])
+@pytest.mark.parametrize("destination,expected", [
+    ("Tel Aviv", "eligible"),
+    ("Israel", "eligible"),
+    ("New Atlantis", "unknown"),
+    ("Atlantis and Tel Aviv", "unknown"),
+])
+def test_supported_applicant_prefix_composition_matrix(template, destination, expected):
+    from scraper.eligibility import _positive_nonown_signal
+
+    jd = template.format(destination=destination)
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == expected
+    assert _positive_nonown_signal(jd, "Tel Aviv", "") is (expected == "unknown")
+    if expected == "unknown":
+        assert result["eligibility_reason"] == f'unresolved location restriction: "{jd}"'
+
+
+@pytest.mark.parametrize("destination", [
+    "OnlyIsrael",
+    "ExperiencedIsrael",
+    "QualifiedIsrael",
+    "SeniorIsrael",
+    "ApplicationsfromIsrael",
+    "OnlyTel Aviv",
+])
+def test_applicant_prefix_looking_place_tokens_remain_whole(destination):
+    from scraper.eligibility import _positive_nonown_signal
+
+    jd = f"We welcome {destination}-based candidates"
+    result = decide_location_eligibility(
+        {"location": "Tel Aviv", "raw_jd": jd}, None, PROFILE,
+    )
+    assert result["eligibility"] == "unknown"
+    assert _positive_nonown_signal(jd, "Tel Aviv", "")
+    assert result["eligibility_reason"] == f'unresolved location restriction: "{jd}"'
