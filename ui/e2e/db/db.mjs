@@ -1,10 +1,11 @@
 import { cp, mkdir, readFile, writeFile, chmod, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { cert, key, root, project, email, password, command, cli, status, cleanEnv, requireLocalDocker } from './local.mjs';
+import { cert, key, root, project, email, password, localCommands, cleanEnv, requireLocalDocker } from './local.mjs';
 
-export async function database(action) {
+export async function database(action, { signal } = {}) {
   requireLocalDocker();
+  const { command, cli, status } = localCommands(signal);
   if (action === 'up') {
     await mkdir(resolve(root, 'supabase'), { recursive: true });
     await cp('e2e/db/config.toml', resolve(root, 'supabase/config.toml'));
@@ -41,5 +42,5 @@ export async function database(action) {
 }
 if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try { await database(process.argv[2]); }
-  catch (error) { console.error(error.message); process.exitCode = 1; }
+  catch (error) { console.error(error.stack ?? error.message); process.exitCode = 1; }
 }

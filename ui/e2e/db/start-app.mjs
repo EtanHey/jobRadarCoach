@@ -2,8 +2,9 @@
 import { spawn } from 'node:child_process';
 import { cp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { cert, key, root, origin, email, cleanEnv, status } from './local.mjs';
+import { cert, key, root, origin, email, cleanEnv, status, requireLocalDocker } from './local.mjs';
 import '../../scripts/build-map-worker.mjs';
+requireLocalDocker();
 const target = resolve('.e2e/db-app');
 const building = process.argv[2] === 'build';
 if (building) {

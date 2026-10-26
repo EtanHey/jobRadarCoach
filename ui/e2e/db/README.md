@@ -20,6 +20,10 @@ reapplies migrations and seeds it; `npm run test:db:down` stops and deletes
 `logged-in-db`); local Docker/OrbStack is off by design. All local DB commands
 require `JRC_LOCAL_DOCKER=1` to run deliberately. The local capped runner stops
 the stack after success or failure, preserving volume data; CI uses its own teardown.
+SIGINT/SIGTERM also attempt teardown, but a CAP-KILL (`kill -9`) can still leave
+containers (the cap wrapper's grace period remains 2 seconds). From `ui/`, preserve
+data while cleaning up with
+`JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .e2e/db-stack`.
 
 Project `jrc-p12-test-db` uses API 55431 (HTTPS), Postgres 55432, shadow 55430,
 and Mailpit 55434. Never link it to hosted Supabase. Config, generated TLS
