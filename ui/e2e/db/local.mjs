@@ -8,6 +8,11 @@ export const password = 'Local-only-P12-password-123!';
 export const cert = resolve(root, 'supabase/cert.pem');
 export const key = resolve(root, 'supabase/key.pem');
 export const cleanEnv = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|TMP|TEMP|CI|PLAYWRIGHT_BROWSERS_PATH|DOCKER_HOST|DOCKER_CONTEXT)$/.test(k)));
+export function requireLocalDocker() {
+  if (process.env.CI !== 'true' && process.env.JRC_LOCAL_DOCKER !== '1') {
+    throw new Error('DB e2e runs in CI (ui-tests.yml logged-in-db); local Docker/OrbStack is off by design; set JRC_LOCAL_DOCKER=1 to run it deliberately.');
+  }
+}
 export function localStatus(status) {
   for (const [field, expected] of Object.entries({ API_URL: 'https://127.0.0.1:55431', MAILPIT_URL: 'http://127.0.0.1:55434' })) {
     if (status[field] !== expected) throw new Error(`Refusing non-test ${field}`);
@@ -18,9 +23,10 @@ export function localStatus(status) {
   return status;
 }
 // CLI output can contain local keys; capture it, never print it or inherit credentials.
-export function command(executable, args, { input, env = cleanEnv(), cwd } = {}) {
+export function command(executable, args, { input, env = cleanEnv(), cwd, signal } = {}) {
   return new Promise((ok, fail) => {
-    const child = spawn(executable, args, { env, cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+    signal?.throwIfAborted();
+    const child = spawn(executable, args, { env, cwd, signal, stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
     child.stdout.on('data', chunk => { stdout += chunk; });
     child.stderr.on('data', chunk => { stderr += chunk; });
@@ -29,5 +35,9 @@ export function command(executable, args, { input, env = cleanEnv(), cwd } = {})
     child.stdin.end(input);
   });
 }
-export const cli = (...args) => command('supabase', [...args, '--workdir', root]);
-export const status = async () => localStatus(JSON.parse(await cli('status', '-o', 'json')));
+export function localCommands(signal) {
+  const execute = (executable, args, options = {}) => command(executable, args, { ...options, signal });
+  const cli = (...args) => execute('supabase', [...args, '--workdir', root]);
+  return { command: execute, cli, status: async () => localStatus(JSON.parse(await cli('status', '-o', 'json'))) };
+}
+export const { cli, status } = localCommands();
