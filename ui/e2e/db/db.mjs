@@ -1,9 +1,10 @@
 import { cp, mkdir, readFile, writeFile, chmod, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { cert, key, root, project, email, password, command, cli, status, cleanEnv } from './local.mjs';
+import { cert, key, root, project, email, password, command, cli, status, cleanEnv, requireLocalDocker } from './local.mjs';
 
 export async function database(action) {
+  requireLocalDocker();
   if (action === 'up') {
     await mkdir(resolve(root, 'supabase'), { recursive: true });
     await cp('e2e/db/config.toml', resolve(root, 'supabase/config.toml'));
@@ -38,4 +39,7 @@ export async function database(action) {
     await cli('stop', '--project-id', project, '--no-backup');
   } else throw new Error('Expected up, seed or down');
 }
-if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await database(process.argv[2]);
+if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  try { await database(process.argv[2]); }
+  catch (error) { console.error(error.message); process.exitCode = 1; }
+}

@@ -8,6 +8,11 @@ export const password = 'Local-only-P12-password-123!';
 export const cert = resolve(root, 'supabase/cert.pem');
 export const key = resolve(root, 'supabase/key.pem');
 export const cleanEnv = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|TMP|TEMP|CI|PLAYWRIGHT_BROWSERS_PATH|DOCKER_HOST|DOCKER_CONTEXT)$/.test(k)));
+export function requireLocalDocker() {
+  if (process.env.CI !== 'true' && process.env.JRC_LOCAL_DOCKER !== '1') {
+    throw new Error('DB e2e runs in CI (ui-tests.yml logged-in-db); local Docker/OrbStack is off by design; set JRC_LOCAL_DOCKER=1 to run it deliberately.');
+  }
+}
 export function localStatus(status) {
   for (const [field, expected] of Object.entries({ API_URL: 'https://127.0.0.1:55431', MAILPIT_URL: 'http://127.0.0.1:55434' })) {
     if (status[field] !== expected) throw new Error(`Refusing non-test ${field}`);
