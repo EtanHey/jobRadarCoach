@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { cert, key, root, project, email, password, localCommands, cleanEnv, requireLocalDocker } from './local.mjs';
 
-export async function database(action, { signal, afterStart } = {}) {
+export async function database(action, { signal, protect } = {}) {
   requireLocalDocker();
   const { command, cli, status } = localCommands(signal);
   if (action === 'up') {
@@ -17,12 +17,13 @@ export async function database(action, { signal, afterStart } = {}) {
     }
     console.log('Starting dedicated synthetic Supabase stack (first pull may take several minutes)');
     await cli('start', '--exclude', 'realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor');
-    await afterStart?.();
+    await protect?.();
     await status();
   } else if (action === 'seed') {
     await status(); // Refuse a different endpoint before any destructive operation.
     console.log('Resetting only jrc-p12-test-db; applying repository migrations');
     await cli('db', 'reset', '--local', '--no-seed', '--yes');
+    await protect?.();
     await command('docker', ['exec', '-i', `supabase_db_${project}`, 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1'], { input: await readFile('e2e/db/seed.sql', 'utf8') });
     const local = await status();
     // Trust only our generated certificate, without disabling Node TLS verification.

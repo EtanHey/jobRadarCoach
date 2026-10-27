@@ -1,65 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { command } from '../e2e/db/local.mjs';
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runSuite } from '../e2e/db/run-capped.mjs';
 
-// A container table, never a real Docker/Supabase process. Also used by the cap child.
-function fakeStack({ stale = false, fail = '', signal = '', hang = false, stop = '' } = {}) {
-  const project = 'jrc-p12-test-db';
-  const label = `com.supabase.cli.project=${project}`;
-  const events = [];
-  const containers = [{ id: 'unrelated', project: 'other', running: true, restart: 'always' }];
-  const ours = () => containers.filter(c => c.project === project);
-  const add = () => containers.push(...['db', 'auth'].map(id => ({ id, project, running: id === 'db', restart: 'unless-stopped' })));
-  if (stale) add();
-  const deps = {
-    database: async (action, options) => {
-      events.push(action);
-      if (action === 'up') {
-        assert.equal(ours().some(c => c.running), false, 'stale stack must stop before up');
-        if (!ours().length) add();
-        for (const c of ours()) c.running = c.id === 'db';
-        if (fail !== 'up') await options.afterStart?.();
-      }
-      if (action === fail) throw new Error(`failed ${action}`);
-    },
-    command: async (exe, args) => {
-      assert.equal(exe, 'docker');
-      events.push(args.join(' '));
-      if (args[0] === 'ps') {
-        assert.ok(args.includes(`label=${label}`), 'exact Supabase project label required');
-        const selected = ours().filter(c => args.includes('--all') || c.running);
-        return selected.map(c => args.includes('{{.Names}}') ? `supabase_${c.id}_${project}` : c.id).join('\n');
-      }
-      assert.deepEqual(args.slice(0, 2), ['update', '--restart=no']);
-      if (fail === 'update') throw new Error('failed update');
-      for (const id of args.slice(2)) {
-        const c = ours().find(c => c.id === id);
-        assert.ok(c, 'must not update other projects');
-        c.restart = 'no';
-      }
-      return '';
-    },
-    cli: async (...args) => {
-      assert.deepEqual(args, ['stop', '--project-id', project]);
-      events.push('stop');
-      if (stop !== 'survivor') for (const c of ours()) c.running = false;
-      if (stop === 'error') throw new Error('stop failed');
-    },
-    rm: async () => {},
-    run: async args => {
-      const step = args.includes('build') ? 'build' : 'test';
-      events.push(step);
-      if (step === fail) throw new Error(`failed ${step}`);
-      if (step === 'test' && signal) queueMicrotask(() => process.emit(signal));
-      if (step === 'test' && (signal || hang)) await new Promise(() => {});
-    },
-  };
-  return { deps, containers, events };
-}
+import { fakeStack } from './fixtures/db-fake-stack.mjs';
 
 function localTest(name, fn) {
   test(name, { timeout: 15000 }, async t => {
@@ -117,11 +65,63 @@ localTest('a stale stack is stopped and verified before a new start', async () =
 for (const stale of [false, true]) {
   localTest(`${stale ? 'preflight' : 'teardown'} rejects a lying stop and names survivors`, async () => {
     const stack = fakeStack({ stale, stop: 'survivor' });
-    await assert.rejects(runSuite(stack.deps), /supabase_db_jrc-p12-test-db/);
+    await assert.rejects(runSuite(stack.deps), error => {
+      assert.match(error.message, new RegExp(`DB e2e ${stale ? 'preflight' : 'teardown'} left running containers`));
+      assert.ok(error.message.includes('stop with: JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .e2e/db-stack'));
+      return true;
+    });
     assert.ok(stack.containers.filter(c => c.project === 'jrc-p12-test-db').every(c => c.restart === 'no'));
     if (stale) assert.ok(!stack.events.includes('up'));
   });
 }
+
+localTest('preflight protects stopped leftovers before starting', async () => {
+  const stack = fakeStack({ stale: 'stopped' });
+  await runSuite(stack.deps);
+  assert.ok(stack.events.indexOf('stop') < stack.events.indexOf('up'));
+  assert.match(stack.events[0], /^ps --all /);
+  stopped(stack);
+});
+
+for (const action of ['up', 'seed']) {
+  localTest(`signal waits for the aborted ${action} before teardown scans`, async () => {
+    const stack = fakeStack();
+    const database = stack.deps.database;
+    let exited = false;
+    stack.deps.database = async (step, options) => {
+      if (step !== action) return database(step, options);
+      await new Promise(resolve => {
+        options.signal.addEventListener('abort', () => setTimeout(() => {
+          stack.containers.push({ id: 'late', project: 'jrc-p12-test-db', running: true, restart: 'unless-stopped' });
+          exited = true;
+          resolve();
+        }, 30), { once: true });
+        queueMicrotask(() => process.emit('SIGTERM'));
+      });
+    };
+    await assert.rejects(runSuite(stack.deps), /SIGTERM/);
+    assert.equal(exited, true, 'aborted work must settle before teardown');
+    stopped(stack);
+  });
+}
+
+localTest('a hung aborted child cannot block teardown beyond 1.5 seconds', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const stack = fakeStack();
+  stack.deps.database = async () => {
+    queueMicrotask(() => process.emit('SIGTERM'));
+    await new Promise(() => {});
+  };
+  const result = assert.rejects(runSuite(stack.deps), /SIGTERM/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.ok(!stack.events.includes('stop'));
+  t.mock.timers.tick(1499);
+  await Promise.resolve();
+  assert.ok(!stack.events.includes('stop'));
+  t.mock.timers.tick(1);
+  await result;
+  assert.ok(stack.events.includes('stop'));
+});
 
 localTest('a failed stop rejects even when no container survives', async () => {
   const stack = fakeStack({ stop: 'error' });
@@ -140,6 +140,28 @@ localTest('CI keeps lifecycle ownership in the workflow', async () => {
     cli: async () => { throw new Error('CI stop belongs to workflow'); },
   });
   assert.deepEqual(calls, ['up', 'seed']);
+});
+
+localTest('aborted command settles only after its child exits', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-db-abort-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const exited = join(dir, 'exited');
+  const started = new Promise(resolve => process.once('SIGWINCH', resolve));
+  const controller = new AbortController();
+  const pending = command(process.execPath, ['--input-type=module', '-e', `
+    import { writeFileSync } from 'node:fs';
+    process.on('SIGTERM', () => setTimeout(() => {
+      writeFileSync(${JSON.stringify(exited)}, 'exited'); process.exit(0);
+    }, 50));
+    process.kill(process.ppid, 'SIGWINCH');
+    setTimeout(() => process.exit(0), 1000);
+    setInterval(() => {}, 100);
+  `], { signal: controller.signal });
+  const rejected = assert.rejects(pending, { name: 'AbortError' });
+  await started;
+  controller.abort();
+  await rejected;
+  assert.equal(await readFile(exited, 'utf8'), 'exited');
 });
 
 async function fakeCommands(t) {
@@ -181,41 +203,68 @@ localTest('real database up calls restart hook between CLI start and status (fak
   const result = await childResult(process.execPath, ['--input-type=module', '-e', `
     import { appendFileSync } from 'node:fs';
     import { database } from ${JSON.stringify(new URL('../e2e/db/db.mjs', import.meta.url).href)};
-    await database('up', { afterStart: () => appendFileSync(${JSON.stringify(fake.log)}, '["after-start"]\\n') });
+    await database('up', { protect: () => appendFileSync(${JSON.stringify(fake.log)}, '["protect"]\\n') });
   `, 'fake-driver'], fake);
   assert.equal(result.code, 0, result.output);
   const events = (await readFile(fake.log, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
-  assert.deepEqual(events.map(e => e[0] === 'supabase' ? e[1] : e[0]), ['start', 'after-start', 'status']);
+  assert.deepEqual(events.map(e => e[0] === 'supabase' ? e[1] : e[0]), ['start', 'protect', 'status']);
+});
+
+localTest('real seed protects immediately after reset before seeding (fake executable)', async t => {
+  const fake = await fakeCommands(t);
+  const result = await childResult(process.execPath, ['--input-type=module', '-e', `
+    import { appendFileSync } from 'node:fs';
+    import { database } from ${JSON.stringify(new URL('../e2e/db/db.mjs', import.meta.url).href)};
+    await database('seed', { protect: () => {
+      appendFileSync(${JSON.stringify(fake.log)}, '["protect"]\\n');
+      throw new Error('protection sentinel');
+    } });
+  `, 'fake-driver'], fake);
+  assert.equal(result.code, 1, result.output);
+  assert.match(result.output, /protection sentinel/);
+  const events = (await readFile(fake.log, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(events.map(e => e[0] === 'supabase' ? e.slice(1, 3).join(' ') : e[0]), ['status -o', 'db reset', 'protect']);
 });
 
 localTest('real runner exits nonzero naming stale survivors (fake executables)', async t => {
   const fake = await fakeCommands(t);
   const result = await childResult(process.execPath, [new URL('../e2e/db/run-capped.mjs', import.meta.url).pathname], fake);
   assert.equal(result.code, 1, result.output);
-  assert.match(result.output, /teardown left running containers: supabase_db_jrc-p12-test-db/);
+  assert.match(result.output, /preflight left running containers: supabase_db_jrc-p12-test-db/);
   const commands = (await readFile(fake.log, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
   assert.ok(commands.some(args => args[0] === 'supabase' && args[1] === 'stop'));
   assert.ok(!commands.some(args => args.includes('--no-backup') || args.includes('start')));
 });
 
-localTest('portable cap sends TERM and exits 137 after verified fake teardown', async t => {
+localTest('portable cap TERM-path wiring waits for driver readiness and exits 137', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'jrc-db-cap-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const receipt = join(dir, 'receipt.json');
   const driver = join(dir, 'suite.mjs');
+  const ready = join(dir, 'ready');
+  const bin = join(dir, 'bin');
+  const clockStarted = join(dir, 'clock-started');
+  await mkdir(bin);
+  // Freeze the cap clock until the suite reaches test (listeners are installed).
+  await writeFile(join(bin, 'date'), `#!/bin/sh\nif [ ! -f '${clockStarted}' ]; then touch '${clockStarted}'; echo 0; elif [ -f '${ready}' ]; then echo 2; else echo 0; fi\n`, { mode: 0o700 });
   await writeFile(driver, `
-    import assert from 'node:assert/strict';
     import { writeFileSync } from 'node:fs';
     import { runSuite } from ${JSON.stringify(new URL('../e2e/db/run-capped.mjs', import.meta.url).href)};
-    ${fakeStack.toString()}
+    import { fakeStack } from ${JSON.stringify(new URL('./fixtures/db-fake-stack.mjs', import.meta.url).href)};
+    await new Promise(resolve => setTimeout(resolve, 250));
     const stack = fakeStack({ hang: true });
+    const run = stack.deps.run;
+    stack.deps.run = (args, options) => {
+      if (!args.includes('build')) writeFileSync(${JSON.stringify(ready)}, 'ready');
+      return run(args, options);
+    };
     const keepAlive = setInterval(() => {}, 100);
     try { await runSuite(stack.deps); }
     catch (error) { process.exitCode = 1; }
     finally { clearInterval(keepAlive); writeFileSync(${JSON.stringify(receipt)}, JSON.stringify(stack)); }
   `);
   const child = spawn('sh', [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '0'], {
-    env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'],
   });
   t.after(() => { if (child.exitCode === null) child.kill('SIGTERM'); });
   let output = '';
@@ -224,5 +273,6 @@ localTest('portable cap sends TERM and exits 137 after verified fake teardown', 
   const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('exit', resolve); });
   assert.equal(code, 137, output);
   assert.match(output, /CAP-KILL/);
+  assert.equal(await readFile(ready, 'utf8'), 'ready');
   stopped(JSON.parse(await readFile(receipt, 'utf8')));
 });

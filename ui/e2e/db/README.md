@@ -19,15 +19,17 @@ reapplies migrations and seeds it; `npm run test:db:down` stops and deletes
 **only** this stack's containers/data. DB e2e runs in CI (`ui-tests.yml`,
 `logged-in-db`); local Docker/OrbStack is off by design. All local DB commands
 require `JRC_LOCAL_DOCKER=1` to run deliberately. The local capped runner stops
-any stale project stack before starting. Immediately after start it sets `restart=no`
-on all containers labeled `com.supabase.cli.project=jrc-p12-test-db`, including
+any stale project stack before starting. Immediately after start and database reset
+it sets `restart=no` on all containers labeled `com.supabase.cli.project=jrc-p12-test-db`, including
 stopped containers. After success, failure, SIGINT or SIGTERM it stops the stack,
 preserving volume data, and verifies no project container is running. A failed
 stop or survivors fail the run and name any survivors; CI keeps its own teardown.
 The cap wrapper sends SIGTERM, then SIGKILL after 2 seconds. SIGKILL/crashes can
 still interrupt cleanup; protected containers will not restart with Docker/OrbStack,
-and the next suite cleans up stale running containers before starting. A kill during
-startup before restart protection completes still requires manual cleanup.
+and the next suite cleans up stale containers before starting. A kill before protection
+completes after start/reset still requires manual cleanup. On a signal, the runner
+waits up to 1.5 seconds for aborted work before scanning and stopping the stack.
+A second Ctrl-C waits for teardown to finish.
 From `ui/`, preserve data while cleaning up with
 `JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .e2e/db-stack`.
 Check for survivors with

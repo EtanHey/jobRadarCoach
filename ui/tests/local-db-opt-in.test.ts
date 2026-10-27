@@ -51,7 +51,7 @@ test("signals during hanging up/seed stop the stack and remove suite handlers", 
           if (step === action) {
             activeSignal = options?.signal;
             queueMicrotask(() => process.emit(signal));
-            await new Promise(() => {});
+            await new Promise<void>(resolve => options.signal?.addEventListener('abort', () => resolve(), { once: true }));
           }
         },
         run: async () => { throw new Error("Must not run after signal"); }, rm: async () => {},
