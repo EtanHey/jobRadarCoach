@@ -30,8 +30,10 @@ export function command(executable, args, { input, env = cleanEnv(), cwd, signal
     let stdout = '', stderr = '';
     child.stdout.on('data', chunk => { stdout += chunk; });
     child.stderr.on('data', chunk => { stderr += chunk; });
-    child.on('error', fail);
-    child.on('exit', code => code === 0 ? ok(stdout) : fail(new Error(`${executable} ${args[0]} failed (${code}): ${stderr.replace(/eyJ[\w.-]+|sb_(?:secret|publishable)_[\w-]+/g, '[local key]').slice(-3000)}`)));
+    // AbortError can precede exit; wait for close before settling the work.
+    let error;
+    child.on('error', value => { error = value; });
+    child.on('close', code => error ? fail(error) : code === 0 ? ok(stdout) : fail(new Error(`${executable} ${args[0]} failed (${code}): ${stderr.replace(/eyJ[\w.-]+|sb_(?:secret|publishable)_[\w-]+/g, '[local key]').slice(-3000)}`)));
     child.stdin.end(input);
   });
 }
