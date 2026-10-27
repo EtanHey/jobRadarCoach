@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { cert, key, root, project, email, password, localCommands, cleanEnv, requireLocalDocker } from './local.mjs';
 
-export async function database(action, { signal } = {}) {
+export async function database(action, { signal, afterStart } = {}) {
   requireLocalDocker();
   const { command, cli, status } = localCommands(signal);
   if (action === 'up') {
@@ -17,6 +17,7 @@ export async function database(action, { signal } = {}) {
     }
     console.log('Starting dedicated synthetic Supabase stack (first pull may take several minutes)');
     await cli('start', '--exclude', 'realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor');
+    await afterStart?.();
     await status();
   } else if (action === 'seed') {
     await status(); // Refuse a different endpoint before any destructive operation.

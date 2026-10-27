@@ -19,11 +19,19 @@ reapplies migrations and seeds it; `npm run test:db:down` stops and deletes
 **only** this stack's containers/data. DB e2e runs in CI (`ui-tests.yml`,
 `logged-in-db`); local Docker/OrbStack is off by design. All local DB commands
 require `JRC_LOCAL_DOCKER=1` to run deliberately. The local capped runner stops
-the stack after success or failure, preserving volume data; CI uses its own teardown.
-SIGINT/SIGTERM also attempt teardown, but a CAP-KILL (`kill -9`) can still leave
-containers (the cap wrapper's grace period remains 2 seconds). From `ui/`, preserve
-data while cleaning up with
+any stale project stack before starting. Immediately after start it sets `restart=no`
+on all containers labeled `com.supabase.cli.project=jrc-p12-test-db`, including
+stopped containers. After success, failure, SIGINT or SIGTERM it stops the stack,
+preserving volume data, and verifies no project container is running. A failed
+stop or survivors fail the run and name any survivors; CI keeps its own teardown.
+The cap wrapper sends SIGTERM, then SIGKILL after 2 seconds. SIGKILL/crashes can
+still interrupt cleanup; protected containers will not restart with Docker/OrbStack,
+and the next suite cleans up stale running containers before starting. A kill during
+startup before restart protection completes still requires manual cleanup.
+From `ui/`, preserve data while cleaning up with
 `JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .e2e/db-stack`.
+Check for survivors with
+`docker ps --filter label=com.supabase.cli.project=jrc-p12-test-db`.
 
 Project `jrc-p12-test-db` uses API 55431 (HTTPS), Postgres 55432, shadow 55430,
 and Mailpit 55434. Never link it to hosted Supabase. Config, generated TLS
