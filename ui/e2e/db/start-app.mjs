@@ -53,4 +53,9 @@ for (const [stream, output] of [[child.stdout, process.stdout], [child.stderr, p
   });
 }
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
+if (!building && !process.stdin.isTTY) {
+  // Playwright owns this input pipe; EOF also covers its abrupt SIGTERM exit.
+  process.stdin.on('end', () => child.kill('SIGTERM'));
+  process.stdin.resume();
+}
 child.on('exit', code => process.exit(code ?? 1));

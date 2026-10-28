@@ -37,7 +37,8 @@ completes after start/reset still requires manual cleanup. On a signal, the runn
 waits up to 1.5 seconds for aborted work before scanning and stopping the stack.
 A second Ctrl-C waits for teardown to finish.
 The HTTPS child also exits on IPC disconnect if its `start-app.mjs` parent dies,
-including SIGKILL during startup. After every run, including CI, the runner checks
+including SIGKILL during startup. The serving wrapper also stops its child when
+Playwright's stdin pipe closes. After every run, including CI, the runner checks
 port 4343. A survivor fails the run; it is stopped only when its PID matches this
 run's unique receipt and its actual cwd matches this checkout. An unrelated
 listener is reported and left untouched. This check requires `lsof`.

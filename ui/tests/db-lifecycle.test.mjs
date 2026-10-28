@@ -11,7 +11,7 @@ import { fakeStack } from './fixtures/db-fake-stack.mjs';
 
 const capShell = process.env.JRC_CAP_TEST_SHELL || '/bin/sh';
 
-for (const phase of ['preparing', 'listening', 'output closed']) {
+for (const phase of ['preparing', 'listening', 'output closed', 'controller died']) {
   localTest(`server exits when start-app dies while ${phase}`, async t => {
     const fake = await fakeCommands(t);
     await writeFile(join(fake.cwd, '.e2e/db-stack/owner.json'), '{"id":"synthetic"}');
@@ -34,7 +34,7 @@ for (const phase of ['preparing', 'listening', 'output closed']) {
     const tls = await childResult('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(root, 'key.pem'), '-out', join(root, 'cert.pem'), '-days', '1', '-subj', '/CN=localhost']);
     assert.equal(tls.code, 0, tls.output);
     const parent = spawn(process.execPath, [new URL('../e2e/db/start-app.mjs', import.meta.url).pathname], {
-      cwd: fake.cwd, env: { ...fake.env, CI: 'false', JRC_LOCAL_DOCKER: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: fake.cwd, env: { ...fake.env, CI: 'false', JRC_LOCAL_DOCKER: '1' }, stdio: ['pipe', 'pipe', 'pipe'],
     });
     let output = '', pid;
     parent.stdout.on('data', chunk => { output += chunk; });
@@ -45,11 +45,18 @@ for (const phase of ['preparing', 'listening', 'output closed']) {
     });
     await waitForFile(pidFile);
     pid = Number(await readFile(pidFile, 'utf8'));
-    if (phase === 'listening') {
+    if (phase === 'listening' || phase === 'controller died') {
       for (let i = 0; i < 100 && !output.includes('Production test app ready'); i++) await new Promise(resolve => setTimeout(resolve, 20));
       assert.match(output, /Production test app ready/);
     }
-    if (phase === 'output closed') {
+    if (phase === 'controller died') {
+      const exited = new Promise(resolve => parent.once('exit', (code, signal) => resolve({ code, signal })));
+      parent.stdin.end(); // Playwright's pipe closes when its process dies.
+      let timer;
+      try {
+        assert.deepEqual(await Promise.race([exited, new Promise(resolve => { timer = setTimeout(() => resolve('still running'), 1500); })]), { code: 0, signal: null });
+      } finally { clearTimeout(timer); }
+    } else if (phase === 'output closed') {
       const exited = new Promise(resolve => parent.once('exit', (code, signal) => resolve({ code, signal })));
       parent.stdout.destroy(); // Playwright has exited before the server's first output.
       assert.deepEqual(await exited, { code: 1, signal: null });
