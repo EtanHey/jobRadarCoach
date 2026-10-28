@@ -14,8 +14,9 @@ export async function checkServer(receipt, { port = 4343, cwd = process.cwd(), t
   const deadline = Date.now() + timeout;
   const late = () => new Error(`DB e2e :${port} survivor check exceeded its ${timeout} ms deadline; nothing further signalled`);
   const remaining = () => { const ms = deadline - Date.now(); if (ms <= 0) throw late(); return ms; };
+  // SIGKILL: a lookup that ignores TERM must not hold the deadline open.
   const lsof = async args => {
-    try { return (await execute('lsof', args, { timeout: remaining() })).stdout; }
+    try { return (await execute('lsof', args, { timeout: remaining(), killSignal: 'SIGKILL' })).stdout; }
     catch (error) { if (error.code === 1 && !error.stdout) return ''; throw error.killed ? late() : error; }
   };
   const listeners = async () => (await lsof(['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fp']))
