@@ -38,9 +38,11 @@ waits up to 1.5 seconds for aborted work before scanning and stopping the stack.
 A second Ctrl-C waits for teardown to finish.
 The HTTPS child also exits on IPC disconnect if its `start-app.mjs` parent dies,
 including SIGKILL during startup. After every run, including CI, the runner checks
-port 4343. A survivor fails the run; it is stopped only when its PID matches this
-run's unique receipt and its actual cwd matches this checkout. An unrelated
-listener is reported and left untouched. This check requires `lsof`.
+port 4343. A survivor fails the run; it is stopped only when its PID and start
+time (`ps -o lstart=`) match this run's unique receipt and its actual cwd matches
+this checkout, so a reused PID is never signalled. Any mismatch or failed lookup
+is reported and left untouched. The whole check has one 20 s deadline. It
+requires `lsof` and `ps`.
 From `ui/`, preserve data while cleaning up with
 `JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .`.
 This also works in a fresh checkout without `.e2e/db-stack` or its config.
