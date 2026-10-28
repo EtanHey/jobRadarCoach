@@ -402,5 +402,10 @@ localTest('cap bounds an uncooperative runner and kills its remaining child', as
   const sleeps = (await readFile(ticks, 'utf8')).trim().split('\n');
   assert.equal(sleeps.filter(value => value === '1').length, 90, 'bounded grace exhausted');
   const pid = Number(await readFile(ready, 'utf8'));
-  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+  for (let attempt = 0; attempt < 50; attempt++) {
+    try { process.kill(pid, 0); }
+    catch (error) { assert.equal(error.code, 'ESRCH'); return; }
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.fail(`cap left child ${pid} alive after forced cleanup`);
 });
