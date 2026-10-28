@@ -401,9 +401,20 @@ localTest('real seed protects immediately after reset before seeding (fake execu
   assert.deepEqual(events.map(e => e[0] === 'supabase' ? e.slice(1, 3).join(' ') : e[0]), ['status -o', 'db reset', 'protect']);
 });
 
+localTest('real runner refuses to start outside cap.sh before any Docker/Supabase call', async t => {
+  const fake = await fakeCommands(t);
+  const { JRC_CAP_GRACE: _, ...env } = fake.env;
+  const result = await childResult(process.execPath, [new URL('../e2e/db/run-capped.mjs', import.meta.url).pathname], { cwd: fake.cwd, env });
+  assert.notEqual(result.code, 0, result.output);
+  assert.match(result.output, /npm run test:db.*other wrappers kill teardown/);
+  await assert.rejects(readFile(fake.log, 'utf8'), { code: 'ENOENT' });
+});
+
 localTest('real runner exits nonzero naming stale survivors (fake executables)', async t => {
   const fake = await fakeCommands(t);
-  const result = await childResult(process.execPath, [new URL('../e2e/db/run-capped.mjs', import.meta.url).pathname], fake);
+  const { JRC_CAP_GRACE: _, ...env } = fake.env;
+  const runner = new URL('../e2e/db/run-capped.mjs', import.meta.url).pathname;
+  const result = await childResult(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, runner, '999999', '999999'], { cwd: fake.cwd, env });
   assert.equal(result.code, 1, result.output);
   assert.match(result.output, /preflight left running containers: supabase_db_jrc-p12-test-db/);
   const commands = (await readFile(fake.log, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
