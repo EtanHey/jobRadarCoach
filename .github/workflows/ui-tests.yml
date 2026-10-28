@@ -69,7 +69,7 @@ jobs:
           cache: npm
           cache-dependency-path: ui/package-lock.json
       - run: npm ci
-      - run: npx playwright install chromium --only-shell --with-deps
+      - run: PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright install chromium --only-shell --with-deps
       - run: npm run test:e2e
       - name: Headless globe smoke and UI polish
         run: npm run test:ui-polish
@@ -91,7 +91,7 @@ jobs:
           cache-dependency-path: ui/package-lock.json
       - run: npm ci
       - run: npx --yes supabase@2.116.0 --version
-      - run: npx playwright install chromium --only-shell --with-deps
+      - run: PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright install chromium --only-shell --with-deps
       - name: Logged-in smoke with local Supabase
         run: |
           mkdir -p .e2e/bin

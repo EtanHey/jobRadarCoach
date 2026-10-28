@@ -12,7 +12,7 @@ The header uses singular/plural role counts. Status labels beside single-digit s
 - Existing capped toolbar regression: 1100/900/1440/1280/390 passed; desktop controls remain within two rows; 1822 MB peak, 13 seconds.
 - Unit tests: 292 server/library + 22 client passed. Browser component tests: 3 passed. TypeScript and ESLint passed.
 
-Run from `ui/`: `npm ci`, `npx playwright install chromium --only-shell`, then `npm run test:ui-polish`. It runs under the repository's portable 3072 MB / 600 second cap. CI runs it sequentially after the e2e pilot. Synthetic copies remain under ignored `.e2e/`.
+Run from `ui/`: `npm ci`, `PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright install chromium --only-shell`, then `npm run test:ui-polish`. Keep the variable on browser installs to preserve other checkouts' browser caches. It runs under the repository's portable 3072 MB / 600 second cap. CI runs it sequentially after the e2e pilot. Synthetic copies remain under ignored `.e2e/`.
 
 ## Screenshots
 

@@ -10,6 +10,7 @@ export function fakeStack({ stale = false, fail = '', signal = '', hang = false,
   const add = () => containers.push(...['db', 'auth'].map(id => ({ id, project, running: id === 'db', restart: 'unless-stopped' })));
   if (stale) { add(); if (stale === 'stopped') for (const c of ours()) c.running = false; }
   const deps = {
+    checkServer: async () => {},
     database: async (action, options) => {
       events.push(action);
       if (action === 'up') {

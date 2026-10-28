@@ -46,6 +46,7 @@ test("signals during hanging up/seed stop the stack and remove suite handlers", 
       const calls: string[][] = [];
       let activeSignal: AbortSignal | undefined;
       const result = runSuite({
+        checkServer: async () => {},
         command: async () => '',
         database: async (step: string, options: { signal?: AbortSignal } = {}) => {
           if (step === action) {
@@ -83,6 +84,7 @@ test("teardown failure is logged without masking the original failure", async (t
     process.env.JRC_LOCAL_DOCKER = "1";
     const original = new Error("original failure");
     await assert.rejects(runSuite({
+      checkServer: async () => {},
       command: async () => '',
       database: async () => { throw original; }, run: async () => {}, rm: async () => {},
       cli: async () => { throw new Error("cleanup failed"); },
@@ -109,6 +111,7 @@ test("capped suite stops local stacks after success or failure, preserving volum
           if (args.includes(failure)) throw new Error("synthetic failure");
         };
         const result = runSuite({
+          checkServer: async () => {},
           command: async () => '',
           database: async (action: string) => step(action), cli: step, rm: async () => {},
           run: async (args: string[]) => step(args.includes("build") ? "build" : "test"),
