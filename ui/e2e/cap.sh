@@ -11,6 +11,7 @@ while [ ! -s "$state/pid" ]; do
   if ! kill -0 "$supervisor" 2>/dev/null; then
     wait "$supervisor"; rc=$?
     rmdir "$state"
+    [ "$interrupted" -eq 0 ] || exit 130
     exit "$rc"
   fi
   sleep 1
@@ -19,22 +20,36 @@ root=$(cat "$state/pid")
 rm "$state/pid"
 rmdir "$state"
 tree() { for c in $(pgrep -P "$1" 2>/dev/null); do tree "$c"; done; echo "$1"; }
+fallback() {
+  # Retain collected roots across reparenting and rescan before EACH signal.
+  remaining=$(for p in $remaining; do tree "$p"; done | sort -un)
+  for p in $remaining; do
+    group=$(ps -o pgid= -p "$p" 2>/dev/null || :)
+    # A descendant can join an unrelated group: only signal groups it leads.
+    if [ -n "$group" ] && [ "$group" -eq "$p" ]; then
+      /bin/kill "-$1" -- "-$p" 2>/dev/null || :
+    fi
+    kill "-$1" "$p" 2>/dev/null || :
+  done
+  # Keep reaching orphaned members even after the runner group leader exits.
+  # Use /bin/kill: dash's builtin does not accept the -- separator.
+  /bin/kill "-$1" -- "-$root" 2>/dev/null || :
+}
 stop() {
   # Leave the runner's children alive so its finally block can use Docker/Supabase.
   # 90s covers the 1.5s abort drain, restart protection, data backup/stop and scan.
   # Ignore further signals while this bounded cleanup is in progress.
   trap '' INT TERM
+  remaining=$(tree "$root")
   kill -TERM "$root" 2>/dev/null || :
   grace=0
   while kill -0 "$root" 2>/dev/null && [ "$grace" -lt 90 ]; do
     sleep 1
     grace=$((grace + 1))
   done
-  # Reparented descendants (and children they spawn) retain this owned group.
-  # Use /bin/kill: dash's builtin does not accept the -- separator.
-  /bin/kill -TERM -- "-$root" 2>/dev/null || :
+  fallback TERM
   sleep 2
-  /bin/kill -KILL -- "-$root" 2>/dev/null || :
+  fallback KILL
   wait "$supervisor" 2>/dev/null || :
 }
 trap 'stop; exit 130' INT TERM
