@@ -17,7 +17,8 @@ JRC_E2E_ARGS='--repeat-each 5' /Users/etanheyman/Gits/jobRadarCoach/docs.local/t
 CI uses `npm run test:e2e`: `cap.sh` is the portable equivalent, with the
 same 3072 MB aggregate process-tree RSS ceiling, 600 s deadline, 2 s sampling,
 and PID-only termination. It reports peak RSS and elapsed time. Install only
-headless shell with `npx playwright install chromium --only-shell --with-deps`.
+headless shell with `PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright install chromium --only-shell --with-deps`.
+Keep the variable on browser installs to preserve other checkouts' browser caches.
 Telemetry is disabled for both e2e and Next. CI never configures a model.
 
 All four flows are strict deterministic gates against the landed chain. Each flow also has a hybrid variant with

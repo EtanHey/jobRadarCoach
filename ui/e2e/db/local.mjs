@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 export const root = resolve('.e2e/db-stack');
 export const project = 'jrc-p12-test-db';
@@ -8,6 +8,12 @@ export const password = 'Local-only-P12-password-123!';
 export const cert = resolve(root, 'supabase/cert.pem');
 export const key = resolve(root, 'supabase/key.pem');
 export const cleanEnv = () => Object.fromEntries(Object.entries(process.env).filter(([k]) => /^(PATH|HOME|TMPDIR|TMP|TEMP|CI|PLAYWRIGHT_BROWSERS_PATH|DOCKER_HOST|DOCKER_CONTEXT)$/.test(k)));
+// A PID alone can be reused; PID plus start time identifies one process instance.
+// Fixed locale and zone keep ps output byte-comparable between the writer and checker.
+export function processStart(pid, { timeout = 5000 } = {}) {
+  return new Promise(ok => execFile('ps', ['-o', 'lstart=', '-p', String(pid)], { timeout, env: { ...cleanEnv(), LC_ALL: 'C', TZ: 'UTC' } },
+    (error, stdout) => ok(error ? null : stdout.trim() || null)));
+}
 export function requireLocalDocker() {
   if (process.env.CI !== 'true' && process.env.JRC_LOCAL_DOCKER !== '1') {
     throw new Error('DB e2e runs in CI (ui-tests.yml logged-in-db); local Docker/OrbStack is off by design; set JRC_LOCAL_DOCKER=1 to run it deliberately.');

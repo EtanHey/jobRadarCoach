@@ -1,7 +1,10 @@
 # Logged-in tests against local Postgres
 
 Prerequisites: Node >=22.12, Docker running, Supabase CLI **2.116.0**, OpenSSL.
-From `ui/`, run `npm ci` and `npx playwright install chromium --only-shell`.
+From `ui/`, run `npm ci` and `PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright install chromium --only-shell`.
+Keep this variable on browser installs to preserve other checkouts' browser caches.
+Verified in installed Playwright 1.63.0: `playwright-core/lib/coreBundle.js`
+checks `PLAYWRIGHT_SKIP_BROWSER_GC` before `_validateInstallationCache`.
 Run one suite at a time:
 
 ```sh
@@ -33,6 +36,13 @@ and the next suite cleans up stale containers before starting. A kill before pro
 completes after start/reset still requires manual cleanup. On a signal, the runner
 waits up to 1.5 seconds for aborted work before scanning and stopping the stack.
 A second Ctrl-C waits for teardown to finish.
+The HTTPS child also exits on IPC disconnect if its `start-app.mjs` parent dies,
+including SIGKILL during startup. After every run, including CI, the runner checks
+port 4343. A survivor fails the run; it is stopped only when its PID and start
+time (`ps -o lstart=`) match this run's unique receipt and its actual cwd matches
+this checkout, so a reused PID is never signalled. Any mismatch or failed lookup
+is reported and left untouched. The whole check has one 20 s deadline. It
+requires `lsof` and `ps`.
 From `ui/`, preserve data while cleaning up with
 `JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .`.
 This also works in a fresh checkout without `.e2e/db-stack` or its config.

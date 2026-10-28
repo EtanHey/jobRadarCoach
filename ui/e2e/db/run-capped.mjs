@@ -1,10 +1,48 @@
 // Invoke through the fleet cap locally, or e2e/cap.sh in CI. No runner overrides.
-import { spawn } from 'node:child_process';
-import { rm } from 'node:fs/promises';
+import { execFile, spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { readFile, realpath, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { cleanEnv, cli, command, project, requireLocalDocker } from './local.mjs';
+import { promisify } from 'node:util';
+import { cleanEnv, cli, command, processStart, project, requireLocalDocker } from './local.mjs';
 import { database } from './db.mjs';
+
+const execute = promisify(execFile);
+export async function checkServer(receipt, { port = 4343, cwd = process.cwd(), timeout = 20000 } = {}) {
+  // One wall-clock budget for every lsof/ps call and wait, well inside cap.sh's 90s grace.
+  const deadline = Date.now() + timeout;
+  const late = () => new Error(`DB e2e :${port} survivor check exceeded its ${timeout} ms deadline; nothing further signalled`);
+  const remaining = () => { const ms = deadline - Date.now(); if (ms <= 0) throw late(); return ms; };
+  const lsof = async args => {
+    try { return (await execute('lsof', args, { timeout: remaining() })).stdout; }
+    catch (error) { if (error.code === 1 && !error.stdout) return ''; throw error.killed ? late() : error; }
+  };
+  const listeners = async () => (await lsof(['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fp']))
+    .split('\n').filter(line => /^p\d+$/.test(line)).map(line => Number(line.slice(1)));
+  const pids = [...new Set(await listeners())];
+  if (!pids.length) { await rm(receipt, { force: true }); return; }
+  let owner;
+  try { owner = JSON.parse(await readFile(receipt, 'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw new Error(`DB e2e server survivor PID ${pids.join(', ')}; unreadable ownership receipt`, { cause: error }); }
+  const expectedCwd = await realpath(cwd);
+  // A reused PID has a different start time; any mismatch or failed lookup is report-only.
+  const owned = async pid => owner?.pid === pid && typeof owner.started === 'string'
+    && await processStart(pid, { timeout: remaining() }) === owner.started
+    && (await lsof(['-a', '-p', String(pid), '-d', 'cwd', '-Fn'])).split('\n').includes(`n${expectedCwd}`);
+  const outcomes = [];
+  for (const pid of pids) {
+    if (!await owned(pid)) { outcomes.push(`PID ${pid} does not match this run's receipt (PID + start time); left untouched`); continue; }
+    for (const signal of ['SIGTERM', 'SIGKILL']) {
+      if (!(await listeners()).includes(pid) || !await owned(pid)) break;
+      try { process.kill(pid, signal); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+      for (let i = 0; i < 40 && (await listeners()).includes(pid); i++) await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    outcomes.push(`PID ${pid} belongs to this run; ${(await listeners()).includes(pid) ? 'STILL LISTENING' : 'stopped'}`);
+  }
+  // Even a recovered leak is a failed run, never a silently poisoned next run.
+  throw new Error(`DB e2e server survivor on :${port}: ${outcomes.join('; ')}`);
+}
 
 // Supabase CLI v2.116.0: apps/cli-go/internal/utils/docker.go, CliProjectLabel.
 const projectFilter = `label=com.supabase.cli.project=${project}`;
@@ -31,8 +69,8 @@ async function stopProject(deps, phase = 'teardown') {
   if (errors.length === 1) throw errors[0];
   if (errors.length) throw new AggregateError(errors, errors.map(error => error.message).join('; '));
 }
-async function run(args, { signal }) {
-  const child = spawn(process.execPath, args, { env: { ...cleanEnv(), JRC_LOCAL_DOCKER: process.env.JRC_LOCAL_DOCKER }, signal, stdio: 'inherit' });
+async function run(args, { signal, serverReceipt }) {
+  const child = spawn(process.execPath, args, { env: { ...cleanEnv(), JRC_LOCAL_DOCKER: process.env.JRC_LOCAL_DOCKER, JRC_DB_SERVER_RECEIPT: serverReceipt }, signal, stdio: 'inherit' });
   const code = await new Promise((ok, fail) => {
     // AbortError can precede exit; wait for close before settling the work.
     let error;
@@ -41,11 +79,11 @@ async function run(args, { signal }) {
   });
   if (code !== 0) throw new Error(`DB e2e child failed (${code ?? 'signal'})`);
 }
-export async function runSuite(deps = { database, run, rm, cli, command }) {
+export async function runSuite(deps = { database, run, rm, cli, command, checkServer }) {
   requireLocalDocker();
   const local = process.env.CI !== 'true';
   const controller = new AbortController();
-  const options = { signal: controller.signal };
+  const options = { signal: controller.signal, serverReceipt: resolve(`.e2e/db-server-${randomUUID()}.json`) };
   let interrupt, terminate;
   const interrupted = new Promise((_, reject) => {
     const stop = signal => {
@@ -88,10 +126,11 @@ export async function runSuite(deps = { database, run, rm, cli, command }) {
       } finally { clearTimeout(timer); }
     }
     try {
-      if (local) await stopProject(deps);
-    } catch (error) {
-      console.error(error.stack ?? error.message);
-      if (!failed) throw error;
+      const errors = [];
+      try { if (local) await stopProject(deps); } catch (error) { errors.push(error); }
+      try { await deps.checkServer(options.serverReceipt); } catch (error) { errors.push(error); }
+      for (const error of errors) console.error(error.stack ?? error.message);
+      if (!failed && errors.length) throw new AggregateError(errors, errors.map(error => error.message).join('; '));
     } finally {
       process.off('SIGINT', interrupt); process.off('SIGTERM', terminate);
     }

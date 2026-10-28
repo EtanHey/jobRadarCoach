@@ -29,9 +29,14 @@ const env = { ...cleanEnv(), NODE_OPTIONS: '--use-openssl-ca --max-old-space-siz
 // Build before Chromium starts; production serving performs no dev compilation.
 // Next start has no HTTPS flag, so its production handler runs in a local TLS server.
 const args = building ? ['node_modules/next/dist/bin/next', 'build', target] : ['--input-type=module', '-e', `
-  import next from 'next';
+  // IPC closes even if start-app is killed before it can forward a signal.
+  process.once('disconnect', () => process.exit(0));
+  if (!process.connected) process.exit(0);
+  const { default: next } = await import('next');
   import { createServer } from 'node:https';
-  import { readFileSync } from 'node:fs';
+  import { readFileSync, writeFileSync } from 'node:fs';
+  import { processStart } from ${JSON.stringify(new URL('./local.mjs', import.meta.url).href)};
+  if (process.env.JRC_DB_SERVER_RECEIPT) writeFileSync(process.env.JRC_DB_SERVER_RECEIPT, JSON.stringify({ pid: process.pid, started: await processStart(process.pid) }));
   const app = next({ dev: false, dir: ${JSON.stringify(target)}, hostname: '127.0.0.1', port: 4343 });
   await app.prepare();
   const server = createServer({ key: readFileSync(${JSON.stringify(key)}), cert: readFileSync(${JSON.stringify(cert)}) }, app.getRequestHandler());
@@ -40,7 +45,7 @@ const args = building ? ['node_modules/next/dist/bin/next', 'build', target] : [
     server.close(); server.closeAllConnections(); await app.close(); process.exit(0);
   });
 `];
-const child = spawn(process.execPath, args, { env, stdio: ['ignore', 'pipe', 'pipe'] });
+const child = spawn(process.execPath, args, { env: { ...env, JRC_DB_SERVER_RECEIPT: process.env.JRC_DB_SERVER_RECEIPT }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
 for (const [stream, output] of [[child.stdout, process.stdout], [child.stderr, process.stderr]]) {
   let pending = '';
   stream.on('data', chunk => {

@@ -11,6 +11,115 @@ import { fakeStack } from './fixtures/db-fake-stack.mjs';
 
 const capShell = process.env.JRC_CAP_TEST_SHELL || '/bin/sh';
 
+for (const phase of ['preparing', 'listening', 'output closed']) {
+  localTest(`server exits when start-app dies while ${phase}`, async t => {
+    const fake = await fakeCommands(t);
+    await writeFile(join(fake.cwd, '.e2e/db-stack/owner.json'), '{"id":"synthetic"}');
+    const next = join(fake.cwd, 'node_modules/next');
+    await mkdir(next, { recursive: true });
+    await writeFile(join(next, 'package.json'), '{"type":"module","exports":"./index.mjs"}');
+    const pidFile = join(fake.cwd, 'server-pid');
+    await writeFile(join(next, 'index.mjs'), `
+      import { writeFileSync } from 'node:fs';
+      export default () => ({
+        prepare: async () => {
+          writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));
+          ${phase === 'preparing' ? 'await new Promise(() => setInterval(() => {}, 100));' : ''}
+          ${phase === 'output closed' ? 'await new Promise(resolve => setTimeout(resolve, 500));' : ''}
+        },
+        getRequestHandler: () => (req, res) => res.end('synthetic'), close: async () => {},
+      });
+    `);
+    const root = join(fake.cwd, '.e2e/db-stack/supabase');
+    const tls = await childResult('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(root, 'key.pem'), '-out', join(root, 'cert.pem'), '-days', '1', '-subj', '/CN=localhost']);
+    assert.equal(tls.code, 0, tls.output);
+    const parent = spawn(process.execPath, [new URL('../e2e/db/start-app.mjs', import.meta.url).pathname], {
+      cwd: fake.cwd, env: { ...fake.env, CI: 'false', JRC_LOCAL_DOCKER: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let output = '', pid;
+    parent.stdout.on('data', chunk => { output += chunk; });
+    parent.stderr.on('data', chunk => { output += chunk; });
+    t.after(() => {
+      parent.kill('SIGKILL');
+      if (pid) { try { process.kill(pid, 'SIGKILL'); } catch {} }
+    });
+    await waitForFile(pidFile);
+    pid = Number(await readFile(pidFile, 'utf8'));
+    if (phase === 'listening') {
+      for (let i = 0; i < 100 && !output.includes('Production test app ready'); i++) await new Promise(resolve => setTimeout(resolve, 20));
+      assert.match(output, /Production test app ready/);
+    }
+    if (phase === 'output closed') {
+      const exited = new Promise(resolve => parent.once('exit', (code, signal) => resolve({ code, signal })));
+      parent.stdout.destroy(); // Playwright has exited before the server's first output.
+      assert.deepEqual(await exited, { code: 1, signal: null });
+      assert.match(output, /EPIPE/);
+    } else parent.kill('SIGKILL');
+    for (let i = 0; i < 100 && alive(pid); i++) await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(alive(pid), false, `server PID ${pid} survived its parent: ${output}`);
+  });
+}
+
+function alive(pid) {
+  try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+// 'reused pid' is R524's probe: an unrelated same-cwd listener now holds the receipt's PID.
+for (const ownership of ['owned', 'other cwd', 'missing receipt', 'reused pid', 'reused pid, other start']) {
+  localTest(`teardown rejects a survivor (${ownership}) and signals only its own listener`, async t => {
+    const dir = await mkdtemp(join(tmpdir(), 'jrc-server-check-'));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const receipt = join(dir, 'receipt.json');
+    const ready = join(dir, 'ready.json');
+    await mkdir(join(dir, 'other'));
+    const writes = ownership === 'owned' || ownership === 'other cwd';
+    const child = spawn(process.execPath, ['--input-type=module', '-e', `
+      import { createServer } from 'node:net';
+      import { renameSync, writeFileSync } from 'node:fs';
+      import { processStart } from ${JSON.stringify(new URL('../e2e/db/local.mjs', import.meta.url).href)};
+      const started = await processStart(process.pid);
+      const server = createServer();
+      server.listen(0, '127.0.0.1', () => {
+        ${writes ? `writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ pid: process.pid, started }));` : ''}
+        // Atomic, so the reader never sees an empty file.
+        writeFileSync(${JSON.stringify(ready + '.tmp')}, JSON.stringify(server.address()));
+        renameSync(${JSON.stringify(ready + '.tmp')}, ${JSON.stringify(ready)});
+      });
+    `], { cwd: dir, stdio: 'ignore' });
+    t.after(() => child.kill('SIGKILL'));
+    await waitForFile(ready);
+    // The original server exited and the kernel handed its PID to this listener.
+    if (ownership === 'reused pid') await writeFile(receipt, JSON.stringify({ pid: child.pid }));
+    if (ownership === 'reused pid, other start') await writeFile(receipt, JSON.stringify({ pid: child.pid, started: 'Thu Jan  1 00:00:00 1970' }));
+    const { port } = JSON.parse(await readFile(ready, 'utf8'));
+    const { checkServer } = await import('../e2e/db/run-capped.mjs');
+    await assert.rejects(checkServer(receipt, { port, cwd: ownership === 'other cwd' ? join(dir, 'other') : dir }), new RegExp(`survivor.*${child.pid}`));
+    for (let i = 0; i < 100 && ownership === 'owned' && alive(child.pid); i++) await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(alive(child.pid), ownership !== 'owned');
+  });
+}
+
+localTest('the survivor check has one wall-clock deadline, not per-call timeouts', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-server-deadline-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(join(dir, 'lsof'), '#!/bin/sh\nexec sleep 30\n', { mode: 0o755 });
+  const path = process.env.PATH;
+  process.env.PATH = `${dir}:${path}`;
+  t.after(() => { process.env.PATH = path; });
+  const { checkServer } = await import('../e2e/db/run-capped.mjs');
+  const started = Date.now();
+  await assert.rejects(checkServer(join(dir, 'receipt.json'), { port: 1, cwd: dir, timeout: 500 }), /deadline/);
+  assert.ok(Date.now() - started < 2000, `check took ${Date.now() - started} ms`);
+});
+
+localTest('the listener check still runs when container teardown fails', async () => {
+  const stack = fakeStack({ stop: 'error' });
+  let checked = false;
+  stack.deps.checkServer = async receipt => { assert.match(receipt, /db-server-.*\.json$/); checked = true; };
+  await assert.rejects(runSuite(stack.deps), /stop failed/);
+  assert.equal(checked, true);
+});
+
 function localTest(name, fn) {
   test(name, { timeout: 15000 }, async t => {
     t.mock.method(console, 'error', () => {});
@@ -138,6 +247,7 @@ localTest('CI keeps lifecycle ownership in the workflow', async () => {
   await runSuite({
     database: async action => { calls.push(action); },
     run: async () => {}, rm: async () => {},
+    checkServer: async () => {},
     command: async () => { throw new Error('CI must not add Docker lifecycle calls'); },
     cli: async () => { throw new Error('CI stop belongs to workflow'); },
   });
