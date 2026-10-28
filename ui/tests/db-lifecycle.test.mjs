@@ -119,6 +119,30 @@ localTest('the survivor check has one wall-clock deadline, not per-call timeouts
   assert.ok(Date.now() - started < 2000, `check took ${Date.now() - started} ms`);
 });
 
+for (const tool of ['lsof', 'ps']) {
+  localTest(`the survivor deadline holds when ${tool} ignores SIGTERM`, async t => {
+    const dir = await mkdtemp(join(tmpdir(), 'jrc-server-stubborn-'));
+    const pidFile = join(dir, 'pid');
+    t.after(async () => {
+      try { process.kill(Number(await readFile(pidFile, 'utf8')), 'SIGKILL'); } catch {}
+      await rm(dir, { recursive: true, force: true });
+    });
+    await writeFile(join(dir, tool), `#!/bin/sh\ntrap "" TERM\necho $$ > "${pidFile}"\nwhile :; do :; done\n`, { mode: 0o755 });
+    const path = process.env.PATH;
+    process.env.PATH = `${dir}:${path}`;
+    t.after(() => { process.env.PATH = path; });
+    const { checkServer } = await import('../e2e/db/run-capped.mjs');
+    const { processStart } = await import('../e2e/db/local.mjs');
+    const check = tool === 'lsof'
+      ? checkServer(join(dir, 'receipt.json'), { port: 1, cwd: dir, timeout: 500 }).then(() => 'resolved', error => error.message)
+      : processStart(process.pid, { timeout: 500 });
+    let timer;
+    const outcome = await Promise.race([check, new Promise(resolve => { timer = setTimeout(resolve, 2000, 'still pending'); })]);
+    clearTimeout(timer);
+    assert.match(String(outcome), tool === 'lsof' ? /deadline/ : /^null$/);
+  });
+}
+
 localTest('the listener check still runs when container teardown fails', async () => {
   const stack = fakeStack({ stop: 'error' });
   let checked = false;

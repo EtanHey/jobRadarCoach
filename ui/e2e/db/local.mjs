@@ -11,7 +11,7 @@ export const cleanEnv = () => Object.fromEntries(Object.entries(process.env).fil
 // A PID alone can be reused; PID plus start time identifies one process instance.
 // Fixed locale and zone keep ps output byte-comparable between the writer and checker.
 export function processStart(pid, { timeout = 5000 } = {}) {
-  return new Promise(ok => execFile('ps', ['-o', 'lstart=', '-p', String(pid)], { timeout, env: { ...cleanEnv(), LC_ALL: 'C', TZ: 'UTC' } },
+  return new Promise(ok => execFile('ps', ['-o', 'lstart=', '-p', String(pid)], { timeout, killSignal: 'SIGKILL', env: { ...cleanEnv(), LC_ALL: 'C', TZ: 'UTC' } },
     (error, stdout) => ok(error ? null : stdout.trim() || null)));
 }
 export function requireLocalDocker() {
