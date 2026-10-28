@@ -67,7 +67,7 @@ for (const stale of [false, true]) {
     const stack = fakeStack({ stale, stop: 'survivor' });
     await assert.rejects(runSuite(stack.deps), error => {
       assert.match(error.message, new RegExp(`DB e2e ${stale ? 'preflight' : 'teardown'} left running containers`));
-      assert.ok(error.message.includes('stop with: JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .e2e/db-stack'));
+      assert.ok(error.message.endsWith('stop with: JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .'));
       return true;
     });
     assert.ok(stack.containers.filter(c => c.project === 'jrc-p12-test-db').every(c => c.restart === 'no'));
@@ -164,14 +164,14 @@ localTest('aborted command settles only after its child exits', async t => {
   assert.equal(await readFile(exited, 'utf8'), 'exited');
 });
 
-async function fakeCommands(t) {
+async function fakeCommands(t, { fresh = false } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'jrc-db-commands-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const cwd = join(dir, 'ui');
-  for (const path of ['ui/e2e/db', 'ui/.e2e/db-stack/supabase', 'supabase/migrations', 'bin']) {
+  for (const path of ['ui/e2e/db', ...(!fresh ? ['ui/.e2e/db-stack/supabase'] : []), 'supabase/migrations', 'bin']) {
     await mkdir(join(dir, path), { recursive: true });
   }
-  for (const path of ['e2e/db/config.toml', '.e2e/db-stack/supabase/cert.pem', '.e2e/db-stack/supabase/key.pem']) {
+  for (const path of ['e2e/db/config.toml', ...(!fresh ? ['.e2e/db-stack/supabase/cert.pem', '.e2e/db-stack/supabase/key.pem'] : [])]) {
     await writeFile(join(cwd, path), 'synthetic');
   }
   const log = join(dir, 'commands.jsonl');
@@ -179,6 +179,11 @@ async function fakeCommands(t) {
     const fs = require('node:fs');
     const args = process.argv.slice(2);
     fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify([${JSON.stringify(name)}, ...args]) + '\\n');
+    if (${JSON.stringify(name)} === 'supabase') {
+      const index = args.indexOf('--workdir');
+      const workdir = index < 0 ? process.cwd() : args[index + 1];
+      if (!fs.statSync(workdir).isDirectory()) throw new Error('workdir must be a directory');
+    }
     if (${JSON.stringify(name)} === 'docker' && args[0] === 'ps') console.log('supabase_db_jrc-p12-test-db');
     if (args[0] === 'status') console.log(JSON.stringify({
       API_URL: 'https://127.0.0.1:55431', MAILPIT_URL: 'http://127.0.0.1:55434',
@@ -197,6 +202,33 @@ async function childResult(executable, args, options) {
   const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
   return { code, output };
 }
+
+localTest('fresh checkout stops leftover containers in preflight and teardown without stack config', async t => {
+  const fake = await fakeCommands(t, { fresh: true });
+  const result = await childResult(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import { existsSync } from 'node:fs';
+    import { cli, root } from ${JSON.stringify(new URL('../e2e/db/local.mjs', import.meta.url).href)};
+    import { runSuite } from ${JSON.stringify(new URL('../e2e/db/run-capped.mjs', import.meta.url).href)};
+    import { fakeStack } from ${JSON.stringify(new URL('./fixtures/db-fake-stack.mjs', import.meta.url).href)};
+    assert.equal(existsSync(root), false);
+    const stack = fakeStack({ stale: 'stopped' });
+    const stop = stack.deps.cli;
+    stack.deps.cli = async (...args) => { await cli(...args); await stop(...args); };
+    await runSuite(stack.deps);
+    assert.equal(stack.events.filter(event => event === 'stop').length, 2);
+    assert.ok(stack.events.indexOf('stop') < stack.events.indexOf('up'));
+    assert.ok(stack.containers.filter(c => c.project === 'jrc-p12-test-db').every(c => !c.running));
+    assert.equal(existsSync(root), false);
+  `, 'fake-driver'], fake);
+  assert.equal(result.code, 0, result.output);
+  const commands = (await readFile(fake.log, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.equal(commands.length, 2);
+  for (const args of commands) {
+    assert.deepEqual(args.slice(0, 4), ['supabase', 'stop', '--project-id', 'jrc-p12-test-db']);
+    assert.ok(!args.includes('--no-backup'));
+  }
+});
 
 localTest('real database up calls restart hook between CLI start and status (fake executable)', async t => {
   const fake = await fakeCommands(t);

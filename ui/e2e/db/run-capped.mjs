@@ -26,7 +26,7 @@ async function stopProject(deps, phase = 'teardown') {
   try { await deps.cli('stop', '--project-id', project); } catch (error) { errors.push(error); }
   try {
     const survivors = await containers(deps, { names: true });
-    if (survivors.length) throw new Error(`DB e2e ${phase} left running containers: ${survivors.join(', ')}; stop with: JRC_LOCAL_DOCKER=1 supabase stop --project-id ${project} --workdir .e2e/db-stack`);
+    if (survivors.length) throw new Error(`DB e2e ${phase} left running containers: ${survivors.join(', ')}; stop with: JRC_LOCAL_DOCKER=1 supabase stop --project-id ${project} --workdir .`);
   } catch (error) { errors.push(error); }
   if (errors.length === 1) throw errors[0];
   if (errors.length) throw new AggregateError(errors, errors.map(error => error.message).join('; '));
