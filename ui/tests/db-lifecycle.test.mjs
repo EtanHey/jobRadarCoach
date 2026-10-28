@@ -71,24 +71,33 @@ function alive(pid) {
   try { process.kill(pid, 0); return true; } catch { return false; }
 }
 
-for (const ownership of ['owned', 'other cwd', 'missing receipt']) {
+// 'reused pid' is R524's probe: an unrelated same-cwd listener now holds the receipt's PID.
+for (const ownership of ['owned', 'other cwd', 'missing receipt', 'reused pid', 'reused pid, other start']) {
   localTest(`teardown rejects a survivor (${ownership}) and signals only its own listener`, async t => {
     const dir = await mkdtemp(join(tmpdir(), 'jrc-server-check-'));
     t.after(() => rm(dir, { recursive: true, force: true }));
     const receipt = join(dir, 'receipt.json');
     const ready = join(dir, 'ready.json');
     await mkdir(join(dir, 'other'));
+    const writes = ownership === 'owned' || ownership === 'other cwd';
     const child = spawn(process.execPath, ['--input-type=module', '-e', `
       import { createServer } from 'node:net';
-      import { writeFileSync } from 'node:fs';
+      import { renameSync, writeFileSync } from 'node:fs';
+      import { processStart } from ${JSON.stringify(new URL('../e2e/db/local.mjs', import.meta.url).href)};
+      const started = await processStart(process.pid);
       const server = createServer();
       server.listen(0, '127.0.0.1', () => {
-        ${ownership !== 'missing receipt' ? `writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ pid: process.pid }));` : ''}
-        writeFileSync(${JSON.stringify(ready)}, JSON.stringify(server.address()));
+        ${writes ? `writeFileSync(${JSON.stringify(receipt)}, JSON.stringify({ pid: process.pid, started }));` : ''}
+        // Atomic, so the reader never sees an empty file.
+        writeFileSync(${JSON.stringify(ready + '.tmp')}, JSON.stringify(server.address()));
+        renameSync(${JSON.stringify(ready + '.tmp')}, ${JSON.stringify(ready)});
       });
     `], { cwd: dir, stdio: 'ignore' });
     t.after(() => child.kill('SIGKILL'));
     await waitForFile(ready);
+    // The original server exited and the kernel handed its PID to this listener.
+    if (ownership === 'reused pid') await writeFile(receipt, JSON.stringify({ pid: child.pid }));
+    if (ownership === 'reused pid, other start') await writeFile(receipt, JSON.stringify({ pid: child.pid, started: 'Thu Jan  1 00:00:00 1970' }));
     const { port } = JSON.parse(await readFile(ready, 'utf8'));
     const { checkServer } = await import('../e2e/db/run-capped.mjs');
     await assert.rejects(checkServer(receipt, { port, cwd: ownership === 'other cwd' ? join(dir, 'other') : dir }), new RegExp(`survivor.*${child.pid}`));
@@ -96,6 +105,19 @@ for (const ownership of ['owned', 'other cwd', 'missing receipt']) {
     assert.equal(alive(child.pid), ownership !== 'owned');
   });
 }
+
+localTest('the survivor check has one wall-clock deadline, not per-call timeouts', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-server-deadline-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await writeFile(join(dir, 'lsof'), '#!/bin/sh\nexec sleep 30\n', { mode: 0o755 });
+  const path = process.env.PATH;
+  process.env.PATH = `${dir}:${path}`;
+  t.after(() => { process.env.PATH = path; });
+  const { checkServer } = await import('../e2e/db/run-capped.mjs');
+  const started = Date.now();
+  await assert.rejects(checkServer(join(dir, 'receipt.json'), { port: 1, cwd: dir, timeout: 500 }), /deadline/);
+  assert.ok(Date.now() - started < 2000, `check took ${Date.now() - started} ms`);
+});
 
 localTest('the listener check still runs when container teardown fails', async () => {
   const stack = fakeStack({ stop: 'error' });

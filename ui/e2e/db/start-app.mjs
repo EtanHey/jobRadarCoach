@@ -35,7 +35,8 @@ const args = building ? ['node_modules/next/dist/bin/next', 'build', target] : [
   const { default: next } = await import('next');
   import { createServer } from 'node:https';
   import { readFileSync, writeFileSync } from 'node:fs';
-  if (process.env.JRC_DB_SERVER_RECEIPT) writeFileSync(process.env.JRC_DB_SERVER_RECEIPT, JSON.stringify({ pid: process.pid }));
+  import { processStart } from ${JSON.stringify(new URL('./local.mjs', import.meta.url).href)};
+  if (process.env.JRC_DB_SERVER_RECEIPT) writeFileSync(process.env.JRC_DB_SERVER_RECEIPT, JSON.stringify({ pid: process.pid, started: await processStart(process.pid) }));
   const app = next({ dev: false, dir: ${JSON.stringify(target)}, hostname: '127.0.0.1', port: 4343 });
   await app.prepare();
   const server = createServer({ key: readFileSync(${JSON.stringify(key)}), cert: readFileSync(${JSON.stringify(cert)}) }, app.getRequestHandler());
