@@ -39,7 +39,8 @@ export function command(executable, args, { input, env = cleanEnv(), cwd, signal
 }
 export function localCommands(signal) {
   const execute = (executable, args, options = {}) => command(executable, args, { ...options, signal });
-  const cli = (...args) => execute('supabase', [...args, '--workdir', root]);
+  // Explicit project stops need no config, even before the stack directory exists.
+  const cli = (...args) => execute('supabase', [...args, '--workdir', args[0] === 'stop' ? '.' : root]);
   return { command: execute, cli, status: async () => localStatus(JSON.parse(await cli('status', '-o', 'json'))) };
 }
 export const { cli, status } = localCommands();

@@ -31,7 +31,8 @@ completes after start/reset still requires manual cleanup. On a signal, the runn
 waits up to 1.5 seconds for aborted work before scanning and stopping the stack.
 A second Ctrl-C waits for teardown to finish.
 From `ui/`, preserve data while cleaning up with
-`JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .e2e/db-stack`.
+`JRC_LOCAL_DOCKER=1 supabase stop --project-id jrc-p12-test-db --workdir .`.
+This also works in a fresh checkout without `.e2e/db-stack` or its config.
 Check for survivors with
 `docker ps --filter label=com.supabase.cli.project=jrc-p12-test-db`.
 
