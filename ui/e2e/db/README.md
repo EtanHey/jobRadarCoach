@@ -24,7 +24,10 @@ it sets `restart=no` on all containers labeled `com.supabase.cli.project=jrc-p12
 stopped containers. After success, failure, SIGINT or SIGTERM it stops the stack,
 preserving volume data, and verifies no project container is running. A failed
 stop or survivors fail the run and name any survivors; CI keeps its own teardown.
-The cap wrapper sends SIGTERM, then SIGKILL after 2 seconds. SIGKILL/crashes can
+The portable cap wrapper sends SIGTERM only to the root runner and gives it up to
+90 seconds to drain work, disable restart policies, back up/stop and scan. Its
+SIGINT/SIGTERM paths use the same grace. Only then does it terminate the remaining
+process tree, escalating to SIGKILL after 2 seconds. SIGKILL/crashes can
 still interrupt cleanup; protected containers will not restart with Docker/OrbStack,
 and the next suite cleans up stale containers before starting. A kill before protection
 completes after start/reset still requires manual cleanup. On a signal, the runner

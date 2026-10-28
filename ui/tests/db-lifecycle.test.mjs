@@ -9,6 +9,8 @@ import { runSuite } from '../e2e/db/run-capped.mjs';
 
 import { fakeStack } from './fixtures/db-fake-stack.mjs';
 
+const capShell = process.env.JRC_CAP_TEST_SHELL || '/bin/sh';
+
 function localTest(name, fn) {
   test(name, { timeout: 15000 }, async t => {
     t.mock.method(console, 'error', () => {});
@@ -268,6 +270,18 @@ localTest('real runner exits nonzero naming stale survivors (fake executables)',
   assert.ok(!commands.some(args => args.includes('--no-backup') || args.includes('start')));
 });
 
+for (const code of [0, 7, 143]) {
+  localTest(`portable cap preserves runner output and exit ${code}`, async t => {
+    const dir = await mkdtemp(join(tmpdir(), 'jrc-cap-exit-'));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const driver = join(dir, 'suite.mjs');
+    await writeFile(driver, `console.log('suite output'); ${code === 143 ? "process.kill(process.pid, 'SIGTERM')" : `process.exitCode = ${code}`};`);
+    const result = await childResult(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '999999']);
+    assert.equal(result.code, code, result.output);
+    assert.match(result.output, /suite output/);
+  });
+}
+
 localTest('portable cap TERM-path wiring waits for driver readiness and exits 137', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'jrc-db-cap-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
@@ -295,7 +309,7 @@ localTest('portable cap TERM-path wiring waits for driver readiness and exits 13
     catch (error) { process.exitCode = 1; }
     finally { clearInterval(keepAlive); writeFileSync(${JSON.stringify(receipt)}, JSON.stringify(stack)); }
   `);
-  const child = spawn('sh', [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '0'], {
+  const child = spawn(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '0'], {
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'],
   });
   t.after(() => { if (child.exitCode === null) child.kill('SIGTERM'); });
@@ -307,4 +321,291 @@ localTest('portable cap TERM-path wiring waits for driver readiness and exits 13
   assert.match(output, /CAP-KILL/);
   assert.equal(await readFile(ready, 'utf8'), 'ready');
   stopped(JSON.parse(await readFile(receipt, 'utf8')));
+});
+
+for (const trigger of ['cap', 'SIGINT', 'SIGTERM', 'group-SIGINT']) {
+  localTest(`${trigger} during reset lets the runner drain and finish slow subprocess teardown`, async t => {
+    const dir = await mkdtemp(join(tmpdir(), 'jrc-db-reset-cap-'));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const ready = join(dir, 'ready');
+    const receipt = join(dir, 'receipt.json');
+    const stopping = join(dir, 'stopping');
+    const driver = join(dir, 'suite.mjs');
+    const bin = join(dir, 'bin');
+    await mkdir(bin);
+    const clockStarted = join(dir, 'clock-started');
+    await writeFile(join(bin, 'date'), `#!/bin/sh\nif [ ! -f '${clockStarted}' ]; then touch '${clockStarted}'; echo 0; elif [ -f '${ready}' ]; then echo 2; else echo 0; fi\n`, { mode: 0o700 });
+    await writeFile(driver, `
+      import { writeFileSync } from 'node:fs';
+      import { command } from ${JSON.stringify(new URL('../e2e/db/local.mjs', import.meta.url).href)};
+      import { runSuite } from ${JSON.stringify(new URL('../e2e/db/run-capped.mjs', import.meta.url).href)};
+      import { fakeStack } from ${JSON.stringify(new URL('./fixtures/db-fake-stack.mjs', import.meta.url).href)};
+      const stack = fakeStack();
+      const database = stack.deps.database;
+      stack.deps.database = async (action, options) => {
+        await database(action, options);
+        if (action === 'seed') {
+          // Recreate the risky restart policy after the fake's protection hook.
+          // This exercises mid-reset cleanup, not reset/protect ordering.
+          stack.containers.find(c => c.id === 'db2').restart = 'unless-stopped';
+          try {
+            await command(process.execPath, ['--input-type=module', '-e', \`
+              import { writeFileSync } from 'node:fs';
+              process.on('SIGTERM', () => setTimeout(() => process.exit(0), 200));
+              writeFileSync(${JSON.stringify(ready)}, 'ready');
+              setInterval(() => {}, 100);
+            \`], options);
+          } finally { stack.events.push('reset drained'); }
+        }
+      };
+      const stop = stack.deps.cli;
+      stack.deps.cli = async (...args) => {
+        await command(process.execPath, ['-e', \`
+          if (\${stack.events.includes('reset drained')}) require('node:fs').writeFileSync(${JSON.stringify(stopping)}, 'stopping');
+          setTimeout(() => {}, 3000);
+        \`]);
+        await stop(...args);
+      };
+      try { await runSuite(stack.deps); }
+      catch { process.exitCode = 1; }
+      finally { writeFileSync(${JSON.stringify(receipt)}, JSON.stringify(stack)); }
+    `);
+    const child = spawn(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', trigger === 'cap' ? '0' : '999999'], {
+      detached: trigger === 'group-SIGINT',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    t.after(() => { if (child.exitCode === null) child.kill('SIGTERM'); });
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    const closed = new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+    if (trigger !== 'cap') {
+      for (;;) {
+        try { await readFile(ready); break; } catch { await new Promise(resolve => setTimeout(resolve, 20)); }
+      }
+      if (trigger === 'group-SIGINT') {
+        process.kill(-child.pid, 'SIGINT');
+        await waitForFile(stopping);
+        process.kill(-child.pid, 'SIGINT');
+      } else child.kill(trigger);
+    }
+    assert.equal(await closed, trigger === 'cap' ? 137 : 130, output);
+    const stack = JSON.parse(await readFile(receipt, 'utf8'));
+    stopped(stack);
+    assert.ok(stack.events.indexOf('reset drained') < stack.events.indexOf('stop'));
+    assert.ok(!stack.events.includes('build'));
+  });
+}
+
+localTest('cap bounds an uncooperative runner and kills its remaining child', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-cap-force-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const ready = join(dir, 'ready');
+  const ticks = join(dir, 'ticks');
+  const bin = join(dir, 'bin');
+  const driver = join(dir, 'suite.mjs');
+  const clockStarted = join(dir, 'clock-started');
+  const capped = join(dir, 'capped');
+  await mkdir(bin);
+  await writeFile(join(bin, 'date'), `#!/bin/sh\nif [ ! -f '${clockStarted}' ]; then touch '${clockStarted}'; echo 0; elif [ -f '${ready}' ]; then touch '${capped}'; echo 2; else echo 0; fi\n`, { mode: 0o700 });
+  // Count grace ticks after the cap fires, excluding the launcher handshake wait.
+  // Compress the shell's waits; the runner still ignores real TERM.
+  await writeFile(join(bin, 'sleep'), `#!/bin/sh\nif [ -f '${capped}' ]; then echo "$1" >> '${ticks}'; fi\n/bin/sleep 0.01\n`, { mode: 0o700 });
+  await writeFile(driver, `
+    import { spawn } from 'node:child_process';
+    process.on('SIGTERM', () => {});
+    spawn(process.execPath, ['--input-type=module', '-e', \`
+      import { writeFileSync } from 'node:fs';
+      process.on('SIGTERM', () => {});
+      writeFileSync(${JSON.stringify(ready)}, String(process.pid));
+      setInterval(() => {}, 100);
+    \`], { stdio: 'inherit' });
+  `);
+  const result = await childResult(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '0'], {
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  });
+  assert.equal(result.code, 137, result.output);
+  const sleeps = (await readFile(ticks, 'utf8')).trim().split('\n');
+  assert.equal(sleeps.filter(value => value === '1').length, 90, 'bounded grace exhausted');
+  const pid = Number(await readFile(ready, 'utf8'));
+  for (let attempt = 0; attempt < 50; attempt++) {
+    try { process.kill(pid, 0); }
+    catch (error) { assert.equal(error.code, 'ESRCH'); return; }
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.fail(`cap left child ${pid} alive after forced cleanup`);
+});
+
+localTest('cap kills a child spawned by an orphaned subtree during runner cleanup', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-cap-orphan-'));
+  const ready = join(dir, 'ready');
+  const fork = join(dir, 'fork');
+  const driverPid = join(dir, 'driver-pid');
+  const leafPid = join(dir, 'leaf-pid');
+  const driver = join(dir, 'suite.mjs');
+  const wrapper = join(dir, 'wrapper.mjs');
+  const native = join(dir, 'native.mjs');
+  const leaf = join(dir, 'leaf.mjs');
+  await writeFile(leaf, `
+    import { writeFileSync } from 'node:fs';
+    process.on('SIGTERM', () => {});
+    writeFileSync(${JSON.stringify(leafPid)}, String(process.pid));
+    setInterval(() => {}, 100);
+  `);
+  await writeFile(native, `
+    import { spawn } from 'node:child_process';
+    import { existsSync, writeFileSync } from 'node:fs';
+    const parent = process.ppid;
+    writeFileSync(${JSON.stringify(ready)}, 'ready');
+    const poll = setInterval(() => {
+      if (process.ppid !== parent && existsSync(${JSON.stringify(fork)})) {
+        clearInterval(poll);
+        spawn(process.execPath, [${JSON.stringify(leaf)}], { stdio: 'ignore' }).unref();
+      }
+    }, 20);
+    setInterval(() => {}, 100);
+  `);
+  await writeFile(wrapper, `
+    import { spawn } from 'node:child_process';
+    spawn(process.execPath, [${JSON.stringify(native)}], { stdio: 'ignore' });
+  `);
+  await writeFile(driver, `
+    import { spawn } from 'node:child_process';
+    import { existsSync, writeFileSync } from 'node:fs';
+    writeFileSync(${JSON.stringify(driverPid)}, String(process.pid));
+    const wrapper = spawn(process.execPath, [${JSON.stringify(wrapper)}], { stdio: 'ignore' });
+    process.on('SIGTERM', () => {
+      wrapper.kill('SIGTERM');
+      writeFileSync(${JSON.stringify(fork)}, 'fork');
+      const poll = setInterval(() => {
+        if (existsSync(${JSON.stringify(leafPid)})) { clearInterval(poll); process.exit(0); }
+      }, 20);
+    });
+    setInterval(() => {}, 100);
+  `);
+  const child = spawn(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '999999'], {
+    detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = '';
+  child.stdout.on('data', chunk => { output += chunk; });
+  child.stderr.on('data', chunk => { output += chunk; });
+  const closed = new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+  t.after(async () => {
+    // Clean up only this test's session, runner group and orphan on failure.
+    try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+    try { process.kill(-Number(await readFile(driverPid, 'utf8')), 'SIGKILL'); } catch {}
+    try { process.kill(Number(await readFile(leafPid, 'utf8')), 'SIGKILL'); } catch {}
+    await rm(dir, { recursive: true, force: true });
+  });
+  for (;;) {
+    try { await readFile(ready); break; } catch { await new Promise(resolve => setTimeout(resolve, 20)); }
+  }
+  child.kill('SIGTERM');
+  assert.equal(await closed, 130, output);
+  const pid = Number(await readFile(leafPid, 'utf8'));
+  for (let attempt = 0; attempt < 50; attempt++) {
+    try { process.kill(pid, 0); }
+    catch (error) { assert.equal(error.code, 'ESRCH'); return; }
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.fail(`cap left orphan subtree child ${pid} alive after cleanup`);
+});
+
+async function waitForFile(path) {
+  for (let attempt = 0; attempt < 200; attempt++) {
+    try { return await readFile(path, 'utf8'); }
+    catch { await new Promise(resolve => setTimeout(resolve, 20)); }
+  }
+  assert.fail(`timed out waiting for ${path}`);
+}
+
+for (const trigger of ['cap', 'SIGINT', 'SIGTERM']) {
+  localTest(`${trigger} fallback kills detached descendants including a late detached child`, async t => {
+    const dir = await mkdtemp(join(tmpdir(), 'jrc-cap-detached-'));
+    const bin = join(dir, 'bin');
+    const rootPid = join(dir, 'root-pid');
+    const ready = join(dir, 'ready');
+    const latePid = join(dir, 'late-pid');
+    const driver = join(dir, 'suite.mjs');
+    const leaf = join(dir, 'leaf.mjs');
+    const late = join(dir, 'late.mjs');
+    const clock = join(dir, 'clock');
+    await mkdir(bin);
+    await writeFile(join(bin, 'date'), `#!/bin/sh\nif [ ! -f '${clock}' ]; then touch '${clock}'; echo 0; elif [ -f '${ready}' ]; then echo 2; else echo 0; fi\n`, { mode: 0o700 });
+    // Compress the 90 ticks, but let the TERM handler start its late child.
+    await writeFile(join(bin, 'sleep'), '#!/bin/sh\nif [ "$1" = 2 ]; then /bin/sleep 0.3; else /bin/sleep 0.01; fi\n', { mode: 0o700 });
+    await writeFile(late, `
+      import { writeFileSync } from 'node:fs';
+      process.on('SIGTERM', () => {});
+      writeFileSync(${JSON.stringify(latePid)}, String(process.pid));
+      setInterval(() => {}, 100);
+    `);
+    await writeFile(leaf, `
+      import { spawn } from 'node:child_process';
+      import { writeFileSync } from 'node:fs';
+      let spawned = false;
+      process.on('SIGTERM', () => {
+        if (spawned) return;
+        spawned = true;
+        spawn(process.execPath, [${JSON.stringify(late)}], { detached: true, stdio: 'ignore' });
+      });
+      writeFileSync(${JSON.stringify(ready)}, String(process.pid));
+      setInterval(() => {}, 100);
+    `);
+    await writeFile(driver, `
+      import { spawn } from 'node:child_process';
+      import { writeFileSync } from 'node:fs';
+      process.on('SIGTERM', () => {});
+      writeFileSync(${JSON.stringify(rootPid)}, String(process.pid));
+      spawn(process.execPath, [${JSON.stringify(leaf)}], { detached: true, stdio: 'ignore' });
+      setInterval(() => {}, 100);
+    `);
+    const child = spawn(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', trigger === 'cap' ? '0' : '999999'], {
+      detached: true, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    const closed = new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+    t.after(async () => {
+      // Every group here is led by a PID recorded by this fixture itself.
+      for (const file of [latePid, ready, rootPid]) {
+        try { process.kill(-Number(await readFile(file, 'utf8')), 'SIGKILL'); } catch {}
+      }
+      try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+      await rm(dir, { recursive: true, force: true });
+    });
+    await waitForFile(ready);
+    if (trigger !== 'cap') child.kill(trigger);
+    assert.equal(await closed, trigger === 'cap' ? 137 : 130, output);
+    // Check the original survivor first so the pre-fix failure names the leak.
+    for (const file of [ready, latePid]) {
+      const pid = Number(await readFile(file, 'utf8'));
+      for (let attempt = 0; attempt < 50; attempt++) {
+        try { process.kill(pid, 0); }
+        catch (error) { assert.equal(error.code, 'ESRCH'); break; }
+        if (attempt === 49) assert.fail(`cap left detached child ${pid} alive (${file})`);
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+    }
+  });
+}
+
+localTest('early terminal-group TERM preserves wrapper interruption status 130', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-cap-startup-'));
+  const bin = join(dir, 'bin');
+  const launching = join(dir, 'launching');
+  await mkdir(bin);
+  await writeFile(join(bin, 'node'), `#!/bin/sh\ntouch '${launching}'\n/bin/sleep 0.3\nexec '${process.execPath}' "$@"\n`, { mode: 0o700 });
+  const child = spawn(capShell, [new URL('../e2e/cap.sh', import.meta.url).pathname, join(dir, 'unused.mjs')], {
+    detached: true, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  t.after(async () => {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+    await rm(dir, { recursive: true, force: true });
+  });
+  const closed = new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+  await waitForFile(launching);
+  process.kill(-child.pid, 'SIGTERM');
+  assert.equal(await closed, 130);
 });
