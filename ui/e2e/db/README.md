@@ -5,14 +5,15 @@ From `ui/`, run `npm ci` and `PLAYWRIGHT_SKIP_BROWSER_GC=1 npx playwright instal
 Keep this variable on browser installs to preserve other checkouts' browser caches.
 Verified in installed Playwright 1.63.0: `playwright-core/lib/coreBundle.js`
 checks `PLAYWRIGHT_SKIP_BROWSER_GC` before `_validateInstallationCache`.
-Run one suite at a time:
+Run one suite at a time, only with this command (CI runs `npm run test:db`):
 
 ```sh
-/Users/etanheyman/Gits/jobRadarCoach/docs.local/tools/run-suite-capped.sh e2e/db/run-capped.mjs 3072 600
+JRC_LOCAL_DOCKER=1 npm run test:db
 ```
 
-Portable/CI equivalent: `npm run test:db`. Both reset the dedicated database
-before every run and report elapsed time and peak process-tree RSS. Docker
+Only this cap (`e2e/cap.sh`) gives the runner its teardown grace; other wrappers
+kill teardown, so the runner refuses to start locally without it. It resets the
+dedicated database before every run and reports elapsed time and peak process-tree RSS. Docker
 containers are outside that tree; measure them separately with `docker stats`.
 First image pulls count toward the 600-second deadline. No paid model is used.
 
@@ -27,7 +28,7 @@ it sets `restart=no` on all containers labeled `com.supabase.cli.project=jrc-p12
 stopped containers. After success, failure, SIGINT or SIGTERM it stops the stack,
 preserving volume data, and verifies no project container is running. A failed
 stop or survivors fail the run and name any survivors; CI keeps its own teardown.
-The portable cap wrapper sends SIGTERM only to the root runner and gives it up to
+The cap wrapper sends SIGTERM only to the root runner and gives it up to
 90 seconds to drain work, disable restart policies, back up/stop and scan. Its
 SIGINT/SIGTERM paths use the same grace. Only then does it terminate the remaining
 process tree, escalating to SIGKILL after 2 seconds. SIGKILL/crashes can
@@ -74,7 +75,7 @@ process-tree cap; build/server children have a 1024 MB heap ceiling and one
 Next build worker, using the same default bundler as the repository build.
 The original hosted dev run exceeded the cap (3313 MB, exit 137); Webpack dev
 also exceeded it (3388 MB). The browser retains its 1200×800 viewport.
-On a cap failure, the portable runner reports process RSS/names without arguments.
+On a cap failure, the cap reports process RSS/names without arguments.
 The app copy retains proxy, auth and API routes. No job/API requests are mocked.
 Smoke opens a card/drawer, changes Applied, verifies it after reload and a real
 detail GET, then verifies the globe SQL snapshot and visible WebGL canvas.

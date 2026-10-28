@@ -1,11 +1,12 @@
 #!/bin/sh
-# Portable equivalent of docs.local/tools/run-suite-capped.sh for CI.
+# Process-tree memory/time cap that gives the runner a teardown grace.
+# JRC_CAP_GRACE=1 marks that grace; the DB runner refuses to start without it.
 set -u
 suite=${1:?suite required}; cap=${2:-3072}; limit=${3:-600}
 state=$(mktemp -d) || exit 1
 interrupted=0
 trap 'interrupted=1' INT TERM
-node "$(dirname "$0")/cap-runner.mjs" "$suite" "$state/pid" & supervisor=$!
+JRC_CAP_GRACE=1 node "$(dirname "$0")/cap-runner.mjs" "$suite" "$state/pid" & supervisor=$!
 # Node creates the group without a TTY; dash disables `set -m` without one.
 while [ ! -s "$state/pid" ]; do
   if ! kill -0 "$supervisor" 2>/dev/null; then

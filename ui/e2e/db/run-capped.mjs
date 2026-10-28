@@ -1,4 +1,4 @@
-// Invoke through the fleet cap locally, or e2e/cap.sh in CI. No runner overrides.
+// Invoke only through e2e/cap.sh (`npm run test:db`). No runner overrides.
 import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFile, realpath, rm } from 'node:fs/promises';
@@ -138,6 +138,12 @@ export async function runSuite(deps = { database, run, rm, cli, command, checkSe
   }
 }
 if (import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  try { await runSuite(); }
-  catch (error) { console.error(error.stack ?? error.message); process.exitCode = 1; }
+  // Only cap.sh gives the runner's teardown its grace; checked before any Docker call.
+  if (process.env.CI !== 'true' && process.env.JRC_CAP_GRACE !== '1') {
+    console.error('Run the DB suite with `npm run test:db` (ui/e2e/cap.sh); other wrappers kill teardown.');
+    process.exitCode = 1;
+  } else {
+    try { await runSuite(); }
+    catch (error) { console.error(error.stack ?? error.message); process.exitCode = 1; }
+  }
 }
