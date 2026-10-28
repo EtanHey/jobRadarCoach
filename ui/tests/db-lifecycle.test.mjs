@@ -308,3 +308,99 @@ localTest('portable cap TERM-path wiring waits for driver readiness and exits 13
   assert.equal(await readFile(ready, 'utf8'), 'ready');
   stopped(JSON.parse(await readFile(receipt, 'utf8')));
 });
+
+for (const trigger of ['cap', 'SIGINT', 'SIGTERM']) {
+  localTest(`${trigger} during reset lets the runner drain and finish slow subprocess teardown`, async t => {
+    const dir = await mkdtemp(join(tmpdir(), 'jrc-db-reset-cap-'));
+    t.after(() => rm(dir, { recursive: true, force: true }));
+    const ready = join(dir, 'ready');
+    const receipt = join(dir, 'receipt.json');
+    const driver = join(dir, 'suite.mjs');
+    const bin = join(dir, 'bin');
+    await mkdir(bin);
+    const clockStarted = join(dir, 'clock-started');
+    await writeFile(join(bin, 'date'), `#!/bin/sh\nif [ ! -f '${clockStarted}' ]; then touch '${clockStarted}'; echo 0; elif [ -f '${ready}' ]; then echo 2; else echo 0; fi\n`, { mode: 0o700 });
+    await writeFile(driver, `
+      import { writeFileSync } from 'node:fs';
+      import { command } from ${JSON.stringify(new URL('../e2e/db/local.mjs', import.meta.url).href)};
+      import { runSuite } from ${JSON.stringify(new URL('../e2e/db/run-capped.mjs', import.meta.url).href)};
+      import { fakeStack } from ${JSON.stringify(new URL('./fixtures/db-fake-stack.mjs', import.meta.url).href)};
+      const stack = fakeStack();
+      const database = stack.deps.database;
+      stack.deps.database = async (action, options) => {
+        await database(action, options);
+        if (action === 'seed') {
+          // Reset has recreated the DB, but has not reached the protection hook.
+          stack.containers.find(c => c.id === 'db2').restart = 'unless-stopped';
+          try {
+            await command(process.execPath, ['--input-type=module', '-e', \`
+              import { writeFileSync } from 'node:fs';
+              process.on('SIGTERM', () => setTimeout(() => process.exit(0), 200));
+              writeFileSync(${JSON.stringify(ready)}, 'ready');
+              setInterval(() => {}, 100);
+            \`], options);
+          } finally { stack.events.push('reset drained'); }
+        }
+      };
+      const stop = stack.deps.cli;
+      stack.deps.cli = async (...args) => {
+        await command(process.execPath, ['-e', 'setTimeout(() => {}, 3000)']);
+        await stop(...args);
+      };
+      try { await runSuite(stack.deps); }
+      catch { process.exitCode = 1; }
+      finally { writeFileSync(${JSON.stringify(receipt)}, JSON.stringify(stack)); }
+    `);
+    const child = spawn('sh', [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', trigger === 'cap' ? '0' : '999999'], {
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    t.after(() => { if (child.exitCode === null) child.kill('SIGTERM'); });
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    const closed = new Promise((resolve, reject) => { child.on('error', reject); child.on('close', resolve); });
+    if (trigger !== 'cap') {
+      for (;;) {
+        try { await readFile(ready); break; } catch { await new Promise(resolve => setTimeout(resolve, 20)); }
+      }
+      child.kill(trigger);
+    }
+    assert.equal(await closed, trigger === 'cap' ? 137 : 130, output);
+    const stack = JSON.parse(await readFile(receipt, 'utf8'));
+    stopped(stack);
+    assert.ok(stack.events.indexOf('reset drained') < stack.events.indexOf('stop'));
+    assert.ok(!stack.events.includes('build'));
+  });
+}
+
+localTest('cap bounds an uncooperative runner and kills its remaining child', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'jrc-cap-force-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const ready = join(dir, 'ready');
+  const ticks = join(dir, 'ticks');
+  const bin = join(dir, 'bin');
+  const driver = join(dir, 'suite.mjs');
+  const clockStarted = join(dir, 'clock-started');
+  await mkdir(bin);
+  await writeFile(join(bin, 'date'), `#!/bin/sh\nif [ ! -f '${clockStarted}' ]; then touch '${clockStarted}'; echo 0; elif [ -f '${ready}' ]; then echo 2; else echo 0; fi\n`, { mode: 0o700 });
+  // Compress only the shell's grace ticks; the runner still ignores real TERM.
+  await writeFile(join(bin, 'sleep'), `#!/bin/sh\necho "$1" >> '${ticks}'\n/bin/sleep 0.01\n`, { mode: 0o700 });
+  await writeFile(driver, `
+    import { spawn } from 'node:child_process';
+    process.on('SIGTERM', () => {});
+    spawn(process.execPath, ['--input-type=module', '-e', \`
+      import { writeFileSync } from 'node:fs';
+      process.on('SIGTERM', () => {});
+      writeFileSync(${JSON.stringify(ready)}, String(process.pid));
+      setInterval(() => {}, 100);
+    \`], { stdio: 'inherit' });
+  `);
+  const result = await childResult('sh', [new URL('../e2e/cap.sh', import.meta.url).pathname, driver, '999999', '0'], {
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  });
+  assert.equal(result.code, 137, result.output);
+  const sleeps = (await readFile(ticks, 'utf8')).trim().split('\n');
+  assert.equal(sleeps.filter(value => value === '1').length, 90, 'bounded grace exhausted');
+  const pid = Number(await readFile(ready, 'utf8'));
+  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+});
