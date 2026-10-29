@@ -1,0 +1,2258 @@
+
+> ui@0.1.0 test
+> node --test tests/*.test.mjs && node --conditions=react-server --import tsx --test tests/*.test.ts && node --import tsx --test tests/client/*.test.ts
+
+✔ local success leaves project containers stopped and not restartable (2.087291ms)
+✔ local up leaves project containers stopped and not restartable (0.403542ms)
+✔ local seed leaves project containers stopped and not restartable (0.289459ms)
+✔ local build leaves project containers stopped and not restartable (0.798209ms)
+✔ local test leaves project containers stopped and not restartable (0.239834ms)
+✔ local update leaves project containers stopped and refuses seed (0.576542ms)
+✔ SIGINT stops the project and removes signal handlers (0.375166ms)
+✔ SIGTERM stops the project and removes signal handlers (0.25675ms)
+✔ a stale stack is stopped and verified before a new start (0.215875ms)
+✔ teardown rejects a lying stop and names survivors (0.286333ms)
+✔ preflight rejects a lying stop and names survivors (0.145791ms)
+✔ preflight protects stopped leftovers before starting (0.212375ms)
+✔ signal waits for the aborted up before teardown scans (33.054041ms)
+✔ signal waits for the aborted seed before teardown scans (33.2015ms)
+✔ a hung aborted child cannot block teardown beyond 1.5 seconds (0.831583ms)
+✔ a failed stop rejects even when no container survives (0.261791ms)
+✔ CI keeps lifecycle ownership in the workflow (0.126333ms)
+✔ aborted command settles only after its child exits (97.029292ms)
+✔ real database up calls restart hook between CLI start and status (fake executable) (558.765875ms)
+✔ real seed protects immediately after reset before seeding (fake executable) (452.490125ms)
+✔ real runner exits nonzero naming stale survivors (fake executables) (1047.593ms)
+✔ portable cap TERM-path wiring waits for driver readiness and exits 137 (2429.214791ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4719.62525
+{"event":"request_complete","operation":"job_list","requestId":"0ef5f9c4-17c1-4208-aa46-5550da251ac8","status":200,"duration_ms":6}
+{"event":"request_complete","operation":"job_list","requestId":"bfe25a1d-a4d8-4f27-82d9-b6acb2ded09c","status":400,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"5862d2eb-9b86-4294-8070-01d16a8eaebf","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"bfe25a1d-a4d8-4f27-82d9-b6acb2ded09c","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"5862d2eb-9b86-4294-8070-01d16a8eaebf","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"1e91f0e7-4e69-4ab6-8f8a-3d1e01776499","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"1e91f0e7-4e69-4ab6-8f8a-3d1e01776499","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"63c03b6d-3555-4253-9a8a-ded0c3cd94fd","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"63c03b6d-3555-4253-9a8a-ded0c3cd94fd","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"9d07b785-f533-4cc9-8801-580a47224289","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"9d07b785-f533-4cc9-8801-580a47224289","status":400,"duration_ms":2}
+{"event":"request_failed","operation":"job_list","requestId":"b9b55707-252b-469c-8224-57612eed0250","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"b9b55707-252b-469c-8224-57612eed0250","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"cf4b199c-f553-4295-8b15-b765ff1a91ba","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"b045adfc-4579-4414-a304-ad41c6e7e503","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"19efea62-dece-4562-988e-26c58264f740","status":200,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"2cf790a4-411b-42f8-b249-5922df026e2a","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"2cf790a4-411b-42f8-b249-5922df026e2a","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"84ec4188-dd89-40ae-a5bc-678509ae5b68","status":200,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"aa6c9437-8402-4bf1-9388-baf372a6a4f8","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"aa6c9437-8402-4bf1-9388-baf372a6a4f8","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_detail","requestId":"6f6e05cb-6e87-4892-9ea8-9a21e02ea2f1","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_detail","requestId":"6f6e05cb-6e87-4892-9ea8-9a21e02ea2f1","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_detail","requestId":"a392d436-1966-4750-b1bb-b3555df14c75","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_detail","requestId":"4b9db326-a1b8-4202-8086-3f7dc1e9eb77","status":200,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"77e1ed3a-ebe8-4819-b2b0-b81991f06c8e","status":500,"category":"invalid_response"}
+{"event":"request_failed","operation":"job_list","requestId":"16b0df38-7b68-4823-98ac-6a687f46e235","status":500,"category":"unexpected"}
+{"event":"request_complete","operation":"job_list","requestId":"77e1ed3a-ebe8-4819-b2b0-b81991f06c8e","status":500,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"16b0df38-7b68-4823-98ac-6a687f46e235","status":500,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"6abeda39-8c4f-4c03-8763-47deb92b1bbd","status":503,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"6abeda39-8c4f-4c03-8763-47deb92b1bbd","status":503,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"5c82efc2-b7f4-4463-9404-89f8986c37b5","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"3c18d08d-5b5b-45c4-a197-01e0598cd6a3","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"1c37fa12-4dc3-4594-900b-1e57e8aa8c6a","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"5028f406-bc0a-46fb-a149-c772f96fa29c","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"35b92fd2-f6fd-478b-b60e-418222ada81b","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"b982872b-d650-40c7-b576-999bd7a1787f","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"ca2e955d-34ba-467a-916f-5f6e280edc92","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"e88fefc8-b95b-4a5b-9a5f-6ee0b12ee0bb","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"8a4de624-3f8c-49c8-8a22-da2ae9766549","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"546c4845-52bb-403c-9931-ced53ee45b05","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"988c2c7d-5a2b-4db8-b739-e30564f21a0b","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"6efc6e5c-84a3-43a2-b5f2-850bd6be865f","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"6617cf2e-b360-475d-b5fc-626396e7a84e","status":200,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"2840d612-9fd9-44bb-8411-609e6efeaff5","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"2840d612-9fd9-44bb-8411-609e6efeaff5","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"1fa5f6e8-3bfb-44ce-9c17-04cbe361bb75","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"1fa5f6e8-3bfb-44ce-9c17-04cbe361bb75","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"c725c074-05a4-4b0c-b51f-3f88bb7ff987","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"7593ace8-b842-42ae-bc0f-a2263282517e","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"1ad4a5e7-54f5-4b45-978c-6455970c88ca","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"c725c074-05a4-4b0c-b51f-3f88bb7ff987","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"7593ace8-b842-42ae-bc0f-a2263282517e","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"1ad4a5e7-54f5-4b45-978c-6455970c88ca","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"99f96ec9-aba2-456c-bb87-08de481829d2","status":200,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"0911c2e3-0ec4-4e69-af8a-6f9368d23cb8","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"0911c2e3-0ec4-4e69-af8a-6f9368d23cb8","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"154225e9-8e82-406a-9ddf-a90b7d0105b7","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"154225e9-8e82-406a-9ddf-a90b7d0105b7","status":400,"duration_ms":0}
+✔ board facets validate and reach the SQL RPC through the real Supabase client (29.011042ms)
+✔ job list exposes a bounded nullable unscored contract without raw JD (1.679917ms)
+✔ availability is an orthogonal bounded query with a safe active default (0.721542ms)
+✔ availability predicates classify only boolean false as inactive (0.102791ms)
+✔ unknown and malformed liveness remain visible as unknown summary data (6.337584ms)
+✔ PostgreSQL UUID forms are not rejected by stricter RFC version and variant rules (17.531625ms)
+✔ a non-GUID row fails visibly instead of being silently omitted (19.008375ms)
+✔ frozen status filters are direct values rather than a second status parameter (2.285792ms)
+✔ invalid and reasonless rejected statuses fail before the store (1.093ms)
+✔ mutations require JSON and reject a supplied foreign Origin (0.343167ms)
+✔ malformed job UUIDs are rejected for reads and writes (0.319125ms)
+✔ profile input rejects unsupported brains and private fields (0.513542ms)
+✔ successful detail/status/profile responses honor their public shapes (2.287042ms)
+✔ detail GET is read-only and seen is an explicit status mutation (0.454ms)
+✔ non-http external URLs fail the output boundary (0.256833ms)
+✔ unexpected failures never expose database internals (0.247667ms)
+✔ missing server configuration is returned as a safe unavailable response (0.392625ms)
+✔ every pipeline state filters and saves, preserving rejection wording (2.387416ms)
+✔ stale clients cannot reinterpret their old rejection action (0.19675ms)
+✔ automatic seen intent is distinct from explicit backward edits (0.221916ms)
+✔ summary projection preserves original, latest publication and discovery separately (0.374292ms)
+✔ ID lookup validates and bounds IDs and requires an unfiltered availability set (0.872292ms)
+✔ summary ID lookup queries postings by ID without status, availability or visit exclusions (0.18575ms)
+✔ the list accepts a strictly-newer cursor for the new-roles poll (0.388292ms)
+✔ the cursor narrows the list query with the list's own filters, ordering and limit (0.269125ms)
+✔ new-for-me uses only new status, availability and cursor, without reading visits (0.152208ms)
+✔ score anyway validates origin and body before queuing a stored override (0.702917ms)
+✔ an archived prior score does not appear as a current recommendation (7.075333ms)
+✔ the collision audit inventories every shipped key even without matching postings (1.415667ms)
+✔ the audit reports competing domains but preserves missing evidence explicitly (0.857667ms)
+✔ invalid identity is dropped per row on every board path, without hiding other invalid fields (67.961167ms)
+✔ all list paths select only JSON keys used by the board (3.001625ms)
+✔ projected rows preserve card, filter, dedup and archive data (42.648958ms)
+✔ browser list strips drawer metadata while accepting cached legacy summaries (0.339834ms)
+✔ card markup is identical for legacy and slim browser rows (771.408042ms)
+✔ detail by ID retains full score and drawer metadata (4.218083ms)
+✔ every optional and required list field has an explicit database alias (0.10825ms)
+✔ eligibility survives both projected lists and legacy summary parsing (2.40375ms)
+✔ JD identity reaches all board list paths and globe schema without sending the body (13.047ms)
+✔ all board list paths survive a JD evidence read failure (2.27075ms)
+{"event":"request_complete","operation":"job_list","requestId":"6a20fd6d-7937-482e-860b-c8ecdbb1a87f","status":200,"duration_ms":7}
+{"event":"request_complete","operation":"job_list","requestId":"995c8bc2-cbd6-4d59-9551-fac6b9ab0e28","status":200,"duration_ms":1}
+{"event":"request_failed","operation":"job_list","requestId":"c3c7cd51-5c40-46ed-bbb0-549d8a73c93a","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"c3c7cd51-5c40-46ed-bbb0-549d8a73c93a","status":400,"duration_ms":6}
+{"event":"request_failed","operation":"job_list","requestId":"9dea659d-be99-40a0-91e5-3ade2e16f3c1","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"9dea659d-be99-40a0-91e5-3ade2e16f3c1","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"a1400234-ee04-41fc-8a0b-b282316ac07a","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"a1400234-ee04-41fc-8a0b-b282316ac07a","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"65aa78fb-720f-498a-a47f-a3644fc10236","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"65aa78fb-720f-498a-a47f-a3644fc10236","status":400,"duration_ms":3}
+{"event":"request_failed","operation":"job_list","requestId":"91887967-dd43-418d-9947-a414e77ad7f3","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"91887967-dd43-418d-9947-a414e77ad7f3","status":400,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"e8ee736f-3890-424a-9b30-bbce8fce308d","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"e8ee736f-3890-424a-9b30-bbce8fce308d","status":400,"category":"request"}
+✔ SQL facets travel through request, schema and RPC (46.215042ms)
+✔ source vocabulary request is independent of narrowing facets (16.100125ms)
+✔ only terminal statuses dim a card in every view; Seen and the live pipeline stay at full strength (0.853042ms)
+✔ every view shows a status chip under the score box, never on the location row (979.258875ms)
+✔ a new card has no chip and no dim (636.4935ms)
+✔ outside New for me Seen gets a quiet chip without dimming; terminal statuses dim the content, never the frame (3105.3635ms)
+✔ worth checking is a text chip, not a bare bookmark (363.988916ms)
+✔ New for me keeps its settled marker on kept cards and dims a kept Seen card like a terminal one (1718.151916ms)
+✔ work mode renders as an icon with its text as the accessible name, not as location text (1320.602042ms)
+✔ the cache key is the lookup, never the token (0.585709ms)
+✔ a first miss is remembered for a day, so 202-indexing or a blip retries tomorrow (0.268709ms)
+✔ a repeated miss is remembered for 30 days (0.124334ms)
+✔ a successful load clears a remembered miss (0.097042ms)
+✔ misses survive a reload and are shared through storage (0.162875ms)
+✔ storage stays bounded: expired entries go first, then the oldest (5093.297834ms)
+✔ broken or blocked storage never breaks logos (0.2805ms)
+✔ malformed entries in otherwise valid JSON are ignored, never thrown on (0.680542ms)
+✔ non-object or unparsable stored JSON reads as an empty cache (0.180375ms)
+✔ only a confirmed provider 404 counts as a miss; transport and auth failures never do (12.669583ms)
+✔ unmapped companies render the initials tile without an image (318.956ms)
+✔ the Doit app posting renders initials instead of the DoiT image (177.64125ms)
+✔ catalog logos render on the shared neutral frame and stay hidden until loaded (207.079416ms)
+✔ every size shares one frame and only the box size changes (361.010375ms)
+✔ with a publishable key, unmapped companies ask Logo.dev and keep the initials fallback wiring (208.07425ms)
+✔ card, drawer and globe rail all use the one shared CompanyLogo (0.733541ms)
+✔ Logo.dev attribution renders only when Logo.dev can serve logos, and keeps the referrer it verifies (360.126375ms)
+✔ a remembered Logo.dev miss renders initials at once and requests nothing (583.053458ms)
+✔ a malformed miss-cache entry never breaks the logo render (898.646084ms)
+✔ frozen SELECT-only 1514-row snapshot preserves at least 95% of previous catalog/domain sources (13.783958ms)
+✔ snapshot summary and loaded drawer agree for every row despite partner/negation/userinfo JD (36.21775ms)
+✔ all six verified DoiT rows keep their logo and the homonym stays initials (0.308708ms)
+✔ all observed multiple-employer names are collision guarded (0.725416ms)
+✔ offline binding build cannot grant employer identity from JD or missing source pages (0.463417ms)
+✔ restoration requires a reviewed employer Website pin and matching verified posting heading (3.174208ms)
+✔ changed page bytes, wrong employer, missing pages and unrelated website fail closed (7.163666ms)
+✔ reviewed employer Website field identifies the domain without a social link on its homepage (1.326792ms)
+✔ an employer Website subdomain belongs to its domain, while a suffix lookalike does not (1.125584ms)
+✔ shipped 1Password restoration grants its verified employer and denies an unbound namesake (0.146209ms)
+✔ company names canonicalize without guessing corporate aliases (0.753167ms)
+✔ catalog resolves captured names and leaves unknown identities explicit (0.161083ms)
+✔ verified official logos resolve with matching raster assets and provenance (2.871041ms)
+✔ fallback initials support words and non-Latin names (0.970333ms)
+✔ Doit app evidence never inherits the DoiT International catalog mark (0.650833ms)
+✔ DoiT com evidence retains its curated logo, but a name alone does not (0.152833ms)
+✔ conflicting company domains veto both catalog and domain lookup (0.117334ms)
+✔ ordinary catalog and audited mapped names retain coverage without conflicting identity (0.097709ms)
+✔ curated catalog wins over Logo.dev even when a key and a company domain exist (0.105042ms)
+✔ without a publishable key nothing resolves to Logo.dev (0.149334ms)
+✔ a trustworthy company-site apply URL resolves Logo.dev by registrable domain (0.145667ms)
+✔ ATS and job-board hosts are never used as the company domain (0.166416ms)
+✔ a host that does not match the company name renders initials (0.087209ms)
+✔ company domains need the company's own name in the registrable label (0.135125ms)
+✔ override map pins a bad match to initials, a curated file, or a known domain (0.153708ms)
+✔ placeholder employer names never hit a name lookup (0.174875ms)
+✔ a domain override beats the curated catalog, and without a key it pins to initials (0.097708ms)
+✔ a generic word that merely prefixes the company name is not its domain (0.067042ms)
+✔ every initials pin in the shipped override map beats Logo.dev and the catalog (0.15ms)
+✔ corroborated domain map shares canonical matching (0.147167ms)
+✔ mapped null and absent companies both need posting identity (0.04875ms)
+✔ override, catalog and trusted apply domain precede the domain map (0.088917ms)
+✔ both Yael employers stay initials even with a mapped or apply domain (0.053125ms)
+✔ the committed domain map contains canonical keys and only safe domains or explicit null (36.448417ms)
+✔ the shipped map resolves Jeen.ai by domain and TalentHop to initials (0.32ms)
+✔ AWS never uses the supplied event-specific domain without verified artwork (1.228917ms)
+✔ Unavailable is an unknown employer, not the supplied ice-cream brand (0.188208ms)
+✔ lead ownership ruling drops two unrelated brands from the shipped map (0.082708ms)
+✔ Opus-reviewed homonyms and suspect brands resolve to initials (0.11375ms)
+✔ UTF-8 company names match the shipped map instead of falling through to name lookup (3.985417ms)
+✔ explicit unambiguous exceptions cannot override conflicting evidence (0.1985ms)
+✔ a map cannot substitute another homonym domain for posting evidence (0.605375ms)
+✔ free-text partner, negation, email and userinfo mentions never grant identity (0.13025ms)
+✔ DoiT structured ATS/company and verified posting bindings retain its catalog (0.107209ms)
+✔ prototype keys cannot select inherited logo entries (0.051834ms)
+✔ unambiguous name exceptions and catalog pins reject unrelated posting hosts (3.781958ms)
+✔ P7C shared self-alias table labels legacy and freshly resolved identities (118.098166ms)
+✔ 2827-character resolver lines fit both evidence contracts as exact prefixes (81.430333ms)
+✔ card renders employer identity: EngRadar (809.102125ms)
+✔ card renders employer identity: Torentify (888.876666ms)
+✔ card renders employer identity: Mertens - MalamTeam (643.614208ms)
+✔ card renders employer identity: מרטנס | Mertens – מקבוצת מלם תים (658.983ms)
+✔ card renders employer identity: Wix (673.6265ms)
+✔ card renders employer identity: 1Password (445.045375ms)
+✔ card renders employer identity: Aiven (370.0345ms)
+✔ card renders employer identity: AT&T Israel R&D Center (370.674208ms)
+✔ card renders employer identity: BMC Software (354.010583ms)
+✔ card renders employer identity: Alice (Formerly ActiveFence) (341.246333ms)
+✔ card renders employer identity: SWAKIO™ (340.319459ms)
+✔ unknown unlisted publisher uses an agency label only with explicit evidence (0.121209ms)
+✔ legacy unknown nonagency and mismatched metadata retain the publisher (0.083458ms)
+✔ all reviewed aliases avoid via relationships for legacy and version 2 metadata (0.53325ms)
+✔ the API identity schema preserves explicit agency evidence (0.063791ms)
+✔ r10 resolver output keeps reviewer quote and first-person reproducers publisher-only (62.259916ms)
+✔ r11 first-party allowlist keeps both reviewers and new attempts publisher-only (63.068917ms)
+✔ r12 client prose never produces an agency badge (61.530958ms)
+{"event":"request_complete","operation":"job_list","requestId":"cd8e599c-3986-41aa-906d-aff15cb9b3c9","status":200,"duration_ms":5}
+{"event":"request_complete","operation":"job_list","requestId":"08b6aeb6-6d7e-4ad1-bf20-cac3fadf81b7","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"2b9eecad-3d86-4028-ba91-d9948b8b1ca0","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"2b9eecad-3d86-4028-ba91-d9948b8b1ca0","status":400,"category":"request"}
+✔ found window persists, validates, and older preferences keep their settings (4.126958ms)
+✔ board and poll requests carry the found window (0.257292ms)
+✔ board RPC and poll predicate both receive a validated window (50.349333ms)
+✔ shared list/globe filtering excludes expired retained rows and keeps the inclusive boundary (12.285417ms)
+{"event":"request_failed","operation":"job_globe","requestId":"f7a70616-2a50-4071-ae18-11a618cbf761","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"f7a70616-2a50-4071-ae18-11a618cbf761","status":400,"duration_ms":21}
+{"event":"request_failed","operation":"job_globe","requestId":"2f45ead4-be81-45d8-b292-36eb2b1a4473","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"2f45ead4-be81-45d8-b292-36eb2b1a4473","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"33521bdc-82d3-4604-a694-ad878faf513c","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"33521bdc-82d3-4604-a694-ad878faf513c","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"c7824827-a91a-4c28-bdf9-05cd6adfab6b","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"c7824827-a91a-4c28-bdf9-05cd6adfab6b","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"786e2931-3b4a-4ac1-a4e9-a3c62ed6cd7c","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"786e2931-3b4a-4ac1-a4e9-a3c62ed6cd7c","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"16e59329-a8ec-4b5a-a165-5611751d46b7","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"16e59329-a8ec-4b5a-a165-5611751d46b7","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_globe","requestId":"d71f3bfb-846c-4ec3-9e3c-a3e1f08e78e6","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_globe","requestId":"7d44b02c-8115-4d1c-999d-dd98ce403114","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"d71f3bfb-846c-4ec3-9e3c-a3e1f08e78e6","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_globe","requestId":"7d44b02c-8115-4d1c-999d-dd98ce403114","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_globe","requestId":"1be11883-6f0f-461f-8aaf-cb5587c85fdd","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"1be11883-6f0f-461f-8aaf-cb5587c85fdd","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"39d4a2ba-18d7-44c1-b72e-8c36729d3eb4","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"39d4a2ba-18d7-44c1-b72e-8c36729d3eb4","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"1f557555-e43a-4ff3-a8fc-500bb21fe7ea","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"1f557555-e43a-4ff3-a8fc-500bb21fe7ea","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"d6b60211-0b08-4c9e-a901-072d7a3f3ef6","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"d6b60211-0b08-4c9e-a901-072d7a3f3ef6","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_globe","requestId":"44adb8fe-cb33-41b6-b662-51d9b6715774","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"44adb8fe-cb33-41b6-b662-51d9b6715774","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_globe","requestId":"65dba2dd-8541-446e-8342-88bf98f18bb1","status":200,"duration_ms":29}
+{"event":"request_failed","operation":"job_globe","requestId":"bfa32d03-9e5e-4e3c-bdd1-81f27ea0ae5c","status":503,"category":"request"}
+{"event":"request_complete","operation":"job_globe","requestId":"bfa32d03-9e5e-4e3c-bdd1-81f27ea0ae5c","status":503,"duration_ms":1}
+{"event":"request_failed","operation":"job_globe","requestId":"aa397ebe-41a6-4d99-9e27-fb07edec2e32","status":503,"category":"database"}
+{"event":"request_complete","operation":"job_globe","requestId":"aa397ebe-41a6-4d99-9e27-fb07edec2e32","status":503,"duration_ms":3}
+✔ complete snapshot keeps all jobs and counts beyond provider row caps (70.2955ms)
+✔ globe accepts only filter and availability (0.33ms)
+✔ invalid, unrelated and duplicate geo rows do not create dots or negative counts (5.113375ms)
+✔ route is private, rejects pagination/invalid filters, preserves no-store, rejects duplicate snapshot rows (80.255958ms)
+✔ empty matching jobs still reject a missing geo migration (3.232792ms)
+✔ HQ source must carry HTTPS evidence and a provider object (14.02475ms)
+✔ one RPC fixes deletion/reordering and new-for-me cutoff for the entire request (2.775041ms)
+✔ new-for-me preserves seen cohort coordinates but respects explicit geo removal in incoming jobs (4.462625ms)
+✔ counts cover a full set beyond 1000 and filters drive rail and dots together (99.025542ms)
+✔ globe-only retained card absent from incoming refreshes status and geo without losing its position (0.66425ms)
+✔ diameter measures geography against rendered space 8,15,28 (4.309959ms)
+✔ diameter measures geography against rendered space 229,238,246 (1.891708ms)
+✔ near-full-width globe keeps space as its reference 8,15,28 (3.955875ms)
+✔ near-full-width globe keeps space as its reference 229,238,246 (2.030583ms)
+✔ logo fixture is a synthetic 404; other external hosts stay blocked (1.80025ms)
+✔ only the expected logo 404 console message is exempt (0.210167ms)
+✔ only filtered jobs become dots; duplicate postings target their representative row (42.681917ms)
+✔ large datasets stay bounded, preserving selection and actual coordinates (106.482959ms)
+✔ HQ and approximate centroids never claim an office (0.193541ms)
+✔ fit ramp uses the approved emerald, amber, slate thresholds across map and cards (0.145875ms)
+✔ colliding real coordinates expose every member including duplicate alternates (0.390625ms)
+✔ a bubble counts distinct roles and recognises truly co-located stacks (0.25575ms)
+✔ viewport uses actual pixel bounds, front-face round trip and current availability (3.914875ms)
+✔ round trip handles antimeridian wrapping, nonfinite and mismatched latitude (0.184875ms)
+✔ a collapsed or unstable globe never propagates Invalid LngLat during projection (0.133667ms)
+✔ partition preserves sorted group identities, counts, alternates and unavailable/unresolved rows (0.3795ms)
+✔ globe counts use deduplicated roles across mapped, unmapped and visible sections (0.2535ms)
+✔ point focus preserves zoom and avoids movement when already clear of the drawer (0.100916ms)
+✔ location bounds and camera reset follow explicit user intent (0.145708ms)
+✔ distant location moves arc lower and last longer than nearby moves (0.138666ms)
+✔ the zoom-out dip scales with distance, even between two close cameras (0.101708ms)
+✔ Israel, All roles, facets, sort, and search restore in a fresh tab (2.612458ms)
+✔ invalid, stale, and unavailable storage safely restore visible defaults (1.7745ms)
+✔ a version-1 pipeline tab migrates to the equivalent visible status filter (0.204708ms)
+✔ version-2 preferences migrate to the safe active availability default (0.137917ms)
+✔ pipeline selections and cohort tabs transition without incompatible hidden state (0.132459ms)
+✔ a denied localStorage property getter cannot strand board hydration (0.081583ms)
+✔ reset removes stored state and defaults are not written back (0.112875ms)
+✔ remote and non-remote filters survive reload without changing old defaults (0.171083ms)
+✔ collapsed filters persist with otherwise default preferences and survive tab changes (0.124167ms)
+✔ leaving Not scored preserves availability and found-within before and after reload (0.458791ms)
+✔ archive query applies found-within while including inactive roles without persisting overrides (7.24175ms)
+✔ every cohort applies and restores each saved found-within window (0.373ms)
+✔ list requests key the complete server query (0.65525ms)
+✔ board requests send fit, pipeline statuses and sort to the server (0.140292ms)
+✔ a status mutation updates the active list without resetting unrelated rows (0.472583ms)
+✔ new-for-me visit cohort keeps existing order while updating and appending jobs (0.180042ms)
+✔ a cleared visit cohort starts from the current server result (0.091792ms)
+✔ an initial snapshot collapses repeated IDs using the latest payload (0.086875ms)
+✔ refresh collapses repeated incoming and preexisting IDs without changing first appearance order (0.496ms)
+✔ unique IDs preserve their input array reference (0.165666ms)
+✔ retained card absent from incoming refreshes all fields without moving or admitting unrelated rows (0.166833ms)
+✔ refresh hydrates only absent retained IDs in bounded batches, including an empty new cohort (0.92925ms)
+✔ groups a genuine pair after ID uniqueness without mixing payload fields (14.201875ms)
+✔ uses a stable ID tie-break and ignores last-seen refresh churn (1.375083ms)
+✔ falls back to first-seen only when publication is missing (0.306041ms)
+✔ keeps loaded peers reachable after the selected listing leaves the view (0.276958ms)
+✔ short listing IDs remain stable and distinguish fixture postings (0.0835ms)
+✔ matching company/title and compatible location links new IDs across sources without JD (0.433167ms)
+✔ different known locations stay separate even with shared role URL (0.259625ms)
+✔ unknown or remote-equivalent locations link; remote flags alone do not split (0.369167ms)
+✔ strong canonical role links title drift and preserves original group date (0.242583ms)
+✔ missing-location bridge cannot collapse different locations; membership is input-stable (0.320625ms)
+✔ location aliases and city/region/country containment link (0.845584ms)
+✔ exclusive cities, regions and countries stay separate under containment (0.416084ms)
+✔ grouping prepares identity and location evidence once instead of per pair (139.861584ms)
+ℹ {"regex":0,"location":5,"url":2638}
+✔ LinkedIn grouping keeps dates and alternates without inferring a repost (2.961459ms)
+✔ ATS grouping preserves each listing's republish evidence separately from group dates (36.653792ms)
+✔ same_requisition_title_drift_has_one_group (0.333167ms)
+✔ same_requisition_location_variants_have_one_group (0.09075ms)
+✔ distinct_requisitions_with_same_title_location_and_jd_stay_separate (0.109875ms)
+✔ jd_only_title_variants_have_one_group (0.185792ms)
+✔ Unframe identical JD reposts with different Greenhouse post IDs stay grouped (0.223833ms)
+✔ Office Hours trivial JD edits preserve the title and location fallback (0.138333ms)
+✔ different JD fingerprints alone do not establish distinct headcount (0.078667ms)
+✔ substantively different roles stay separate without a matching title or posting URL (0.101958ms)
+✔ NVIDIA URL JR ids ignore location and Workday repost suffixes (0.087875ms)
+✔ unknown identity cannot bridge different requisitions or split a shared requisition (0.234084ms)
+✔ conflicting requisitions are isolated; employers and per-source evidence survive grouping (0.232917ms)
+✔ Evolent: distinct Backend Engineer / Frontend Engineer roles sharing technology stay split (0.19875ms)
+✔ Latent AI: distinct Site Reliability Engineer / Security Engineer roles sharing technology stay split (0.138041ms)
+✔ Latent AI: distinct Software Engineer / Product Designer roles sharing technology stay split (0.136666ms)
+✔ short matching boilerplate cannot merge different roles (0.102292ms)
+✔ multiple requisitions merge only when their full sets match (0.182542ms)
+✔ description parser separates headings, paragraphs, and unordered lists (1.076292ms)
+✔ inline parser supports bold and safe Markdown links while leaving unsafe syntax literal (0.269084ms)
+✔ only absolute HTTP and HTTPS destinations are linkable (0.11375ms)
+✔ raw HTML and unmatched Markdown remain text (0.063416ms)
+✔ each rendered description block uses browser bidi auto-direction (0.57925ms)
+✔ plain-text bullet glyphs keep list structure without blank separator lines (0.116084ms)
+{"event":"request_complete","operation":"job_detail","requestId":"0542607e-7468-4182-9692-bec2e07b5c86","status":500,"duration_ms":1}
+{"event":"request_complete","operation":"job_detail","requestId":"3688b1e1-fd7f-4c24-b79e-b3a8d211a9fa","status":503,"duration_ms":0}
+✔ detail read recovers from gateway failure without issuing a mutation (24.417584ms)
+✔ persistent unavailable service stops after three reads and offers recovery (0.434292ms)
+✔ not found and malformed payloads do not retry (0.884ms)
+✔ closing selection cancels the retry before another read (0.257125ms)
+✔ job detail failure log correlates response without including private error contents (1.58125ms)
+✔ a queued detail fetch reaches a bounded error and aborts its transport (28.741833ms)
+✔ a stalled response body is covered by the same detail deadline (23.675834ms)
+✔ closing a queued read preserves caller cancellation without retrying (2.119292ms)
+✔ the detail deadline includes time spent waiting between retries (29.231792ms)
+✔ relative observation ages clamp future and recent dates (0.511042ms)
+✔ unknown work mode stays unknown (0.100708ms)
+✔ each date kind gets its icon kind, compact age and full accessible wording (20.351375ms)
+✔ discovery time is shown in the viewer's time zone (0.218875ms)
+✔ a later publication is a Republished date; equal or invalid instants are not reposts (0.656584ms)
+✔ ATS marker keeps source publication evidence, without discovery guesses (0.162125ms)
+✔ work mode reads a structured mode first and falls back to the remote flag (0.136041ms)
+✔ drawer import graph is host-portable and display-only (10.165792ms)
+✔ drawer renders host-provided actions and renders none when omitted (705.066792ms)
+✔ best fit keeps zero above unscored and never drops unknown roles by default (24.545959ms)
+✔ source and level filters compose; unknown levels are explicit (0.679375ms)
+✔ technology badges quote explicit words, not Go prose or Java inside JavaScript (1.000917ms)
+✔ location filters keep countryless remote roles unknown (3.206334ms)
+✔ recommendation filtering composes with location without hiding stretch reviews (0.276042ms)
+✔ pipeline statuses OR together and AND with the other facets (0.174333ms)
+✔ country codes alone cannot masquerade as US states (0.091166ms)
+✔ a restored source absent from current jobs remains a visible selected option (0.0985ms)
+✔ filtered best-fit groups sort by the displayed newest representative (25.190791ms)
+✔ every sort mode orders duplicate groups by the displayed representative (1.567208ms)
+✔ equal Best Fit scores prefer original publication, regardless of repost and discovery (0.218167ms)
+✔ Best Fit falls back to discovery only for missing publication and finally sorts by id (0.146666ms)
+✔ hybrid is a distinct contract and filter value, preserving legacy remote fallback (2.104667ms)
+✔ explicit work mode takes precedence over a restored legacy boolean (0.124667ms)
+✔ recommendations include reviewable stretch roles without claiming unscored jobs are relevant (0.730834ms)
+✔ skip, fit threshold and analysis status remain separate choices (0.091666ms)
+✔ location blocked advice is excluded from recommended while skill fit remains available (0.077958ms)
+✔ required experience quote: Requirements: 3+ years of experience (19.3745ms)
+✔ required experience quote: Minimum of two years of experience (1.943542ms)
+✔ required experience quote: You need at least three years of professional experience (0.525209ms)
+✔ required experience quote: Requirements: 3 to 5 years of experience (0.162292ms)
+✔ required experience quote: Requirements: two–four years of experience (6.141542ms)
+✔ required experience quote: What we need to see: Degree in computing. 2+ overall years of industry experience (0.239166ms)
+✔ required experience quote: What we need to see: B.Sc. in computing 3+ overall years of industry experience (0.184708ms)
+✔ required experience quote: דרישות התפקיד:
+לפחות 3 שנות ניסיון בפיתוח תוכנה (0.36875ms)
+✔ required experience quote: 🎯 מה אנחנו מחפשים?
+✅ לפחות 8 שנות ניסיון בפיתוח תוכנה בסביבת Production (0.292083ms)
+✔ required experience quote: דרישות:
+- 3–5 שנות ניסיון בפיתוח (0.226084ms)
+✔ required experience quote: דרישות:
+- 3 עד 5 שנות ניסיון בפיתוח (0.147375ms)
+✔ required experience quote: נדרש ניסיון של לפחות 3 שנים בפיתוח (0.44525ms)
+✔ required experience quote: דרישות: ניסיון של 3 שנים בפיתוח (0.128667ms)
+✔ required experience quote: דרישות: 3+ שנות נסיון (0.117167ms)
+✔ required experience quote: Requirements: 3 years’ experience (0.125458ms)
+✔ required experience quote: Requirements: 3 years' experience (0.13025ms)
+✔ required experience quote: Requirements: 3+ years (0.103083ms)
+✔ required experience quote: Our company has twenty years of software development experience (0.281042ms)
+✔ required experience quote: לחברה לפחות 20 שנות ניסיון בפיתוח תוכנה (6.157958ms)
+✔ required experience quote: הצוות שלנו בעל 20 שנות ניסיון (0.375417ms)
+✔ required experience quote: דרישות:
+יתרונות:
+לפחות 8 שנות ניסיון (0.531792ms)
+✔ required experience quote: דרישות: 8 שנות ניסיון - יתרון (0.117666ms)
+✔ required experience quote: דרישות: לא נדרש ניסיון של 8 שנים (0.109333ms)
+✔ required experience quote: דרישות: 8 שנות ניסיון אינן חובה (0.099459ms)
+✔ required experience quote: Requirements: minimum of eight years of experience preferred (0.114834ms)
+✔ required experience quote: Requirements: at least 8 years of experience or a relevant degree (0.102166ms)
+✔ required experience quote: Requirements: 8 years of experience
+  or a degree (0.123542ms)
+✔ required experience quote: דרישות: לפחות 8 שנות ניסיון או תואר רלוונטי (0.098ms)
+✔ required experience quote: Requirements: 3.5 years of experience (0.065292ms)
+✔ required experience quote: Requirements: 103 years of experience (0.096375ms)
+✔ required experience quote: Requirements: twenty two years of experience (0.095875ms)
+✔ required experience quote: Requirements: 5-3 years of experience (0.111334ms)
+✔ required experience quote: Requirements: up to 3 years of experience (0.11025ms)
+✔ required experience quote: דרישות: עד 3 שנות ניסיון (0.110708ms)
+✔ required experience quote: Requirements: around 3 years of experience (0.09925ms)
+✔ required experience quote: Requirements: 3 years of experience is not mandatory (0.101792ms)
+✔ required experience quote: Requirements: 3 years of experience with React preferred (0.095667ms)
+✔ required experience quote: Preferred qualifications:
+3 years of experience
+Requirements:
+2+ years of experience (0.31125ms)
+✔ required experience quote: דרישות:
+- 2 שנות ניסיון
+- ניסיון בענן יתרון (0.132541ms)
+✔ required experience quote: דרישות: 6-10 שנות ניסיון (0.111209ms)
+✔ required experience quote: Minimum of seven years of experience (0.116167ms)
+✔ required experience quote: Our engineers have three years of software development experience (0.2895ms)
+✔ required experience quote: Aster boasts twenty years of software development experience (0.136625ms)
+✔ required experience quote: דרישות: 7 עד 10 שנות ניסיון בפיתוח (0.11375ms)
+✔ required experience quote: What we need to see: Degree in robotics or a related field 6+ years of software development experience. 1+ years of experience building agents. (0.154416ms)
+✔ required experience quote: What we need to see: Degree in statistics or similar training 8+ years of software engineering experience. 2+ years of experience building tools. (0.156167ms)
+✔ required experience quote: Requirements:
+8+ years of software engineering experience with editors, renderers, or similar tools.
+2+ years of technical leadership experience (0.151541ms)
+✔ required experience quote: Requirements:
+8+ years of relevant development experience supporting libraries or platforms.
+2+ years of management experience (0.144416ms)
+✔ required experience quote: Requirements:
+8+ years of engineering experience building tooling or equivalent systems.
+2+ years of mentoring experience (0.101667ms)
+✔ required experience quote: Your Expertise: 10+ years of relevant experience in the technology industry; 5+ years of experience in a team leadership role. (0.142875ms)
+✔ required experience quote: Qualifications
+3+ years of hands-on experience in platform engineering or a related field
+2+ years of practical experience with databases (0.148291ms)
+✔ required experience quote: What we need to see: 2+ years of managerial experience 6+ overall years of professional experience (0.097083ms)
+✔ required experience quote: Qualifications
+Minimum of 2+ years of professional experience in web development or related roles
+At least 1 year of experience working with APIs (0.1495ms)
+✔ required experience quote: Requirements:
+8+ years of software development experience or equivalent practical training.
+2+ years of management experience (0.0995ms)
+✔ required experience quote: Requirements:
+2+ years of managerial experience
+6+ overall years of professional experience (0.144417ms)
+✔ required experience quote: Requirements:
+6+ overall years of professional experience
+2+ years of managerial experience (0.143541ms)
+✔ required experience quote: Requirements:
+8 years of software experience or 4 years of experience with an advanced degree.
+2 years of experience leading teams (0.101958ms)
+✔ required experience quote: Requirements:
+8 years of software experience
+  or 4 years of experience with an advanced degree.
+2 years of experience leading teams (0.1035ms)
+✔ required experience quote: Requirements:
+3 years of software development experience
+**Nice to have:**
+8 years of leadership experience (0.139041ms)
+✔ required experience quote: Qualifications
+Candidates with 1-3 years of relevant front-end experience, including coursework or side projects, are encouraged to apply. (0.114916ms)
+✔ required experience quote: Requirements: Bachelors degree 5+ years of experience or Masters degree 3+ years of experience or PhD degree 0+ years of experience. (0.105334ms)
+✔ required experience quote: Requirements: 6 years of engineering experience or equivalent training.
+Preferred qualifications:
+10 years of leadership experience (0.103833ms)
+✔ required experience quote: Minimum of eleven years of professional experience designing satellite telemetry services is required. (0.116333ms)
+✔ required experience quote: Requirements:
+4–7 years of experience maintaining railway scheduling software. (0.134ms)
+✔ required experience quote: You need eight to eleven years of engineering experience on embedded navigation products. (0.119334ms)
+✔ required experience quote: Qualifications:
+A degree in acoustics or mathematics.
+9 years of software development experience.
+3 years of experience with Rust. (0.15675ms)
+✔ required experience quote: Requirements:
+7 years of engineering experience in storage or observability systems.
+2 years of experience with tracing tools. (0.151791ms)
+✔ required experience quote: Requirements:
+6 years of development experience or equivalent practical training in geospatial systems.
+1 year of experience mentoring apprentices. (0.106583ms)
+✔ required experience quote: Qualifications:
+9 years of engineering experience or 4 years of engineering experience with a doctorate in acoustics.
+2 years of experience managing releases. (0.120959ms)
+✔ required experience quote: Qualifications:
+9 years of engineering experience
+or 4 years of engineering experience with a doctorate in acoustics.
+2 years of experience managing releases. (0.106375ms)
+✔ required experience quote: Qualifications:
+9 years of engineering experience; or 4 years of engineering experience with a doctorate in acoustics.
+2 years of experience managing releases. (0.115959ms)
+✔ required experience quote: Requirements:
+2 years of experience with Zig.
+7 overall years of professional experience developing communications systems. (0.146291ms)
+✔ required experience quote: Requirements:
+4 years of software development experience.
+Preferred experience:
+12 years of experience with graphics pipelines. (0.153208ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+9 years of experience using CAD tools is helpful. (0.142459ms)
+✔ required experience quote: דרישות התפקיד:
+לפחות 9 שנות ניסיון בפיתוח מערכות חישה מרחוק. (0.129625ms)
+✔ required experience quote: דרישות:
+4 עד 7 שנות ניסיון בפיתוח מערכות תחבורה חכמות. (0.12625ms)
+✔ required experience quote: נדרש ניסיון של לפחות 6 שנים בפיתוח כלי מיפוי ימי. (0.119292ms)
+✔ required experience quote: דרישות התפקיד:
+5+ שנות נסיון בפיתוח מערכות השקיה חכמות. (0.117584ms)
+✔ required experience quote: דרישות:
+9 שנות ניסיון בפיתוח תוכנה למערכות ניווט.
+2 שנות ניסיון בעבודה עם מסדי נתונים גרפיים. (0.153583ms)
+✔ required experience quote: דרישות:
+8 שנות ניסיון בפיתוח מערכות עיבוד תמונה או תחום הנדסי קרוב.
+2 שנות ניסיון בניהול גרסאות. (0.153209ms)
+✔ required experience quote: דרישות:
+10 שנות ניסיון בפיתוח מערכות אוטונומיות או 6 שנות ניסיון עם תואר שני רלוונטי.
+2 שנות ניסיון בניהול צוות. (0.111292ms)
+✔ required experience quote: דרישות:
+6 שנות ניסיון בפיתוח תוכנה למכשור רפואי.
+יתרונות:
+10 שנות ניסיון בעבודה עם חיישנים אופטיים. (0.463333ms)
+✔ required experience quote: null (0.022875ms)
+✔ required experience quote:  (0.021209ms)
+✔ required experience quote:   	 (0.082334ms)
+✔ required experience quote: Requirements:
+3 years of user experience design experience with React and Docker. (0.137958ms)
+✔ required experience quote: Minimum of 13 years of software experience with Python and PostgreSQL. (0.117042ms)
+✔ required experience quote: Requirements:
+2 years in infrastructure development using Go. (0.139833ms)
+✔ required experience quote: Requirements:
+3 years of experience
+  OR 1 year of experience with an advanced degree. (0.113917ms)
+✔ required experience quote: Requirements:
+3 years of experience
+  or 2 years of experience with an advanced degree. (0.111291ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.112208ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.215375ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+Preferred specialist background:
+12 years of experience with sonar equipment. (0.146416ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+Optional specialist background:
+12 years of experience with sonar equipment. (0.1445ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+Nice-to-have specialist background:
+12 years of experience with sonar equipment. (0.144375ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+Bonus specialist background:
+12 years of experience with sonar equipment. (0.142958ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+יתרון specialist background:
+12 years of experience with sonar equipment. (0.157917ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment is helpful. (0.140583ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment would be useful. (0.13775ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment is an advantage. (0.142291ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment is optional. (0.138ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment is preferred. (0.138333ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment יתרון. (0.147125ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience or 4 years of experience with a degree.
+2 years of experience managing releases. (0.114667ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience or 4 with a degree.
+2 years of experience managing releases. (0.118875ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience; or 4 years of experience with a degree.
+2 years of experience managing releases. (0.10775ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience; or 4 with a degree.
+2 years of experience managing releases. (0.115583ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience
+or 4 years of experience with a degree.
+2 years of experience managing releases. (0.109916ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience
+or 4 with a degree.
+2 years of experience managing releases. (0.115458ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience
+  - or 4 years of experience with a degree.
+2 years of experience managing releases. (0.108416ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience
+  - or 4 with a degree.
+2 years of experience managing releases. (0.113833ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience
+• or 4 years of experience with a degree.
+2 years of experience managing releases. (0.125291ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience
+• or 4 with a degree.
+2 years of experience managing releases. (0.126167ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience;
+	* or 4 years of experience with a degree.
+2 years of experience managing releases. (0.110625ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience;
+	* or 4 with a degree.
+2 years of experience managing releases. (0.113667ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience,
+or 4 years of experience with a degree.
+2 years of experience managing releases. (0.107708ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience,
+or 4 with a degree.
+2 years of experience managing releases. (0.114292ms)
+✔ required experience quote: Requirements:
+	Preferred qualifications	
+12 years of experience with Rust. (0.1115ms)
+✔ required experience quote: דרישות:
+נדרש	9 שנות ניסיון עם מערכות רובוטיות. (0.127041ms)
+✔ required experience quote: Requirements:
+9	years	of	engineering	experience. (0.116791ms)
+✔ required experience quote: Requirements:
+Preferred qualifications
+12 years of experience with Rust. (0.111708ms)
+✔ required experience quote: דרישות:
+נדרש9 שנות ניסיון עם מערכות רובוטיות. (0.120042ms)
+✔ required experience quote: Requirements:
+9yearsofengineeringexperience. (0.112083ms)
+✔ required experience quote: Requirements:
+Preferred qualifications
+12 years of experience with Rust. (0.107458ms)
+✔ required experience quote: דרישות:
+נדרש9 שנות ניסיון עם מערכות רובוטיות. (0.11775ms)
+✔ required experience quote: Requirements:
+9yearsofengineeringexperience. (0.115833ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.108042ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.11875ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.115792ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.114125ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.116958ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.117541ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.113083ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.12ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.113875ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.1095ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.116791ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (2.219375ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.163291ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.127875ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.130917ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.108167ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.587416ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.118458ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.107958ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.115666ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.112792ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.116708ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.116833ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.129958ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.107791ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.113333ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.124167ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.103542ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.11325ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.108792ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.103958ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.110959ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.109833ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.106708ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.111166ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.111917ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.111083ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.11825ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.114ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.109625ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.120334ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.1305ms)
+✔ required experience quote: Requirements:
+ Preferred qualifications 
+12 years of experience with Rust. (0.11675ms)
+✔ required experience quote: דרישות:
+נדרש 9 שנות ניסיון עם מערכות רובוטיות. (0.13275ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience. (0.118292ms)
+✔ required experience quote: Requirements:
+　Preferred qualifications　
+12 years of experience with Rust. (0.110625ms)
+✔ required experience quote: דרישות:
+נדרש　9 שנות ניסיון עם מערכות רובוטיות. (0.113208ms)
+✔ required experience quote: Requirements:
+9　years　of　engineering　experience. (0.106458ms)
+✔ required experience quote: Requirements:
+﻿Preferred qualifications﻿
+12 years of experience with Rust. (0.102709ms)
+✔ required experience quote: דרישות:
+נדרש﻿9 שנות ניסיון עם מערכות רובוטיות. (0.109834ms)
+✔ required experience quote: Requirements:
+9﻿years﻿of﻿engineering﻿experience. (0.10625ms)
+✔ required experience quote: Requirements:
+3 years or 5 years with a degree.
+2 years of experience managing releases. (0.142292ms)
+✔ required experience quote: Requirements:
+3 years or
+5 years with a degree.
+2 years of experience managing releases. (0.108584ms)
+✔ required experience quote: Requirements:
+3 years or
+  5 years with a degree.
+2 years of experience managing releases. (0.109125ms)
+✔ required experience quote: Requirements:
+3 years; or 5 years with a degree.
+2 years of experience managing releases. (0.111084ms)
+✔ required experience quote: Requirements:
+3 years; or
+5 years with a degree.
+2 years of experience managing releases. (0.118125ms)
+✔ required experience quote: Requirements:
+3 years; or
+  5 years with a degree.
+2 years of experience managing releases. (0.110375ms)
+✔ required experience quote: Requirements:
+3 years
+- or 5 years with a degree.
+2 years of experience managing releases. (0.118917ms)
+✔ required experience quote: Requirements:
+3 years
+- or
+5 years with a degree.
+2 years of experience managing releases. (0.110416ms)
+✔ required experience quote: Requirements:
+3 years
+- or
+  5 years with a degree.
+2 years of experience managing releases. (0.110125ms)
+✔ required experience quote: Requirements:
+3 years.
+• or 5 years with a degree.
+2 years of experience managing releases. (0.129417ms)
+✔ required experience quote: Requirements:
+3 years.
+• or
+5 years with a degree.
+2 years of experience managing releases. (0.127ms)
+✔ required experience quote: Requirements:
+3 years.
+• or
+  5 years with a degree.
+2 years of experience managing releases. (0.112375ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+12 years of experience with sonar equipment is helpful.
+6 years of development experience. (0.145458ms)
+✔ required experience quote: Requirements:
+9+ years or 4 with a degree.
+2 years of experience managing releases. (0.110583ms)
+✔ required experience quote: Requirements:
+9+ years; or 4 with a degree.
+2 years of experience managing releases. (0.101084ms)
+✔ required experience quote: Requirements:
+9+ years
+• or 4 with a degree.
+2 years of experience managing releases. (0.109292ms)
+✔ required experience quote: Requirements:
+12 years of experience is helpful; 5 years of engineering experience is required. (0.099834ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+Preferred background in specialist sensing instrumentation and signal-processing systems:
+12 years of experience with sonar equipment. (0.144709ms)
+✔ required experience quote: Requirements:
+Python knowledge is helpful.
+5 years of engineering experience. (0.126083ms)
+✔ required experience quote: Requirements:5 years of engineering experience.Preferred experience:12 years of experience with sonar equipment. (0.156917ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+Preferred experience:
+12 years of experience with sonar equipment. (0.142208ms)
+✔ required experience quote: Requirements: 5 years of engineering experience. Preferred experience: 12 years of experience with sonar equipment. (0.157ms)
+✔ required experience quote: Requirements: 5 years of engineering experience. Preferred experience: 12 years of experience with sonar equipment. (0.144209ms)
+✔ required experience quote: Requirements:
+nine years or four years of experience with a degree.
+2 years of experience managing releases. (0.116791ms)
+✔ required experience quote: Requirements:
+nine years; or four years of experience with a degree.
+2 years of experience managing releases. (0.114584ms)
+✔ required experience quote: Requirements:
+nine years
+• or four years of experience with a degree.
+2 years of experience managing releases. (0.135875ms)
+✔ required experience quote: Requirements:
+- Engineering background:
+  - 7 years of software engineering experience delivering control software.
+- Optional specialist background:
+  - 11 years of experience with ray-tracing tools. (0.169625ms)
+✔ required experience quote: Requirements:
+- Qualification route:
+  - 10 years of engineering experience.
+  - or 6 years of engineering experience with a doctorate in photonics.
+- 2 years of experience with FPGA tools. (0.122584ms)
+✔ required experience quote: Requirements:
+At least 5 years of software development experience (8 preferred).
+2 years of experience with Svelte. (3.006ms)
+✔ required experience quote: Requirements:
+At least 6 (9 preferred) years of backend engineering experience.
+1 year of experience with Consul. (2.6075ms)
+✔ required experience quote: Requirements:
+We require 4–6+ years of platform engineering experience operating telemetry services. (0.175375ms)
+✔ required experience quote: דרישות התפקיד:
+ניסיון של 7 שנים לפחות בפיתוח מערכות תקשורת. (0.131834ms)
+✔ required experience quote: דרישות:
+נדרש ניסיון של שנתיים-שלוש בפיתוח כלי ניטור. (0.114167ms)
+✔ required experience quote: Requirements:
+3 years of experience with ClickHouse. (0.127542ms)
+✔ required experience quote: Requirements:
+- 8 overall years of professional experience building sensor firmware.
+- 3 years of experience with InfluxDB.
+- 14 years of experience with DSP compilers would be useful. (0.193333ms)
+✔ required experience quote: Qualifications:
+A degree in applied mathematics or equivalent experience.
+Five years of engineering experience developing numerical solvers. (0.138542ms)
+✔ required experience quote: Requirements:
+6 years of development experience or equivalent experience in avionics.
+2 years of experience with Bazel. (0.10775ms)
+✔ required experience quote: You bring five years of professional experience in compiler validation. (0.116083ms)
+✔ required experience quote: דרישות:
+נדרש 8 שנות ניסיון בפיתוח מערכות בקרה. (0.125417ms)
+✔ required experience quote: Requirements:
+- Qualification routes:
+  1. 11 years of engineering experience;
+  2. or 7 years of engineering experience with a doctorate in cryptography.
+- 2 years of experience with CMake. (0.07625ms)
+✔ required experience quote: Requirements:
+6 years of software development experience.
+Specialist experience (optional):
+13 years of experience with lidar simulators. (0.146333ms)
+✔ required experience quote: We require 7 (twelve preferred) years of automation experience for this role. (0.119291ms)
+✔ required experience quote: Must-have:
+8 years of engineering experience (6 with an MSc).
+2 years of experience with Nix. (0.109917ms)
+✔ required experience quote: Requirements:
+9 years of engineering experience / 5 years of experience after doctoral research. (0.105166ms)
+✔ required experience quote: Qualifications:
+10 years of simulation experience – 6 years of simulation experience with a research degree. (0.110625ms)
+✔ required experience quote: Minimum 4 years of platform experience plus extensive work on build systems. (0.099375ms)
+✔ required experience quote: At least 5 years of engineering experience; ideally 8 years of engineering experience in observatories. (0.28ms)
+✔ required experience quote: Required:
+6 years of software experience with equivalent training accepted in lieu of tenure.
+1 year of experience with Meson. (0.108416ms)
+✔ required experience quote: Requirements:
+Credential paths:
+  1) 12 years of robotics experience.
+  2) 7 years of robotics experience with a doctorate.
+2 years of experience with ROS. (0.076042ms)
+✔ required experience quote: Qualifications:
+(a) 9 years of embedded experience;
+(b) or 4 years of embedded experience with a relevant doctorate.
+1 year of experience with Zephyr. (0.069958ms)
+✔ required experience quote: Requirements:
+7 years of engineering experience.
+Specialist background — nice-to-have:
+12 years of experience with plasma simulators. (0.155875ms)
+✔ required experience quote: Requirements:
+4 years of engineering experience.
+4 years of experience with Erlang. (0.145666ms)
+✔ required experience quote: You need 2 years of experience.
+Must-have:
+5 years of engineering experience. (0.147417ms)
+✔ required experience quote: Requirements:
+4 years of engineering experience.
+Must-have:
+5 years of engineering experience. (0.161834ms)
+✔ required experience quote: Requirements:
+1.5+ years of experience as a software engineer. (0.065208ms)
+✔ required experience quote: Required:
+1 year of ten platform deployments experience. (0.108417ms)
+✔ required experience quote: Requirements:
+We require 3-6 years of aeronautical engineering experience. (0.121167ms)
+✔ required experience quote: Required:
+4–9 years of software engineering experience on navigation platforms. (0.13ms)
+✔ required experience quote: You bring six to eight years of professional experience in compiler tooling. (0.115542ms)
+✔ required experience quote: דרישות:
+נדרש ניסיון של בין 4 ל-7 שנים בפיתוח מערכות חלל. (0.124541ms)
+✔ required experience quote: We require 5+ years of robotics experience (9 preferred). (0.121542ms)
+✔ required experience quote: Required:
+Seven+ years of development experience (ten+ ideal). (0.120167ms)
+✔ required experience quote: At least four years of simulation experience in optical systems. (0.11175ms)
+✔ required experience quote: Minimum six years of platform engineering experience is required. (0.107375ms)
+✔ required experience quote: You need 3 or more years of embedded engineering experience. (0.113083ms)
+✔ required experience quote: Requirements:
+We require five (eight preferred) years of software engineering experience. (0.128083ms)
+✔ required experience quote: Requirements:
+6+ years of engineering experience (3 preferred). (0.108042ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience.
+6 years of experience. (0.141584ms)
+✔ required experience quote: Required:
+6 years of experience.
+5 years of engineering experience. (0.140875ms)
+✔ required experience quote: Requirements:
+5 years of engineering experience (8 preferred).
+6 years of engineering experience. (0.15ms)
+✔ required experience quote: Specialist experience (preferred):
+5+ years of software engineering experience (8 ideal). (0.108041ms)
+✔ required experience quote: Requirements:
+Preferably 5 years of software engineering experience (8 ideal). (0.108583ms)
+✔ required experience quote: Required:
+7 years of engineering experience / degree + 4 years.
+2 years of experience with Flink. (0.103458ms)
+✔ required experience quote: Required:
+9 years of robotics experience or 4 with a doctorate.
+2 years of experience with Gazebo. (0.116917ms)
+✔ required experience quote: Requirements:
+(a) 8 years of simulation experience.
+(b) 5 years with a relevant degree. (0.082333ms)
+✔ required experience quote: Requirements:
+You need four years or more of software engineering experience. (0.125708ms)
+✔ required experience quote: Requirements:
+5 + years of software-engineering experience. (0.112667ms)
+✔ required experience quote: Requirements:
+בין 3 ל-5 שנות ניסיון בפיתוח מערכות ניווט. (0.137ms)
+✔ required experience quote: Required:
+5–3 years of software development experience. (0.131ms)
+✔ required experience quote: Required:
+6 years of software development experience, ideally in telemetry systems. (0.345625ms)
+✔ required experience quote: Required:
+6 years of software development experience, ideally in teams with 8 years of experience. (0.140167ms)
+✔ required experience quote: Our engineers have 6 years of software development experience. (0.148584ms)
+✔ required experience quote: We require 5+ years (8 preferred) of software engineering experience. (0.122834ms)
+✔ required experience quote: Required:
+4 years of engineering experience with C/C++ or Rust. (0.154834ms)
+✔ required experience quote: Requirements: 7+ yrs (0.123542ms)
+✔ required experience quote: Requirements: 5 yrs exp. (0.126333ms)
+✔ required experience quote: Required: 1 yr exp. (0.115042ms)
+✔ required experience quote: Required: 6+ YOE (0.123958ms)
+✔ required experience quote: Required: 8 years of experience (YOE) (0.118292ms)
+✔ required experience quote: You need a decade of experience coordinating releases. (0.123458ms)
+✔ required experience quote: Requirements: a decade (0.119416ms)
+✔ required experience quote: דרישות: עשור (0.12775ms)
+✔ required experience quote: דרישות: עשור של ניסיון (0.130791ms)
+✔ required experience quote: דרישות: 4 שנים ומעלה (0.120708ms)
+✔ required experience quote: Requirements: 6
+yrs exp. (0.182417ms)
+✔ required experience quote: Requirements: six
+yrs exp. (0.117583ms)
+✔ required experience quote: Requirements: 6+
+YOE (0.127584ms)
+✔ required experience quote: Requirements: 8 y/o/e.
+2 years of experience with dbt. (0.101667ms)
+✔ required experience quote: Requirements: 8y/o/e.
+2 years of experience with dbt. (0.114375ms)
+✔ required experience quote: Requirements: 8y/o/e and 2 years of experience with dbt. (0.112625ms)
+✔ required experience quote: Requirements: 8yrs.
+2 years of experience with dbt. (13.4065ms)
+✔ required experience quote: Requirements: 8yoe.
+2 years of experience with dbt. (0.169791ms)
+✔ required experience quote: Requirements: 8years.
+2 years of experience with dbt. (0.105334ms)
+✔ required experience quote: Requirements: 100 yrs.
+2 years of experience with dbt. (0.096625ms)
+✔ required experience quote: Requirements: 100 years.
+2 years of experience with dbt. (0.152083ms)
+✔ required experience quote: Requirements: 100 YOE.
+2 years of experience with dbt. (0.111542ms)
+✔ required experience quote: Requirements: 2.5 yrs exp.
+2 years of experience with dbt. (0.072458ms)
+✔ required experience quote: Requirements: 5-3 yrs exp.
+2 years of experience with dbt. (0.129833ms)
+✔ required experience quote: Requirements: 8 years total.
+2 years of experience with dbt. (0.147958ms)
+✔ required experience quote: דרישות: ותק של 8 שנה
+2 שנות ניסיון (0.461917ms)
+✔ required experience quote: דרישות: ותק של 8 שנים
+2 שנות ניסיון (0.302125ms)
+✔ required experience quote: דרישות: ותק של 8 שנות
+2 שנות ניסיון (0.224708ms)
+✔ required experience quote: דרישות: שנתיים לפחות
+1 שנות ניסיון (0.206583ms)
+✔ required experience quote: Requirements: 2 decades.
+2 years of experience with dbt. (0.222875ms)
+✔ required experience quote: דרישות: 2 עשור
+1 שנות ניסיון (0.208708ms)
+✔ required experience quote: Requirements: a decade and 2 years of experience with dbt. (0.902333ms)
+✔ required experience quote: דרישות: עשור ו-2 שנות ניסיון (4.251375ms)
+✔ required experience quote: Requirements: 4 YOE plus 2
+y/o/e.
+1 year of experience with dbt. (4.642ms)
+✔ required experience quote: Requirements: 4 YOE or a degree (0.461375ms)
+✔ required experience quote: Requirements:
+4 yrs exp.
+5 years of experience (0.376708ms)
+✔ required experience quote: Bonus
+8 y/o/e
+Requirements
+2 years of experience with dbt. (1.862292ms)
+✔ required experience quote: Optional
+100 yrs
+Requirements
+2 years of experience with dbt. (0.432875ms)
+✔ required experience quote: Our company has 30 yrs of experience. Requirements: 2 years of experience with dbt. (2.214208ms)
+✔ required experience quote: Seniority: 7 years of engineering experience.
+Requirements: 2 years of experience with dbt. (12.855333ms)
+✔ required experience quote: Requirements: 7+ yrs of commercial track record.
+2 years of experience with dbt. (0.32ms)
+✔ required experience quote: Requirements: 5 yrs exp. preferred (1.32025ms)
+✔ required experience quote: Requirements: 8yrs and 2 years of experience with dbt. (4.29275ms)
+✔ required experience quote: Requirements: 8yoe and 2 years of experience with dbt. (0.43425ms)
+✔ required experience quote: Requirements: 8years and 2 years of experience with dbt. (0.149375ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 yrs (0.201ms)
+✔ required experience quote: Requirements:
+100 yrs
+2 years of experience with dbt (0.113541ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 yr (0.190209ms)
+✔ required experience quote: Requirements:
+100 yr
+2 years of experience with dbt (0.177584ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 y/o/e (0.270083ms)
+✔ required experience quote: Requirements:
+100 y/o/e
+2 years of experience with dbt (0.134083ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 yoe (0.147917ms)
+✔ required experience quote: Requirements:
+100 yoe
+2 years of experience with dbt (0.102792ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 years (0.134708ms)
+✔ required experience quote: Requirements:
+100 years
+2 years of experience with dbt (0.099167ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 שנים (0.164458ms)
+✔ required experience quote: Requirements:
+100 שנים
+2 years of experience with dbt (0.107875ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 שנות (0.136417ms)
+✔ required experience quote: Requirements:
+100 שנות
+2 years of experience with dbt (0.100667ms)
+✔ required experience quote: Requirements:
+2 years of experience with dbt
+100 שנה (0.134167ms)
+✔ required experience quote: Requirements:
+100 שנה
+2 years of experience with dbt (0.100083ms)
+✔ required experience quote: Requirements: 8-(yrs)
+2 years of experience with dbt (0.168417ms)
+✔ required experience quote: Requirements: eight (years)
+2 years of experience with dbt (0.13225ms)
+✔ required experience quote: Who are you
+• 2 years of experience using Snowflake for warehouse tuning
+• 8 years in a similar role owning revenue data products
+• Comfortable running incident reviews (0.220625ms)
+✔ required experience quote: Seniority: senior-level (7+ yrs) in paid engineering roles.
+Requirements:
+• 2 years of experience with dbt.
+• Able to explain pricing decisions to finance partners. (0.363292ms)
+✔ required experience quote: דרישות התפקיד
+• ותק בפיתוח צד שרת: 3 שנים ומעלה
+• 1 שנות ניסיון עם BigQuery
+• יכולת לכתוב מסמכי תכנון באנגלית (0.177708ms)
+✔ required experience quote: Minimum qualifications
+Commercial backend track record — 5 yrs exp.
+Hands-on: 2 years of experience with CockroachDB.
+Comfortable presenting an incident timeline. (0.178916ms)
+✔ required experience quote: For our release manager vacancy, you need a decade of experience coordinating production cutovers. (0.130792ms)
+✔ required experience quote: Your experience
+Career requirement: 11+ years total, 4+ in identity governance.
+Comfortable reviewing access policies with auditors. (0.115167ms)
+✔ required experience quote: Must-haves
+Licensed to work on laboratory equipment
+6 years as an instrumentation engineer
+## Optional extras
+### Domain background
+12 years of experience with radiotherapy tooling (0.190541ms)
+✔ required experience quote: | Criterion | Minimum |
+| :-- | :-- |
+| Relevant paid work | 9 years in a comparable developer role |
+| Required tool familiarity | 2 years of experience with WebAssembly | (0.18075ms)
+✔ required experience quote: דרישות התפקיד
+תחום | ותק מינימלי
+פיתוח יישומי ביטוח | 5 שנים ומעלה
+עבודה עם RabbitMQ | 2 שנות ניסיון
+נכונות להשתתף בתורנות (0.176ms)
+✔ required experience quote: You bring:
+• 4 years of experience with Argo CD
+• 10 years delivering production software in a similar capacity
+• Clear written communication across time zones (0.15925ms)
+✔ required experience quote: To be considered, you must have 13 years' experience in chemical process controls. (0.115917ms)
+✔ required experience quote: דרישות
+רקע מקצועי של שנתיים לפחות בהטמעת מערכות ERP; ניסיון בכתיבת מדריכים למשתמשים. (0.10525ms)
+✔ required experience quote: Minimum qualifications
+• 8 years managing payroll operations
+• 2 years of experience with Workday
+Both requirements apply to the successful applicant. (0.164958ms)
+✔ required experience quote: Eligibility
+Applicants must demonstrate 4 years of experience; three of those years must involve PCI-DSS audits. (0.125667ms)
+✔ required experience quote: דרישות:
+לפחות 6 שנות ניסיון בניהול מחסן אוטומטי, שמתוכן שנתיים בהובלת משמרת. (0.103833ms)
+✔ required experience quote: Personnel specification
+The selected engineer must have 5 years of experience in motor control; current projects use C, Ada and MATLAB. (0.131459ms)
+✔ required experience quote: ## Bonus
+### Practical exposure
+4 years of experience with Fluentd
+## Requirements
+Solid networking fundamentals; comfortable with rotating support. (0.121917ms)
+✔ required experience quote: Requirements
+| Area | Tenure |
+| Career | 12 overall years of experience |
+| Tooling | 3 years of experience using Pulumi | (0.218125ms)
+✔ required experience quote: דרישות לתפקיד מנהל הצלחת לקוחות
+נדרש ותק של 4 שנים בתפקיד דומה
+נדרש ניסיון של 2 שנים בעבודה עם HubSpot (0.109916ms)
+✔ required experience quote: Work history required
+At least 6
+years of commercial underwriting experience, including customer-facing renewals. (0.126417ms)
+✔ required experience quote: Requirements: 8 (YOE)
+2 years of experience with dbt (0.131459ms)
+✔ required experience quote: Requirements: 8 (YOE) and 2 years of experience with dbt (0.102959ms)
+✔ required experience quote: Requirements: 8 years of experience(YOE) (0.112791ms)
+✔ required experience quote: Requirements
+4-6y
+1 year of experience with SQLite (0.102792ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+4-6y (0.135125ms)
+✔ required experience quote: Requirements
+4-6y; 1 year of experience with SQLite (0.102292ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+4-6y (0.143084ms)
+✔ required experience quote: Requirements
+5y+
+1 year of experience with SQLite (0.101875ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+5y+ (0.133125ms)
+✔ required experience quote: Requirements
+5y+; 1 year of experience with SQLite (0.101417ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+5y+ (0.140875ms)
+✔ required experience quote: Requirements
+3yrs+
+1 year of experience with SQLite (0.102959ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+3yrs+ (0.134334ms)
+✔ required experience quote: Requirements
+3yrs+; 1 year of experience with SQLite (0.100542ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+3yrs+ (0.139333ms)
+✔ required experience quote: Requirements
+4–6y
+1 year of experience with SQLite (0.110334ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+4–6y (0.144042ms)
+✔ required experience quote: Requirements
+4–6y; 1 year of experience with SQLite (0.102916ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+4–6y (0.147208ms)
+✔ required experience quote: Requirements
+4-6Y
+1 year of experience with SQLite (0.102959ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+4-6Y (0.133458ms)
+✔ required experience quote: Requirements
+4-6Y; 1 year of experience with SQLite (0.102042ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+4-6Y (0.14ms)
+✔ required experience quote: Requirements
+5y+ of paid backend employment
+1 year of experience with SQLite (0.105292ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+5y+ of paid backend employment (0.135875ms)
+✔ required experience quote: Requirements
+5y+ of paid backend employment; 1 year of experience with SQLite (0.107917ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+5y+ of paid backend employment (0.1445ms)
+✔ required experience quote: Requirements
+Experience: 4-6y
+1 year of experience with SQLite (0.101458ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+Experience: 4-6y (0.132833ms)
+✔ required experience quote: Requirements
+Experience: 4-6y; 1 year of experience with SQLite (0.100917ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+Experience: 4-6y (0.141791ms)
+✔ required experience quote: Requirements
+Exp: 5+
+1 year of experience with SQLite (0.099375ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+Exp: 5+ (0.13025ms)
+✔ required experience quote: Requirements
+Exp: 5+; 1 year of experience with SQLite (0.098084ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+Exp: 5+ (0.1335ms)
+✔ required experience quote: Requirements
+Experience: 5+
+1 year of experience with SQLite (0.09675ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+Experience: 5+ (0.127916ms)
+✔ required experience quote: Requirements
+Experience: 5+; 1 year of experience with SQLite (0.09525ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+Experience: 5+ (0.138166ms)
+✔ required experience quote: Requirements
+YOE: 5
+1 year of experience with SQLite (0.11875ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+YOE: 5 (0.129542ms)
+✔ required experience quote: Requirements
+YOE: 5; 1 year of experience with SQLite (0.096459ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+YOE: 5 (0.133ms)
+✔ required experience quote: Requirements
+Professional experience (YOE): 6 (full time)
+1 year of experience with SQLite (0.121708ms)
+✔ required experience quote: Requirements
+1 year of experience with SQLite
+Professional experience (YOE): 6 (full time) (0.13425ms)
+✔ required experience quote: Requirements
+Professional experience (YOE): 6 (full time); 1 year of experience with SQLite (0.1015ms)
+✔ required experience quote: Requirements
+4 years of software engineering experience
+Optional
+Professional experience (YOE): 6 (full time) (0.151291ms)
+✔ required experience quote: Requirements
+Our founding group contributes 10+ years of combined team experience (0.509459ms)
+✔ required experience quote: Requirements
+Our founding group contributes 10+ years of combined team experience
+You need 4 years of software engineering experience (0.158875ms)
+✔ required experience quote: Requirements
+15+ years of combined team experience (0.104917ms)
+✔ required experience quote: Requirements
+15+ years of combined team experience
+You need 4 years of software engineering experience (0.140458ms)
+✔ required experience quote: Requirements
+Our team has 20 years of software engineering experience (0.116459ms)
+✔ required experience quote: Requirements
+Our team has 20 years of software engineering experience
+You need 4 years of software engineering experience (0.145542ms)
+✔ required experience quote: Requirements
+25 years of collective team experience (0.099291ms)
+✔ required experience quote: Requirements
+25 years of collective team experience
+You need 4 years of software engineering experience (0.137041ms)
+✔ required experience quote: Requirements
+Our founding team brings 30 years of experience (0.11175ms)
+✔ required experience quote: Requirements
+Our founding team brings 30 years of experience
+You need 4 years of software engineering experience (0.147334ms)
+✔ required experience quote: We require 7 (twelve preferred) years of automation experience (0.115916ms)
+✔ required experience quote: Required: 8 (thirteen preferred) years of platform experience (0.100416ms)
+✔ required experience quote: Required: six (9 preferred) years of engineering experience (0.099959ms)
+✔ required experience quote: Required: 6 (9 preferred) years of engineering experience (0.099291ms)
+✔ required experience quote: Required: 5 years of engineering experience (YOE) (0.110208ms)
+✔ required experience quote: Required: 5 years of engineering experience(YOE) (0.106209ms)
+✔ required experience quote: Requirements
+Professional experience (YOE): 6
+1 year of experience with ClickUp (0.787125ms)
+✔ required experience quote: Required: 5 years of engineering experience (YOE): 8 (0.183542ms)
+✔ required experience quote: Minimum 4 years of platform experience plus extensive work on build systems (0.130542ms)
+✔ required experience quote: Required: 6 years of engineering experience plus substantial experience operating relays (0.137125ms)
+✔ required experience quote: Requirements
+We are a company trusted by hospitals for over 20 years
+You need 5 years of software engineering experience (0.196625ms)
+✔ required experience quote: Required: 5 years of software engineering experience managing a team (0.115167ms)
+✔ required experience quote: Requirements
+🧑‍🔧 Experience: 4-6y in paid backend roles
+🛠 1 year of experience with QuestDB
+🌍 Able to join a European on-call rotation (0.132ms)
+✔ required experience quote: Requirements
+🔧 min. 3 yrs commercial experience in industrial telemetry
+🧪 1 year of experience using MQTT
+Clear written incident reports (0.193292ms)
+✔ required experience quote: Required
+📍 Backend employment: 3yrs+; ⛏ 1 year of experience with TimescaleDB
+Available for factory-site visits (0.109916ms)
+✔ required experience quote: Minimum qualifications
+✅ At least three (3) years of professional experience securing payment systems
+✅ 1 year of experience with Open Policy Agent (0.13175ms)
+✔ required experience quote: דרישות התפקיד
+🧭 שנתיים לפחות בתפעול מערכות תשלומים
+🛠 1 שנות ניסיון עם Priority
+זמינות לתורנות ערב (0.105583ms)
+✔ required experience quote: Requirements
+🧾 Exp: 5+ (paid backend roles)
+🔌 2 years of experience with Neo4j
+Attach a short architecture sample (0.106042ms)
+✔ required experience quote: Requirements
+We were founded 10 years ago to modernize freight payments.
+We require 4 years of software engineering experience maintaining settlement services. (0.114917ms)
+✔ required experience quote: Requirements
+Our founding group contributes 10+ years of combined team experience; candidates must be comfortable with rotating support. (0.124ms)
+✔ required experience quote: Requirements
+Applicants must have 6 years of software development experience in point-of-sale systems.
+Salary: ILS 24,000–32,000/month, reviewed after 2 years. (0.241417ms)
+✔ required experience quote: Compensation
+Salary band: ILS 22,000–29,000 per month, based on years of relevant experience.
+Requirements
+Able to explain a reconciliation discrepancy to merchants. (0.109ms)
+✔ required experience quote: Must-haves
+🧩 7+ YOE
+🗺 Toolchain includes LabVIEW and Jenkins
+Occasional travel to battery-test facilities (0.142084ms)
+✔ required experience quote: Requirements
+To join as a validation lead, you need a decade of experience auditing airborne electronics. (0.133ms)
+✔ required experience quote: דרישות
+נדרש עשור של ניסיון בפיתוח פתרונות נגישות למוסדות חינוך. (0.121875ms)
+✔ required experience quote: דרישות התפקיד
+🧮 נדרש ותק של 4 שנים ומעלה בפיתוח סימולטורים
+נכונות לביקורים במעבדת הלקוח (0.128333ms)
+✔ required experience quote: Requirements
+Experience ledger: 8 / yrs in a paid professional role
+Tool requirement: 2 years of experience using Nix (0.110708ms)
+✔ required experience quote: Required
+Professional experience (YOE): 6 (full time)
+Tooling: 1 year of experience with ClickUp (0.10325ms)
+✔ required experience quote: Qualifications
+🚦 2 years of experience with Datadog
+🚧 9y/o/e in commercial deployment roles
+Comfortable coordinating maintenance windows (0.145875ms)
+✔ required experience quote: Requirements
+👩‍💻 5 years of software engineering experience integrating dispatch APIs
+Optional
+🏁 12yrs+ with Formula Student telemetry (0.154625ms)
+✔ required experience quote: Qualifications:
+🧱 6 yrs professional experience producing warehouse orchestration services
+📦 Familiarity with EDI message formats (0.13275ms)
+✔ required experience quote: Requirements
+📌 Minimum tenure: 6 year(s) of professional experience
+📎 2 years of experience with COMSOL (0.116084ms)
+✔ required experience quote: Requirements
+With 24 years of combined team experience behind us, applicants must bring 7 years of software engineering experience
+2 years of experience with Milvus (0.119167ms)
+✔ required experience quote: Requirements
+You need 6 years of software development experience to complement our 30 years of collective team experience
+1 year of experience with Weaviate (0.113166ms)
+✔ required experience quote: Requirements
+With 24 years of combined team experience, you'll bring 7+ years of software engineering experience
+1 year of experience with Redis (0.112333ms)
+✔ required experience quote: Requirements
+1 year of experience with Redis
+With 24 years of combined team experience, you'll bring 7+ years of software engineering experience (0.152083ms)
+✔ required experience quote: Requirements
+You have 6+ years of software engineering experience alongside our 30 years of collective team experience
+1 year of experience with Redis (0.107916ms)
+✔ required experience quote: Requirements
+1 year of experience with Redis
+You have 6+ years of software engineering experience alongside our 30 years of collective team experience (0.142709ms)
+✔ required experience quote: Requirements
+Our 24 years of combined team experience means this role requires 7+ years of engineering experience
+1 year of experience with Redis (0.109458ms)
+✔ required experience quote: Requirements
+1 year of experience with Redis
+Our 24 years of combined team experience means this role requires 7+ years of engineering experience (0.143542ms)
+✔ required experience quote: Requirements
+With 24 years of combined team experience, applicants bring seven years of software engineering experience
+1 year of experience with Redis (0.130375ms)
+✔ required experience quote: Requirements
+1 year of experience with Redis
+With 24 years of combined team experience, applicants bring seven years of software engineering experience (0.138166ms)
+✔ required experience quote: Requirements
+With 24 years of combined team experience, applicant experience: 7+
+1 year of experience with Redis (0.106667ms)
+✔ required experience quote: Requirements
+1 year of experience with Redis
+With 24 years of combined team experience, applicant experience: 7+ (0.145667ms)
+✔ required experience quote: Requirements
+With 24 years of combined team experience, applicants bring 7y+
+1 year of experience with Redis (0.1105ms)
+✔ required experience quote: Requirements
+1 year of experience with Redis
+With 24 years of combined team experience, applicants bring 7y+ (0.139542ms)
+✔ required experience quote: Requirements
+At least 6 (3 preferred) years of software engineering experience
+1 year of experience with Redis (0.134959ms)
+✔ required experience quote: Requirements
+At least 6 (9 preferred) years of engineering experience or 3 years with a degree (0.11225ms)
+✔ required experience quote: Requirements
+We require five (eight preferred) years of software engineering experience
+Exp: 7+ (0.152084ms)
+✔ required experience quote: Optional qualifications
+At least 6 (9 preferred) years of software engineering experience (0.111583ms)
+✔ required experience quote: Requirements
+At least 6 (9 preferred) years (YOE): 8
+1 year of experience with Redis (0.130667ms)
+✔ required experience quote: Requirements
+At least 6 (9 preferred) years of software engineering experience (0.118959ms)
+✔ required experience quote: Requirements
+The founding group contributes 24 years of experience, applicants must bring 7 years of software engineering experience
+2 years of experience with Milvus (0.122042ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 24 years of experience, applicants must bring 7 years of software engineering experience (0.153ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience, while the founding group contributes 24 years of experience
+2 years of experience with Milvus (0.116416ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+You need 7 years of software engineering experience, while the founding group contributes 24 years of experience (0.1505ms)
+✔ required experience quote: Requirements
+Our company has 24 years of experience, applicants must bring 7 years of software engineering experience
+2 years of experience with Milvus (0.11975ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+Our company has 24 years of experience, applicants must bring 7 years of software engineering experience (0.147208ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience at our company with 24 years of experience
+2 years of experience with Milvus (0.11775ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+You need 7 years of software engineering experience at our company with 24 years of experience (0.158208ms)
+✔ required experience quote: Requirements
+Our engineers have 24 years of experience, applicants must bring 7 years of software engineering experience
+2 years of experience with Milvus (0.124459ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+Our engineers have 24 years of experience, applicants must bring 7 years of software engineering experience (0.157459ms)
+✔ required experience quote: Requirements
+We are a company trusted for 24 years, applicants need 7y+
+2 years of experience with Milvus (0.122166ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+We are a company trusted for 24 years, applicants need 7y+ (0.148792ms)
+✔ required experience quote: Requirements
+The founding group contributes 24 years of experience, applicant experience: 7+
+2 years of experience with Milvus (0.115333ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 24 years of experience, applicant experience: 7+ (0.144333ms)
+✔ required experience quote: Requirements
+You need 7y+, while the founding group contributes 24 years of experience
+2 years of experience with Milvus (0.119792ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+You need 7y+, while the founding group contributes 24 years of experience (0.148834ms)
+✔ required experience quote: Requirements
+Our company has 24 years of history, applicants bring seven years of experience
+2 years of experience with Milvus (0.115833ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+Our company has 24 years of history, applicants bring seven years of experience (0.144958ms)
+✔ required experience quote: Requirements
+החברה קיימת 24 שנה, נדרש ותק של 7 שנים
+2 years of experience with Milvus (0.136583ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+החברה קיימת 24 שנה, נדרש ותק של 7 שנים (0.1545ms)
+✔ required experience quote: Requirements
+The founding group contributes 24 years of experience
+You need 7 years of software engineering experience (0.150459ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 24 years of experience (0.1555ms)
+✔ required experience quote: Requirements
+24 years of experience at our company
+You need 7 years of software engineering experience (0.145ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+24 years of experience at our company (0.145542ms)
+✔ required experience quote: Requirements
+Our engineers have 24 years of experience
+You need 7 years of software engineering experience (0.147ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+Our engineers have 24 years of experience (0.146ms)
+✔ required experience quote: Requirements
+We are a company trusted for over 100 years
+You need 7 years of software engineering experience (0.147542ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+We are a company trusted for over 100 years (0.14525ms)
+✔ required experience quote: Required: 7 years of software engineering experience managing a team
+2 years of experience with Milvus (0.130541ms)
+✔ required experience quote: Required: 7 years of experience leading teams (0.105833ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteen to twenty years of experience
+You need 7 years of software engineering experience (0.148083ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteen to twenty years of experience (0.14675ms)
+✔ required experience quote: Requirements
+The founding group contributes fourteen to twenty years of experience
+You need 7 years of software engineering experience (0.146959ms)
+✔ required experience quote: Requirements
+The founding group contributes fifteen to twenty years of experience
+You need 7 years of software engineering experience (0.54425ms)
+✔ required experience quote: Requirements
+The founding group contributes seventeen to twenty years of experience
+You need 7 years of software engineering experience (1.698833ms)
+✔ required experience quote: Requirements
+The founding group contributes eighteen to twenty years of experience
+You need 7 years of software engineering experience (0.244125ms)
+✔ required experience quote: Requirements
+The founding group contributes nineteen to twenty years of experience
+You need 7 years of software engineering experience (0.220542ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteen to twenty years of experience (0.344458ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 to 20 years of experience
+You need 7 years of software engineering experience (2.350125ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 to 20 years of experience (2.322125ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 to 20 years of experience (0.149ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 to20 years of experience
+You need 7 years of software engineering experience (4.354458ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 to20 years of experience (0.26275ms)
+✔ required experience quote: Requirements
+The founding group contributes 16-20 years of experience
+You need 7 years of software engineering experience (0.167084ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16-20 years of experience (0.162667ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 -20 years of experience
+You need 7 years of software engineering experience (0.157209ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 -20 years of experience (0.149458ms)
+✔ required experience quote: Requirements
+The founding group contributes 16- 20 years of experience
+You need 7 years of software engineering experience (0.15325ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16- 20 years of experience (0.172708ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 - 20 years of experience
+You need 7 years of software engineering experience (0.166709ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 - 20 years of experience (0.149875ms)
+✔ required experience quote: Requirements
+The founding group contributes 16–20 years of experience
+You need 7 years of software engineering experience (0.215ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16–20 years of experience (0.168833ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 –20 years of experience
+You need 7 years of software engineering experience (0.185125ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 –20 years of experience (0.155ms)
+✔ required experience quote: Requirements
+The founding group contributes 16– 20 years of experience
+You need 7 years of software engineering experience (0.162083ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16– 20 years of experience (0.154666ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 – 20 years of experience
+You need 7 years of software engineering experience (0.317458ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 – 20 years of experience (0.17075ms)
+✔ required experience quote: Requirements
+The founding group contributes 16—20 years of experience
+You need 7 years of software engineering experience (0.179292ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16—20 years of experience (0.16025ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 —20 years of experience
+You need 7 years of software engineering experience (0.150125ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 —20 years of experience (0.162125ms)
+✔ required experience quote: Requirements
+The founding group contributes 16— 20 years of experience
+You need 7 years of software engineering experience (0.17425ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16— 20 years of experience (0.1635ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 — 20 years of experience
+You need 7 years of software engineering experience (0.155625ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 — 20 years of experience (2.979958ms)
+✔ required experience quote: Requirements
+The founding group contributes 16to20 years of experience
+You need 7 years of software engineering experience (0.252917ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16to20 years of experience (0.196459ms)
+✔ required experience quote: Requirements
+The founding group contributes 16to 20 years of experience
+You need 7 years of software engineering experience (0.16525ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16to 20 years of experience (0.151834ms)
+✔ required experience quote: Requirements
+The founding group contributes 16עד20 years of experience
+You need 7 years of software engineering experience (0.185791ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16עד20 years of experience (0.164625ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 עד20 years of experience
+You need 7 years of software engineering experience (0.166917ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 עד20 years of experience (0.153667ms)
+✔ required experience quote: Requirements
+The founding group contributes 16עד 20 years of experience
+You need 7 years of software engineering experience (0.152375ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16עד 20 years of experience (0.159208ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 עד 20 years of experience
+You need 7 years of software engineering experience (0.152583ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 עד 20 years of experience (0.161958ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל20 years of experience
+You need 7 years of software engineering experience (0.185875ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16ל20 years of experience (0.149375ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 ל20 years of experience
+You need 7 years of software engineering experience (0.150833ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 ל20 years of experience (0.145958ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל 20 years of experience
+You need 7 years of software engineering experience (0.146541ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16ל 20 years of experience (0.146916ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 ל 20 years of experience
+You need 7 years of software engineering experience (0.149208ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 ל 20 years of experience (0.147625ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל-20 years of experience
+You need 7 years of software engineering experience (0.147333ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16ל-20 years of experience (0.147125ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 ל-20 years of experience
+You need 7 years of software engineering experience (0.148ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 ל-20 years of experience (0.160833ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל- 20 years of experience
+You need 7 years of software engineering experience (0.1515ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16ל- 20 years of experience (0.758459ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 ל- 20 years of experience
+You need 7 years of software engineering experience (0.19925ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 ל- 20 years of experience (0.367166ms)
+✔ required experience quote: Requirements
+The founding group contributes fourteentotwenty years of experience
+You need 7 years of software engineering experience (0.178708ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes fourteentotwenty years of experience (0.147083ms)
+✔ required experience quote: Requirements
+The founding group contributes sixtofourteen years of experience
+You need 7 years of software engineering experience (0.146834ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixtofourteen years of experience (0.146625ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteentotwenty years of experience
+You need 7 years of software engineering experience (0.15725ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteentotwenty years of experience (0.141ms)
+✔ required experience quote: Requirements
+The founding group contributes sixtosixteen years of experience
+You need 7 years of software engineering experience (0.141417ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixtosixteen years of experience (0.141875ms)
+✔ required experience quote: Requirements
+The founding group contributes seventeentotwenty years of experience
+You need 7 years of software engineering experience (0.173958ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes seventeentotwenty years of experience (0.152167ms)
+✔ required experience quote: Requirements
+The founding group contributes sixtoseventeen years of experience
+You need 7 years of software engineering experience (0.141333ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixtoseventeen years of experience (0.139625ms)
+✔ required experience quote: Requirements
+The founding group contributes eighteentotwenty years of experience
+You need 7 years of software engineering experience (0.138416ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes eighteentotwenty years of experience (0.152084ms)
+✔ required experience quote: Requirements
+The founding group contributes sixtoeighteen years of experience
+You need 7 years of software engineering experience (0.141833ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixtoeighteen years of experience (0.138709ms)
+✔ required experience quote: Requirements
+The founding group contributes nineteentotwenty years of experience
+You need 7 years of software engineering experience (0.142083ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes nineteentotwenty years of experience (0.141958ms)
+✔ required experience quote: Requirements
+The founding group contributes sixtonineteen years of experience
+You need 7 years of software engineering experience (0.14125ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixtonineteen years of experience (0.149375ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteen to20 years of experience
+You need 7 years of software engineering experience (0.140084ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteen to20 years of experience (0.137958ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 tosixteen years of experience
+You need 7 years of software engineering experience (0.138875ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 tosixteen years of experience (0.138417ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteento20 years of experience
+You need 7 years of software engineering experience (0.136791ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteento20 years of experience (0.137458ms)
+✔ required experience quote: Requirements
+The founding group contributes 16tosixteen years of experience
+You need 7 years of software engineering experience (0.138542ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16tosixteen years of experience (0.139291ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteen-twenty years of experience
+You need 7 years of software engineering experience (0.139625ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteen-twenty years of experience (0.138667ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteen–twenty years of experience
+You need 7 years of software engineering experience (0.174833ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteen–twenty years of experience (0.148208ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteen—twenty years of experience
+You need 7 years of software engineering experience (0.143625ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteen—twenty years of experience (0.142667ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteenעדtwenty years of experience
+You need 7 years of software engineering experience (0.146375ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteenעדtwenty years of experience (0.142583ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteenלtwenty years of experience
+You need 7 years of software engineering experience (0.143041ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteenלtwenty years of experience (0.145041ms)
+✔ required experience quote: Requirements
+The founding group contributes sixteenל-twenty years of experience
+You need 7 years of software engineering experience (0.142458ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes sixteenל-twenty years of experience (0.142958ms)
+✔ required experience quote: Requirements
+The founding group contributes 16	to	20 years of experience
+You need 7 years of software engineering experience (0.146708ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16	to	20 years of experience (0.139333ms)
+✔ required experience quote: Requirements
+The founding group contributes 16	-	20 years of experience
+You need 7 years of software engineering experience (0.13975ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16	-	20 years of experience (0.13875ms)
+✔ required experience quote: Requirements
+The founding group contributes 16 to20 years of experience
+You need 7 years of software engineering experience (0.138333ms)
+✔ required experience quote: Requirements
+You need 7 years of software engineering experience
+The founding group contributes 16 to20 years of experience (0.140209ms)
+✔ required experience quote: Requirements
+The founding group contributes 16-20 years of experience (0.103792ms)
+✔ required experience quote: Requirements
+The founding group contributes 16-20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.111208ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16-20 years of experience, applicants must bring seven years of software engineering experience (0.14025ms)
+✔ required experience quote: Requirements
+The founding group contributes 16–20 years of experience (0.116125ms)
+✔ required experience quote: Requirements
+The founding group contributes 16–20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.115667ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16–20 years of experience, applicants must bring seven years of software engineering experience (0.148833ms)
+✔ required experience quote: Requirements
+The founding group contributes 16—20 years of experience (0.106541ms)
+✔ required experience quote: Requirements
+The founding group contributes 16—20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.113792ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16—20 years of experience, applicants must bring seven years of software engineering experience (0.152292ms)
+✔ required experience quote: Requirements
+The founding group contributes 16to20 years of experience (0.106916ms)
+✔ required experience quote: Requirements
+The founding group contributes 16to20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.107542ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16to20 years of experience, applicants must bring seven years of software engineering experience (0.138708ms)
+✔ required experience quote: Requirements
+The founding group contributes 16עד20 years of experience (0.110458ms)
+✔ required experience quote: Requirements
+The founding group contributes 16עד20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.1135ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16עד20 years of experience, applicants must bring seven years of software engineering experience (0.146042ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל20 years of experience (0.107958ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.113208ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16ל20 years of experience, applicants must bring seven years of software engineering experience (0.1435ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל-20 years of experience (0.110875ms)
+✔ required experience quote: Requirements
+The founding group contributes 16ל-20 years of experience, applicants must bring seven years of software engineering experience
+2 years of experience with Milvus (0.112875ms)
+✔ required experience quote: Requirements
+2 years of experience with Milvus
+The founding group contributes 16ל-20 years of experience, applicants must bring seven years of software engineering experience (0.1445ms)
+✔ Workable export URLs become a human page without changing other hosts (0.215292ms)
+✔ seniority is explicit title evidence; unspecified titles stay unknown (0.352667ms)
+✔ experience quotes requirements and does not turn company age into experience (0.329125ms)
+✔ experience requires applicant context and rejects company, negated, and wishful prose (0.619875ms)
+✔ bare company-tenure prose stays unknown unless an applicant heading is active (1.496042ms)
+✔ experience accepts explicit professional tenure in mandatory context (1.793167ms)
+✔ preferred years and non-applicant durations are not required experience (0.489542ms)
+✔ technology aliases stay explicit and avoid prose and substring collisions (3.56325ms)
+✔ same status is a no-op, while a different status is a mutation (1.718875ms)
+✔ a same-status rejection still saves a changed verbatim reason (0.5985ms)
+✔ New transitions retain the card, while explicit non-New edits may remove it (0.151708ms)
+✔ timestamp distinguishes missing chronology from epoch and pre-epoch dates (0.46275ms)
+✔ only New for me cards that moved on from new get a kept status (0.491916ms)
+✔ a qualifying card renders exactly as before (548.902458ms)
+✔ LinkedIn closure badge labels its evidence link with the viewer's checked date (442.477916ms)
+✔ LinkedIn repost labels require explicit same-posting evidence, regardless of linked dates (0.47175ms)
+✔ repost tooltip shows a local checked date only for same-posting LinkedIn evidence (14.046875ms)
+✔ shared projection contract: 2h59m confirmed (1.467375ms)
+✔ shared projection contract: 3h01m stale (0.335834ms)
+✔ shared projection contract: fresh legacy success (0.076833ms)
+✔ shared projection contract: three hours inclusive (0.080166ms)
+✔ shared projection contract: three hours exceeded (0.079875ms)
+✔ shared projection contract: unknown after success (0.066792ms)
+✔ shared projection contract: pending miss (0.059083ms)
+✔ shared projection contract: duplicate cannot refresh (0.052542ms)
+✔ shared projection contract: closure survives unknown (0.103542ms)
+✔ shared projection contract: deadline overrides success (0.102583ms)
+✔ shared projection contract: deadline without presence (0.064ms)
+✔ shared projection contract: deadline overrides unknown attempt (0.069834ms)
+✔ shared projection contract: extension cannot reopen removed page (0.048125ms)
+✔ shared projection contract: deadline inclusive (0.044042ms)
+✔ shared projection contract: deadline extended (0.037791ms)
+✔ shared projection contract: missing success timestamp (0.054625ms)
+✔ shared projection contract: invalid timestamp (0.11275ms)
+✔ shared projection contract: future success (0.04775ms)
+✔ shared projection contract: zoned timestamp (0.044292ms)
+✔ shared projection contract: naive success rejected (0.047333ms)
+✔ shared projection contract: unparsed deadline ignored (0.046792ms)
+✔ shared projection contract: missing presence (0.051458ms)
+✔ shared projection contract: malformed presence (0.057333ms)
+✔ summary readers preserve stale history without returning fresh alive (9.934542ms)
+✔ slim globe snapshots cannot assert fresh availability without confirmation evidence (1.059292ms)
+✔ all list paths fetch and project latest-attempt and deadline evidence (51.149416ms)
+✔ liveness badge displays stale confirmation age and explicit deadline status (271.627917ms)
+✔ local DB commands require deliberate opt-in before any spawn (4.500209ms)
+✔ signals during hanging up/seed stop the stack and remove suite handlers (1.654792ms)
+✔ teardown failure is logged without masking the original failure (1.676875ms)
+✔ capped suite stops local stacks after success or failure, preserving volumes (0.936917ms)
+✔ test database refuses hosted, alternate-port and missing configuration (0.904917ms)
+✔ new roles pill names the refresh action (410.153084ms)
+✔ the cutoff is the newest loaded first_seen_at, verbatim, so the newest loaded role is never counted as new (0.57325ms)
+✔ an empty view counts every matching role, since nothing of it is loaded (0.068709ms)
+✔ the poll asks the count endpoint for a count of roles newer than the cutoff (0.553083ms)
+✔ the notice is singular for one role, marks a truncated page, and is absent when nothing is new (0.865375ms)
+✔ a truncated page whose sampled roles are all hidden still offers Show (0.2415ms)
+✔ the pill counts cards Show will add under the current view, not raw postings (16.767042ms)
+✔ unordered RPC current markers give the same new-card count for every permutation (8.073166ms)
+✔ status reconciliation applies the same mutations regardless of current-marker order (0.942417ms)
+✔ a confirmed status PATCH is reconciled into a list read that may predate it (0.198083ms)
+✔ Next emits standalone output locally and leaves Vercel output to its adapter (311.995958ms)
+✔ Vercel functions execute beside the Frankfurt-hosted database (0.874ms)
+✔ a non-publishable Logo.dev key fails the build instead of being inlined into client JavaScript (381.201042ms)
+✔ browser Host survives Next internal URL rewriting; foreign Origin is rejected (14.796958ms)
+✔ configured HTTPS tailnet origin survives an internal HTTP proxy (0.383791ms)
+✔ private pages and APIs deny unauthenticated callers without trusting a cookie session (3.995459ms)
+✔ a valid Supabase identity outside the owner allowlist is forbidden (0.267042ms)
+✔ missing or malformed auth configuration fails closed (3.707ms)
+✔ the configured owner can reach pages, data, and mutations (0.225083ms)
+✔ only the explicit login, callback, recovery, and static paths are public (0.101375ms)
+✔ every current page and route file is covered by the default-private policy (1.173041ms)
+✔ the proxy verifies claims and forwards refreshed cookies with anti-cache headers (9.507375ms)
+✔ signed-in owner visiting login is redirected with refreshed cookies (0.759834ms)
+✔ signed-in login redirects allow only private internal next paths (1.189333ms)
+✔ anonymous, non-owner, claim-error, and invalid-config visitors stay on login (0.622542ms)
+✔ post-auth redirects stay on an internal path (0.5895ms)
+✔ recovery is available only with the explicit operator gate and complete server config (1.141708ms)
+✔ recovery sends only to the configured owner without creating an account (23.87125ms)
+✔ recovery rejects missing or foreign Origin before sending (1.963208ms)
+✔ callback accepts only a verified allowlisted owner and safe redirect (0.522708ms)
+✔ callback rejects missing codes, failed exchanges, and non-owner identities (0.425541ms)
+✔ signed-out auth follows the system theme and overrides any existing dashboard class (0.483334ms)
+✔ the pinned Supabase client exposes the opted-in passkey ceremonies (14.927292ms)
+✔ passkey errors distinguish configuration, enrollment, cancellation, and availability (0.319667ms)
+✔ manual cancellation settles and aborts when the credential provider never returns (1.618333ms)
+✔ the deadline settles, aborts, and ignores a late provider completion (0.182ms)
+✔ SDK success and error both settle and clear the deadline (0.140167ms)
+✔ cancelling a stuck browser ceremony prevents late verification and session creation (0.1975ms)
+✔ verification is the non-cancellable commit point (0.195417ms)
+✔ a verification deadline requires navigation instead of allowing a stale retry (0.183666ms)
+✔ posted and found render as plus and search icons with compact ages and full labels (460.034333ms)
+✔ missing publish date shows only discovery (553.345417ms)
+✔ republication renders a recycle icon with its own timestamp (348.526875ms)
+✔ no recycle icon when the latest publication is the original one (299.097917ms)
+✔ the calendar-plus alternative swaps only the posted glyph (304.014167ms)
+✔ static mode renders no buttons so it can sit inside another button (299.095833ms)
+✔ no dates renders an explicit unavailable label (258.952166ms)
+✔ profile priorities can move earlier without sorting the other entries (0.89375ms)
+✔ profile priorities can move later without mutating the saved array (0.079375ms)
+✔ invalid and unchanged moves preserve the current order (0.070291ms)
+✔ profile PATCH forwards and reloads the chosen array order without a database write (29.707ms)
+✔ refresh accepts only exact canonical brand names or domain labels (0.970875ms)
+✔ refresh queries unseen names once, keeps null decisions, throttles and discards provider URLs (20.84675ms)
+✔ refresh errors preserve decisions and never include credentials or provider bodies (0.614458ms)
+✔ transport errors and invalid JSON are sanitized without credentials (0.3415ms)
+✔ CLI preserves known/null decisions without a provider request and fails safely on invalid input (309.145375ms)
+✔ malformed candidates are provider errors, not permanent low-confidence decisions (2.890625ms)
+✔ matching candidate name cannot admit unrelated domain vwavemedical.com (0.125958ms)
+✔ matching candidate name cannot admit unrelated domain cleanico.co.bw (0.067417ms)
+✔ matching candidate name cannot admit unrelated domain buildonasean2021.com (0.09775ms)
+✔ matching candidate name cannot admit unrelated domain autenticalamichoacana.com (0.141583ms)
+✔ ownership resemblance preserves verified abbreviations and distinctive tokens (0.219166ms)
+✔ JD quality reasons explain why automatic scoring is withheld (0.482417ms)
+{"event":"request_complete","operation":"job_list","requestId":"f381b91b-5fec-4d7f-8e34-202068aaa57f","status":200,"duration_ms":13}
+{"event":"request_complete","operation":"job_list","requestId":"64f3efeb-26df-4f84-bb4e-594d4efb4426","status":200,"duration_ms":2}
+{"event":"request_complete","operation":"job_list","requestId":"84b5acc8-f631-450b-a4c3-8f62c3f29739","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"689a08a0-03b2-43c7-92e4-8efee22e80be","status":200,"duration_ms":2}
+{"event":"request_complete","operation":"job_list","requestId":"fd89a209-dde9-4b95-91fe-be634017967d","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"eb07f2b2-343f-402e-9326-56196bfefba3","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"5444d2fc-544d-4eda-b916-99a933164a6c","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"cca0a241-469e-491d-b6f2-4fc8626fd94b","status":200,"duration_ms":1}
+✔ repost evidence survives every slim list path and the HTTP response (1775.692791ms)
+✔ detail summary retains validated LinkedIn repost evidence (1.502917ms)
+✔ eligibility rejects non-string or blank reason null (2.1805ms)
+✔ eligibility rejects non-string or blank reason "" (0.173125ms)
+✔ eligibility rejects non-string or blank reason " \t\n" (0.088375ms)
+✔ scoring explanation contracts preserve long Unicode multiline text verbatim (0.503125ms)
+✔ skipped rows parse without exposing a hosted-unsafe selectable option (26.211666ms)
+{"event":"request_complete","operation":"job_list","requestId":"7ad11a8f-04dc-4fc9-a9ec-84348a8b8116","status":200,"duration_ms":6}
+{"event":"request_complete","operation":"job_list","requestId":"483cc248-54c6-4917-8a19-d0f0009165cf","status":200,"duration_ms":1}
+{"event":"request_complete","operation":"job_list","requestId":"b9d218ca-d0d3-4241-9d49-89fa6c93ac4c","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"d42b681b-7a21-4240-8c37-d588d96b7f8a","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"c06217af-c3bf-410f-bc72-ef4efdba221b","status":400,"duration_ms":0}
+{"event":"request_complete","operation":"job_list","requestId":"57ef6ee2-c302-40f6-8127-02306e7757a2","status":400,"duration_ms":0}
+{"event":"request_failed","operation":"job_list","requestId":"b9d218ca-d0d3-4241-9d49-89fa6c93ac4c","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"d42b681b-7a21-4240-8c37-d588d96b7f8a","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"c06217af-c3bf-410f-bc72-ef4efdba221b","status":400,"category":"request"}
+{"event":"request_failed","operation":"job_list","requestId":"57ef6ee2-c302-40f6-8127-02306e7757a2","status":400,"category":"request"}
+{"event":"request_complete","operation":"job_list","requestId":"4a78f77b-6b4b-4bdb-b7e8-5d35f8c154ae","status":200,"duration_ms":50}
+{"event":"request_complete","operation":"job_list","requestId":"d33a4949-c4f5-4402-bbe2-fd9dca5e5e2a","status":200,"duration_ms":1}
+✔ globe projection retains filter identity but drops card/detail fields (3.209166ms)
+✔ poll returns count only and uses narrow SQL snapshot with view and loaded ids (24.513209ms)
+✔ the probe returns bounded cohort IDs and reconciliation retains its truncated sentinel after deletion (51.092875ms)
+✔ requested brand aliases resolve to real local assets (10.567917ms)
+✔ concepts and unsupported identities stay text instead of borrowing a logo (0.415625ms)
+✔ near-black monochrome marks inherit readable foreground color (0.083875ms)
+✔ chip window trims, deduplicates, caps four, expands, and collapses (0.584416ms)
+✔ provenance covers every added asset with matching bytes and safe SVGs (46.064167ms)
+✔ non-CC0 Simple Icons assets have pinned attribution and exact notices (3.635542ms)
+✔ requisition extraction recognizes NVIDIA, Workday and labelled JD IDs (2.869583ms)
+✔ Greenhouse jobs path is posting evidence, never a requisition (0.227417ms)
+✔ Greenhouse gh_jid is posting evidence, never a requisition (0.160208ms)
+✔ Greenhouse embed token is posting evidence, never a requisition (0.0845ms)
+✔ Lever UUID is posting evidence, never a requisition (0.188542ms)
+✔ Comeet position UID is posting evidence, never a requisition (0.140583ms)
+✔ Workable shortcode is posting evidence, never a requisition (0.121875ms)
+✔ explicit JD labels retain employer IDs independently of ATS posting IDs (0.1345ms)
+✔ JD fingerprint ignores formatting and bounded boilerplate while preserving role requirements (0.289834ms)
+✔ fingerprints retain technology punctuation and ambiguous requisitions remain explicit (0.366917ms)
+✔ body technology or unlabelled short ID is not a requisition: FHIR R4 (0.078958ms)
+✔ body technology or unlabelled short ID is not a requisition: S3/R2 (0.338625ms)
+✔ body technology or unlabelled short ID is not a requisition: R2D2 (0.241208ms)
+✔ body technology or unlabelled short ID is not a requisition: Python 3, R 4.2 (0.068917ms)
+✔ body technology or unlabelled short ID is not a requisition: Cloudflare R2 (0.042708ms)
+✔ body technology or unlabelled short ID is not a requisition: R123456 (0.103042ms)
+✔ body technology or unlabelled short ID is not a requisition: JR1234 (0.058292ms)
+✔ Workday R IDs require five digits in the URL path and cannot come from query or body (0.141333ms)
+✔ generic job labels are not requisition evidence (0.246708ms)
+✔ JD requisitions matching a URL posting ID are ignored (0.215292ms)
+✔ fingerprints require at least 400 normalized role-body characters (0.109833ms)
+✔ incidental URL numbers preserve requisitions: https://boards.greenhouse.io/employer12345/jobs/90001?utm_campaign=12345 (0.05225ms)
+✔ incidental URL numbers preserve requisitions: https://boards.greenhouse.io/embed/job_app?token=12345 (0.039375ms)
+✔ incidental URL numbers preserve requisitions: https://example.test/jobs/12345?campaign=12345&currentJobId=12345 (0.033791ms)
+✔ incidental URL numbers preserve requisitions: https://www.comeet.com/jobs/employer/12.12345/JR90001/engineer (0.034167ms)
+✔ incidental URL numbers preserve requisitions: https://apply.workable.com/employer12345/j/90001/ (0.80875ms)
+✔ incidental URL numbers preserve requisitions: https://jobs.lever.co/employer12345/12345678-1234-1234-1234-123456789abc?utm_source=12345 (0.160917ms)
+✔ incidental URL numbers preserve requisitions: https://www.linkedin.com/jobs/view/90001?campaign=12345 (0.181042ms)
+✔ incidental URL numbers preserve requisitions: https://employer.wd1.myworkdayjobs.com/12345/job/Title_R90001 (0.300583ms)
+✔ recognized provider posting fields suppress only their full IDs (0.397916ms)
+✔ unpunctuated Job Req and Job Requisition retain numeric and employer IDs (0.392041ms)
+✔ an unrelated tracking number preserves an explicit requisition (11.045042ms)
+✔ distinct requisitions stay separate when a URL has numeric tracking (11.651708ms)
+✔ the explicit Job Req label allows an omitted colon (0.139542ms)
+✔ distinct unpunctuated Job Req labels prevent merging (0.403958ms)
+✔ snapshot identity hydration batches captured IDs, preserves deleted rows and never emits JD (84.284791ms)
+✔ identity read errors fall back to URL evidence and log without leaking bodies (7008.955875ms)
+✔ new-role count uses the same JD identity as board and globe (17.721209ms)
+✔ only repeated normalized employers without URL requisitions fetch bodies (1.48925ms)
+✔ singleton and URL-identified responses perform no body read (0.494291ms)
+✔ late board candidates retain distinct requisitions for grouping (25.790584ms)
+✔ transport uses URL-only fallback for the failed batch and continues later batches (7013.513125ms)
+✔ invalid evidence uses URL-only fallback for the failed batch and continues later batches (2.463292ms)
+✔ globe and new-role count survive JD evidence read failures (9.732084ms)
+✔ every offered window round-trips and uses its inclusive day cutoff (2.42075ms)
+✔ RPC routing keeps neutral facets explicit and poll windows on the cursor path (0.140625ms)
+✔ hybrid survives saved preferences (2.185083ms)
+ℹ tests 1053
+ℹ suites 0
+ℹ pass 1053
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19207.583667
+✔ AssessmentSheet qualifies blocked apply advice (3.654792ms)
+✔ AssessmentSheet qualifies unknown apply advice (0.316125ms)
+✔ AssessmentSheet qualifies eligible apply advice (0.234708ms)
+✔ AssessmentSheet qualifies legacy apply advice (0.290542ms)
+✔ previous archived assessment keeps its eligibility qualification (0.885625ms)
+✔ current unknown advice follows its reason prefix (0.342333ms)
+✔ current unknown advice follows its reason prefix (0.212542ms)
+✔ archived unknown advice follows its reason prefix (0.284542ms)
+✔ archived unknown advice follows its reason prefix (0.26575ms)
+✔ intent waits for the delay and leaving cancels it (0.993167ms)
+✔ moving across cards keeps one pending intent: only the resting card prefetches (0.104ms)
+✔ a stale leave for another card does not cancel the current intent (0.078334ms)
+✔ a hidden tab never prefetches, even if it hides during the delay (0.097166ms)
+✔ dispose clears the pending intent (0.114292ms)
+✔ server facet changes retain the New-for-me visit cohort across query keys (1.757083ms)
+✔ list cache isolates every server facet, canonicalizing OR status order (0.123208ms)
+✔ list queries isolate filter and availability and reuse their cached response (0.624917ms)
+✔ an abandoned list read cannot publish into the next view (0.345625ms)
+✔ a confirmed PATCH survives an older Show read without losing arrivals or a replacement GET (1.168625ms)
+✔ automatic Seen retains the active New-for-me cohort and drops inactive views (0.281958ms)
+✔ an uncached read applies only overlapping confirmations and later reads use server truth (0.137917ms)
+✔ confirmation ordering survives inactive-query GC without overriding subsequent server truth (4.881542ms)
+✔ a status confirmation drops inactive Seen results without refetching the active list (0.382167ms)
+✔ a held detail read keeps an overlapping confirmed status; a later opening uses server truth (0.294458ms)
+✔ closing a detail observer aborts its read and cannot publish into the next selected role (0.911916ms)
+✔ hover prefetch and the drawer share one detail query: open reads from cache, staleTime bounds refetches (14.867084ms)
+✔ a status-only cache write keeps the detail read's age, so score and body still refresh after staleTime (0.2535ms)
+✔ found windows isolate list caches and retained New-for-me cohorts (0.113958ms)
+✔ filtered postings leave retained normal tabs and remain only in the archive (0.0735ms)
+✔ an override defeats a held archive read but a later JD verdict stays authoritative (0.131292ms)
+✔ server facets partition snapshots, including legacy remote (0.089375ms)
+✔ list prefix clears all facets only for the selected visit (0.154792ms)
+✔ a duplicate arriving between probe and reconcile cannot change the probed cohort (497.609917ms)
+✔ new-role queries poll every 90s, pause while hidden and focus only after a 15s quiet gap (0.404959ms)
+✔ the poll posts only loaded ids and view and consumes a count response (1.011042ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 739.6475
