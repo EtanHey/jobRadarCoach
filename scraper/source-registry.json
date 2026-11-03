@@ -2201,6 +2201,247 @@
       ],
       "last_verified_at": "2026-10-18",
       "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "affirm"
+      },
+      "company": "Affirm",
+      "careers_url": "https://job-boards.greenhouse.io/affirm",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/affirm/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "appsflyer"
+      },
+      "company": "AppsFlyer",
+      "careers_url": "https://job-boards.greenhouse.io/appsflyer",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/appsflyer/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "ashleydigital"
+      },
+      "company": "Ashley Digital",
+      "careers_url": "https://job-boards.greenhouse.io/ashleydigital",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/ashleydigital/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "avride"
+      },
+      "company": "Avride",
+      "careers_url": "https://job-boards.greenhouse.io/avride",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/avride/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "careaccess"
+      },
+      "company": "Care Access",
+      "careers_url": "https://job-boards.greenhouse.io/careaccess",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/careaccess/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "cloudflare"
+      },
+      "company": "Cloudflare",
+      "careers_url": "https://job-boards.greenhouse.io/cloudflare",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/cloudflare/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "courierhealth"
+      },
+      "company": "Courier Health",
+      "careers_url": "https://job-boards.greenhouse.io/courierhealth",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/courierhealth/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "discord"
+      },
+      "company": "Discord",
+      "careers_url": "https://job-boards.greenhouse.io/discord",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/discord/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "mitratech"
+      },
+      "company": "Mitratech",
+      "careers_url": "https://job-boards.greenhouse.io/mitratech",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/mitratech/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "rackner"
+      },
+      "company": "Rackner",
+      "careers_url": "https://job-boards.greenhouse.io/rackner",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/rackner/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "ramp"
+      },
+      "company": "Ramp",
+      "careers_url": "https://job-boards.greenhouse.io/ramp",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/ramp/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "robinhood"
+      },
+      "company": "Robinhood",
+      "careers_url": "https://job-boards.greenhouse.io/robinhood",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/robinhood/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "squarespace"
+      },
+      "company": "Squarespace",
+      "careers_url": "https://job-boards.greenhouse.io/squarespace",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/squarespace/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "toast"
+      },
+      "company": "Toast",
+      "careers_url": "https://job-boards.greenhouse.io/toast",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/toast/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
+    },
+    {
+      "source": "greenhouse",
+      "identifiers": {
+        "board": "vybs",
+        "region": "eu"
+      },
+      "company": "VYBS",
+      "careers_url": "https://job-boards.eu.greenhouse.io/vybs",
+      "provenance": [
+        {
+          "kind": "auto-discovery-probe",
+          "reference": "https://boards-api.greenhouse.io/v1/boards/vybs/jobs?content=false"
+        }
+      ],
+      "last_verified_at": "2026-10-25",
+      "enabled": true
     }
   ]
 }
